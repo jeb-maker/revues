@@ -2,6 +2,21 @@
 
 Comment utiliser les issues pour déléguer le développement de **Revues**.
 
+## Harness agents (obligatoire)
+
+Avant d'assigner une issue à un agent ou un contributeur :
+
+1. Vérifier que le **harness** est mergé sur `main` ([AGENTS.md](../AGENTS.md))
+2. L'agent lit : `AGENTS.md` → issue → `CONVENTIONS.md` → `DEFINITION_OF_DONE.md`
+3. Chaque PR doit passer `./scripts/check.sh` et la [checklist PR](../.github/PULL_REQUEST_CHECKLIST.md)
+4. Consulter [REVIEW_ADVERSE.md](./REVIEW_ADVERSE.md) pour les pièges connus
+
+```bash
+# Prompt agent type
+Implémente UNIQUEMENT l'issue #N du repo jeb-maker/revues.
+Lis AGENTS.md. ./scripts/check.sh avant push. PR : Closes #N.
+```
+
 ## Organisation recommandée
 
 ### 1. Milestones (à créer manuellement)
@@ -114,6 +129,10 @@ Crée les 28 issues (3 épiques + 25 tâches). Labels et milestones à ajouter m
 
 ## Documents de référence
 
+- [AGENTS.md](../AGENTS.md) — contrat agents
 - [PLAN.md](./PLAN.md) — vision complète
 - [ROADMAP.md](./ROADMAP.md) — dépendances et ordre
+- [REVIEW_ADVERSE.md](./REVIEW_ADVERSE.md) — revue critique
+- [RBAC.md](./RBAC.md) — permissions
+- [DEFINITION_OF_DONE.md](./DEFINITION_OF_DONE.md) — critères merge
 - [Issues](https://github.com/jeb-maker/revues/issues)

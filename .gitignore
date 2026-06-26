@@ -1,0 +1,15 @@
+# Données locales
+data/
+.env
+
+# Go
+/tmp/
+*.exe
+*.test
+# Binaire compilé (racine uniquement)
+/revues
+
+# IDE
+.idea/
+.vscode/
+*.swp
