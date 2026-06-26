@@ -6,7 +6,8 @@ data/
 /tmp/
 *.exe
 *.test
-revues
+# Binaire compilé (racine uniquement)
+/revues
 
 # IDE
 .idea/

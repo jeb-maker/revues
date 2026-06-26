@@ -33,7 +33,7 @@ done
 # 2. Interdits éco / stack
 # ---------------------------------------------------------------------------
 step "Vérification interdits stack"
-if git grep -l -E '(react|vue|webpack|vite|svelte)' -- '*.go' '*.html' '*.js' '*.css' 2>/dev/null | grep -v docs/; then
+if git grep -l -E '\b(react|vue|webpack|vite|svelte)\b' -- '*.go' '*.html' '*.js' '*.css' 2>/dev/null | grep -v docs/; then
   fail "Framework frontend interdit détecté"
 fi
 
