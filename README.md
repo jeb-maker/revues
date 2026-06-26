@@ -9,6 +9,7 @@ Application de gestion de check-lists pour revues de projets — simple d'utilis
 - [Guide de délégation GitHub](docs/DELEGATION.md)
 - [Revue adverse (juin 2026)](docs/REVIEW_ADVERSE.md)
 - [Instructions agents Cloud](AGENTS.md)
+- [Bonnes pratiques Go](docs/GO.md)
 - [Issues GitHub](https://github.com/jeb-maker/revues/issues)
 
 ## Harness agents

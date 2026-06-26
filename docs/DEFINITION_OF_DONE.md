@@ -14,7 +14,9 @@ Critères pour qu'une issue soit considérée **terminée** et mergeable.
 ## Code
 
 - [ ] Compile sans warning (`go vet` clean)
-- [ ] `go test ./...` vert
+- [ ] `golangci-lint run` vert (CI)
+- [ ] `go test ./...` vert (`-race` via check.sh)
+- [ ] Conforme [GO.md](./GO.md) (context, erreurs, SQL dans store)
 - [ ] Pas de `TODO` sans référence issue (`TODO(#N)`)
 - [ ] Pas de code commenté mort
 - [ ] `gofmt` appliqué

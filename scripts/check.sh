@@ -20,6 +20,7 @@ required_files=(
   AGENTS.md
   docs/PLAN.md
   docs/CONVENTIONS.md
+  docs/GO.md
   docs/DEFINITION_OF_DONE.md
   docs/RBAC.md
   docs/schema/canonical.sql
@@ -53,6 +54,19 @@ if [[ -f go.mod ]]; then
 
   step "go build"
   go build -o /tmp/revues ./cmd/revues
+
+  step "go mod tidy check"
+  go mod tidy
+  if ! git diff --exit-code go.mod go.sum 2>/dev/null; then
+    fail "go.mod/go.sum non à jour — exécuter go mod tidy"
+  fi
+
+  step "golangci-lint"
+  if command -v golangci-lint >/dev/null 2>&1; then
+    golangci-lint run ./...
+  else
+    echo "golangci-lint absent localement — CI l'exécutera"
+  fi
 
   step "Taille JS static"
   if [[ -d web/static ]]; then

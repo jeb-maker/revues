@@ -21,5 +21,11 @@ jobs:
           go-version: '1.22'
           cache: true
 
+      - name: Install golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: v1.62
+          args: --timeout=5m
+
       - name: Run check.sh
         run: chmod +x scripts/check.sh && ./scripts/check.sh
