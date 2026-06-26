@@ -200,7 +200,7 @@ Emails déclenchés : revue terminée, point assigné, échéance J-1.
 
 ## Roadmap en 3 vagues
 
-Voir [ROADMAP.md](./ROADMAP.md) et les [issues GitHub](https://github.com/jeb-maker/revues/issues) pour le détail des tâches déléguables.
+Voir [ROADMAP.md](./ROADMAP.md), [DELEGATION.md](./DELEGATION.md) et les [issues GitHub](https://github.com/jeb-maker/revues/issues) pour le détail des tâches déléguables.
 
 | Vague | Objectif | Livrable clé |
 |-------|----------|--------------|

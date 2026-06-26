@@ -1,59 +1,39 @@
 #!/usr/bin/env bash
-# Crée labels, milestones et issues GitHub pour Revues
+# Crée les issues GitHub (sans labels/milestones — permissions token limitées)
 set -euo pipefail
-
 REPO="jeb-maker/revues"
 
-labels=(
-  "epic:7B68EE"
-  "vague-1:0E8A16"
-  "vague-2:1D76DB"
-  "vague-3:5319E7"
-  "area:infra:EDEDED"
-  "area:data:EDEDED"
-  "area:auth:BFD4F2"
-  "area:core:FEF2C0"
-  "area:ui:C2E0C6"
-  "area:admin:F9D0C4"
-  "area:integrations:D4C5F9"
-  "area:notifications:FBCA04"
-  "area:attachments:FBCA04"
-  "good first issue:7057FF"
-)
-
-for entry in "${labels[@]}"; do
-  name="${entry%%:*}"
-  color="${entry##*:}"
-  gh label create "$name" --color "$color" --repo "$REPO" 2>/dev/null || true
-done
-
-m1=$(gh api repos/$REPO/milestones -f title="Vague 1 — Cœur métier" -f description="Revues complètes, auth, audit" -f state=open --jq .number)
-m2=$(gh api repos/$REPO/milestones -f title="Vague 2 — Admin & intégrations" -f description="SMTP, Jira, webhooks" -f state=open --jq .number)
-m3=$(gh api repos/$REPO/milestones -f title="Vague 3 — Companion & fichiers" -f description="Notion, pièces jointes" -f state=open --jq .number)
-
-create_issue() {
-  local title="$1" body="$2" labels="$3" milestone="$4"
-  gh issue create --repo "$REPO" --title "$title" --body "$body" --label "$labels" --milestone "$milestone"
+create() {
+  gh issue create --repo "$REPO" --title "$1" --body "$2"
 }
 
-# Epics
-E1=$(create_issue "Epic: Vague 1 — Cœur métier" "Regroupe toutes les issues de la vague 1.
+E1=$(create "[Epic][Vague 1] Cœur métier" "Regroupe les issues de la vague 1.
 
-Voir docs/ROADMAP.md
+**Milestone suggéré** : Vague 1 — Cœur métier
+**Labels suggérés** : epic, vague-1
 
 ## Critère de fin
-Marie crée un modèle, Thomas exécute une revue, Sophie consulte l'historique." "epic,vague-1" "$m1")
-E2=$(create_issue "Epic: Vague 2 — Admin & intégrations" "SMTP, Jira (Cloud + Server/DC), webhooks.
+Marie crée un modèle, Thomas exécute une revue, Sophie consulte l'historique.
 
-Voir docs/ROADMAP.md" "epic,vague-2" "$m2")
-E3=$(create_issue "Epic: Vague 3 — Companion & fichiers" "Export/import Notion, pièces jointes compressées.
+Voir docs/ROADMAP.md")
 
-Voir docs/ROADMAP.md" "epic,vague-3" "$m3")
+E2=$(create "[Epic][Vague 2] Admin & intégrations" "SMTP, Jira (Cloud + Server/DC), webhooks.
 
-echo "Epics: $E1 $E2 $E3"
+**Milestone suggéré** : Vague 2 — Admin & intégrations
+**Labels suggérés** : epic, vague-2
 
-# Vague 1
-create_issue "Bootstrap projet Go (chi, templates, static, healthz)" "## Objectif
+Voir docs/ROADMAP.md")
+
+E3=$(create "[Epic][Vague 3] Companion & fichiers" "Export/import Notion, pièces jointes compressées.
+
+**Milestone suggéré** : Vague 3 — Companion & fichiers
+**Labels suggérés** : epic, vague-3
+
+Voir docs/ROADMAP.md")
+
+echo "Epics: $E1 | $E2 | $E3"
+
+create "[Vague 1][infra] Bootstrap projet Go (chi, templates, static, healthz)" "## Objectif
 Initialiser le squelette applicatif Go.
 
 ## Critères d'acceptation
@@ -66,9 +46,11 @@ Initialiser le squelette applicatif Go.
 Aucune
 
 ## Epic
-$E1" "vague-1,area:infra,good first issue" "$m1"
+$E1
 
-create_issue "Schéma DB SQLite + migrations goose" "## Objectif
+**Labels** : vague-1, area:infra, good first issue"
+
+create "[Vague 1][data] Schéma DB SQLite + migrations goose" "## Objectif
 Créer le schéma initial et le système de migrations.
 
 ## Critères d'acceptation
@@ -78,12 +60,14 @@ Créer le schéma initial et le système de migrations.
 - [ ] Index sur project_id, run_id, version_id
 
 ## Dépendances
-Bloqué par bootstrap Go
+Bootstrap Go
 
 ## Epic
-$E1" "vague-1,area:data" "$m1"
+$E1
 
-create_issue "Auth GitHub OAuth + sessions + CSRF" "## Objectif
+**Labels** : vague-1, area:data"
+
+create "[Vague 1][auth] Auth GitHub OAuth + sessions + CSRF" "## Objectif
 Connexion via GitHub, sessions serveur sécurisées.
 
 ## Critères d'acceptation
@@ -96,23 +80,27 @@ Connexion via GitHub, sessions serveur sécurisées.
 Bootstrap + schéma DB
 
 ## Epic
-$E1" "vague-1,area:auth" "$m1"
+$E1
 
-create_issue "RBAC global + middleware RequireRole" "## Objectif
+**Labels** : vague-1, area:auth"
+
+create "[Vague 1][auth] RBAC global + middleware RequireRole" "## Objectif
 Contrôle d'accès admin/editor/reader côté serveur.
 
 ## Critères d'acceptation
 - [ ] Rôle stocké sur users, défaut reader
-- [ ] Middleware RequireAuth + RequireRole(\"editor\")
+- [ ] Middleware RequireAuth + RequireRole
 - [ ] Tests table-driven sur matrice permissions
 
 ## Dépendances
 Auth GitHub
 
 ## Epic
-$E1" "vague-1,area:auth" "$m1"
+$E1
 
-create_issue "Admin liste blanche utilisateurs" "## Objectif
+**Labels** : vague-1, area:auth"
+
+create "[Vague 1][admin] Liste blanche utilisateurs" "## Objectif
 Gérer les emails autorisés et leurs rôles.
 
 ## Critères d'acceptation
@@ -124,9 +112,11 @@ Gérer les emails autorisés et leurs rôles.
 Auth + RBAC
 
 ## Epic
-$E1" "vague-1,area:admin" "$m1"
+$E1
 
-create_issue "CRUD projets + membres + rôles locaux" "## Objectif
+**Labels** : vague-1, area:admin"
+
+create "[Vague 1][core] CRUD projets + membres + rôles locaux" "## Objectif
 Gérer projets et appartenance (lead/contributor/viewer).
 
 ## Critères d'acceptation
@@ -138,9 +128,11 @@ Gérer projets et appartenance (lead/contributor/viewer).
 RBAC
 
 ## Epic
-$E1" "vague-1,area:core" "$m1"
+$E1
 
-create_issue "Modèles versionnés (templates, sections, items)" "## Objectif
+**Labels** : vague-1, area:core"
+
+create "[Vague 1][core] Modèles versionnés (templates, sections, items)" "## Objectif
 CRUD modèles de check-list avec versionnement.
 
 ## Critères d'acceptation
@@ -153,9 +145,11 @@ CRUD modèles de check-list avec versionnement.
 Schéma DB + RBAC
 
 ## Epic
-$E1" "vague-1,area:core" "$m1"
+$E1
 
-create_issue "Lancer revue (snapshot SQL des items)" "## Objectif
+**Labels** : vague-1, area:core"
+
+create "[Vague 1][core] Lancer revue (snapshot SQL des items)" "## Objectif
 Instancier une revue sur un projet à partir d'un modèle versionné.
 
 ## Critères d'acceptation
@@ -168,9 +162,11 @@ Instancier une revue sur un projet à partir d'un modèle versionné.
 Projets + modèles
 
 ## Epic
-$E1" "vague-1,area:core" "$m1"
+$E1
 
-create_issue "Statuts ok/nok/na + commentaire obligatoire si nok" "## Objectif
+**Labels** : vague-1, area:core"
+
+create "[Vague 1][core] Statuts ok/nok/na + commentaire obligatoire si nok" "## Objectif
 Gérer les points d'une revue avec règles métier.
 
 ## Critères d'acceptation
@@ -183,9 +179,11 @@ Gérer les points d'une revue avec règles métier.
 Lancer revue
 
 ## Epic
-$E1" "vague-1,area:core" "$m1"
+$E1
 
-create_issue "Assignation par point + vue Mes tâches" "## Objectif
+**Labels** : vague-1, area:core"
+
+create "[Vague 1][core] Assignation par point + vue Mes tâches" "## Objectif
 Assigner des points et afficher les tâches de l'utilisateur.
 
 ## Critères d'acceptation
@@ -197,9 +195,11 @@ Assigner des points et afficher les tâches de l'utilisateur.
 Statuts points
 
 ## Epic
-$E1" "vague-1,area:core" "$m1"
+$E1
 
-create_issue "Audit trail (run_item_events)" "## Objectif
+**Labels** : vague-1, area:core"
+
+create "[Vague 1][core] Audit trail (run_item_events)" "## Objectif
 Historiser chaque changement de statut.
 
 ## Critères d'acceptation
@@ -211,9 +211,11 @@ Historiser chaque changement de statut.
 Statuts points
 
 ## Epic
-$E1" "vague-1,area:core" "$m1"
+$E1
 
-create_issue "UI HTMX (cocher, commenter sans reload)" "## Objectif
+**Labels** : vague-1, area:core"
+
+create "[Vague 1][ui] UI HTMX (cocher, commenter sans reload)" "## Objectif
 Interactions fluides sans SPA.
 
 ## Critères d'acceptation
@@ -226,9 +228,11 @@ Interactions fluides sans SPA.
 Statuts points
 
 ## Epic
-$E1" "vague-1,area:ui" "$m1"
+$E1
 
-create_issue "Tableau de bord + fiche projet" "## Objectif
+**Labels** : vague-1, area:ui"
+
+create "[Vague 1][ui] Tableau de bord + fiche projet" "## Objectif
 Vues synthèse projets et revues en cours.
 
 ## Critères d'acceptation
@@ -240,10 +244,11 @@ Vues synthèse projets et revues en cours.
 Lancer revue + assignation
 
 ## Epic
-$E1" "vague-1,area:ui" "$m1"
+$E1
 
-# Vague 2
-create_issue "Écran admin SMTP (config chiffrée + test email)" "## Objectif
+**Labels** : vague-1, area:ui"
+
+create "[Vague 2][admin] Écran admin SMTP (config chiffrée + test email)" "## Objectif
 Permettre à l'admin de configurer le relais SMTP.
 
 ## Critères d'acceptation
@@ -253,9 +258,11 @@ Permettre à l'admin de configurer le relais SMTP.
 - [ ] App fonctionne sans SMTP (notifications désactivées)
 
 ## Epic
-$E2" "vague-2,area:admin" "$m2"
+$E2
 
-create_issue "Notifications email (revue terminée, assignation, échéance)" "## Objectif
+**Labels** : vague-2, area:admin"
+
+create "[Vague 2][notifications] Emails (revue terminée, assignation, échéance)" "## Objectif
 Emails déclenchés par événements métier.
 
 ## Critères d'acceptation
@@ -268,9 +275,11 @@ Emails déclenchés par événements métier.
 SMTP admin
 
 ## Epic
-$E2" "vague-2,area:notifications" "$m2"
+$E2
 
-create_issue "Config Jira admin (Cloud vs Server/DC)" "## Objectif
+**Labels** : vague-2, area:notifications"
+
+create "[Vague 2][integrations] Config Jira admin (Cloud vs Server/DC)" "## Objectif
 Configurer Jira Cloud ou Server/Data Center.
 
 ## Critères d'acceptation
@@ -280,13 +289,15 @@ Configurer Jira Cloud ou Server/Data Center.
 - [ ] Credentials chiffrés, bouton tester connexion
 
 ## Epic
-$E2" "vague-2,area:integrations" "$m2"
+$E2
 
-create_issue "Jira : lier une issue sur un point" "## Objectif
+**Labels** : vague-2, area:integrations"
+
+create "[Vague 2][integrations] Jira : lier une issue sur un point" "## Objectif
 Associer PROJ-123 ou URL Jira à un run_item.
 
 ## Critères d'acceptation
-- [ ] Champ lien issue sur point nok ou tout point
+- [ ] Champ lien issue sur point
 - [ ] Table integration_links
 - [ ] Affichage lien cliquable vers Jira
 - [ ] Client API adaptateur Cloud/Server
@@ -295,14 +306,16 @@ Associer PROJ-123 ou URL Jira à un run_item.
 Config Jira
 
 ## Epic
-$E2" "vague-2,area:integrations" "$m2"
+$E2
 
-create_issue "Jira : créer ticket depuis point nok" "## Objectif
+**Labels** : vague-2, area:integrations"
+
+create "[Vague 2][integrations] Jira : créer ticket depuis point nok" "## Objectif
 Créer une issue Jira pré-remplie depuis un nok.
 
 ## Critères d'acceptation
-- [ ] Bouton \"Créer ticket Jira\" sur point nok
-- [ ] Titre/description pré-remplis (projet, revue, commentaire)
+- [ ] Bouton Créer ticket Jira sur point nok
+- [ ] Titre/description pré-remplis
 - [ ] Lien issue stocké automatiquement
 - [ ] Gestion erreurs API
 
@@ -310,9 +323,11 @@ Créer une issue Jira pré-remplie depuis un nok.
 Config Jira + lier issue
 
 ## Epic
-$E2" "vague-2,area:integrations" "$m2"
+$E2
 
-create_issue "Webhooks sortants (review.completed + review.item.nok)" "## Objectif
+**Labels** : vague-2, area:integrations"
+
+create "[Vague 2][integrations] Webhooks (review.completed + review.item.nok)" "## Objectif
 Notifier des URLs externes sur événements.
 
 ## Critères d'acceptation
@@ -322,9 +337,11 @@ Notifier des URLs externes sur événements.
 - [ ] Retry 3x, log échecs, bouton test
 
 ## Epic
-$E2" "vague-2,area:integrations" "$m2"
+$E2
 
-create_issue "Admin intégrations (UI unifiée)" "## Objectif
+**Labels** : vague-2, area:integrations"
+
+create "[Vague 2][admin] Admin intégrations (UI unifiée)" "## Objectif
 Écran admin regroupant SMTP, Jira, webhooks.
 
 ## Critères d'acceptation
@@ -337,10 +354,11 @@ create_issue "Admin intégrations (UI unifiée)" "## Objectif
 SMTP, Jira, webhooks
 
 ## Epic
-$E2" "vague-2,area:admin" "$m2"
+$E2
 
-# Vague 3
-create_issue "Config Notion admin (token, workspace)" "## Objectif
+**Labels** : vague-2, area:admin"
+
+create "[Vague 3][integrations] Config Notion admin (token, workspace)" "## Objectif
 Configurer l'accès API Notion.
 
 ## Critères d'acceptation
@@ -349,9 +367,11 @@ Configurer l'accès API Notion.
 - [ ] Documentation mapping champs
 
 ## Epic
-$E3" "vague-3,area:integrations" "$m3"
+$E3
 
-create_issue "Export revue clôturée vers Notion" "## Objectif
+**Labels** : vague-3, area:integrations"
+
+create "[Vague 3][integrations] Export revue clôturée vers Notion" "## Objectif
 Archiver une revue terminée en page Notion.
 
 ## Critères d'acceptation
@@ -363,9 +383,11 @@ Archiver une revue terminée en page Notion.
 Config Notion
 
 ## Epic
-$E3" "vague-3,area:integrations" "$m3"
+$E3
 
-create_issue "Import modèle depuis DB Notion" "## Objectif
+**Labels** : vague-3, area:integrations"
+
+create "[Vague 3][integrations] Import modèle depuis DB Notion" "## Objectif
 Créer un template Revues depuis une database Notion.
 
 ## Critères d'acceptation
@@ -378,9 +400,11 @@ Créer un template Revues depuis une database Notion.
 Config Notion + modèles versionnés
 
 ## Epic
-$E3" "vague-3,area:integrations" "$m3"
+$E3
 
-create_issue "Upload pièces jointes + compression images" "## Objectif
+**Labels** : vague-3, area:integrations"
+
+create "[Vague 3][attachments] Upload pièces jointes + compression images" "## Objectif
 Joindre des fichiers à un point, images compressées.
 
 ## Critères d'acceptation
@@ -390,9 +414,11 @@ Joindre des fichiers à un point, images compressées.
 - [ ] 1 pièce jointe par point
 
 ## Epic
-$E3" "vague-3,area:attachments" "$m3"
+$E3
 
-create_issue "Affichage pièces jointes dans détail revue" "## Objectif
+**Labels** : vague-3, area:attachments"
+
+create "[Vague 3][attachments] Affichage pièces jointes dans détail revue" "## Objectif
 Voir et télécharger les pièces jointes.
 
 ## Critères d'acceptation
@@ -404,6 +430,8 @@ Voir et télécharger les pièces jointes.
 Upload pièces jointes
 
 ## Epic
-$E3" "vague-3,area:attachments" "$m3"
+$E3
 
-echo "Done."
+**Labels** : vague-3, area:attachments"
+
+echo "Toutes les issues créées."

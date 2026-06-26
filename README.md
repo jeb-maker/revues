@@ -6,6 +6,7 @@ Application de gestion de check-lists pour revues de projets — simple d'utilis
 
 - [Plan produit & technique](docs/PLAN.md)
 - [Roadmap & tâches déléguables](docs/ROADMAP.md)
+- [Guide de délégation GitHub](docs/DELEGATION.md)
 - [Issues GitHub](https://github.com/jeb-maker/revues/issues)
 
 ## Principes
