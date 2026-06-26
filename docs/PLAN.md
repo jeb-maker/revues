@@ -90,8 +90,10 @@ erDiagram
 - `users` — identité GitHub, rôle global (`admin` / `editor` / `reader`)
 - `projects` + `project_members` — projets et rôles locaux
 - `checklist_templates` → `template_versions` → `template_items` — modèles versionnés
-- `checklist_runs` → `run_items` — exécutions (snapshot immuable)
+- `checklist_runs` → `run_items` — exécutions (snapshot immuable), champ `due_date` optionnel
 - `run_item_events` — audit des changements de statut
+- `sessions` — sessions serveur (ID aléatoire hashé)
+- `allowed_emails` — liste blanche admin
 - `integrations` + `integration_links` — config Jira, webhooks, liens externes
 - `settings` — SMTP et config chiffrée
 - `attachments` — pièces jointes (v1.1)
@@ -126,9 +128,10 @@ erDiagram
 ### Auth
 
 - **GitHub OAuth** en v1 (Authorization Code + PKCE, flux serveur)
-- Liste blanche admin (emails ou domaine `@entreprise.com`)
-- Sessions cookie `HttpOnly` + `Secure` + `SameSite=Lax`, ID en base
-- CSRF sur tous les POST
+- Liste blanche admin (emails ou domaine `@entreprise.com`) — email GitHub **vérifié** obligatoire
+- Sessions cookie `HttpOnly` + `Secure` + `SameSite=Lax`, ID hashé en base, rotation au login
+- CSRF sur tous les POST **y compris HTMX** (`hx-headers`)
+- Matrice RBAC : voir [RBAC.md](./RBAC.md)
 - Google OAuth en v2
 
 ---
@@ -165,7 +168,9 @@ Actions :
 - `review.completed` — revue clôturée
 - `review.item.nok` — point marqué non conforme
 
-Config : URL(s), secret HMAC, cases à cocher par événement, bouton test.
+Config : URL(s), secret HMAC-SHA256, `event_id` unique, cases à cocher par événement, bouton test.
+
+**Sécurité** : anti-SSRF (blocklist IP privées, timeout 5s, max 1 redirect). Voir [CONVENTIONS.md](./CONVENTIONS.md).
 
 ### Notion (v1.1) — companion, pas remplacement
 
@@ -200,11 +205,11 @@ Emails déclenchés : revue terminée, point assigné, échéance J-1.
 
 ## Roadmap en 3 vagues
 
-Voir [ROADMAP.md](./ROADMAP.md), [DELEGATION.md](./DELEGATION.md) et les [issues GitHub](https://github.com/jeb-maker/revues/issues) pour le détail des tâches déléguables.
+Voir [ROADMAP.md](./ROADMAP.md), [DELEGATION.md](./DELEGATION.md), [REVIEW_ADVERSE.md](./REVIEW_ADVERSE.md), [AGENTS.md](../AGENTS.md) et les [issues GitHub](https://github.com/jeb-maker/revues/issues).
 
 | Vague | Objectif | Livrable clé |
 |-------|----------|--------------|
-| **1 — Cœur** | App utilisable sans intégrations | Revues complètes, auth, audit |
+| **1 — Cœur** | App utilisable sans intégrations | Revues complètes, auth, export CSV |
 | **2 — Admin & intégrations** | Brancher la stack existante | SMTP, Jira, webhooks |
 | **3 — Companion** | Archivage & fichiers | Notion, pièces jointes |
 
@@ -219,10 +224,13 @@ Voir [ROADMAP.md](./ROADMAP.md), [DELEGATION.md](./DELEGATION.md) et les [issues
 - [x] Notion en companion (export prioritaire, import ensuite)
 - [x] Rendu serveur + HTMX, pas de SPA
 - [x] SQLite WAL en v1
+- [x] Harness agents (AGENTS.md, CI, check.sh) avant code métier
+- [x] Schéma canonique : [schema/canonical.sql](./schema/canonical.sql)
 
 ## Reporté v2+
 
 - Google OAuth
+- Jira Server/DC (Cloud d'abord)
 - Sync statut Jira à la demande
 - Slack / Teams natif
 - PostgreSQL (si multi-instance)

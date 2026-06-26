@@ -1,0 +1,14 @@
+# Données locales
+data/
+.env
+
+# Go
+/tmp/
+*.exe
+*.test
+revues
+
+# IDE
+.idea/
+.vscode/
+*.swp
