@@ -12,10 +12,11 @@ Implémenter **une seule** issue. Lire le contexte, respecter le périmètre, li
 2. Issue GitHub assignée (critères d'acceptation)
 3. [docs/PLAN.md](docs/PLAN.md) — vision
 4. [docs/CONVENTIONS.md](docs/CONVENTIONS.md) — code et structure
-5. [docs/DEFINITION_OF_DONE.md](docs/DEFINITION_OF_DONE.md) — critères merge
-6. [docs/RBAC.md](docs/RBAC.md) — si route ou permission touchée
-7. [docs/schema/canonical.sql](docs/schema/canonical.sql) — si données touchées
-8. [docs/REVIEW_ADVERSE.md](docs/REVIEW_ADVERSE.md) — pièges connus
+5. [docs/GO.md](docs/GO.md) — **bonnes pratiques Go obligatoires**
+6. [docs/DEFINITION_OF_DONE.md](docs/DEFINITION_OF_DONE.md) — critères merge
+7. [docs/RBAC.md](docs/RBAC.md) — si route ou permission touchée
+8. [docs/schema/canonical.sql](docs/schema/canonical.sql) — si données touchées
+9. [docs/REVIEW_ADVERSE.md](docs/REVIEW_ADVERSE.md) — pièges connus
 
 ## Règles strictes
 
@@ -36,7 +37,7 @@ Corps PR : Closes #<N>
 
 ### Stack imposée
 
-- Go + chi + `html/template` + HTMX
+- Go + chi + `html/template` + HTMX — voir [docs/GO.md](docs/GO.md)
 - SQLite WAL + goose
 - **Pas de SPA** (React, Vue, Vite, webpack)
 - Pas de polling ni WebSocket
@@ -71,10 +72,11 @@ Corps PR : Closes #<N>
 ### Tests minimum
 
 ```bash
-./scripts/check.sh   # doit passer
+./scripts/check.sh   # doit passer (gofmt, vet, test -race, golangci-lint)
 go test ./...        # vert
 ```
 
+- Suivre [docs/GO.md](docs/GO.md) : context, erreurs wrappées, SQL dans `store`, tests table-driven
 - Ajouter un test si logique métier ou middleware RBAC touché
 - Issues `area:auth` ou `area:integrations` : tests sécurité requis (voir DoD)
 
@@ -90,7 +92,7 @@ git push -u origin cursor/issue-<N>-<slug>-f21b
 
 ```
 Repo jeb-maker/revues. Implémente UNIQUEMENT l'issue #N.
-Lis AGENTS.md, docs/CONVENTIONS.md, docs/DEFINITION_OF_DONE.md.
+Lis AGENTS.md, docs/CONVENTIONS.md, docs/GO.md, docs/DEFINITION_OF_DONE.md.
 Si RBAC : docs/RBAC.md. Si données : docs/schema/canonical.sql.
 Branche cursor/issue-N-<slug>-f21b. PR avec Closes #N.
 ./scripts/check.sh doit passer avant push.

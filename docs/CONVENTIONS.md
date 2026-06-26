@@ -25,11 +25,18 @@ data/                       # SQLite + attachments (gitignored)
 
 ## Go
 
+Voir le guide complet : **[GO.md](./GO.md)** — obligatoire pour agents.
+
+Résumé :
 - Go **1.22+**
 - Handlers fins : logique dans `internal/<domain>/`
-- Erreurs wrappées : `fmt.Errorf("context: %w", err)`
-- Pas d'ORM : SQL explicite dans `internal/store/`
-- Interfaces `store` pour faciliter tests (SQLite mémoire)
+- Erreurs wrappées : `fmt.Errorf("context: %w", err)` — jamais ignorées
+- `context.Context` propagé sur tout I/O
+- Pas d'ORM : SQL paramétré dans `internal/store/` uniquement
+- Interfaces petites, côté consommateur
+- Tests table-driven ; `go test -race`
+- `log/slog` structuré — pas de secrets loggés
+- Pas de `panic` hors `main`
 
 ## SQL
 

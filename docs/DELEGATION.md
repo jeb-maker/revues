@@ -7,7 +7,7 @@ Comment utiliser les issues pour déléguer le développement de **Revues**.
 Avant d'assigner une issue à un agent ou un contributeur :
 
 1. Vérifier que le **harness** est mergé sur `main` ([AGENTS.md](../AGENTS.md))
-2. L'agent lit : `AGENTS.md` → issue → `CONVENTIONS.md` → `DEFINITION_OF_DONE.md`
+2. L'agent lit : `AGENTS.md` → issue → `CONVENTIONS.md` → **`GO.md`** → `DEFINITION_OF_DONE.md`
 3. Chaque PR doit passer `./scripts/check.sh` et la [checklist PR](../.github/PULL_REQUEST_CHECKLIST.md)
 4. Consulter [REVIEW_ADVERSE.md](./REVIEW_ADVERSE.md) pour les pièges connus
 
