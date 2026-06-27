@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"bytes"
 	"errors"
 	"html/template"
 	"log/slog"
@@ -255,10 +256,18 @@ func (h *Runs) UpdateItem(w http.ResponseWriter, r *http.Request) {
 	if err := items.ValidateUpdate(status, comment); err != nil {
 		switch {
 		case errors.Is(err, items.ErrCommentRequired):
+			if h.isHTMX(r) {
+				h.renderRunItemHTMXError(w, r, run, project, user, memberRole, itemID, "Un commentaire est obligatoire pour le statut nok.", "")
+				return
+			}
 			h.renderRunShow(w, r, run, project, user, memberRole, viewtemplates.RunShowData{
 				ItemError: "Un commentaire est obligatoire pour le statut nok.",
 			})
 		case errors.Is(err, items.ErrInvalidStatus):
+			if h.isHTMX(r) {
+				h.renderRunItemHTMXError(w, r, run, project, user, memberRole, itemID, "Statut invalide.", "")
+				return
+			}
 			h.renderRunShow(w, r, run, project, user, memberRole, viewtemplates.RunShowData{
 				ItemError: "Statut invalide.",
 			})
@@ -275,6 +284,11 @@ func (h *Runs) UpdateItem(w http.ResponseWriter, r *http.Request) {
 		}
 		slog.Error("update run item", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	if h.isHTMX(r) {
+		h.renderRunItemHTMXSuccess(w, r, run, project, user, memberRole, itemID, "", "")
 		return
 	}
 
@@ -358,6 +372,10 @@ func (h *Runs) AssignItem(w http.ResponseWriter, r *http.Request) {
 	if raw := strings.TrimSpace(r.FormValue("assignee_id")); raw != "" {
 		id, parseErr := strconv.ParseInt(raw, 10, 64)
 		if parseErr != nil {
+			if h.isHTMX(r) {
+				h.renderRunItemHTMXError(w, r, run, project, user, memberRole, itemID, "", "Assigné invalide.")
+				return
+			}
 			h.renderRunShow(w, r, run, project, user, memberRole, viewtemplates.RunShowData{
 				AssignError: "Assigné invalide.",
 			})
@@ -368,6 +386,10 @@ func (h *Runs) AssignItem(w http.ResponseWriter, r *http.Request) {
 
 	if err := h.Store.AssignRunItem(r.Context(), run.ID, itemID, assigneeID); err != nil {
 		if errors.Is(err, store.ErrInvalidAssignee) {
+			if h.isHTMX(r) {
+				h.renderRunItemHTMXError(w, r, run, project, user, memberRole, itemID, "", "Le membre doit appartenir au projet.")
+				return
+			}
 			h.renderRunShow(w, r, run, project, user, memberRole, viewtemplates.RunShowData{
 				AssignError: "Le membre doit appartenir au projet.",
 			})
@@ -379,6 +401,11 @@ func (h *Runs) AssignItem(w http.ResponseWriter, r *http.Request) {
 		}
 		slog.Error("assign run item", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	if h.isHTMX(r) {
+		h.renderRunItemHTMXSuccess(w, r, run, project, user, memberRole, itemID, "", "")
 		return
 	}
 
@@ -492,6 +519,7 @@ func (h *Runs) renderRunShow(w http.ResponseWriter, r *http.Request, run *store.
 		CanCheck:      items.CanUpdate(user, memberRole),
 		CanAssign:     items.CanAssign(user, memberRole),
 		CanComplete:   runs.CanComplete(user, memberRole),
+		Progress:      h.progressData(run.ID, runItems),
 		Message:       extra.Message,
 		ItemError:     extra.ItemError,
 		AssignError:   extra.AssignError,
@@ -657,4 +685,112 @@ func memberRoleForLaunch(isMember bool, memberRole string) string {
 		return ""
 	}
 	return memberRole
+}
+
+func (h *Runs) isHTMX(r *http.Request) bool {
+	return r.Header.Get("HX-Request") != ""
+}
+
+func (h *Runs) progressData(runID int64, runItems []store.RunItem) viewtemplates.RunProgressData {
+	done, total := items.Progress(runItems)
+	percent := 0
+	if total > 0 {
+		percent = done * 100 / total
+	}
+	return viewtemplates.RunProgressData{
+		RunID:   runID,
+		Done:    done,
+		Total:   total,
+		Percent: percent,
+	}
+}
+
+func (h *Runs) renderRunItemHTMXSuccess(w http.ResponseWriter, r *http.Request, run *store.ChecklistRun, project *store.Project, user *store.User, memberRole string, itemID int64, itemErr, assignErr string) {
+	runItems, err := h.Store.ListRunItems(r.Context(), run.ID)
+	if err != nil {
+		slog.Error("list run items for htmx", "err", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	item, ok := findRunItem(runItems, itemID)
+	if !ok {
+		http.NotFound(w, r)
+		return
+	}
+
+	h.renderRunItemHTMX(w, r, run, project, user, memberRole, item, runItems, itemErr, assignErr, http.StatusOK)
+}
+
+func (h *Runs) renderRunItemHTMXError(w http.ResponseWriter, r *http.Request, run *store.ChecklistRun, project *store.Project, user *store.User, memberRole string, itemID int64, itemErr, assignErr string) {
+	item, err := h.Store.RunItemByID(r.Context(), run.ID, itemID)
+	if errors.Is(err, store.ErrRunItemNotFound) {
+		http.NotFound(w, r)
+		return
+	}
+	if err != nil {
+		slog.Error("load run item for htmx error", "err", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	runItems, err := h.Store.ListRunItems(r.Context(), run.ID)
+	if err != nil {
+		slog.Error("list run items for htmx error", "err", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	h.renderRunItemHTMX(w, r, run, project, user, memberRole, *item, runItems, itemErr, assignErr, http.StatusBadRequest)
+}
+
+func (h *Runs) renderRunItemHTMX(w http.ResponseWriter, r *http.Request, run *store.ChecklistRun, project *store.Project, user *store.User, memberRole string, item store.RunItem, runItems []store.RunItem, itemErr, assignErr string, statusCode int) {
+	var members []store.ProjectMember
+	if items.CanAssign(user, memberRole) {
+		var err error
+		members, err = h.Store.ListProjectMembers(r.Context(), project.ID)
+		if err != nil {
+			slog.Error("list project members for htmx", "err", err)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+	}
+
+	row := viewtemplates.RunItemRowData{
+		RunID:       run.ID,
+		RunStatus:   run.Status,
+		Item:        item,
+		Members:     members,
+		CSRFToken:   h.pageData(r, "").CSRFToken,
+		CanCheck:    items.CanUpdate(user, memberRole),
+		CanAssign:   items.CanAssign(user, memberRole),
+		ItemError:   itemErr,
+		AssignError: assignErr,
+	}
+	progress := h.progressData(run.ID, runItems)
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.WriteHeader(statusCode)
+
+	var buf bytes.Buffer
+	if err := h.Templates.ExecuteTemplate(&buf, "run_item_row_fragment", row); err != nil {
+		slog.Error("render run item row fragment", "err", err)
+		return
+	}
+	if _, err := w.Write(buf.Bytes()); err != nil {
+		slog.Error("write run item row fragment", "err", err)
+		return
+	}
+	if err := h.Templates.ExecuteTemplate(w, "run_progress_oob_fragment", progress); err != nil {
+		slog.Error("render run progress oob fragment", "err", err)
+	}
+}
+
+func findRunItem(runItems []store.RunItem, itemID int64) (store.RunItem, bool) {
+	for _, item := range runItems {
+		if item.ID == itemID {
+			return item, true
+		}
+	}
+	return store.RunItem{}, false
 }

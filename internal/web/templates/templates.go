@@ -136,6 +136,27 @@ type RunWizardLaunchData struct {
 	Error      string
 }
 
+// RunProgressData is view data for the run progress bar fragment.
+type RunProgressData struct {
+	RunID   int64
+	Done    int
+	Total   int
+	Percent int
+}
+
+// RunItemRowData is view data for a single run item table row fragment.
+type RunItemRowData struct {
+	RunID       int64
+	RunStatus   string
+	Item        store.RunItem
+	Members     []store.ProjectMember
+	CSRFToken   string
+	CanCheck    bool
+	CanAssign   bool
+	ItemError   string
+	AssignError string
+}
+
 // RunShowData is view data for run detail.
 type RunShowData struct {
 	PageData
@@ -151,6 +172,7 @@ type RunShowData struct {
 	CanCheck      bool
 	CanAssign     bool
 	CanComplete   bool
+	Progress      RunProgressData
 	ClosingNote   string
 	Message       string
 	ItemError     string
@@ -188,10 +210,31 @@ func Parse() (*template.Template, error) {
 
 	tpl := template.New("").Funcs(template.FuncMap{
 		"add": func(a, b int) int { return a + b },
+		"mul": func(a, b int) int { return a * b },
+		"div": func(a, b int) int {
+			if b == 0 {
+				return 0
+			}
+			return a / b
+		},
+		"runItemRow": func(run *store.ChecklistRun, item store.RunItem, members []store.ProjectMember, csrf string, canCheck, canAssign bool, itemErr, assignErr string) RunItemRowData {
+			return RunItemRowData{
+				RunID:       run.ID,
+				RunStatus:   run.Status,
+				Item:        item,
+				Members:     members,
+				CSRFToken:   csrf,
+				CanCheck:    canCheck,
+				CanAssign:   canAssign,
+				ItemError:   itemErr,
+				AssignError: assignErr,
+			}
+		},
 	})
 
 	tpl, err = tpl.ParseFS(root,
 		"layouts/base.html",
+		"partials/*.html",
 		"pages/*.html",
 	)
 	if err != nil {

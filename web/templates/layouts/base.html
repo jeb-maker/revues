@@ -4,6 +4,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  {{if .CSRFToken}}<meta name="csrf-token" content="{{.CSRFToken}}">{{end}}
   <title>{{if .Title}}{{.Title}} — {{end}}Revues</title>
   <link rel="stylesheet" href="/static/css/app.css">
 </head>
@@ -16,6 +17,7 @@
 
 {{define "layout_end"}}
   </main>
+  <script src="/static/js/htmx.js" defer></script>
   <script src="/static/js/app.js" defer></script>
 </body>
 </html>

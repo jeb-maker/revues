@@ -13,6 +13,10 @@
   · Statut : {{.Run.Status}}
 </p>
 
+{{if and (ne .Run.Status "draft") (gt .Progress.Total 0)}}
+{{template "run_progress_fragment" .Progress}}
+{{end}}
+
 {{if eq .Run.Status "done"}}
 {{if .Run.ClosingNote}}
 <section class="panel">
@@ -64,45 +68,9 @@
     <thead>
       <tr><th>Section</th><th>Point</th><th>Statut</th><th>Assigné</th><th>Commentaire</th>{{if and (eq $.Run.Status "in_progress") (or $.CanCheck $.CanAssign)}}<th></th>{{end}}</tr>
     </thead>
-    <tbody>
+    <tbody id="run-items">
       {{range .Items}}
-      <tr>
-        <td>{{if .Section}}{{.Section}}{{else}}<span class="muted">—</span>{{end}}</td>
-        <td><a href="/runs/{{$.Run.ID}}/items/{{.ID}}">{{.Label}}</a></td>
-        <td>{{.Status}}</td>
-        <td>{{if .AssignedLogin}}{{.AssignedLogin}}{{else}}<span class="muted">—</span>{{end}}</td>
-        <td>{{if .Comment}}{{.Comment}}{{else}}<span class="muted">—</span>{{end}}</td>
-        {{if and (eq $.Run.Status "in_progress") (or $.CanCheck $.CanAssign)}}
-        <td>
-          {{if $.CanCheck}}
-          <form method="post" action="/runs/{{$.Run.ID}}/items/{{.ID}}" class="item-status-form">
-            <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
-            <select name="status" required>
-              <option value="pending" {{if eq .Status "pending"}}selected{{end}}>pending</option>
-              <option value="ok" {{if eq .Status "ok"}}selected{{end}}>ok</option>
-              <option value="nok" {{if eq .Status "nok"}}selected{{end}}>nok</option>
-              <option value="na" {{if eq .Status "na"}}selected{{end}}>na</option>
-            </select>
-            <input type="text" name="comment" placeholder="Commentaire (requis si nok)" value="{{.Comment}}">
-            <button type="submit">Statut</button>
-          </form>
-          {{end}}
-          {{if $.CanAssign}}
-          <form method="post" action="/runs/{{$.Run.ID}}/items/{{.ID}}/assign" class="item-status-form">
-            <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
-            <select name="assignee_id">
-              <option value="">Non assigné</option>
-              {{$item := .}}
-              {{range $.Members}}
-              <option value="{{.UserID}}" {{if and $item.AssignedTo.Valid (eq $item.AssignedTo.Int64 .UserID)}}selected{{end}}>{{.Login}}</option>
-              {{end}}
-            </select>
-            <button type="submit">Assigner</button>
-          </form>
-          {{end}}
-        </td>
-        {{end}}
-      </tr>
+      {{template "run_item_row_fragment" (runItemRow $.Run . $.Members $.CSRFToken $.CanCheck $.CanAssign "" "")}}
       {{end}}
     </tbody>
   </table>
