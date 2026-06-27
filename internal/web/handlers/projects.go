@@ -42,11 +42,19 @@ func (h *Projects) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	activeRuns, err := h.Store.ListActiveRunSummaries(r.Context(), user.ID, admin)
+	if err != nil {
+		slog.Error("list active runs", "err", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
 	data := templates.ProjectsListData{
-		PageData:  h.pageData(r, "Projets"),
-		Projects:  items,
-		CanCreate: projects.CanCreate(user),
-		Message:   r.URL.Query().Get("msg"),
+		PageData:   h.pageData(r, "Tableau de bord", "projects"),
+		Projects:   items,
+		ActiveRuns: activeRuns,
+		CanCreate:  projects.CanCreate(user),
+		Message:    r.URL.Query().Get("msg"),
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -69,7 +77,7 @@ func (h *Projects) NewForm(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := templates.ProjectFormData{
-		PageData:   h.pageData(r, "Nouveau projet"),
+		PageData:   h.pageData(r, "Nouveau projet", "projects"),
 		FormAction: "/projects",
 	}
 
@@ -127,18 +135,26 @@ func (h *Projects) Show(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	projectRuns, err := h.Store.ListRunsByProject(r.Context(), project.ID)
+	projectRuns, err := h.Store.ListRunsWithProgressByProject(r.Context(), project.ID)
 	if err != nil {
 		slog.Error("list project runs", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
+	nokItems, err := h.Store.ListProjectNokItems(r.Context(), project.ID)
+	if err != nil {
+		slog.Error("list project nok items", "err", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
 	data := templates.ProjectShowData{
-		PageData:         h.pageData(r, project.Name),
+		PageData:         h.pageData(r, project.Name, ""),
 		Project:          project,
 		Members:          members,
 		Runs:             projectRuns,
+		NokItems:         nokItems,
 		MemberRole:       memberRole,
 		CanManage:        projects.CanManage(user, memberRole),
 		CanManageMembers: projects.CanManageMembers(user, memberRole),
@@ -165,7 +181,7 @@ func (h *Projects) EditForm(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := templates.ProjectFormData{
-		PageData:   h.pageData(r, "Modifier "+project.Name),
+		PageData:   h.pageData(r, "Modifier "+project.Name, ""),
 		Project:    project,
 		FormAction: "/projects/" + strconv.FormatInt(project.ID, 10),
 	}
@@ -373,8 +389,8 @@ func (h *Projects) loadProject(w http.ResponseWriter, r *http.Request) (*store.P
 	return project, user, memberRole, true
 }
 
-func (h *Projects) pageData(r *http.Request, title string) templates.PageData {
-	data := templates.PageData{Title: title}
+func (h *Projects) pageData(r *http.Request, title, activeTab string) templates.PageData {
+	data := templates.PageData{Title: title, ActiveTab: activeTab}
 	if user, ok := middleware.UserFromContext(r.Context()); ok {
 		data.User = user
 		if token := middleware.SessionTokenFromContext(r); token != "" {
@@ -386,7 +402,7 @@ func (h *Projects) pageData(r *http.Request, title string) templates.PageData {
 
 func (h *Projects) renderFormError(w http.ResponseWriter, r *http.Request, project *store.Project, action, message string) {
 	data := templates.ProjectFormData{
-		PageData:   h.pageData(r, "Projet"),
+		PageData:   h.pageData(r, "Projet", "projects"),
 		Project:    project,
 		FormAction: action,
 		Error:      message,
@@ -406,10 +422,26 @@ func (h *Projects) renderShowError(w http.ResponseWriter, r *http.Request, proje
 		return
 	}
 
+	projectRuns, err := h.Store.ListRunsWithProgressByProject(r.Context(), project.ID)
+	if err != nil {
+		slog.Error("list project runs", "err", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	nokItems, err := h.Store.ListProjectNokItems(r.Context(), project.ID)
+	if err != nil {
+		slog.Error("list project nok items", "err", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
 	data := templates.ProjectShowData{
-		PageData:         h.pageData(r, project.Name),
+		PageData:         h.pageData(r, project.Name, ""),
 		Project:          project,
 		Members:          members,
+		Runs:             projectRuns,
+		NokItems:         nokItems,
 		MemberRole:       memberRole,
 		CanManage:        projects.CanManage(user, memberRole),
 		CanManageMembers: projects.CanManageMembers(user, memberRole),

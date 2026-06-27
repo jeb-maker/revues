@@ -1,0 +1,28 @@
+{{define "templates_index"}}
+{{template "layout_start" .}}
+{{template "nav_tabs" .}}
+<h1>Modèles</h1>
+<p class="muted">Modèles de check-list par projet.</p>
+
+{{if .Templates}}
+<table class="data-table">
+  <thead>
+    <tr><th>Projet</th><th>Modèle</th><th>Version</th><th>Points</th><th></th></tr>
+  </thead>
+  <tbody>
+    {{range .Templates}}
+    <tr>
+      <td><a href="/projects/{{.ProjectID}}">{{.ProjectName}}</a></td>
+      <td><a href="/projects/{{.ProjectID}}/templates/{{.ID}}">{{.Name}}</a></td>
+      <td>v{{.LatestVersion}}</td>
+      <td>{{.ItemCount}}</td>
+      <td><a href="/projects/{{.ProjectID}}/templates/{{.ID}}">Ouvrir</a></td>
+    </tr>
+    {{end}}
+  </tbody>
+</table>
+{{else}}
+<p class="muted">Aucun modèle actif.</p>
+{{end}}
+{{template "layout_end" .}}
+{{end}}

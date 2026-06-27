@@ -21,14 +21,50 @@
 </p>
 {{end}}
 
+{{if .NokItems}}
+<section class="panel">
+  <h2>Points bloquants ({{len .NokItems}})</h2>
+  <ul class="item-list">
+    {{range .NokItems}}
+    <li>
+      <a href="/runs/{{.RunID}}/items/{{.ID}}"><strong>{{.Label}}</strong></a>
+      <span class="muted"> — revue <a href="/runs/{{.RunID}}">{{.RunTitle}}</a></span>
+      {{if .Comment}} · {{.Comment}}{{end}}
+    </li>
+    {{end}}
+  </ul>
+</section>
+{{end}}
+
 <section class="panel">
   <h2>Revues ({{len .Runs}})</h2>
   {{if .Runs}}
-  <ul class="item-list">
-    {{range .Runs}}
-    <li><a href="/runs/{{.ID}}">{{.Title}}</a> <span class="muted">({{.Status}})</span></li>
-    {{end}}
-  </ul>
+  <table class="data-table">
+    <thead>
+      <tr><th>Titre</th><th>Statut</th><th>Progression</th><th></th></tr>
+    </thead>
+    <tbody>
+      {{range .Runs}}
+      <tr>
+        <td><a href="/runs/{{.ID}}">{{.Title}}</a></td>
+        <td>{{.Status}}</td>
+        <td>
+          {{if eq .Status "in_progress"}}
+          <div class="run-progress-track compact">
+            <div class="run-progress-bar" style="width: {{.Percent}}%"></div>
+          </div>
+          <span class="muted">{{.Done}} / {{.Total}} ({{.Percent}}%)</span>
+          {{else if gt .Total 0}}
+          <span class="muted">{{.Done}} / {{.Total}}</span>
+          {{else}}
+          <span class="muted">—</span>
+          {{end}}
+        </td>
+        <td><a href="/runs/{{.ID}}">Ouvrir</a></td>
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
   {{else}}
   <p class="muted">Aucune revue sur ce projet.</p>
   {{end}}
@@ -81,6 +117,6 @@
   {{end}}
 </section>
 
-<p><a href="/projects">← Retour aux projets</a></p>
+<p><a href="/projects">← Tableau de bord</a></p>
 {{template "layout_end" .}}
 {{end}}

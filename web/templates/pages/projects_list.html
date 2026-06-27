@@ -1,6 +1,7 @@
 {{define "projects_list"}}
 {{template "layout_start" .}}
-<h1>Projets</h1>
+{{template "nav_tabs" .}}
+<h1>Tableau de bord</h1>
 {{if .Message}}<p class="success">{{.Message}}</p>{{end}}
 {{if .Error}}<p class="error">{{.Error}}</p>{{end}}
 
@@ -8,14 +9,47 @@
 <p><a class="button" href="/projects/new">Nouveau projet</a></p>
 {{end}}
 
-{{if .Projects}}
-<ul class="item-list">
-  {{range .Projects}}
-  <li><a href="/projects/{{.ID}}">{{.Name}}</a></li>
+<section class="panel">
+  <h2>Revues en cours</h2>
+  {{if .ActiveRuns}}
+  <table class="data-table">
+    <thead>
+      <tr><th>Revue</th><th>Projet</th><th>Progression</th><th></th></tr>
+    </thead>
+    <tbody>
+      {{range .ActiveRuns}}
+      <tr>
+        <td><a href="/runs/{{.RunID}}">{{.Title}}</a></td>
+        <td><a href="/projects/{{.ProjectID}}">{{.ProjectName}}</a></td>
+        <td>
+          <div class="run-progress-track compact">
+            <div class="run-progress-bar" style="width: {{.Percent}}%"></div>
+          </div>
+          <span class="muted">{{.Done}} / {{.Total}} ({{.Percent}}%)</span>
+        </td>
+        <td><a href="/runs/{{.RunID}}">Ouvrir</a></td>
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+  {{else}}
+  <p class="muted">Aucune revue en cours.</p>
   {{end}}
-</ul>
-{{else}}
-<p class="muted">Aucun projet actif.</p>
-{{end}}
+</section>
+
+<section class="panel">
+  <h2>Projets ({{len .Projects}})</h2>
+  {{if .Projects}}
+  <ul class="item-list">
+    {{range .Projects}}
+    <li><a href="/projects/{{.ID}}">{{.Name}}</a>{{if .Description}} <span class="muted">— {{.Description}}</span>{{end}}</li>
+    {{end}}
+  </ul>
+  {{else}}
+  <p class="muted">Aucun projet actif.</p>
+  {{end}}
+</section>
+
+<p><a href="/runs/new">Lancer une revue</a></p>
 {{template "layout_end" .}}
 {{end}}

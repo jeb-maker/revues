@@ -127,6 +127,7 @@ func NewRouter(deps Deps) (http.Handler, error) {
 		r.Post("/runs/{id}/start", runsHandler.Start)
 		r.Post("/runs/{id}/complete", runsHandler.Complete)
 		r.Get("/mes-taches", myTasks.List)
+		r.Get("/modeles", checklistTemplates.IndexAll)
 	})
 
 	r.Group(func(r chi.Router) {

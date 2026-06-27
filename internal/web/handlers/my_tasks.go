@@ -56,7 +56,7 @@ func (h *MyTasks) List(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := viewtemplates.MyTasksData{
-		PageData:        h.pageData(r, "Mes tâches"),
+		PageData:        h.pageData(r, "Mes tâches", "tasks"),
 		Tasks:           tasks,
 		Projects:        projects,
 		FilterProjectID: projectFilter,
@@ -70,8 +70,8 @@ func (h *MyTasks) List(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *MyTasks) pageData(r *http.Request, title string) viewtemplates.PageData {
-	data := viewtemplates.PageData{Title: title}
+func (h *MyTasks) pageData(r *http.Request, title, activeTab string) viewtemplates.PageData {
+	data := viewtemplates.PageData{Title: title, ActiveTab: activeTab}
 	if user, ok := middleware.UserFromContext(r.Context()); ok {
 		data.User = user
 		if token := middleware.SessionTokenFromContext(r); token != "" {
