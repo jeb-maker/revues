@@ -25,6 +25,35 @@ type AdminUsersData struct {
 	Error   string
 }
 
+// ProjectsListData is view data for the project index.
+type ProjectsListData struct {
+	PageData
+	Projects  []store.Project
+	CanCreate bool
+	Message   string
+	Error     string
+}
+
+// ProjectFormData is view data for create/edit project forms.
+type ProjectFormData struct {
+	PageData
+	Project    *store.Project
+	FormAction string
+	Error      string
+}
+
+// ProjectShowData is view data for project detail.
+type ProjectShowData struct {
+	PageData
+	Project          *store.Project
+	Members          []store.ProjectMember
+	MemberRole       string
+	CanManage        bool
+	CanManageMembers bool
+	Message          string
+	Error            string
+}
+
 // Parse loads layout and page templates from the embedded filesystem.
 func Parse() (*template.Template, error) {
 	root, err := fs.Sub(webassets.Templates, "templates")

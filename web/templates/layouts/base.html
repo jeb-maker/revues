@@ -1,4 +1,4 @@
-{{define "base"}}
+{{define "layout_start"}}
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -12,7 +12,9 @@
     <a href="/">Revues</a>
   </header>
   <main class="site-main">
-    {{block "content" .}}{{end}}
+{{end}}
+
+{{define "layout_end"}}
   </main>
   <script src="/static/js/app.js" defer></script>
 </body>

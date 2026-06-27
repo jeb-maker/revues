@@ -1,0 +1,71 @@
+{{define "project_show"}}
+{{template "layout_start" .}}
+<h1>{{.Project.Name}}</h1>
+<p>{{.Project.Description}}</p>
+
+{{if .Message}}<p class="success">{{.Message}}</p>{{end}}
+{{if .Error}}<p class="error">{{.Error}}</p>{{end}}
+
+<p class="muted">Votre rôle sur ce projet : {{.MemberRole}}</p>
+
+{{if .CanManage}}
+<p>
+  <a href="/projects/{{.Project.ID}}/edit">Modifier</a>
+  ·
+  <form method="post" action="/projects/{{.Project.ID}}/archive" class="inline-form">
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+    <button type="submit">Archiver</button>
+  </form>
+</p>
+{{end}}
+
+<section class="panel">
+  <h2>Membres ({{len .Members}})</h2>
+  <table class="data-table">
+    <thead>
+      <tr><th>Login</th><th>Email</th><th>Rôle</th><th></th></tr>
+    </thead>
+    <tbody>
+      {{range .Members}}
+      <tr>
+        <td>{{.Login}}</td>
+        <td>{{.Email}}</td>
+        <td>{{.Role}}</td>
+        <td>
+          {{if $.CanManageMembers}}
+          <form method="post" action="/projects/{{$.Project.ID}}/members/remove" class="inline-form">
+            <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
+            <input type="hidden" name="user_id" value="{{.UserID}}">
+            <button type="submit">Retirer</button>
+          </form>
+          {{end}}
+        </td>
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+
+  {{if .CanManageMembers}}
+  <h3>Ajouter un membre</h3>
+  <form method="post" action="/projects/{{.Project.ID}}/members" class="stack-form">
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+    <label>
+      Email utilisateur
+      <input type="email" name="email" required>
+    </label>
+    <label>
+      Rôle local
+      <select name="role" required>
+        <option value="lead">lead</option>
+        <option value="contributor">contributor</option>
+        <option value="viewer">viewer</option>
+      </select>
+    </label>
+    <button type="submit">Ajouter</button>
+  </form>
+  {{end}}
+</section>
+
+<p><a href="/projects">← Retour aux projets</a></p>
+{{template "layout_end" .}}
+{{end}}

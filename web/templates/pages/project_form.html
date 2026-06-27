@@ -1,0 +1,21 @@
+{{define "project_form"}}
+{{template "layout_start" .}}
+<h1>{{if .Project}}Modifier le projet{{else}}Nouveau projet{{end}}</h1>
+{{if .Error}}<p class="error">{{.Error}}</p>{{end}}
+
+<form method="post" action="{{.FormAction}}" class="stack-form">
+  <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+  <label>
+    Nom
+    <input type="text" name="name" required maxlength="200" value="{{if .Project}}{{.Project.Name}}{{end}}">
+  </label>
+  <label>
+    Description
+    <textarea name="description" rows="4">{{if .Project}}{{.Project.Description}}{{end}}</textarea>
+  </label>
+  <button type="submit">Enregistrer</button>
+</form>
+
+<p><a href="/projects">← Retour aux projets</a></p>
+{{template "layout_end" .}}
+{{end}}

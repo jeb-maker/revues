@@ -82,12 +82,17 @@ body {
 }
 
 .stack-form input,
-.stack-form select {
+.stack-form select,
+.stack-form textarea {
   display: block;
   width: 100%;
   max-width: 24rem;
   margin-top: 0.25rem;
   padding: 0.5rem;
+}
+
+.item-list {
+  padding-left: 1.25rem;
 }
 
 .data-table {

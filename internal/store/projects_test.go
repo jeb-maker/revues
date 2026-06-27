@@ -1,0 +1,75 @@
+package store_test
+
+import (
+	"context"
+	"testing"
+
+	"github.com/jeb-maker/revues/internal/auth"
+	"github.com/jeb-maker/revues/internal/projects"
+	"github.com/jeb-maker/revues/internal/store"
+)
+
+func TestCreateProjectAddsLead(t *testing.T) {
+	ctx := context.Background()
+	db := openMemoryDB(t)
+	st := store.New(db)
+
+	creator, err := st.UpsertGitHubUser(ctx, 1, "lead", "lead@example.com", "Lead", "", auth.RoleEditor)
+	if err != nil {
+		t.Fatalf("UpsertGitHubUser(): %v", err)
+	}
+
+	project, err := st.CreateProject(ctx, "Alpha", "desc", creator.ID)
+	if err != nil {
+		t.Fatalf("CreateProject(): %v", err)
+	}
+
+	role, ok, err := st.MemberRole(ctx, project.ID, creator.ID)
+	if err != nil || !ok || role != projects.LocalRoleLead {
+		t.Fatalf("MemberRole() = %q, %v, %v", role, ok, err)
+	}
+
+	projects, err := st.ListProjects(ctx, creator.ID, false)
+	if err != nil || len(projects) != 1 {
+		t.Fatalf("ListProjects() = %v, %v", projects, err)
+	}
+}
+
+func TestListProjectsAdminSeesAll(t *testing.T) {
+	ctx := context.Background()
+	db := openMemoryDB(t)
+	st := store.New(db)
+
+	a, err := st.UpsertGitHubUser(ctx, 1, "a", "a@example.com", "A", "", auth.RoleEditor)
+	if err != nil {
+		t.Fatalf("UpsertGitHubUser(a): %v", err)
+	}
+	b, err := st.UpsertGitHubUser(ctx, 2, "b", "b@example.com", "B", "", auth.RoleEditor)
+	if err != nil {
+		t.Fatalf("UpsertGitHubUser(b): %v", err)
+	}
+
+	if _, err := st.CreateProject(ctx, "P1", "", a.ID); err != nil {
+		t.Fatalf("CreateProject(p1): %v", err)
+	}
+	if _, err := st.CreateProject(ctx, "P2", "", b.ID); err != nil {
+		t.Fatalf("CreateProject(p2): %v", err)
+	}
+
+	admin := &store.User{ID: 99, Role: auth.RoleAdmin}
+	items, err := st.ListProjects(ctx, admin.ID, true)
+	if err != nil {
+		t.Fatalf("ListProjects(admin): %v", err)
+	}
+	if len(items) != 2 {
+		t.Fatalf("admin list len = %d, want 2", len(items))
+	}
+
+	items, err = st.ListProjects(ctx, a.ID, false)
+	if err != nil {
+		t.Fatalf("ListProjects(a): %v", err)
+	}
+	if len(items) != 1 {
+		t.Fatalf("member list len = %d, want 1", len(items))
+	}
+}

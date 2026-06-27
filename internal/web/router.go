@@ -60,6 +60,11 @@ func NewRouter(deps Deps) (http.Handler, error) {
 		Store:         st,
 		SessionSecret: deps.Config.SessionSecret,
 	}
+	projectsHandler := &handlers.Projects{
+		Templates:     tpl,
+		Store:         st,
+		SessionSecret: deps.Config.SessionSecret,
+	}
 
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
@@ -77,6 +82,19 @@ func NewRouter(deps Deps) (http.Handler, error) {
 	r.Get("/auth/github/start", authHandler.StartGitHub)
 	r.Get("/auth/github/callback", authHandler.Callback)
 	r.Post("/logout", authHandler.Logout)
+
+	r.Group(func(r chi.Router) {
+		r.Use(appmiddleware.RequireAuth)
+		r.Get("/projects", projectsHandler.List)
+		r.Get("/projects/new", projectsHandler.NewForm)
+		r.Post("/projects", projectsHandler.Create)
+		r.Get("/projects/{id}", projectsHandler.Show)
+		r.Get("/projects/{id}/edit", projectsHandler.EditForm)
+		r.Post("/projects/{id}", projectsHandler.Update)
+		r.Post("/projects/{id}/archive", projectsHandler.Archive)
+		r.Post("/projects/{id}/members", projectsHandler.AddMember)
+		r.Post("/projects/{id}/members/remove", projectsHandler.RemoveMember)
+	})
 
 	r.Group(func(r chi.Router) {
 		r.Use(appmiddleware.RequireAuth)
