@@ -89,7 +89,7 @@ func TestRunStatusTransitions(t *testing.T) {
 		t.Fatalf("after start: %+v", run)
 	}
 
-	if err = st.CompleteRun(ctx, run.ID); err != nil {
+	if err = st.CompleteRun(ctx, run.ID, "Note de clôture"); err != nil {
 		t.Fatalf("CompleteRun(): %v", err)
 	}
 	run, err = st.RunByID(ctx, run.ID)
@@ -98,5 +98,8 @@ func TestRunStatusTransitions(t *testing.T) {
 	}
 	if run.Status != store.RunStatusDone || !run.CompletedAt.Valid {
 		t.Fatalf("after complete: %+v", run)
+	}
+	if run.ClosingNote != "Note de clôture" {
+		t.Fatalf("closing_note = %q", run.ClosingNote)
 	}
 }

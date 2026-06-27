@@ -11,6 +11,7 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"github.com/jeb-maker/revues/internal/auth"
+	"github.com/jeb-maker/revues/internal/items"
 	"github.com/jeb-maker/revues/internal/runs"
 	"github.com/jeb-maker/revues/internal/store"
 	"github.com/jeb-maker/revues/internal/web/middleware"
@@ -217,38 +218,67 @@ func (h *Runs) Show(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	items, err := h.Store.ListRunItems(r.Context(), run.ID)
+	h.renderRunShow(w, r, run, project, user, memberRole, viewtemplates.RunShowData{
+		Message:   r.URL.Query().Get("msg"),
+		ItemError: r.URL.Query().Get("item_error"),
+	})
+}
+
+// UpdateItem changes status and comment on a run item.
+func (h *Runs) UpdateItem(w http.ResponseWriter, r *http.Request) {
+	run, project, user, memberRole, ok := h.loadRun(w, r)
+	if !ok {
+		return
+	}
+	if !items.CanUpdate(user, memberRole) {
+		http.NotFound(w, r)
+		return
+	}
+	if run.Status != store.RunStatusInProgress {
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
+
+	itemID, err := strconv.ParseInt(chi.URLParam(r, "itemId"), 10, 64)
 	if err != nil {
-		slog.Error("list run items", "err", err)
+		http.NotFound(w, r)
+		return
+	}
+
+	status := strings.TrimSpace(r.FormValue("status"))
+	comment := strings.TrimSpace(r.FormValue("comment"))
+
+	if err := items.ValidateUpdate(status, comment); err != nil {
+		switch {
+		case errors.Is(err, items.ErrCommentRequired):
+			h.renderRunShow(w, r, run, project, user, memberRole, viewtemplates.RunShowData{
+				ItemError: "Un commentaire est obligatoire pour le statut nok.",
+			})
+		case errors.Is(err, items.ErrInvalidStatus):
+			h.renderRunShow(w, r, run, project, user, memberRole, viewtemplates.RunShowData{
+				ItemError: "Statut invalide.",
+			})
+		default:
+			http.Error(w, "Bad Request", http.StatusBadRequest)
+		}
+		return
+	}
+
+	if err := h.Store.UpdateRunItemStatus(r.Context(), run.ID, itemID, user.ID, status, comment); err != nil {
+		if errors.Is(err, store.ErrRunItemNotFound) {
+			http.NotFound(w, r)
+			return
+		}
+		slog.Error("update run item", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
-	versionInfo, err := h.Store.TemplateVersionInfo(r.Context(), run.TemplateVersionID)
-	if err != nil {
-		slog.Error("template version info", "err", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
-	}
-
-	data := viewtemplates.RunShowData{
-		PageData:     h.pageData(r, run.Title),
-		Project:      project,
-		Run:          run,
-		Items:        items,
-		TemplateName: versionInfo.Name,
-		VersionNum:   versionInfo.Version,
-		MemberRole:   memberRole,
-		CanLaunch:    runs.CanLaunch(user, memberRole),
-		CanComplete:  runs.CanComplete(user, memberRole),
-		Message:      r.URL.Query().Get("msg"),
-	}
-
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	if err := h.Templates.ExecuteTemplate(w, "run_show", data); err != nil {
-		slog.Error("render run show", "err", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-	}
+	http.Redirect(w, r, "/runs/"+strconv.FormatInt(run.ID, 10)+"?msg=Point+mis+%C3%A0+jour", http.StatusSeeOther)
 }
 
 // Start moves a run from draft to in_progress.
@@ -277,7 +307,7 @@ func (h *Runs) Start(w http.ResponseWriter, r *http.Request) {
 
 // Complete moves a run from in_progress to done.
 func (h *Runs) Complete(w http.ResponseWriter, r *http.Request) {
-	run, _, user, memberRole, ok := h.loadRun(w, r)
+	run, project, user, memberRole, ok := h.loadRun(w, r)
 	if !ok {
 		return
 	}
@@ -285,8 +315,21 @@ func (h *Runs) Complete(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
 
-	if err := h.Store.CompleteRun(r.Context(), run.ID); err != nil {
+	closingNote := strings.TrimSpace(r.FormValue("closing_note"))
+	if closingNote == "" {
+		h.renderRunShow(w, r, run, project, user, memberRole, viewtemplates.RunShowData{
+			ClosingNote:   r.FormValue("closing_note"),
+			CompleteError: "La note de clôture est obligatoire.",
+		})
+		return
+	}
+
+	if err := h.Store.CompleteRun(r.Context(), run.ID, closingNote); err != nil {
 		if errors.Is(err, store.ErrInvalidRunStatus) {
 			http.Error(w, "Bad Request", http.StatusBadRequest)
 			return
@@ -297,6 +340,58 @@ func (h *Runs) Complete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(w, r, "/runs/"+strconv.FormatInt(run.ID, 10)+"?msg=Revue+termin%C3%A9e", http.StatusSeeOther)
+}
+
+func (h *Runs) renderRunShow(w http.ResponseWriter, r *http.Request, run *store.ChecklistRun, project *store.Project, user *store.User, memberRole string, extra viewtemplates.RunShowData) {
+	runItems, err := h.Store.ListRunItems(r.Context(), run.ID)
+	if err != nil {
+		slog.Error("list run items", "err", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	nokItems, err := h.Store.ListNokRunItems(r.Context(), run.ID)
+	if err != nil {
+		slog.Error("list nok run items", "err", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	versionInfo, err := h.Store.TemplateVersionInfo(r.Context(), run.TemplateVersionID)
+	if err != nil {
+		slog.Error("template version info", "err", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	data := viewtemplates.RunShowData{
+		PageData:      h.pageData(r, run.Title),
+		Project:       project,
+		Run:           run,
+		Items:         runItems,
+		NokItems:      nokItems,
+		TemplateName:  versionInfo.Name,
+		VersionNum:    versionInfo.Version,
+		MemberRole:    memberRole,
+		CanLaunch:     runs.CanLaunch(user, memberRole),
+		CanCheck:      items.CanUpdate(user, memberRole),
+		CanComplete:   runs.CanComplete(user, memberRole),
+		Message:       extra.Message,
+		ItemError:     extra.ItemError,
+		CompleteError: extra.CompleteError,
+		ClosingNote:   extra.ClosingNote,
+		Error:         extra.Error,
+	}
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	statusCode := http.StatusOK
+	if extra.ItemError != "" || extra.CompleteError != "" {
+		statusCode = http.StatusBadRequest
+	}
+	w.WriteHeader(statusCode)
+	if err := h.Templates.ExecuteTemplate(w, "run_show", data); err != nil {
+		slog.Error("render run show", "err", err)
+	}
 }
 
 func (h *Runs) loadProjectForLaunch(w http.ResponseWriter, r *http.Request) (*store.Project, *store.User, string, bool) {

@@ -224,14 +224,14 @@ func (s *Store) StartRun(ctx context.Context, id int64) error {
 	return nil
 }
 
-// CompleteRun moves a run from in_progress to done.
-func (s *Store) CompleteRun(ctx context.Context, id int64) error {
+// CompleteRun moves a run from in_progress to done with a closing note.
+func (s *Store) CompleteRun(ctx context.Context, id int64, closingNote string) error {
 	now := time.Now().UTC().Format(time.RFC3339)
 	res, err := s.db.ExecContext(ctx, `
 		UPDATE checklist_runs
-		SET status = ?, completed_at = ?
+		SET status = ?, completed_at = ?, closing_note = ?
 		WHERE id = ? AND status = ?
-	`, RunStatusDone, now, id, RunStatusInProgress)
+	`, RunStatusDone, now, closingNote, id, RunStatusInProgress)
 	if err != nil {
 		return fmt.Errorf("complete run: %w", err)
 	}

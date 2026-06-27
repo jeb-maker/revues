@@ -116,6 +116,7 @@ func NewRouter(deps Deps) (http.Handler, error) {
 		r.Get("/runs/new/projects/{id}", runsHandler.WizardTemplates)
 		r.Get("/runs/new/projects/{id}/templates/{tid}", runsHandler.WizardLaunch)
 		r.Get("/runs/{id}", runsHandler.Show)
+		r.Post("/runs/{id}/items/{itemId}", runsHandler.UpdateItem)
 		r.Post("/runs/{id}/start", runsHandler.Start)
 		r.Post("/runs/{id}/complete", runsHandler.Complete)
 	})
