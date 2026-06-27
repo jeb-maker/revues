@@ -5,12 +5,16 @@ import (
 	"html/template"
 	"io/fs"
 
+	"github.com/jeb-maker/revues/internal/store"
 	webassets "github.com/jeb-maker/revues/web"
 )
 
 // PageData is shared view data for HTML pages.
 type PageData struct {
-	Title string
+	Title      string
+	User       *store.User
+	CSRFToken  string
+	LoginError string
 }
 
 // Parse loads layout and page templates from the embedded filesystem.

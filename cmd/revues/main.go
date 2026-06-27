@@ -38,7 +38,10 @@ func main() {
 		os.Exit(1)
 	}
 
-	handler, err := appweb.NewRouter()
+	handler, err := appweb.NewRouter(appweb.Deps{
+		Config: cfg,
+		DB:     db,
+	})
 	if err != nil {
 		slog.Error("router setup failed", "err", err)
 		os.Exit(1)

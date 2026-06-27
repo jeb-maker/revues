@@ -1,0 +1,8 @@
+{{define "content"}}
+<h1>Connexion</h1>
+<p>Connectez-vous avec votre compte GitHub pour accéder à Revues.</p>
+<p><a class="button" href="/auth/github/start">Se connecter avec GitHub</a></p>
+{{if .LoginError}}
+<p class="error">{{.LoginError}}</p>
+{{end}}
+{{end}}

@@ -34,9 +34,10 @@ Vérifications :
 ```bash
 curl http://localhost:8080/healthz   # → ok
 curl -I http://localhost:8080/       # → page HTML d'accueil
+open http://localhost:8080/login     # → connexion GitHub OAuth
 ```
 
-Variables d'environnement : voir [.env.example](.env.example) (`REVUES_DATABASE_PATH` par défaut : `data/revues.db`).
+Variables d'environnement : voir [.env.example](.env.example) (`REVUES_DATABASE_PATH`, `REVUES_GITHUB_CLIENT_*`, `REVUES_SESSION_SECRET`, `REVUES_BOOTSTRAP_ADMIN_EMAIL`).
 
 Au démarrage, les migrations goose s'appliquent automatiquement.
 
