@@ -1,0 +1,30 @@
+{{define "run_wizard_launch"}}
+{{template "layout_start" .}}
+<h1>Lancer la revue</h1>
+<p class="muted">Étape {{.Step}} sur 3 — confirmez et lancez.</p>
+{{if .Error}}<p class="error">{{.Error}}</p>{{end}}
+
+<section class="panel">
+  <h2>Récapitulatif</h2>
+  <p><strong>Projet :</strong> {{.Project.Name}}</p>
+  <p><strong>Modèle :</strong> {{.Template.Name}} (v{{.Version.Version}})</p>
+  <p><strong>Points :</strong> {{.ItemCount}}</p>
+</section>
+
+<form method="post" action="{{.FormAction}}" class="stack-form">
+  <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+  <input type="hidden" name="template_id" value="{{.Template.ID}}">
+  <label>
+    Titre de la revue
+    <input type="text" name="title" required maxlength="200" value="{{.Title}}">
+  </label>
+  <button type="submit">Lancer la revue</button>
+</form>
+
+<p>
+  <a href="/runs/new/projects/{{.Project.ID}}">← Choisir un autre modèle</a>
+  ·
+  <a href="/runs/new">Changer de projet</a>
+</p>
+{{template "layout_end" .}}
+{{end}}

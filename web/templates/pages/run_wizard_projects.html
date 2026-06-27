@@ -1,0 +1,20 @@
+{{define "run_wizard_projects"}}
+{{template "layout_start" .}}
+<h1>Lancer une revue</h1>
+<p class="muted">Étape {{.Step}} sur 3 — choisissez un projet.</p>
+{{if .Message}}<p class="success">{{.Message}}</p>{{end}}
+{{if .Error}}<p class="error">{{.Error}}</p>{{end}}
+
+{{if .Projects}}
+<ul class="item-list">
+  {{range .Projects}}
+  <li><a href="/runs/new/projects/{{.ID}}">{{.Name}}</a></li>
+  {{end}}
+</ul>
+{{else}}
+<p class="muted">Aucun projet où vous pouvez lancer une revue.</p>
+{{end}}
+
+<p><a href="/projects">← Retour aux projets</a></p>
+{{template "layout_end" .}}
+{{end}}

@@ -1,0 +1,57 @@
+{{define "run_show"}}
+{{template "layout_start" .}}
+<h1>{{.Run.Title}}</h1>
+{{if .Message}}<p class="success">{{.Message}}</p>{{end}}
+{{if .Error}}<p class="error">{{.Error}}</p>{{end}}
+
+<p class="muted">
+  Projet : <a href="/projects/{{.Project.ID}}">{{.Project.Name}}</a>
+  · Modèle : {{.TemplateName}} v{{.VersionNum}}
+  · Statut : {{.Run.Status}}
+</p>
+
+{{if eq .Run.Status "draft"}}
+{{if .CanLaunch}}
+<form method="post" action="/runs/{{.Run.ID}}/start" class="inline-form">
+  <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+  <button type="submit" class="button">Démarrer la revue</button>
+</form>
+{{end}}
+{{else if eq .Run.Status "in_progress"}}
+{{if .CanComplete}}
+<form method="post" action="/runs/{{.Run.ID}}/complete" class="inline-form">
+  <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+  <button type="submit">Terminer la revue</button>
+</form>
+{{end}}
+{{end}}
+
+<section class="panel">
+  <h2>Points ({{len .Items}})</h2>
+  {{if .Items}}
+  <table class="data-table">
+    <thead>
+      <tr><th>Section</th><th>Point</th><th>Statut</th></tr>
+    </thead>
+    <tbody>
+      {{range .Items}}
+      <tr>
+        <td>{{if .Section}}{{.Section}}{{else}}<span class="muted">—</span>{{end}}</td>
+        <td>{{.Label}}</td>
+        <td>{{.Status}}</td>
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+  {{else}}
+  <p class="muted">Aucun point dans cette revue.</p>
+  {{end}}
+</section>
+
+<p>
+  <a href="/projects/{{.Project.ID}}">← Retour au projet</a>
+  ·
+  <a href="/runs/new/projects/{{.Project.ID}}">Lancer une autre revue</a>
+</p>
+{{template "layout_end" .}}
+{{end}}

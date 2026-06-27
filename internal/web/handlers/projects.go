@@ -13,6 +13,7 @@ import (
 
 	"github.com/jeb-maker/revues/internal/auth"
 	"github.com/jeb-maker/revues/internal/projects"
+	"github.com/jeb-maker/revues/internal/runs"
 	"github.com/jeb-maker/revues/internal/store"
 	"github.com/jeb-maker/revues/internal/web/middleware"
 	"github.com/jeb-maker/revues/internal/web/templates"
@@ -126,13 +127,22 @@ func (h *Projects) Show(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	projectRuns, err := h.Store.ListRunsByProject(r.Context(), project.ID)
+	if err != nil {
+		slog.Error("list project runs", "err", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
 	data := templates.ProjectShowData{
 		PageData:         h.pageData(r, project.Name),
 		Project:          project,
 		Members:          members,
+		Runs:             projectRuns,
 		MemberRole:       memberRole,
 		CanManage:        projects.CanManage(user, memberRole),
 		CanManageMembers: projects.CanManageMembers(user, memberRole),
+		CanLaunch:        runs.CanLaunch(user, memberRole),
 		Message:          r.URL.Query().Get("msg"),
 	}
 

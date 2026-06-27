@@ -1,0 +1,25 @@
+{{define "run_wizard_templates"}}
+{{template "layout_start" .}}
+<h1>Lancer une revue — {{.Project.Name}}</h1>
+<p class="muted">Étape {{.Step}} sur 3 — choisissez un modèle.</p>
+
+{{if .Templates}}
+<ul class="item-list">
+  {{range .Templates}}
+  <li>
+    <a href="/runs/new/projects/{{$.Project.ID}}/templates/{{.ID}}">{{.Name}}</a>
+    <span class="muted"> — v{{.LatestVersion}} · {{.ItemCount}} point{{if ne .ItemCount 1}}s{{end}}</span>
+  </li>
+  {{end}}
+</ul>
+{{else}}
+<p class="muted">Aucun modèle actif sur ce projet.</p>
+{{end}}
+
+<p>
+  <a href="/runs/new">← Choisir un autre projet</a>
+  ·
+  <a href="/projects/{{.Project.ID}}">Retour au projet</a>
+</p>
+{{template "layout_end" .}}
+{{end}}

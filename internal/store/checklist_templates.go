@@ -274,6 +274,31 @@ func (s *Store) CreateTemplateVersion(ctx context.Context, templateID, createdBy
 	return version, nil
 }
 
+// TemplateVersionInfo links a version to its template metadata.
+type TemplateVersionInfo struct {
+	TemplateID int64
+	Name       string
+	Version    int
+}
+
+// TemplateVersionInfo loads template metadata for a version id.
+func (s *Store) TemplateVersionInfo(ctx context.Context, versionID int64) (*TemplateVersionInfo, error) {
+	var info TemplateVersionInfo
+	err := s.db.QueryRowContext(ctx, `
+		SELECT t.id, t.name, v.version
+		FROM template_versions v
+		INNER JOIN checklist_templates t ON t.id = v.template_id
+		WHERE v.id = ?
+	`, versionID).Scan(&info.TemplateID, &info.Name, &info.Version)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, sql.ErrNoRows
+	}
+	if err != nil {
+		return nil, fmt.Errorf("template version info: %w", err)
+	}
+	return &info, nil
+}
+
 func insertTemplateVersionTx(ctx context.Context, tx *sql.Tx, templateID int64, versionNum int, now string, createdBy int64, items []TemplateItemInput) (*TemplateVersion, error) {
 	res, err := tx.ExecContext(ctx, `
 		INSERT INTO template_versions (template_id, version, published_at, created_by)
