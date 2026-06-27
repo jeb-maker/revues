@@ -138,3 +138,22 @@ fieldset.template-row {
   max-width: none;
   margin: 0;
 }
+
+.warning-panel {
+  margin: 0 0 1rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid #b45309;
+  border-radius: 0.375rem;
+  background: color-mix(in srgb, #b45309 8%, transparent);
+}
+
+.item-status-form select,
+.item-status-form input[type="text"] {
+  width: auto;
+  max-width: 12rem;
+  margin-right: 0.25rem;
+}
+
+.item-status-form button {
+  margin-top: 0.25rem;
+}

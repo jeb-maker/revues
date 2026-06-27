@@ -139,16 +139,21 @@ type RunWizardLaunchData struct {
 // RunShowData is view data for run detail.
 type RunShowData struct {
 	PageData
-	Project      *store.Project
-	Run          *store.ChecklistRun
-	Items        []store.RunItem
-	TemplateName string
-	VersionNum   int
-	MemberRole   string
-	CanLaunch    bool
-	CanComplete  bool
-	Message      string
-	Error        string
+	Project       *store.Project
+	Run           *store.ChecklistRun
+	Items         []store.RunItem
+	NokItems      []store.RunItem
+	TemplateName  string
+	VersionNum    int
+	MemberRole    string
+	CanLaunch     bool
+	CanCheck      bool
+	CanComplete   bool
+	ClosingNote   string
+	Message       string
+	ItemError     string
+	CompleteError string
+	Error         string
 }
 
 // Parse loads layout and page templates from the embedded filesystem.
