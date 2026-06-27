@@ -1,0 +1,20 @@
+{{define "base"}}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{if .Title}}{{.Title}} — {{end}}Revues</title>
+  <link rel="stylesheet" href="/static/css/app.css">
+</head>
+<body>
+  <header class="site-header">
+    <a href="/">Revues</a>
+  </header>
+  <main class="site-main">
+    {{block "content" .}}{{end}}
+  </main>
+  <script src="/static/js/app.js" defer></script>
+</body>
+</html>
+{{end}}

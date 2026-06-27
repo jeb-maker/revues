@@ -1,40 +1,68 @@
 // Package main is the Revues application entrypoint.
-// Issue #5 expands this scaffold into full bootstrap.
 package main
 
 import (
-	"log"
+	"context"
+	"errors"
+	"log/slog"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
-	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
+	"github.com/jeb-maker/revues/internal/config"
+	appweb "github.com/jeb-maker/revues/internal/web"
 )
 
 func main() {
-	addr := envOr("REVUES_ADDR", ":8080")
+	cfg := config.Load()
+	initLogging(cfg.Env)
 
-	r := chi.NewRouter()
-	r.Use(middleware.RequestID)
-	r.Use(middleware.RealIP)
-	r.Use(middleware.Logger)
-	r.Use(middleware.Recoverer)
+	handler, err := appweb.NewRouter()
+	if err != nil {
+		slog.Error("router setup failed", "err", err)
+		os.Exit(1)
+	}
 
-	r.Get("/healthz", func(w http.ResponseWriter, _ *http.Request) {
-		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte("ok"))
-	})
+	srv := &http.Server{
+		Addr:              cfg.Addr,
+		Handler:           handler,
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       10 * time.Second,
+		WriteTimeout:      30 * time.Second,
+		IdleTimeout:       60 * time.Second,
+	}
 
-	log.Printf("revues listening on %s", addr)
-	if err := http.ListenAndServe(addr, r); err != nil {
-		log.Fatal(err)
+	go func() {
+		slog.Info("revues listening", "addr", cfg.Addr)
+		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			slog.Error("server failed", "err", err)
+			os.Exit(1)
+		}
+	}()
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+
+	slog.Info("shutting down")
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if err := srv.Shutdown(ctx); err != nil {
+		slog.Error("shutdown failed", "err", err)
+		os.Exit(1)
 	}
 }
 
-func envOr(key, fallback string) string {
-	if v := os.Getenv(key); v != "" {
-		return v
+func initLogging(env string) {
+	level := slog.LevelInfo
+	if env == "development" {
+		level = slog.LevelDebug
 	}
-	return fallback
+
+	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+		Level: level,
+	})))
 }

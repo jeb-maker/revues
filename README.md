@@ -20,15 +20,33 @@ Avant toute délégation, lire [AGENTS.md](AGENTS.md) et exécuter :
 ./scripts/check.sh
 ```
 
-## Démarrage (squelette)
+## Démarrage
 
 ```bash
 go mod tidy
 go run ./cmd/revues
-curl http://localhost:8080/healthz
 ```
 
-Variables : voir [.env.example](.env.example).
+Le serveur écoute sur `:8080` par défaut (`REVUES_ADDR`).
+
+Vérifications :
+
+```bash
+curl http://localhost:8080/healthz   # → ok
+curl -I http://localhost:8080/       # → page HTML d'accueil
+```
+
+Variables d'environnement : voir [.env.example](.env.example).
+
+## Structure (bootstrap)
+
+```
+cmd/revues/           # point d'entrée, wiring serveur
+internal/web/         # router chi, handlers HTTP
+internal/config/      # configuration REVUES_*
+web/static/           # CSS, JS (servi sur /static/)
+web/templates/        # html/template (layout + pages)
+```
 
 ## Principes
 
