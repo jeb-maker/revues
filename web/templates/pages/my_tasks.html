@@ -1,0 +1,52 @@
+{{define "my_tasks"}}
+{{template "layout_start" .}}
+<h1>Mes tâches</h1>
+<p class="muted">Points qui vous sont assignés sur les revues en cours.</p>
+
+<form method="get" action="/mes-taches" class="stack-form filter-form">
+  <label>
+    Projet
+    <select name="project">
+      <option value="">Tous les projets</option>
+      {{range .Projects}}
+      <option value="{{.ID}}" {{if eq $.FilterProjectID .ID}}selected{{end}}>{{.Name}}</option>
+      {{end}}
+    </select>
+  </label>
+  <label>
+    Statut
+    <select name="status">
+      <option value="">Tous les statuts</option>
+      <option value="pending" {{if eq .FilterStatus "pending"}}selected{{end}}>pending</option>
+      <option value="ok" {{if eq .FilterStatus "ok"}}selected{{end}}>ok</option>
+      <option value="nok" {{if eq .FilterStatus "nok"}}selected{{end}}>nok</option>
+      <option value="na" {{if eq .FilterStatus "na"}}selected{{end}}>na</option>
+    </select>
+  </label>
+  <button type="submit">Filtrer</button>
+</form>
+
+{{if .Tasks}}
+<table class="data-table">
+  <thead>
+    <tr><th>Projet</th><th>Revue</th><th>Point</th><th>Statut</th><th></th></tr>
+  </thead>
+  <tbody>
+    {{range .Tasks}}
+    <tr>
+      <td>{{.ProjectName}}</td>
+      <td>{{.RunTitle}}</td>
+      <td>{{if .Section}}{{.Section}} — {{end}}{{.Label}}</td>
+      <td>{{.Status}}</td>
+      <td><a href="/runs/{{.RunID}}">Ouvrir</a></td>
+    </tr>
+    {{end}}
+  </tbody>
+</table>
+{{else}}
+<p class="muted">Aucune tâche assignée pour ces filtres.</p>
+{{end}}
+
+<p><a href="/">← Accueil</a></p>
+{{template "layout_end" .}}
+{{end}}

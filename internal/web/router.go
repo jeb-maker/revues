@@ -75,6 +75,11 @@ func NewRouter(deps Deps) (http.Handler, error) {
 		Store:         st,
 		SessionSecret: deps.Config.SessionSecret,
 	}
+	myTasks := &handlers.MyTasks{
+		Templates:     tpl,
+		Store:         st,
+		SessionSecret: deps.Config.SessionSecret,
+	}
 
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
@@ -117,8 +122,10 @@ func NewRouter(deps Deps) (http.Handler, error) {
 		r.Get("/runs/new/projects/{id}/templates/{tid}", runsHandler.WizardLaunch)
 		r.Get("/runs/{id}", runsHandler.Show)
 		r.Post("/runs/{id}/items/{itemId}", runsHandler.UpdateItem)
+		r.Post("/runs/{id}/items/{itemId}/assign", runsHandler.AssignItem)
 		r.Post("/runs/{id}/start", runsHandler.Start)
 		r.Post("/runs/{id}/complete", runsHandler.Complete)
+		r.Get("/mes-taches", myTasks.List)
 	})
 
 	r.Group(func(r chi.Router) {

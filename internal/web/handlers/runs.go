@@ -281,6 +281,62 @@ func (h *Runs) UpdateItem(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/runs/"+strconv.FormatInt(run.ID, 10)+"?msg=Point+mis+%C3%A0+jour", http.StatusSeeOther)
 }
 
+// AssignItem sets or clears assignee on a run item.
+func (h *Runs) AssignItem(w http.ResponseWriter, r *http.Request) {
+	run, project, user, memberRole, ok := h.loadRun(w, r)
+	if !ok {
+		return
+	}
+	if !items.CanAssign(user, memberRole) {
+		http.NotFound(w, r)
+		return
+	}
+	if run.Status != store.RunStatusInProgress {
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
+
+	itemID, err := strconv.ParseInt(chi.URLParam(r, "itemId"), 10, 64)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+
+	var assigneeID *int64
+	if raw := strings.TrimSpace(r.FormValue("assignee_id")); raw != "" {
+		id, parseErr := strconv.ParseInt(raw, 10, 64)
+		if parseErr != nil {
+			h.renderRunShow(w, r, run, project, user, memberRole, viewtemplates.RunShowData{
+				AssignError: "Assigné invalide.",
+			})
+			return
+		}
+		assigneeID = &id
+	}
+
+	if err := h.Store.AssignRunItem(r.Context(), run.ID, itemID, assigneeID); err != nil {
+		if errors.Is(err, store.ErrInvalidAssignee) {
+			h.renderRunShow(w, r, run, project, user, memberRole, viewtemplates.RunShowData{
+				AssignError: "Le membre doit appartenir au projet.",
+			})
+			return
+		}
+		if errors.Is(err, store.ErrRunItemNotFound) {
+			http.NotFound(w, r)
+			return
+		}
+		slog.Error("assign run item", "err", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	http.Redirect(w, r, "/runs/"+strconv.FormatInt(run.ID, 10)+"?msg=Assignation+enregistr%C3%A9e", http.StatusSeeOther)
+}
+
 // Start moves a run from draft to in_progress.
 func (h *Runs) Start(w http.ResponseWriter, r *http.Request) {
 	run, _, user, memberRole, ok := h.loadRun(w, r)
@@ -364,20 +420,33 @@ func (h *Runs) renderRunShow(w http.ResponseWriter, r *http.Request, run *store.
 		return
 	}
 
+	var members []store.ProjectMember
+	if items.CanAssign(user, memberRole) {
+		members, err = h.Store.ListProjectMembers(r.Context(), project.ID)
+		if err != nil {
+			slog.Error("list project members", "err", err)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+	}
+
 	data := viewtemplates.RunShowData{
 		PageData:      h.pageData(r, run.Title),
 		Project:       project,
 		Run:           run,
 		Items:         runItems,
 		NokItems:      nokItems,
+		Members:       members,
 		TemplateName:  versionInfo.Name,
 		VersionNum:    versionInfo.Version,
 		MemberRole:    memberRole,
 		CanLaunch:     runs.CanLaunch(user, memberRole),
 		CanCheck:      items.CanUpdate(user, memberRole),
+		CanAssign:     items.CanAssign(user, memberRole),
 		CanComplete:   runs.CanComplete(user, memberRole),
 		Message:       extra.Message,
 		ItemError:     extra.ItemError,
+		AssignError:   extra.AssignError,
 		CompleteError: extra.CompleteError,
 		ClosingNote:   extra.ClosingNote,
 		Error:         extra.Error,
@@ -385,7 +454,7 @@ func (h *Runs) renderRunShow(w http.ResponseWriter, r *http.Request, run *store.
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	statusCode := http.StatusOK
-	if extra.ItemError != "" || extra.CompleteError != "" {
+	if extra.ItemError != "" || extra.CompleteError != "" || extra.AssignError != "" {
 		statusCode = http.StatusBadRequest
 	}
 	w.WriteHeader(statusCode)

@@ -38,17 +38,27 @@ type ChecklistRun struct {
 
 // RunItem is a snapshot checklist point within a run.
 type RunItem struct {
-	ID           int64
-	RunID        int64
-	SourceItemID sql.NullInt64
-	Section      string
-	Position     int
-	Label        string
-	HelpText     string
-	Required     bool
-	Status       string
-	Comment      string
-	UpdatedAt    string
+	ID            int64
+	RunID         int64
+	SourceItemID  sql.NullInt64
+	Section       string
+	Position      int
+	Label         string
+	HelpText      string
+	Required      bool
+	Status        string
+	Comment       string
+	AssignedTo    sql.NullInt64
+	AssignedLogin string
+	UpdatedAt     string
+}
+
+// AssignedRunItemSummary is a task row for the my tasks view.
+type AssignedRunItemSummary struct {
+	RunItem
+	RunTitle    string
+	ProjectID   int64
+	ProjectName string
 }
 
 // CreateChecklistRun inserts a run and snapshots template items in one transaction.
@@ -165,11 +175,12 @@ func (s *Store) ListRunsByProject(ctx context.Context, projectID int64) ([]Check
 // ListRunItems returns ordered items for a run.
 func (s *Store) ListRunItems(ctx context.Context, runID int64) ([]RunItem, error) {
 	rows, err := s.db.QueryContext(ctx, `
-		SELECT id, run_id, source_item_id, section, position, label, help_text, required,
-		       status, comment, updated_at
-		FROM run_items
-		WHERE run_id = ?
-		ORDER BY position
+		SELECT ri.id, ri.run_id, ri.source_item_id, ri.section, ri.position, ri.label, ri.help_text, ri.required,
+		       ri.status, ri.comment, ri.assigned_to, u.login, ri.updated_at
+		FROM run_items ri
+		LEFT JOIN users u ON u.id = ri.assigned_to
+		WHERE ri.run_id = ?
+		ORDER BY ri.position
 	`, runID)
 	if err != nil {
 		return nil, fmt.Errorf("list run items: %w", err)
@@ -178,15 +189,10 @@ func (s *Store) ListRunItems(ctx context.Context, runID int64) ([]RunItem, error
 
 	var items []RunItem
 	for rows.Next() {
-		var item RunItem
-		var required int
-		if err := rows.Scan(
-			&item.ID, &item.RunID, &item.SourceItemID, &item.Section, &item.Position,
-			&item.Label, &item.HelpText, &required, &item.Status, &item.Comment, &item.UpdatedAt,
-		); err != nil {
+		item, err := scanRunItemRow(rows)
+		if err != nil {
 			return nil, fmt.Errorf("scan run item: %w", err)
 		}
-		item.Required = required == 1
 		items = append(items, item)
 	}
 	if err := rows.Err(); err != nil {

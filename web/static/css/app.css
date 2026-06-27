@@ -154,6 +154,10 @@ fieldset.template-row {
   margin-right: 0.25rem;
 }
 
-.item-status-form button {
-  margin-top: 0.25rem;
+.filter-form select {
+  max-width: 16rem;
+}
+
+.filter-form button {
+  margin-top: 0.5rem;
 }
