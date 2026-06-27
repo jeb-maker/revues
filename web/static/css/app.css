@@ -121,6 +121,20 @@ body {
   border-top: 1px solid color-mix(in srgb, var(--text) 12%, transparent);
 }
 
-.user-bar form {
-  display: inline;
+fieldset.template-row {
+  margin: 1rem 0;
+  padding: 0.75rem 1rem;
+  border: 1px solid color-mix(in srgb, var(--text) 12%, transparent);
+}
+
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.checkbox-row input {
+  width: auto;
+  max-width: none;
+  margin: 0;
 }

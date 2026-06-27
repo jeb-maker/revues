@@ -1,0 +1,52 @@
+{{define "checklist_template_form"}}
+{{template "layout_start" .}}
+<h1>{{if .Template}}Modifier le modèle{{else}}Nouveau modèle{{end}}</h1>
+<p class="muted">Projet : {{.Project.Name}}{{if .Version}} · version actuelle v{{.Version.Version}}{{end}}</p>
+{{if .Error}}<p class="error">{{.Error}}</p>{{end}}
+
+<form method="post" action="{{.FormAction}}" class="stack-form">
+  <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+  <label>
+    Nom du modèle
+    <input type="text" name="name" required maxlength="200" value="{{if .Name}}{{.Name}}{{else if .Template}}{{.Template.Name}}{{end}}">
+  </label>
+
+  <section class="panel">
+    <h2>Points du modèle</h2>
+    <p class="muted">Sections et points ordonnés. Laissez le libellé vide pour ignorer une ligne.</p>
+    {{range $i, $row := .Rows}}
+    <fieldset class="template-row">
+      <legend>Point {{add $i 1}}</legend>
+      <label>
+        Section
+        <input type="text" name="item_section" maxlength="200" value="{{$row.Section}}">
+      </label>
+      <label>
+        Libellé
+        <input type="text" name="item_label" maxlength="500" value="{{$row.Label}}">
+      </label>
+      <label>
+        Texte d'aide
+        <input type="text" name="item_help" maxlength="500" value="{{$row.HelpText}}">
+      </label>
+      <label class="checkbox-row">
+        <input type="checkbox" name="item_required" value="{{$i}}" {{if $row.Required}}checked{{end}}>
+        Point requis
+      </label>
+    </fieldset>
+    {{end}}
+    <p>
+      {{if .Template}}
+      <a href="/projects/{{.Project.ID}}/templates/{{.Template.ID}}/edit?rows={{add (len .Rows) 2}}">Ajouter des lignes vides</a>
+      {{else}}
+      <a href="/projects/{{.Project.ID}}/templates/new?rows={{add (len .Rows) 2}}">Ajouter des lignes vides</a>
+      {{end}}
+    </p>
+  </section>
+
+  <button type="submit">Enregistrer</button>
+</form>
+
+<p><a href="/projects/{{.Project.ID}}/templates">← Retour aux modèles</a></p>
+{{template "layout_end" .}}
+{{end}}

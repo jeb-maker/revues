@@ -1,0 +1,49 @@
+{{define "checklist_template_show"}}
+{{template "layout_start" .}}
+<h1>{{.Template.Name}}</h1>
+{{if .Message}}<p class="success">{{.Message}}</p>{{end}}
+{{if .Error}}<p class="error">{{.Error}}</p>{{end}}
+
+<p class="muted">Version {{.Version.Version}} · publiée le {{.Version.PublishedAt}}</p>
+
+{{if .CanManage}}
+<p>
+  <a href="/projects/{{.Project.ID}}/templates/{{.Template.ID}}/edit">Modifier</a>
+  ·
+  <form method="post" action="/projects/{{.Project.ID}}/templates/{{.Template.ID}}/archive" class="inline-form">
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+    <button type="submit">Archiver</button>
+  </form>
+</p>
+{{end}}
+
+<section class="panel">
+  <h2>Points ({{len .Items}})</h2>
+  {{if .Items}}
+  <table class="data-table">
+    <thead>
+      <tr><th>Section</th><th>Point</th><th>Aide</th><th>Requis</th></tr>
+    </thead>
+    <tbody>
+      {{range .Items}}
+      <tr>
+        <td>{{if .Section}}{{.Section}}{{else}}<span class="muted">—</span>{{end}}</td>
+        <td>{{.Label}}</td>
+        <td>{{if .HelpText}}{{.HelpText}}{{else}}<span class="muted">—</span>{{end}}</td>
+        <td>{{if .Required}}oui{{else}}non{{end}}</td>
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+  {{else}}
+  <p class="muted">Aucun point dans cette version.</p>
+  {{end}}
+</section>
+
+<p>
+  <a href="/projects/{{.Project.ID}}/templates">← Retour aux modèles</a>
+  ·
+  <a href="/projects/{{.Project.ID}}">Projet</a>
+</p>
+{{template "layout_end" .}}
+{{end}}
