@@ -50,7 +50,7 @@ func TestRBAC_Matrix(t *testing.T) {
 	mux.Use(appmiddleware.LoadUser(st))
 	mux.With(appmiddleware.RequireAuth).Get("/protected", okHandler)
 	mux.With(appmiddleware.RequireAuth, appmiddleware.RequireRole(auth.RoleEditor)).Get("/editor", okHandler)
-	mux.With(appmiddleware.RequireAuth, appmiddleware.RequireRole(auth.RoleAdmin)).Get("/admin", okHandler)
+	mux.With(appmiddleware.RequireAuth, appmiddleware.RequireRole(auth.RoleAdmin)).Get("/admin/users", okHandler)
 
 	tests := []struct {
 		name       string
@@ -63,9 +63,9 @@ func TestRBAC_Matrix(t *testing.T) {
 		{"editor zone reader denied", "/editor", tokens[auth.RoleReader], http.StatusForbidden},
 		{"editor zone editor ok", "/editor", tokens[auth.RoleEditor], http.StatusOK},
 		{"editor zone admin ok", "/editor", tokens[auth.RoleAdmin], http.StatusOK},
-		{"admin zone reader denied", "/admin", tokens[auth.RoleReader], http.StatusForbidden},
-		{"admin zone editor denied", "/admin", tokens[auth.RoleEditor], http.StatusForbidden},
-		{"admin zone admin ok", "/admin", tokens[auth.RoleAdmin], http.StatusOK},
+		{"admin zone reader denied", "/admin/users", tokens[auth.RoleReader], http.StatusForbidden},
+		{"admin zone editor denied", "/admin/users", tokens[auth.RoleEditor], http.StatusForbidden},
+		{"admin zone admin ok", "/admin/users", tokens[auth.RoleAdmin], http.StatusOK},
 	}
 
 	for _, tt := range tests {

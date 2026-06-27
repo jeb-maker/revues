@@ -1,0 +1,67 @@
+{{define "content"}}
+<h1>Utilisateurs autorisés</h1>
+<p>Gérez les emails autorisés à se connecter via GitHub et leur rôle global.</p>
+
+{{if .Message}}
+<p class="success">{{.Message}}</p>
+{{end}}
+{{if .Error}}
+<p class="error">{{.Error}}</p>
+{{end}}
+
+<section class="panel">
+  <h2>Ajouter ou mettre à jour</h2>
+  <form method="post" action="/admin/users" class="stack-form">
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+    <label>
+      Email
+      <input type="email" name="email" required autocomplete="email">
+    </label>
+    <label>
+      Rôle
+      <select name="role" required>
+        <option value="reader">reader</option>
+        <option value="editor">editor</option>
+        <option value="admin">admin</option>
+      </select>
+    </label>
+    <button type="submit">Enregistrer</button>
+  </form>
+</section>
+
+<section class="panel">
+  <h2>Liste ({{len .Emails}})</h2>
+  {{if .Emails}}
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Email</th>
+        <th>Rôle</th>
+        <th>Ajouté</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {{range .Emails}}
+      <tr>
+        <td>{{.Email}}</td>
+        <td>{{.Role}}</td>
+        <td>{{.CreatedAt}}</td>
+        <td>
+          <form method="post" action="/admin/users/remove" class="inline-form">
+            <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
+            <input type="hidden" name="email" value="{{.Email}}">
+            <button type="submit">Retirer</button>
+          </form>
+        </td>
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+  {{else}}
+  <p class="muted">Aucun email autorisé. Utilisez le formulaire ci-dessus ou <code>REVUES_BOOTSTRAP_ADMIN_EMAIL</code> au premier login.</p>
+  {{end}}
+</section>
+
+<p><a href="/">← Retour</a></p>
+{{end}}

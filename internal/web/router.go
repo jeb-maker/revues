@@ -55,6 +55,11 @@ func NewRouter(deps Deps) (http.Handler, error) {
 		GitHub:    github,
 		Config:    deps.Config,
 	}
+	adminUsers := &handlers.AdminUsers{
+		Templates:     tpl,
+		Store:         st,
+		SessionSecret: deps.Config.SessionSecret,
+	}
 
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
@@ -75,7 +80,13 @@ func NewRouter(deps Deps) (http.Handler, error) {
 
 	r.Group(func(r chi.Router) {
 		r.Use(appmiddleware.RequireAuth)
-		r.With(appmiddleware.RequireRole(auth.RoleAdmin)).Get("/admin", handlers.AdminStub)
+		r.Use(appmiddleware.RequireRole(auth.RoleAdmin))
+		r.Get("/admin", func(w http.ResponseWriter, r *http.Request) {
+			http.Redirect(w, r, "/admin/users", http.StatusFound)
+		})
+		r.Get("/admin/users", adminUsers.List)
+		r.Post("/admin/users", adminUsers.Add)
+		r.Post("/admin/users/remove", adminUsers.Remove)
 	})
 
 	return r, nil

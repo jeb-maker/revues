@@ -5,18 +5,29 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 )
 
 // ErrEmailNotAllowed is returned when an email is not on the whitelist.
 var ErrEmailNotAllowed = errors.New("email not allowed")
 
+// ErrAllowedEmailNotFound is returned when a whitelist entry is missing.
+var ErrAllowedEmailNotFound = errors.New("allowed email not found")
+
+// AllowedEmail is a whitelisted login email.
+type AllowedEmail struct {
+	Email     string
+	Role      string
+	CreatedAt string
+}
+
 // AllowedRole returns the role for email if whitelisted.
 func (s *Store) AllowedRole(ctx context.Context, email string) (string, bool, error) {
 	var role string
 	err := s.db.QueryRowContext(ctx, `
 		SELECT role FROM allowed_emails WHERE email = ?
-	`, email).Scan(&role)
+	`, strings.ToLower(strings.TrimSpace(email))).Scan(&role)
 	if errors.Is(err, sql.ErrNoRows) {
 		return "", false, nil
 	}
@@ -29,6 +40,7 @@ func (s *Store) AllowedRole(ctx context.Context, email string) (string, bool, er
 
 // InsertAllowedEmail adds an email to the whitelist.
 func (s *Store) InsertAllowedEmail(ctx context.Context, email, role string) error {
+	email = strings.ToLower(strings.TrimSpace(email))
 	now := time.Now().UTC().Format(time.RFC3339)
 	_, err := s.db.ExecContext(ctx, `
 		INSERT INTO allowed_emails (email, role, created_at)
@@ -53,8 +65,53 @@ func (s *Store) CountAllowedEmails(ctx context.Context) (int, error) {
 	return count, nil
 }
 
+// ListAllowedEmails returns all whitelist entries sorted by email.
+func (s *Store) ListAllowedEmails(ctx context.Context) ([]AllowedEmail, error) {
+	rows, err := s.db.QueryContext(ctx, `
+		SELECT email, role, created_at FROM allowed_emails ORDER BY email
+	`)
+	if err != nil {
+		return nil, fmt.Errorf("list allowed emails: %w", err)
+	}
+	defer rows.Close()
+
+	var emails []AllowedEmail
+	for rows.Next() {
+		var row AllowedEmail
+		if err := rows.Scan(&row.Email, &row.Role, &row.CreatedAt); err != nil {
+			return nil, fmt.Errorf("scan allowed email: %w", err)
+		}
+		emails = append(emails, row)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate allowed emails: %w", err)
+	}
+
+	return emails, nil
+}
+
+// DeleteAllowedEmail removes an email from the whitelist.
+func (s *Store) DeleteAllowedEmail(ctx context.Context, email string) error {
+	email = strings.ToLower(strings.TrimSpace(email))
+	res, err := s.db.ExecContext(ctx, `DELETE FROM allowed_emails WHERE email = ?`, email)
+	if err != nil {
+		return fmt.Errorf("delete allowed email: %w", err)
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("delete allowed email rows: %w", err)
+	}
+	if n == 0 {
+		return ErrAllowedEmailNotFound
+	}
+
+	return nil
+}
+
 // ResolveLoginRole determines the role for a verified GitHub email at login.
 func (s *Store) ResolveLoginRole(ctx context.Context, email, bootstrapAdmin string) (string, error) {
+	email = strings.ToLower(strings.TrimSpace(email))
+	bootstrapAdmin = strings.ToLower(strings.TrimSpace(bootstrapAdmin))
 	if role, ok, err := s.AllowedRole(ctx, email); err != nil {
 		return "", err
 	} else if ok {
