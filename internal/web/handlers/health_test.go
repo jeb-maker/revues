@@ -26,12 +26,12 @@ func testRouter(t *testing.T) (http.Handler, *sql.DB) {
 		t.Fatalf("Open() error = %v", err)
 	}
 	t.Cleanup(func() {
-		if err := db.Close(); err != nil {
-			t.Errorf("Close() error = %v", err)
+		if closeErr := db.Close(); closeErr != nil {
+			t.Errorf("Close() error = %v", closeErr)
 		}
 	})
-	if err := store.Migrate(ctx, db); err != nil {
-		t.Fatalf("Migrate() error = %v", err)
+	if migrateErr := store.Migrate(ctx, db); migrateErr != nil {
+		t.Fatalf("Migrate() error = %v", migrateErr)
 	}
 
 	cfg := config.Config{

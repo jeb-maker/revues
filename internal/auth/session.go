@@ -22,7 +22,7 @@ type SessionManager struct {
 }
 
 // CreateLoginSession rotates sessions and returns raw token + CSRF token.
-func (m *SessionManager) CreateLoginSession(ctx context.Context, userID int64) (sessionToken, csrfToken string, err error) {
+func (m *SessionManager) CreateLoginSession(ctx context.Context, userID int64) (string, string, error) {
 	if err := m.Store.DeleteUserSessions(ctx, userID); err != nil {
 		return "", "", err
 	}

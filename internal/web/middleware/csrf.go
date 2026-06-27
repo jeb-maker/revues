@@ -49,9 +49,5 @@ func needsCSRF(r *http.Request) bool {
 	}
 
 	path := r.URL.Path
-	if strings.HasPrefix(path, "/auth/github/callback") {
-		return false
-	}
-
-	return true
+	return !strings.HasPrefix(path, "/auth/github/callback")
 }
