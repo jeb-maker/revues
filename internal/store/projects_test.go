@@ -49,15 +49,16 @@ func TestListProjectsAdminSeesAll(t *testing.T) {
 		t.Fatalf("UpsertGitHubUser(b): %v", err)
 	}
 
-	if _, err := st.CreateProject(ctx, "P1", "", a.ID); err != nil {
+	_, err = st.CreateProject(ctx, "P1", "", a.ID)
+	if err != nil {
 		t.Fatalf("CreateProject(p1): %v", err)
 	}
-	if _, err := st.CreateProject(ctx, "P2", "", b.ID); err != nil {
+	_, err = st.CreateProject(ctx, "P2", "", b.ID)
+	if err != nil {
 		t.Fatalf("CreateProject(p2): %v", err)
 	}
 
-	admin := &store.User{ID: 99, Role: auth.RoleAdmin}
-	items, err := st.ListProjects(ctx, admin.ID, true)
+	items, err := st.ListProjects(ctx, 0, true)
 	if err != nil {
 		t.Fatalf("ListProjects(admin): %v", err)
 	}

@@ -39,7 +39,9 @@ func (s *Store) CreateProject(ctx context.Context, name, description string, cre
 	if err != nil {
 		return nil, fmt.Errorf("begin tx: %w", err)
 	}
-	defer tx.Rollback()
+	defer func() {
+		_ = tx.Rollback()
+	}()
 
 	res, err := tx.ExecContext(ctx, `
 		INSERT INTO projects (name, description, created_at, updated_at)
