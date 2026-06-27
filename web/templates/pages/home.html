@@ -1,4 +1,15 @@
 {{define "content"}}
 <h1>Revues</h1>
 <p>Application de gestion de check-lists pour revues de projets.</p>
+{{if .User}}
+<div class="user-bar">
+  <p>Connecté en tant que {{.User.Login}} ({{.User.Role}}).</p>
+  <form method="post" action="/logout">
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+    <button type="submit">Se déconnecter</button>
+  </form>
+</div>
+{{else}}
+<p><a href="/login">Se connecter</a></p>
+{{end}}
 {{end}}
