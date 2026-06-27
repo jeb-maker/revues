@@ -12,12 +12,31 @@ import (
 	"time"
 
 	"github.com/jeb-maker/revues/internal/config"
+	"github.com/jeb-maker/revues/internal/store"
 	appweb "github.com/jeb-maker/revues/internal/web"
 )
 
 func main() {
 	cfg := config.Load()
 	initLogging(cfg.Env)
+
+	ctx := context.Background()
+
+	db, err := store.Open(ctx, cfg.DatabasePath)
+	if err != nil {
+		slog.Error("database open failed", "err", err)
+		os.Exit(1)
+	}
+	defer func() {
+		if err := db.Close(); err != nil {
+			slog.Error("database close failed", "err", err)
+		}
+	}()
+
+	if err := store.Migrate(ctx, db); err != nil {
+		slog.Error("database migrate failed", "err", err)
+		os.Exit(1)
+	}
 
 	handler, err := appweb.NewRouter()
 	if err != nil {

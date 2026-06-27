@@ -36,16 +36,21 @@ curl http://localhost:8080/healthz   # → ok
 curl -I http://localhost:8080/       # → page HTML d'accueil
 ```
 
-Variables d'environnement : voir [.env.example](.env.example).
+Variables d'environnement : voir [.env.example](.env.example) (`REVUES_DATABASE_PATH` par défaut : `data/revues.db`).
+
+Au démarrage, les migrations goose s'appliquent automatiquement.
 
 ## Structure (bootstrap)
 
 ```
 cmd/revues/           # point d'entrée, wiring serveur
+internal/store/       # connexion SQLite, migrations goose
 internal/web/         # router chi, handlers HTTP
 internal/config/      # configuration REVUES_*
+migrations/           # SQL goose (source d'exécution)
 web/static/           # CSS, JS (servi sur /static/)
 web/templates/        # html/template (layout + pages)
+data/                 # SQLite (gitignored)
 ```
 
 ## Principes
