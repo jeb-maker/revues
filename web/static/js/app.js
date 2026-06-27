@@ -1,1 +1,1 @@
-// Placeholder until issue #16 (HTMX UI). Eco budget: total JS <= 15 Ko.
+// CSRF header fallback for fetch-based HTMX requests (see htmx.js).
