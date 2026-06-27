@@ -80,6 +80,19 @@ func (s *Store) UpdateRunItemStatus(ctx context.Context, runID, itemID, userID i
 	now := time.Now().UTC().Format(time.RFC3339)
 	comment = strings.TrimSpace(comment)
 
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin tx: %w", err)
+	}
+	defer func() {
+		_ = tx.Rollback()
+	}()
+
+	oldStatus, err := loadRunItemStatusTx(ctx, tx, runID, itemID)
+	if err != nil {
+		return err
+	}
+
 	var checkedBy sql.NullInt64
 	var checkedAt sql.NullString
 	if status != RunItemStatusPending {
@@ -87,7 +100,7 @@ func (s *Store) UpdateRunItemStatus(ctx context.Context, runID, itemID, userID i
 		checkedAt = sql.NullString{String: now, Valid: true}
 	}
 
-	res, err := s.db.ExecContext(ctx, `
+	res, err := tx.ExecContext(ctx, `
 		UPDATE run_items
 		SET status = ?, comment = ?, checked_by = ?, checked_at = ?, updated_at = ?
 		WHERE id = ? AND run_id = ?
@@ -101,6 +114,16 @@ func (s *Store) UpdateRunItemStatus(ctx context.Context, runID, itemID, userID i
 	}
 	if n == 0 {
 		return ErrRunItemNotFound
+	}
+
+	if oldStatus != status {
+		if err := insertRunItemEventTx(ctx, tx, itemID, userID, oldStatus, status, comment, now); err != nil {
+			return err
+		}
+	}
+
+	if commitErr := tx.Commit(); commitErr != nil {
+		return fmt.Errorf("commit update run item: %w", commitErr)
 	}
 	return nil
 }

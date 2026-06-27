@@ -68,7 +68,7 @@
       {{range .Items}}
       <tr>
         <td>{{if .Section}}{{.Section}}{{else}}<span class="muted">—</span>{{end}}</td>
-        <td>{{.Label}}</td>
+        <td><a href="/runs/{{$.Run.ID}}/items/{{.ID}}">{{.Label}}</a></td>
         <td>{{.Status}}</td>
         <td>{{if .AssignedLogin}}{{.AssignedLogin}}{{else}}<span class="muted">—</span>{{end}}</td>
         <td>{{if .Comment}}{{.Comment}}{{else}}<span class="muted">—</span>{{end}}</td>

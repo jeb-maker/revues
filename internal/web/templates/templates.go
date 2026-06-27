@@ -168,6 +168,17 @@ type MyTasksData struct {
 	FilterStatus    string
 }
 
+// RunItemShowData is view data for run item detail with audit history.
+type RunItemShowData struct {
+	PageData
+	Project    *store.Project
+	Run        *store.ChecklistRun
+	Item       *store.RunItem
+	Events     []store.RunItemEvent
+	MemberRole string
+	CanCheck   bool
+}
+
 // Parse loads layout and page templates from the embedded filesystem.
 func Parse() (*template.Template, error) {
 	root, err := fs.Sub(webassets.Templates, "templates")

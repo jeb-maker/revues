@@ -1,0 +1,42 @@
+{{define "run_item_show"}}
+{{template "layout_start" .}}
+<h1>{{.Item.Label}}</h1>
+
+<p class="muted">
+  Projet : <a href="/projects/{{.Project.ID}}">{{.Project.Name}}</a>
+  · Revue : <a href="/runs/{{.Run.ID}}">{{.Run.Title}}</a>
+  · Statut actuel : {{.Item.Status}}
+</p>
+
+{{if .Item.Section}}<p class="muted">Section : {{.Item.Section}}</p>{{end}}
+{{if .Item.HelpText}}<p>{{.Item.HelpText}}</p>{{end}}
+{{if .Item.Comment}}<p><strong>Commentaire :</strong> {{.Item.Comment}}</p>{{end}}
+{{if .Item.AssignedLogin}}<p class="muted">Assigné à : {{.Item.AssignedLogin}}</p>{{end}}
+
+<section class="panel">
+  <h2>Historique des statuts ({{len .Events}})</h2>
+  {{if .Events}}
+  <table class="data-table">
+    <thead>
+      <tr><th>Date</th><th>Utilisateur</th><th>Ancien</th><th>Nouveau</th><th>Commentaire</th></tr>
+    </thead>
+    <tbody>
+      {{range .Events}}
+      <tr>
+        <td>{{.CreatedAt}}</td>
+        <td>{{if .UserLogin}}{{.UserLogin}}{{else}}<span class="muted">—</span>{{end}}</td>
+        <td>{{if .OldStatus.Valid}}{{.OldStatus.String}}{{else}}<span class="muted">—</span>{{end}}</td>
+        <td>{{.NewStatus}}</td>
+        <td>{{if .Comment}}{{.Comment}}{{else}}<span class="muted">—</span>{{end}}</td>
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+  {{else}}
+  <p class="muted">Aucun changement de statut enregistré.</p>
+  {{end}}
+</section>
+
+<p><a href="/runs/{{.Run.ID}}">← Retour à la revue</a></p>
+{{template "layout_end" .}}
+{{end}}

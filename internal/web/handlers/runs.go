@@ -281,6 +281,54 @@ func (h *Runs) UpdateItem(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/runs/"+strconv.FormatInt(run.ID, 10)+"?msg=Point+mis+%C3%A0+jour", http.StatusSeeOther)
 }
 
+// ShowItem displays a run item and its status change history.
+func (h *Runs) ShowItem(w http.ResponseWriter, r *http.Request) {
+	run, project, user, memberRole, ok := h.loadRun(w, r)
+	if !ok {
+		return
+	}
+
+	itemID, err := strconv.ParseInt(chi.URLParam(r, "itemId"), 10, 64)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+
+	item, err := h.Store.RunItemByID(r.Context(), run.ID, itemID)
+	if errors.Is(err, store.ErrRunItemNotFound) {
+		http.NotFound(w, r)
+		return
+	}
+	if err != nil {
+		slog.Error("load run item", "err", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	events, err := h.Store.ListRunItemEvents(r.Context(), item.ID)
+	if err != nil {
+		slog.Error("list run item events", "err", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	data := viewtemplates.RunItemShowData{
+		PageData:   h.pageData(r, item.Label),
+		Project:    project,
+		Run:        run,
+		Item:       item,
+		Events:     events,
+		MemberRole: memberRole,
+		CanCheck:   items.CanUpdate(user, memberRole),
+	}
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	if err := h.Templates.ExecuteTemplate(w, "run_item_show", data); err != nil {
+		slog.Error("render run item show", "err", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+	}
+}
+
 // AssignItem sets or clears assignee on a run item.
 func (h *Runs) AssignItem(w http.ResponseWriter, r *http.Request) {
 	run, project, user, memberRole, ok := h.loadRun(w, r)
