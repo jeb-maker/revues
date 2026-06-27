@@ -28,13 +28,13 @@ func main() {
 		os.Exit(1)
 	}
 	defer func() {
-		if err := db.Close(); err != nil {
-			slog.Error("database close failed", "err", err)
+		if closeErr := db.Close(); closeErr != nil {
+			slog.Error("database close failed", "err", closeErr)
 		}
 	}()
 
-	if err := store.Migrate(ctx, db); err != nil {
-		slog.Error("database migrate failed", "err", err)
+	if migrateErr := store.Migrate(ctx, db); migrateErr != nil {
+		slog.Error("database migrate failed", "err", migrateErr)
 		os.Exit(1)
 	}
 
@@ -66,10 +66,10 @@ func main() {
 	<-quit
 
 	slog.Info("shutting down")
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	if err := srv.Shutdown(ctx); err != nil {
+	if err := srv.Shutdown(shutdownCtx); err != nil {
 		slog.Error("shutdown failed", "err", err)
 		os.Exit(1)
 	}
