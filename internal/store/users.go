@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"time"
 )
@@ -11,6 +12,9 @@ import (
 type Store struct {
 	db *sql.DB
 }
+
+// ErrUserNotFound is returned when a user lookup fails.
+var ErrUserNotFound = errors.New("user not found")
 
 // New returns a Store backed by db.
 func New(db *sql.DB) *Store {
@@ -56,6 +60,22 @@ func (s *Store) UpsertGitHubUser(ctx context.Context, githubID int64, login, ema
 		return nil, fmt.Errorf("load user after upsert: %w", err)
 	}
 
+	return &user, nil
+}
+
+// UserByEmail loads a user by email address.
+func (s *Store) UserByEmail(ctx context.Context, email string) (*User, error) {
+	var user User
+	err := s.db.QueryRowContext(ctx, `
+		SELECT id, github_id, login, email, display_name, avatar_url, role
+		FROM users WHERE lower(email) = lower(?)
+	`, email).Scan(&user.ID, &user.GitHubID, &user.Login, &user.Email, &user.DisplayName, &user.AvatarURL, &user.Role)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, ErrUserNotFound
+	}
+	if err != nil {
+		return nil, fmt.Errorf("user by email: %w", err)
+	}
 	return &user, nil
 }
 

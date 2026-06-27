@@ -1,4 +1,5 @@
-{{define "content"}}
+{{define "admin_users"}}
+{{template "layout_start" .}}
 <h1>Utilisateurs autorisés</h1>
 <p>Gérez les emails autorisés à se connecter via GitHub et leur rôle global.</p>
 
@@ -64,4 +65,5 @@
 </section>
 
 <p><a href="/">← Retour</a></p>
+{{template "layout_end" .}}
 {{end}}

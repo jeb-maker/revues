@@ -35,7 +35,7 @@ func (h *AdminUsers) List(w http.ResponseWriter, r *http.Request) {
 	data.Message = r.URL.Query().Get("msg")
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	if err := h.Templates.ExecuteTemplate(w, "base", data); err != nil {
+	if err := h.Templates.ExecuteTemplate(w, "admin_users", data); err != nil {
 		slog.Error("render admin users", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}
@@ -128,7 +128,7 @@ func (h *AdminUsers) renderError(w http.ResponseWriter, r *http.Request, message
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(http.StatusBadRequest)
-	if err := h.Templates.ExecuteTemplate(w, "base", data); err != nil {
+	if err := h.Templates.ExecuteTemplate(w, "admin_users", data); err != nil {
 		slog.Error("render admin users error", "err", err)
 	}
 }

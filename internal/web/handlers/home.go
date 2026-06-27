@@ -33,7 +33,7 @@ func (h *Home) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if err := h.Templates.ExecuteTemplate(w, "base", data); err != nil {
+	if err := h.Templates.ExecuteTemplate(w, "home", data); err != nil {
 		slog.Error("render home page", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}

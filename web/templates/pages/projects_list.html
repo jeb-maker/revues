@@ -1,0 +1,21 @@
+{{define "projects_list"}}
+{{template "layout_start" .}}
+<h1>Projets</h1>
+{{if .Message}}<p class="success">{{.Message}}</p>{{end}}
+{{if .Error}}<p class="error">{{.Error}}</p>{{end}}
+
+{{if .CanCreate}}
+<p><a class="button" href="/projects/new">Nouveau projet</a></p>
+{{end}}
+
+{{if .Projects}}
+<ul class="item-list">
+  {{range .Projects}}
+  <li><a href="/projects/{{.ID}}">{{.Name}}</a></li>
+  {{end}}
+</ul>
+{{else}}
+<p class="muted">Aucun projet actif.</p>
+{{end}}
+{{template "layout_end" .}}
+{{end}}

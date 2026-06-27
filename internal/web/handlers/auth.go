@@ -36,7 +36,7 @@ func (h *Auth) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	if err := h.Templates.ExecuteTemplate(w, "base", data); err != nil {
+	if err := h.Templates.ExecuteTemplate(w, "login", data); err != nil {
 		slog.Error("render login page", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}
