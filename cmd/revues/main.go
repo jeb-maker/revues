@@ -12,12 +12,31 @@ import (
 	"time"
 
 	"github.com/jeb-maker/revues/internal/config"
+	"github.com/jeb-maker/revues/internal/store"
 	appweb "github.com/jeb-maker/revues/internal/web"
 )
 
 func main() {
 	cfg := config.Load()
 	initLogging(cfg.Env)
+
+	ctx := context.Background()
+
+	db, err := store.Open(ctx, cfg.DatabasePath)
+	if err != nil {
+		slog.Error("database open failed", "err", err)
+		os.Exit(1)
+	}
+	defer func() {
+		if closeErr := db.Close(); closeErr != nil {
+			slog.Error("database close failed", "err", closeErr)
+		}
+	}()
+
+	if migrateErr := store.Migrate(ctx, db); migrateErr != nil {
+		slog.Error("database migrate failed", "err", migrateErr)
+		os.Exit(1)
+	}
 
 	handler, err := appweb.NewRouter()
 	if err != nil {
@@ -47,10 +66,10 @@ func main() {
 	<-quit
 
 	slog.Info("shutting down")
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	if err := srv.Shutdown(ctx); err != nil {
+	if err := srv.Shutdown(shutdownCtx); err != nil {
 		slog.Error("shutdown failed", "err", err)
 		os.Exit(1)
 	}
