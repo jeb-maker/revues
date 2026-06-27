@@ -65,6 +65,11 @@ func NewRouter(deps Deps) (http.Handler, error) {
 		Store:         st,
 		SessionSecret: deps.Config.SessionSecret,
 	}
+	checklistTemplates := &handlers.ChecklistTemplates{
+		Templates:     tpl,
+		Store:         st,
+		SessionSecret: deps.Config.SessionSecret,
+	}
 
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
@@ -94,6 +99,13 @@ func NewRouter(deps Deps) (http.Handler, error) {
 		r.Post("/projects/{id}/archive", projectsHandler.Archive)
 		r.Post("/projects/{id}/members", projectsHandler.AddMember)
 		r.Post("/projects/{id}/members/remove", projectsHandler.RemoveMember)
+		r.Get("/projects/{id}/templates", checklistTemplates.List)
+		r.Get("/projects/{id}/templates/new", checklistTemplates.NewForm)
+		r.Post("/projects/{id}/templates", checklistTemplates.Create)
+		r.Get("/projects/{id}/templates/{tid}", checklistTemplates.Show)
+		r.Get("/projects/{id}/templates/{tid}/edit", checklistTemplates.EditForm)
+		r.Post("/projects/{id}/templates/{tid}", checklistTemplates.Save)
+		r.Post("/projects/{id}/templates/{tid}/archive", checklistTemplates.Archive)
 	})
 
 	r.Group(func(r chi.Router) {

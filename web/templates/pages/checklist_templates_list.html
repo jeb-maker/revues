@@ -1,0 +1,28 @@
+{{define "checklist_templates_list"}}
+{{template "layout_start" .}}
+<h1>Modèles — {{.Project.Name}}</h1>
+{{if .Message}}<p class="success">{{.Message}}</p>{{end}}
+{{if .Error}}<p class="error">{{.Error}}</p>{{end}}
+
+<p class="muted">Votre rôle sur ce projet : {{.MemberRole}}</p>
+
+{{if .CanManage}}
+<p><a class="button" href="/projects/{{.Project.ID}}/templates/new">Nouveau modèle</a></p>
+{{end}}
+
+{{if .Templates}}
+<ul class="item-list">
+  {{range .Templates}}
+  <li>
+    <a href="/projects/{{$.Project.ID}}/templates/{{.ID}}">{{.Name}}</a>
+    <span class="muted"> — v{{.LatestVersion}} · {{.ItemCount}} point{{if ne .ItemCount 1}}s{{end}}</span>
+  </li>
+  {{end}}
+</ul>
+{{else}}
+<p class="muted">Aucun modèle actif.</p>
+{{end}}
+
+<p><a href="/projects/{{.Project.ID}}">← Retour au projet</a></p>
+{{template "layout_end" .}}
+{{end}}
