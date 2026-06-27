@@ -8,7 +8,7 @@
 
 <p class="muted">Votre rôle sur ce projet : {{.MemberRole}}</p>
 
-<p><a href="/projects/{{.Project.ID}}/templates">Modèles de check-list</a></p>
+<p><a href="/projects/{{.Project.ID}}/templates">Modèles de check-list</a>{{if .CanLaunch}} · <a href="/runs/new/projects/{{.Project.ID}}">Lancer une revue</a>{{end}}</p>
 
 {{if .CanManage}}
 <p>
@@ -20,6 +20,19 @@
   </form>
 </p>
 {{end}}
+
+<section class="panel">
+  <h2>Revues ({{len .Runs}})</h2>
+  {{if .Runs}}
+  <ul class="item-list">
+    {{range .Runs}}
+    <li><a href="/runs/{{.ID}}">{{.Title}}</a> <span class="muted">({{.Status}})</span></li>
+    {{end}}
+  </ul>
+  {{else}}
+  <p class="muted">Aucune revue sur ce projet.</p>
+  {{end}}
+</section>
 
 <section class="panel">
   <h2>Membres ({{len .Members}})</h2>

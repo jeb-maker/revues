@@ -47,9 +47,11 @@ type ProjectShowData struct {
 	PageData
 	Project          *store.Project
 	Members          []store.ProjectMember
+	Runs             []store.ChecklistRun
 	MemberRole       string
 	CanManage        bool
 	CanManageMembers bool
+	CanLaunch        bool
 	Message          string
 	Error            string
 }
@@ -96,6 +98,57 @@ type ChecklistTemplateShowData struct {
 	CanManage  bool
 	Message    string
 	Error      string
+}
+
+// RunWizardProjectsData is view data for run wizard step 1.
+type RunWizardProjectsData struct {
+	PageData
+	Projects []store.Project
+	Step     int
+	Message  string
+	Error    string
+}
+
+// RunWizardTemplatesData is view data for run wizard step 2.
+type RunWizardTemplatesData struct {
+	PageData
+	Project    *store.Project
+	Templates  []store.ChecklistTemplateSummary
+	Step       int
+	MemberRole string
+	CanLaunch  bool
+	Message    string
+	Error      string
+}
+
+// RunWizardLaunchData is view data for run wizard step 3.
+type RunWizardLaunchData struct {
+	PageData
+	Project    *store.Project
+	Template   *store.ChecklistTemplate
+	Version    *store.TemplateVersion
+	ItemCount  int
+	Title      string
+	FormAction string
+	Step       int
+	MemberRole string
+	CanLaunch  bool
+	Error      string
+}
+
+// RunShowData is view data for run detail.
+type RunShowData struct {
+	PageData
+	Project      *store.Project
+	Run          *store.ChecklistRun
+	Items        []store.RunItem
+	TemplateName string
+	VersionNum   int
+	MemberRole   string
+	CanLaunch    bool
+	CanComplete  bool
+	Message      string
+	Error        string
 }
 
 // Parse loads layout and page templates from the embedded filesystem.
