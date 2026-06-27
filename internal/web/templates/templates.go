@@ -17,6 +17,14 @@ type PageData struct {
 	LoginError string
 }
 
+// AdminUsersData is view data for the whitelist admin screen.
+type AdminUsersData struct {
+	PageData
+	Emails  []store.AllowedEmail
+	Message string
+	Error   string
+}
+
 // Parse loads layout and page templates from the embedded filesystem.
 func Parse() (*template.Template, error) {
 	root, err := fs.Sub(webassets.Templates, "templates")
