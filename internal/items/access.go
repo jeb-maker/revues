@@ -16,3 +16,14 @@ func CanUpdate(user *store.User, memberRole string) bool {
 	}
 	return memberRole == projects.LocalRoleLead || memberRole == projects.LocalRoleContributor
 }
+
+// CanAssign reports whether the user may assign run items to members.
+func CanAssign(user *store.User, memberRole string) bool {
+	if auth.HasMinRole(user.Role, auth.RoleAdmin) {
+		return true
+	}
+	if !auth.HasMinRole(user.Role, auth.RoleEditor) {
+		return false
+	}
+	return memberRole == projects.LocalRoleLead
+}

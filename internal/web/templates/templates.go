@@ -143,17 +143,29 @@ type RunShowData struct {
 	Run           *store.ChecklistRun
 	Items         []store.RunItem
 	NokItems      []store.RunItem
+	Members       []store.ProjectMember
 	TemplateName  string
 	VersionNum    int
 	MemberRole    string
 	CanLaunch     bool
 	CanCheck      bool
+	CanAssign     bool
 	CanComplete   bool
 	ClosingNote   string
 	Message       string
 	ItemError     string
+	AssignError   string
 	CompleteError string
 	Error         string
+}
+
+// MyTasksData is view data for assigned tasks list.
+type MyTasksData struct {
+	PageData
+	Tasks           []store.AssignedRunItemSummary
+	Projects        []store.Project
+	FilterProjectID int64
+	FilterStatus    string
 }
 
 // Parse loads layout and page templates from the embedded filesystem.
