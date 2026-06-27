@@ -73,5 +73,10 @@ func NewRouter(deps Deps) (http.Handler, error) {
 	r.Get("/auth/github/callback", authHandler.Callback)
 	r.Post("/logout", authHandler.Logout)
 
+	r.Group(func(r chi.Router) {
+		r.Use(appmiddleware.RequireAuth)
+		r.With(appmiddleware.RequireRole(auth.RoleAdmin)).Get("/admin", handlers.AdminStub)
+	})
+
 	return r, nil
 }
