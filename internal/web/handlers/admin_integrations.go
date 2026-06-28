@@ -6,6 +6,7 @@ import (
 
 	"github.com/jeb-maker/revues/internal/admin"
 	"github.com/jeb-maker/revues/internal/integrations/jira"
+	"github.com/jeb-maker/revues/internal/integrations/notion"
 	"github.com/jeb-maker/revues/internal/web/templates"
 )
 
@@ -54,9 +55,7 @@ func (h *AdminIntegrations) service() *admin.IntegrationsService {
 			Store:         h.Store,
 			EncryptionKey: h.EncryptionKey,
 		},
-		Jira: &jira.Service{
-			Store:         h.Store,
-			EncryptionKey: h.EncryptionKey,
-		},
+		Jira:   &jira.Service{Store: h.Store, EncryptionKey: h.EncryptionKey},
+		Notion: &notion.Service{Store: h.Store, EncryptionKey: h.EncryptionKey},
 	}
 }

@@ -8,7 +8,10 @@ import (
 	"time"
 )
 
-const IntegrationTypeJira = "jira"
+const (
+	IntegrationTypeJira   = "jira"
+	IntegrationTypeNotion = "notion"
+)
 
 // ErrIntegrationNotFound is returned when an integration type is missing.
 var ErrIntegrationNotFound = errors.New("integration not found")
