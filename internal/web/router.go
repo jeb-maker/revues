@@ -70,6 +70,12 @@ func NewRouter(deps Deps) (http.Handler, error) {
 		SessionSecret: deps.Config.SessionSecret,
 		EncryptionKey: adminSMTPKey,
 	}
+	adminJira := &handlers.AdminJira{
+		Templates:     tpl,
+		Store:         st,
+		SessionSecret: deps.Config.SessionSecret,
+		EncryptionKey: adminSMTPKey,
+	}
 	projectsHandler := &handlers.Projects{
 		Templates:     tpl,
 		Store:         st,
@@ -152,6 +158,8 @@ func NewRouter(deps Deps) (http.Handler, error) {
 		r.Post("/admin/users/remove", adminUsers.Remove)
 		r.Get("/admin/settings/smtp", adminSMTP.Show)
 		r.Post("/admin/settings/smtp", adminSMTP.Save)
+		r.Get("/admin/integrations/jira", adminJira.Show)
+		r.Post("/admin/integrations/jira", adminJira.Save)
 	})
 
 	return r, nil

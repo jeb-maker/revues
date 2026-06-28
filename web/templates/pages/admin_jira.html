@@ -1,0 +1,88 @@
+{{define "admin_jira"}}
+{{template "layout_start" .}}
+<h1>Configuration Jira</h1>
+<p>Connectez Revues à Jira Cloud ou Server/Data Center pour lier et créer des tickets depuis les revues.</p>
+
+<nav class="admin-nav">
+  <a href="/admin/users">Utilisateurs</a>
+  <a href="/admin/settings/smtp">SMTP</a>
+  <a href="/admin/integrations/jira" aria-current="page">Jira</a>
+</nav>
+
+{{if not .CanEncrypt}}
+<p class="error">REVUES_ENCRYPTION_KEY n'est pas configurée : vous pouvez consulter ce formulaire mais l'enregistrement est désactivé.</p>
+{{end}}
+
+{{if .Message}}
+<p class="success">{{.Message}}</p>
+{{end}}
+{{if .Error}}
+<p class="error">{{.Error}}</p>
+{{end}}
+
+<section class="panel">
+  <h2>Instance Jira</h2>
+  {{if .Configured}}
+  <p class="muted">Jira configuré ({{.InstanceType}}){{if .HasAPIToken}} avec jeton API enregistré{{end}}{{if .HasPAT}} avec PAT enregistré{{end}}.</p>
+  {{else}}
+  <p class="muted">Aucune configuration Jira enregistrée.</p>
+  {{end}}
+
+  <form method="post" action="/admin/integrations/jira" class="stack-form">
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+    <input type="hidden" name="action" value="save">
+
+    <fieldset>
+      <legend>Type d'instance</legend>
+      <label class="radio-label">
+        <input type="radio" name="instance_type" value="cloud" {{if eq .InstanceType "cloud"}}checked{{end}}>
+        Jira Cloud
+      </label>
+      <label class="radio-label">
+        <input type="radio" name="instance_type" value="server" {{if eq .InstanceType "server"}}checked{{end}}>
+        Jira Server / Data Center
+      </label>
+    </fieldset>
+
+    <label>
+      URL de l'instance
+      <input type="url" name="base_url" value="{{.BaseURL}}" required autocomplete="off" placeholder="https://votre-domaine.atlassian.net">
+    </label>
+
+    <fieldset>
+      <legend>Jira Cloud</legend>
+      <label>
+        Email Atlassian
+        <input type="email" name="email" value="{{.Email}}" autocomplete="username" placeholder="Requis pour Cloud">
+      </label>
+      <label>
+        Jeton API
+        <input type="password" name="api_token" autocomplete="new-password" placeholder="{{if .HasAPIToken}}Laisser vide pour conserver{{else}}Jeton API Atlassian{{end}}">
+      </label>
+    </fieldset>
+
+    <fieldset>
+      <legend>Jira Server / Data Center</legend>
+      <label>
+        Personal Access Token (PAT)
+        <input type="password" name="pat" autocomplete="new-password" placeholder="{{if .HasPAT}}Laisser vide pour conserver{{else}}PAT Jira{{end}}">
+      </label>
+    </fieldset>
+
+    <button type="submit" {{if not .CanEncrypt}}disabled{{end}}>Enregistrer</button>
+  </form>
+</section>
+
+<section class="panel">
+  <h2>Test de connexion</h2>
+  <form method="post" action="/admin/integrations/jira" class="stack-form">
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+    <input type="hidden" name="action" value="test">
+    <p class="muted">Vérifie les identifiants enregistrés via l'API REST Jira (<code>/myself</code>).</p>
+    <button type="submit" {{if not .Configured}}disabled{{end}}>Tester la connexion</button>
+  </form>
+</section>
+
+<p><a href="/">← Retour</a></p>
+{{template "layout_end" .}}
+{{end}}
