@@ -20,26 +20,17 @@ var ErrEncryptionNotConfigured = errors.New("encryption key not configured")
 
 // SMTPConfig holds decrypted SMTP relay settings.
 type SMTPConfig struct {
-	Host     string
-	Port     int
-	TLS      bool
-	Username string
-	Password string
-	From     string
-}
-
-// Enabled reports whether outbound email can be sent.
-func (c SMTPConfig) Enabled() bool {
-	return strings.TrimSpace(c.Host) != "" && c.Port > 0 && strings.TrimSpace(c.From) != ""
-}
-
-type smtpPayload struct {
 	Host     string `json:"host"`
 	Port     int    `json:"port"`
 	TLS      bool   `json:"tls"`
 	Username string `json:"username"`
 	Password string `json:"password"`
 	From     string `json:"from"`
+}
+
+// Enabled reports whether outbound email can be sent.
+func (c SMTPConfig) Enabled() bool {
+	return strings.TrimSpace(c.Host) != "" && c.Port > 0 && strings.TrimSpace(c.From) != ""
 }
 
 // SettingsService loads and stores encrypted application settings.
@@ -67,19 +58,12 @@ func (s *SettingsService) LoadSMTP(ctx context.Context) (SMTPConfig, bool, error
 		return SMTPConfig{}, false, fmt.Errorf("decrypt smtp setting: %w", err)
 	}
 
-	var payload smtpPayload
-	if err := json.Unmarshal(plaintext, &payload); err != nil {
+	var cfg SMTPConfig
+	if err := json.Unmarshal(plaintext, &cfg); err != nil {
 		return SMTPConfig{}, false, fmt.Errorf("parse smtp setting: %w", err)
 	}
 
-	return SMTPConfig{
-		Host:     payload.Host,
-		Port:     payload.Port,
-		TLS:      payload.TLS,
-		Username: payload.Username,
-		Password: payload.Password,
-		From:     payload.From,
-	}, true, nil
+	return cfg, true, nil
 }
 
 // SaveSMTP encrypts and stores SMTP config.
@@ -91,14 +75,15 @@ func (s *SettingsService) SaveSMTP(ctx context.Context, cfg SMTPConfig) error {
 		return err
 	}
 
-	payload, err := json.Marshal(smtpPayload{
+	stored := SMTPConfig{
 		Host:     strings.TrimSpace(cfg.Host),
 		Port:     cfg.Port,
 		TLS:      cfg.TLS,
 		Username: strings.TrimSpace(cfg.Username),
 		Password: cfg.Password,
 		From:     strings.TrimSpace(cfg.From),
-	})
+	}
+	payload, err := json.Marshal(stored)
 	if err != nil {
 		return fmt.Errorf("marshal smtp setting: %w", err)
 	}
