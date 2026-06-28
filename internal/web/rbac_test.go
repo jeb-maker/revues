@@ -56,7 +56,7 @@ func newRBACFixture(t *testing.T) *rbacFixture {
 		Env:           "development",
 	}
 
-	handler, err := appweb.NewRouter(appweb.Deps{Config: cfg, DB: db})
+	handler, _, err := appweb.NewRouter(appweb.Deps{Config: cfg, DB: db})
 	if err != nil {
 		t.Fatalf("NewRouter(): %v", err)
 	}
@@ -108,7 +108,7 @@ func newRBACFixture(t *testing.T) *rbacFixture {
 	if err != nil {
 		t.Fatalf("CreateChecklistTemplate(): %v", err)
 	}
-	run, err := st.CreateChecklistRun(ctx, project.ID, template.ID, "Revue", lead.ID)
+	run, err := st.CreateChecklistRun(ctx, project.ID, template.ID, "Revue", lead.ID, sql.NullString{})
 	if err != nil {
 		t.Fatalf("CreateChecklistRun(): %v", err)
 	}
@@ -289,7 +289,7 @@ func TestIDOR_CrossProject(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateChecklistTemplate(): %v", err)
 	}
-	run, err := f.st.CreateChecklistRun(f.ctx, aliceProject.ID, template.ID, "Revue secrète", f.lead.ID)
+	run, err := f.st.CreateChecklistRun(f.ctx, aliceProject.ID, template.ID, "Revue secrète", f.lead.ID, sql.NullString{})
 	if err != nil {
 		t.Fatalf("CreateChecklistRun(): %v", err)
 	}

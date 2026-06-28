@@ -9,8 +9,10 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 
+	"github.com/jeb-maker/revues/internal/admin"
 	"github.com/jeb-maker/revues/internal/auth"
 	"github.com/jeb-maker/revues/internal/config"
+	"github.com/jeb-maker/revues/internal/notifications"
 	"github.com/jeb-maker/revues/internal/store"
 	"github.com/jeb-maker/revues/internal/web/handlers"
 	appmiddleware "github.com/jeb-maker/revues/internal/web/middleware"
@@ -25,15 +27,15 @@ type Deps struct {
 }
 
 // NewRouter builds the HTTP handler tree for the application.
-func NewRouter(deps Deps) (http.Handler, error) {
+func NewRouter(deps Deps) (http.Handler, *notifications.Service, error) {
 	tpl, err := templates.Parse()
 	if err != nil {
-		return nil, fmt.Errorf("load templates: %w", err)
+		return nil, nil, fmt.Errorf("load templates: %w", err)
 	}
 
 	staticFS, err := fs.Sub(webassets.Static, "static")
 	if err != nil {
-		return nil, fmt.Errorf("static assets: %w", err)
+		return nil, nil, fmt.Errorf("static assets: %w", err)
 	}
 
 	st := store.New(deps.DB)
@@ -62,7 +64,16 @@ func NewRouter(deps Deps) (http.Handler, error) {
 	}
 	adminSMTPKey, err := deps.Config.EncryptionKeyBytes()
 	if err != nil {
-		return nil, fmt.Errorf("encryption key: %w", err)
+		return nil, nil, fmt.Errorf("encryption key: %w", err)
+	}
+	settingsSvc := &admin.SettingsService{
+		Store:         st,
+		EncryptionKey: adminSMTPKey,
+	}
+	notificationsSvc := &notifications.Service{
+		Store:    st,
+		Settings: settingsSvc,
+		BaseURL:  deps.Config.BaseURL,
 	}
 	adminSMTP := &handlers.AdminSMTP{
 		Templates:     tpl,
@@ -84,6 +95,7 @@ func NewRouter(deps Deps) (http.Handler, error) {
 		Templates:     tpl,
 		Store:         st,
 		SessionSecret: deps.Config.SessionSecret,
+		Notifications: notificationsSvc,
 	}
 	myTasks := &handlers.MyTasks{
 		Templates:     tpl,
@@ -154,5 +166,5 @@ func NewRouter(deps Deps) (http.Handler, error) {
 		r.Post("/admin/settings/smtp", adminSMTP.Save)
 	})
 
-	return r, nil
+	return r, notificationsSvc, nil
 }

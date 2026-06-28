@@ -137,7 +137,7 @@ func testRouterWithEncryptionKey(t *testing.T, encryptionKey string) (http.Handl
 		Env:           "development",
 	}
 
-	handler, err := appweb.NewRouter(appweb.Deps{Config: cfg, DB: db})
+	handler, _, err := appweb.NewRouter(appweb.Deps{Config: cfg, DB: db})
 	if err != nil {
 		t.Fatalf("NewRouter() error = %v", err)
 	}
