@@ -24,7 +24,14 @@ func CSRF(sessionSecret string) func(http.Handler) http.Handler {
 
 			token := r.Header.Get("X-CSRF-Token")
 			if token == "" {
-				if err := r.ParseForm(); err != nil {
+				ct := r.Header.Get("Content-Type")
+				var parseErr error
+				if strings.HasPrefix(ct, "multipart/form-data") {
+					parseErr = r.ParseMultipartForm(10 << 20)
+				} else {
+					parseErr = r.ParseForm()
+				}
+				if parseErr != nil {
 					http.Error(w, "Forbidden", http.StatusForbidden)
 					return
 				}

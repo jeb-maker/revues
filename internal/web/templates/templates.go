@@ -28,6 +28,17 @@ type AdminUsersData struct {
 	Error   string
 }
 
+type AdminNotionData struct {
+	PageData
+	WorkspaceName     string
+	DefaultDatabaseID string
+	HasAPIToken       bool
+	Configured        bool
+	CanEncrypt        bool
+	Message           string
+	Error             string
+}
+
 type AdminJiraData struct {
 	PageData
 	InstanceType string
@@ -284,6 +295,9 @@ type RunItemShowData struct {
 	ShowJiraCreate  bool
 	JiraCreateTitle string
 	JiraCreateDesc  string
+	Attachment      *store.Attachment
+	CanUpload       bool
+	UploadError     string
 }
 
 // Parse loads layout and page templates from the embedded filesystem.

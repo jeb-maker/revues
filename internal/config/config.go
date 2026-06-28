@@ -12,6 +12,7 @@ type Config struct {
 	Addr                string
 	BaseURL             string
 	DatabasePath        string
+	AttachmentsDir      string
 	Env                 string
 	SessionSecret       string
 	EncryptionKey       string
@@ -26,6 +27,7 @@ func Load() Config {
 		Addr:                envOr("REVUES_ADDR", ":8080"),
 		BaseURL:             envOr("REVUES_BASE_URL", "http://localhost:8080"),
 		DatabasePath:        envOr("REVUES_DATABASE_PATH", "data/revues.db"),
+		AttachmentsDir:      envOr("REVUES_ATTACHMENTS_DIR", "data/attachments"),
 		Env:                 envOr("REVUES_ENV", "development"),
 		SessionSecret:       envOr("REVUES_SESSION_SECRET", "change-me-32-random-bytes-minimum"),
 		EncryptionKey:       os.Getenv("REVUES_ENCRYPTION_KEY"),

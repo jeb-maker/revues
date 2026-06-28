@@ -25,9 +25,10 @@ import (
 // Runs handles review launch wizard and run lifecycle.
 type Runs struct {
 	Deps
-	EncryptionKey []byte
-	Webhooks      *webhooks.Dispatcher
-	Notifications *notifications.Service
+	EncryptionKey  []byte
+	AttachmentsDir string
+	Webhooks       *webhooks.Dispatcher
+	Notifications  *notifications.Service
 }
 
 // WizardProjects is step 1: choose a project.
