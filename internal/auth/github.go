@@ -34,6 +34,10 @@ type GitHubOAuth struct {
 	ClientSecret string
 	BaseURL      string
 	HTTPClient   *http.Client
+	// Optional overrides for tests (empty = production GitHub URLs).
+	TokenURL  string
+	UserURL   string
+	EmailsURL string
 }
 
 // AuthURL builds the GitHub authorization redirect URL.
@@ -62,7 +66,7 @@ func (g *GitHubOAuth) ExchangeCode(ctx context.Context, code, verifier string) (
 	body.Set("redirect_uri", g.callbackURL())
 	body.Set("code_verifier", verifier)
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, githubTokenURL, strings.NewReader(body.Encode()))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, g.tokenURL(), strings.NewReader(body.Encode()))
 	if err != nil {
 		return "", fmt.Errorf("token request: %w", err)
 	}
@@ -125,7 +129,7 @@ type githubUser struct {
 }
 
 func (g *GitHubOAuth) fetchUser(ctx context.Context, accessToken string) (*githubUser, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, githubUserURL, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, g.userURL(), nil)
 	if err != nil {
 		return nil, fmt.Errorf("user request: %w", err)
 	}
@@ -152,7 +156,7 @@ func (g *GitHubOAuth) fetchUser(ctx context.Context, accessToken string) (*githu
 }
 
 func (g *GitHubOAuth) fetchPrimaryVerifiedEmail(ctx context.Context, accessToken string) (string, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, githubEmailsURL, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, g.emailsURL(), nil)
 	if err != nil {
 		return "", fmt.Errorf("emails request: %w", err)
 	}
@@ -197,4 +201,25 @@ func (g *GitHubOAuth) client() *http.Client {
 		return g.HTTPClient
 	}
 	return &http.Client{Timeout: 10 * time.Second}
+}
+
+func (g *GitHubOAuth) tokenURL() string {
+	if g.TokenURL != "" {
+		return g.TokenURL
+	}
+	return githubTokenURL
+}
+
+func (g *GitHubOAuth) userURL() string {
+	if g.UserURL != "" {
+		return g.UserURL
+	}
+	return githubUserURL
+}
+
+func (g *GitHubOAuth) emailsURL() string {
+	if g.EmailsURL != "" {
+		return g.EmailsURL
+	}
+	return githubEmailsURL
 }
