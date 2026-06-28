@@ -21,8 +21,8 @@ func startTestSMTPServer(t *testing.T) (host string, port int) {
 
 	go func() {
 		for {
-			conn, err := ln.Accept()
-			if err != nil {
+			conn, acceptErr := ln.Accept()
+			if acceptErr != nil {
 				return
 			}
 			go handleTestSMTP(conn)

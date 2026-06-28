@@ -51,8 +51,8 @@ func TestSettingsUpsertGetDelete(t *testing.T) {
 	}
 
 	updated := []byte("updated-payload")
-	if err := st.UpsertSetting(ctx, "smtp", updated); err != nil {
-		t.Fatalf("UpsertSetting(update): %v", err)
+	if upsertErr := st.UpsertSetting(ctx, "smtp", updated); upsertErr != nil {
+		t.Fatalf("UpsertSetting(update): %v", upsertErr)
 	}
 
 	got, err = st.GetSetting(ctx, "smtp")
