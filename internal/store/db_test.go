@@ -77,6 +77,7 @@ func assertCoreTables(t *testing.T, ctx context.Context, db *sql.DB) error {
 		"checklist_runs",
 		"run_items",
 		"run_item_events",
+		"settings",
 	}
 
 	for _, table := range tables {

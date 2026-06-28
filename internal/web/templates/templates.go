@@ -26,6 +26,22 @@ type AdminUsersData struct {
 	Error   string
 }
 
+// AdminSMTPData is view data for the SMTP admin screen.
+type AdminSMTPData struct {
+	PageData
+	Host          string
+	Port          int
+	TLS           bool
+	Username      string
+	From          string
+	HasPassword   bool
+	Configured    bool
+	CanEncrypt    bool
+	TestRecipient string
+	Message       string
+	Error         string
+}
+
 // ProjectsListData is view data for the project dashboard.
 type ProjectsListData struct {
 	PageData

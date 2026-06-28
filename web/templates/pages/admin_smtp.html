@@ -1,0 +1,76 @@
+{{define "admin_smtp"}}
+{{template "layout_start" .}}
+<h1>Configuration SMTP</h1>
+<p>Configurez le relais SMTP pour les notifications email. Sans configuration, l'application fonctionne normalement mais n'envoie pas d'emails.</p>
+
+<nav class="admin-nav">
+  <a href="/admin/users">Utilisateurs</a>
+  <a href="/admin/settings/smtp" aria-current="page">SMTP</a>
+</nav>
+
+{{if not .CanEncrypt}}
+<p class="error">REVUES_ENCRYPTION_KEY n'est pas configurée : vous pouvez consulter ce formulaire mais l'enregistrement est désactivé.</p>
+{{end}}
+
+{{if .Message}}
+<p class="success">{{.Message}}</p>
+{{end}}
+{{if .Error}}
+<p class="error">{{.Error}}</p>
+{{end}}
+
+<section class="panel">
+  <h2>Relais SMTP</h2>
+  {{if .Configured}}
+  <p class="muted">SMTP configuré{{if .HasPassword}} avec mot de passe enregistré{{end}}.</p>
+  {{else}}
+  <p class="muted">Aucune configuration SMTP enregistrée.</p>
+  {{end}}
+
+  <form method="post" action="/admin/settings/smtp" class="stack-form">
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+    <input type="hidden" name="action" value="save">
+    <label>
+      Hôte
+      <input type="text" name="host" value="{{.Host}}" required autocomplete="off">
+    </label>
+    <label>
+      Port
+      <input type="number" name="port" value="{{.Port}}" min="1" max="65535" required>
+    </label>
+    <label class="checkbox-label">
+      <input type="checkbox" name="tls" value="on" {{if .TLS}}checked{{end}}>
+      TLS
+    </label>
+    <label>
+      Utilisateur
+      <input type="text" name="username" value="{{.Username}}" autocomplete="username">
+    </label>
+    <label>
+      Mot de passe
+      <input type="password" name="password" autocomplete="new-password" placeholder="{{if .HasPassword}}Laisser vide pour conserver{{else}}Mot de passe SMTP{{end}}">
+    </label>
+    <label>
+      Expéditeur (From)
+      <input type="email" name="from" value="{{.From}}" required autocomplete="email">
+    </label>
+    <button type="submit" {{if not .CanEncrypt}}disabled{{end}}>Enregistrer</button>
+  </form>
+</section>
+
+<section class="panel">
+  <h2>Email de test</h2>
+  <form method="post" action="/admin/settings/smtp" class="stack-form">
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+    <input type="hidden" name="action" value="test">
+    <label>
+      Destinataire
+      <input type="email" name="test_recipient" value="{{.TestRecipient}}" required autocomplete="email">
+    </label>
+    <button type="submit" {{if not .Configured}}disabled{{end}}>Envoyer un email de test</button>
+  </form>
+</section>
+
+<p><a href="/">← Retour</a></p>
+{{template "layout_end" .}}
+{{end}}
