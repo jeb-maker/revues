@@ -24,6 +24,9 @@
   <p>{{.Run.ClosingNote}}</p>
 </section>
 {{end}}
+<p>
+  <a href="/runs/{{.Run.ID}}/export.csv" class="button">Exporter CSV</a>
+</p>
 {{end}}
 
 {{if eq .Run.Status "draft"}}
