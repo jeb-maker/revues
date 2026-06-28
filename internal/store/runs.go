@@ -62,7 +62,7 @@ type AssignedRunItemSummary struct {
 }
 
 // CreateChecklistRun inserts a run and snapshots template items in one transaction.
-func (s *Store) CreateChecklistRun(ctx context.Context, projectID, templateID int64, title string, createdBy int64) (*ChecklistRun, error) {
+func (s *Store) CreateChecklistRun(ctx context.Context, projectID, templateID int64, title string, createdBy int64, dueDate sql.NullString) (*ChecklistRun, error) {
 	template, err := s.ChecklistTemplateByID(ctx, templateID)
 	if err != nil {
 		return nil, err
@@ -88,9 +88,9 @@ func (s *Store) CreateChecklistRun(ctx context.Context, projectID, templateID in
 
 	res, err := tx.ExecContext(ctx, `
 		INSERT INTO checklist_runs (
-			project_id, template_version_id, title, status, created_by, created_at
-		) VALUES (?, ?, ?, ?, ?, ?)
-	`, projectID, version.ID, title, RunStatusDraft, createdBy, now)
+			project_id, template_version_id, title, status, due_date, created_by, created_at
+		) VALUES (?, ?, ?, ?, ?, ?, ?)
+	`, projectID, version.ID, title, RunStatusDraft, dueDate, createdBy, now)
 	if err != nil {
 		return nil, fmt.Errorf("insert checklist run: %w", err)
 	}

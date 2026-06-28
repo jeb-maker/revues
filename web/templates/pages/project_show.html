@@ -41,13 +41,14 @@
   {{if .Runs}}
   <table class="data-table">
     <thead>
-      <tr><th>Titre</th><th>Statut</th><th>Progression</th><th></th></tr>
+      <tr><th>Titre</th><th>Statut</th><th>Échéance</th><th>Progression</th><th></th></tr>
     </thead>
     <tbody>
       {{range .Runs}}
       <tr>
         <td><a href="/runs/{{.ID}}">{{.Title}}</a></td>
         <td>{{.Status}}</td>
+        <td>{{if .DueDate.Valid}}{{formatDueDate .DueDate}}{{else}}<span class="muted">—</span>{{end}}</td>
         <td>
           {{if eq .Status "in_progress"}}
           <div class="run-progress-track compact">

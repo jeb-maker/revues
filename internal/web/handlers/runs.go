@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"bytes"
+	"database/sql"
 	"errors"
 	"html/template"
 	"log/slog"
@@ -187,6 +188,16 @@ func (h *Runs) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	dueDateRaw, err := runs.ParseDueDate(r.FormValue("due_date"))
+	if err != nil {
+		h.renderLaunchError(w, r, project, nil, nil, templateID, "Échéance invalide.")
+		return
+	}
+	var dueDate sql.NullString
+	if dueDateRaw != "" {
+		dueDate = sql.NullString{String: dueDateRaw, Valid: true}
+	}
+
 	template, err := h.Store.ChecklistTemplateByID(r.Context(), templateID)
 	if errors.Is(err, store.ErrChecklistTemplateNotFound) {
 		http.NotFound(w, r)
@@ -202,7 +213,7 @@ func (h *Runs) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	run, err := h.Store.CreateChecklistRun(r.Context(), project.ID, template.ID, title, user.ID)
+	run, err := h.Store.CreateChecklistRun(r.Context(), project.ID, template.ID, title, user.ID, dueDate)
 	if err != nil {
 		slog.Error("create checklist run", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -658,6 +669,7 @@ func (h *Runs) renderLaunchError(w http.ResponseWriter, r *http.Request, project
 		Version:    version,
 		ItemCount:  itemCount,
 		Title:      strings.TrimSpace(r.FormValue("title")),
+		DueDate:    strings.TrimSpace(r.FormValue("due_date")),
 		FormAction: "/projects/" + strconv.FormatInt(project.ID, 10) + "/runs",
 		Step:       3,
 		Error:      message,

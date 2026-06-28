@@ -2,6 +2,7 @@ package store_test
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"testing"
 
@@ -31,7 +32,7 @@ func setupInProgressRun(t *testing.T) (*store.Store, *store.ChecklistRun, int64)
 	if err != nil {
 		t.Fatalf("CreateChecklistTemplate(): %v", err)
 	}
-	run, err := st.CreateChecklistRun(ctx, project.ID, template.ID, "Revue", lead.ID)
+	run, err := st.CreateChecklistRun(ctx, project.ID, template.ID, "Revue", lead.ID, sql.NullString{})
 	if err != nil {
 		t.Fatalf("CreateChecklistRun(): %v", err)
 	}

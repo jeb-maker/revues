@@ -18,6 +18,10 @@
     Titre de la revue
     <input type="text" name="title" required maxlength="200" value="{{.Title}}">
   </label>
+  <label>
+    Échéance (optionnel)
+    <input type="date" name="due_date" value="{{.DueDate}}">
+  </label>
   <button type="submit">Lancer la revue</button>
 </form>
 

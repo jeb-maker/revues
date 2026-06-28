@@ -14,13 +14,14 @@
   {{if .ActiveRuns}}
   <table class="data-table">
     <thead>
-      <tr><th>Revue</th><th>Projet</th><th>Progression</th><th></th></tr>
+      <tr><th>Revue</th><th>Projet</th><th>Échéance</th><th>Progression</th><th></th></tr>
     </thead>
     <tbody>
       {{range .ActiveRuns}}
       <tr>
         <td><a href="/runs/{{.RunID}}">{{.Title}}</a></td>
         <td><a href="/projects/{{.ProjectID}}">{{.ProjectName}}</a></td>
+        <td>{{if .DueDate.Valid}}{{formatDueDate .DueDate}}{{else}}<span class="muted">—</span>{{end}}</td>
         <td>
           <div class="run-progress-track compact">
             <div class="run-progress-bar" style="width: {{.Percent}}%"></div>
