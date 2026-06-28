@@ -230,6 +230,56 @@ func (s *Store) StartRun(ctx context.Context, id int64) error {
 	return nil
 }
 
+// ListRunsDueOn returns in-progress runs whose due_date starts with datePrefix (YYYY-MM-DD).
+func (s *Store) ListRunsDueOn(ctx context.Context, datePrefix string) ([]ChecklistRun, error) {
+	rows, err := s.db.QueryContext(ctx, `
+		SELECT id, project_id, template_version_id, title, status, due_date, closing_note,
+		       created_by, started_at, completed_at, created_at
+		FROM checklist_runs
+		WHERE status = ? AND due_date IS NOT NULL AND due_date LIKE ?
+		ORDER BY due_date, id
+	`, RunStatusInProgress, datePrefix+"%")
+	if err != nil {
+		return nil, fmt.Errorf("list runs due on: %w", err)
+	}
+	defer rows.Close()
+
+	var runs []ChecklistRun
+	for rows.Next() {
+		var run ChecklistRun
+		if err := rows.Scan(
+			&run.ID, &run.ProjectID, &run.TemplateVersionID, &run.Title, &run.Status, &run.DueDate,
+			&run.ClosingNote, &run.CreatedBy, &run.StartedAt, &run.CompletedAt, &run.CreatedAt,
+		); err != nil {
+			return nil, fmt.Errorf("scan run due on: %w", err)
+		}
+		runs = append(runs, run)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate runs due on: %w", err)
+	}
+
+	return runs, nil
+}
+
+// SetRunDueDate updates due_date on a run (used in tests).
+func (s *Store) SetRunDueDate(ctx context.Context, runID int64, dueDate sql.NullString) error {
+	res, err := s.db.ExecContext(ctx, `
+		UPDATE checklist_runs SET due_date = ? WHERE id = ?
+	`, dueDate, runID)
+	if err != nil {
+		return fmt.Errorf("set run due date: %w", err)
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("set run due date rows: %w", err)
+	}
+	if n == 0 {
+		return ErrRunNotFound
+	}
+	return nil
+}
+
 // CompleteRun moves a run from in_progress to done with a closing note.
 func (s *Store) CompleteRun(ctx context.Context, id int64, closingNote string) error {
 	now := time.Now().UTC().Format(time.RFC3339)

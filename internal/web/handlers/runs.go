@@ -16,6 +16,7 @@ import (
 	"github.com/jeb-maker/revues/internal/auth"
 	"github.com/jeb-maker/revues/internal/integrations/webhooks"
 	"github.com/jeb-maker/revues/internal/items"
+	"github.com/jeb-maker/revues/internal/notifications"
 	"github.com/jeb-maker/revues/internal/runs"
 	"github.com/jeb-maker/revues/internal/store"
 	"github.com/jeb-maker/revues/internal/web/middleware"
@@ -28,6 +29,7 @@ type Runs struct {
 	Store         *store.Store
 	SessionSecret string
 	Webhooks      *webhooks.Dispatcher
+	Notifications *notifications.Service
 }
 
 // WizardProjects is step 1: choose a project.
@@ -430,6 +432,10 @@ func (h *Runs) AssignItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if assigneeID != nil && h.Notifications != nil {
+		h.Notifications.NotifyItemAssigned(r.Context(), run.ID, itemID)
+	}
+
 	if h.isHTMX(r) {
 		h.renderRunItemHTMXSuccess(w, r, run, project, user, memberRole, itemID, "", "")
 		return
@@ -497,6 +503,10 @@ func (h *Runs) Complete(w http.ResponseWriter, r *http.Request) {
 	}
 	if h.Webhooks != nil {
 		h.Webhooks.EmitReviewCompleted(r.Context(), run.ID)
+	}
+
+	if h.Notifications != nil {
+		h.Notifications.NotifyRunCompleted(r.Context(), run.ID)
 	}
 
 	http.Redirect(w, r, "/runs/"+strconv.FormatInt(run.ID, 10)+"?msg=Revue+termin%C3%A9e", http.StatusSeeOther)

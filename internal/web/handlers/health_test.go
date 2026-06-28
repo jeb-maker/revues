@@ -41,7 +41,7 @@ func testRouter(t *testing.T) (http.Handler, *sql.DB) {
 		Env:           "development",
 	}
 
-	handler, err := appweb.NewRouter(appweb.Deps{Config: cfg, DB: db})
+	handler, _, err := appweb.NewRouter(appweb.Deps{Config: cfg, DB: db})
 	if err != nil {
 		t.Fatalf("NewRouter() error = %v", err)
 	}
@@ -52,7 +52,7 @@ func testRouter(t *testing.T) (http.Handler, *sql.DB) {
 func TestHealthz(t *testing.T) {
 	t.Parallel()
 
-	handler, err := appweb.NewRouter(appweb.Deps{
+	handler, _, err := appweb.NewRouter(appweb.Deps{
 		Config: config.Config{SessionSecret: "test-secret-at-least-thirty-two-bytes"},
 		DB:     mustMemoryDB(t),
 	})
