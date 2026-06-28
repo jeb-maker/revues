@@ -84,7 +84,7 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, error) {
 	adminNotion := &handlers.AdminNotion{Deps: handlerDeps, EncryptionKey: adminSMTPKey}
 	adminIntegrations := &handlers.AdminIntegrations{Deps: handlerDeps, EncryptionKey: adminSMTPKey}
 	projectsHandler := &handlers.Projects{Deps: handlerDeps}
-	checklistTemplates := &handlers.ChecklistTemplates{Deps: handlerDeps}
+	checklistTemplates := &handlers.ChecklistTemplates{Deps: handlerDeps, EncryptionKey: adminSMTPKey}
 	runsHandler := &handlers.Runs{
 		Deps:           handlerDeps,
 		EncryptionKey:  adminSMTPKey,
@@ -125,6 +125,8 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, error) {
 		r.Post("/projects/{id}/members/remove", projectsHandler.RemoveMember)
 		r.Get("/projects/{id}/templates", checklistTemplates.List)
 		r.Get("/projects/{id}/templates/new", checklistTemplates.NewForm)
+		r.Get("/projects/{id}/templates/notion-import", checklistTemplates.NotionImportForm)
+		r.Post("/projects/{id}/templates/notion-import", checklistTemplates.NotionImport)
 		r.Post("/projects/{id}/templates", checklistTemplates.Create)
 		r.Get("/projects/{id}/templates/{tid}", checklistTemplates.Show)
 		r.Get("/projects/{id}/templates/{tid}/edit", checklistTemplates.EditForm)

@@ -10,6 +10,7 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"github.com/jeb-maker/revues/internal/auth"
+	"github.com/jeb-maker/revues/internal/integrations/notion"
 	"github.com/jeb-maker/revues/internal/store"
 	checklisttpl "github.com/jeb-maker/revues/internal/templates"
 	"github.com/jeb-maker/revues/internal/web/middleware"
@@ -21,6 +22,8 @@ const defaultTemplateEditorRows = 3
 // ChecklistTemplates handles versioned checklist model CRUD.
 type ChecklistTemplates struct {
 	Deps
+	EncryptionKey []byte
+	NotionClient  *notion.Client
 }
 
 // IndexAll lists checklist templates across visible projects.

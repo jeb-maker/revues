@@ -7,7 +7,7 @@
 <p class="muted">Votre rôle sur ce projet : {{.MemberRole}}</p>
 
 {{if .CanManage}}
-<p><a class="button" href="/projects/{{.Project.ID}}/templates/new">Nouveau modèle</a></p>
+<p><a class="button" href="/projects/{{.Project.ID}}/templates/new">Nouveau modèle</a> <a href="/projects/{{.Project.ID}}/templates/notion-import">Importer depuis Notion</a></p>
 {{end}}
 
 {{if .Templates}}
