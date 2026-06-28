@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/jeb-maker/revues/internal/attachments"
+	"github.com/jeb-maker/revues/internal/integrations/notion"
 	"github.com/jeb-maker/revues/internal/store"
 	webassets "github.com/jeb-maker/revues/web"
 )
@@ -143,6 +144,26 @@ type TemplateEditorRow struct {
 	HelpText string
 	Required bool
 }
+
+type ChecklistTemplateNotionImportData struct {
+	PageData
+	Project          *store.Project
+	MemberRole       string
+	CanManage        bool
+	NotionConfigured bool
+	Step             string
+	FormAction       string
+	DatabaseRef      string
+	DatabaseID       string
+	DatabaseTitle    string
+	TemplateName     string
+	Properties       []NotionPropertyOption
+	Mapping          notion.ColumnMapping
+	PreviewItems     []TemplateEditorRow
+	PreviewCount     int
+	Error            string
+}
+type NotionPropertyOption struct{ Name, Type string }
 
 // ChecklistTemplatesListData is view data for template index on a project.
 type ChecklistTemplatesListData struct {
