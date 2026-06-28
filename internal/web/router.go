@@ -90,6 +90,12 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, error) {
 		SessionSecret: deps.Config.SessionSecret,
 		EncryptionKey: adminSMTPKey,
 	}
+	adminIntegrations := &handlers.AdminIntegrations{
+		Templates:     tpl,
+		Store:         st,
+		SessionSecret: deps.Config.SessionSecret,
+		EncryptionKey: adminSMTPKey,
+	}
 	projectsHandler := &handlers.Projects{
 		Templates:     tpl,
 		Store:         st,
@@ -172,6 +178,7 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, error) {
 		r.Get("/admin/users", adminUsers.List)
 		r.Post("/admin/users", adminUsers.Add)
 		r.Post("/admin/users/remove", adminUsers.Remove)
+		r.Get("/admin/integrations", adminIntegrations.Show)
 		r.Get("/admin/settings/smtp", adminSMTP.Show)
 		r.Post("/admin/settings/smtp", adminSMTP.Save)
 		r.Get("/admin/settings/webhooks", adminWebhooks.Show)

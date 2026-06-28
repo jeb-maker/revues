@@ -246,6 +246,16 @@ fieldset.template-row {
   background: color-mix(in srgb, var(--text) 8%, transparent);
 }
 
+.status-badge.status-enabled {
+  color: #166534;
+  background: color-mix(in srgb, #166534 12%, transparent);
+}
+
+.status-badge.status-disabled {
+  color: var(--muted);
+  background: color-mix(in srgb, var(--text) 8%, transparent);
+}
+
 .status-select,
 .assign-select,
 .comment-inline {

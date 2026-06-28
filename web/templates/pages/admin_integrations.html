@@ -1,0 +1,54 @@
+{{define "admin_integrations"}}
+{{template "layout_start" .}}
+<h1>Intégrations</h1>
+<p>Vue d'ensemble des connexions externes. Configurez chaque intégration depuis sa page dédiée.</p>
+
+<nav class="admin-nav">
+  <a href="/admin/users">Utilisateurs</a>
+  <a href="/admin/integrations" aria-current="page">Intégrations</a>
+  <a href="/admin/settings/smtp">SMTP</a>
+  <a href="/admin/settings/webhooks">Webhooks</a>
+  <a href="/admin/integrations/jira">Jira</a>
+</nav>
+
+{{if .Error}}
+<p class="error">{{.Error}}</p>
+{{end}}
+
+<section class="panel">
+  <h2>Statut</h2>
+  {{if .Integrations}}
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Intégration</th>
+        <th>Description</th>
+        <th>Statut</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {{range .Integrations}}
+      <tr>
+        <td>{{.Name}}</td>
+        <td class="muted">{{.Description}}</td>
+        <td>
+          {{if .Enabled}}
+          <span class="status-badge status-enabled">Activé</span>
+          {{else}}
+          <span class="status-badge status-disabled">Désactivé</span>
+          {{end}}
+        </td>
+        <td><a href="{{.ConfigPath}}">Configurer</a></td>
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+  {{else}}
+  <p class="muted">Aucune intégration disponible.</p>
+  {{end}}
+</section>
+
+<p><a href="/">← Retour</a></p>
+{{template "layout_end" .}}
+{{end}}
