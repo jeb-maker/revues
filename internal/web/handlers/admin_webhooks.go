@@ -2,23 +2,17 @@ package handlers
 
 import (
 	"errors"
-	"html/template"
 	"log/slog"
 	"net/http"
 	"strings"
 
 	"github.com/jeb-maker/revues/internal/admin"
-	"github.com/jeb-maker/revues/internal/auth"
 	"github.com/jeb-maker/revues/internal/integrations/webhooks"
-	"github.com/jeb-maker/revues/internal/store"
-	"github.com/jeb-maker/revues/internal/web/middleware"
 	"github.com/jeb-maker/revues/internal/web/templates"
 )
 
 type AdminWebhooks struct {
-	Templates     *template.Template
-	Store         *store.Store
-	SessionSecret string
+	Deps
 	EncryptionKey []byte
 	Webhooks      *webhooks.Dispatcher
 }
@@ -104,14 +98,10 @@ func (h *AdminWebhooks) renderForm(w http.ResponseWriter, r *http.Request, parti
 }
 
 func (h *AdminWebhooks) pageData(r *http.Request) templates.AdminWebhooksData {
-	data := templates.AdminWebhooksData{PageData: templates.PageData{Title: "Configuration webhooks"}, CanEncrypt: len(h.EncryptionKey) > 0}
-	if user, ok := middleware.UserFromContext(r.Context()); ok {
-		data.User = user
-		if token := middleware.SessionTokenFromContext(r); token != "" {
-			data.CSRFToken = auth.CSRFToken(token, h.SessionSecret)
-		}
+	return templates.AdminWebhooksData{
+		PageData:   h.PageData(r, "Configuration webhooks"),
+		CanEncrypt: len(h.EncryptionKey) > 0,
 	}
-	return data
 }
 
 func (h *AdminWebhooks) settings() *admin.SettingsService {

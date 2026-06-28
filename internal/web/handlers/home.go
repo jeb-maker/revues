@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"html/template"
 	"log/slog"
 	"net/http"
 
@@ -11,8 +10,7 @@ import (
 
 // Home renders the landing page.
 type Home struct {
-	Templates     *template.Template
-	SessionSecret string
+	Deps
 }
 
 // ServeHTTP implements http.Handler.

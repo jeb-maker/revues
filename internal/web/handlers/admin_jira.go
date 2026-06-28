@@ -2,23 +2,17 @@ package handlers
 
 import (
 	"errors"
-	"html/template"
 	"log/slog"
 	"net/http"
 	"strings"
 
-	"github.com/jeb-maker/revues/internal/auth"
 	"github.com/jeb-maker/revues/internal/integrations/jira"
-	"github.com/jeb-maker/revues/internal/store"
-	"github.com/jeb-maker/revues/internal/web/middleware"
 	"github.com/jeb-maker/revues/internal/web/templates"
 )
 
 // AdminJira manages encrypted Jira integration settings.
 type AdminJira struct {
-	Templates     *template.Template
-	Store         *store.Store
-	SessionSecret string
+	Deps
 	EncryptionKey []byte
 	JiraClient    *jira.Client
 }
@@ -186,18 +180,11 @@ func (h *AdminJira) renderForm(w http.ResponseWriter, r *http.Request, partial t
 }
 
 func (h *AdminJira) pageData(r *http.Request) templates.AdminJiraData {
-	data := templates.AdminJiraData{
-		PageData:     templates.PageData{Title: "Configuration Jira"},
+	return templates.AdminJiraData{
+		PageData:     h.PageData(r, "Configuration Jira"),
 		InstanceType: jira.InstanceCloud,
 		CanEncrypt:   len(h.EncryptionKey) > 0,
 	}
-	if user, ok := middleware.UserFromContext(r.Context()); ok {
-		data.User = user
-		if token := middleware.SessionTokenFromContext(r); token != "" {
-			data.CSRFToken = auth.CSRFToken(token, h.SessionSecret)
-		}
-	}
-	return data
 }
 
 func (h *AdminJira) service() *jira.Service {
