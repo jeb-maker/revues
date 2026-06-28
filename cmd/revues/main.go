@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/jeb-maker/revues/internal/config"
+	"github.com/jeb-maker/revues/internal/notifications"
 	"github.com/jeb-maker/revues/internal/store"
 	appweb "github.com/jeb-maker/revues/internal/web"
 )
@@ -38,7 +39,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	handler, err := appweb.NewRouter(appweb.Deps{
+	handler, notificationsSvc, err := appweb.NewRouter(appweb.Deps{
 		Config: cfg,
 		DB:     db,
 	})
@@ -46,6 +47,10 @@ func main() {
 		slog.Error("router setup failed", "err", err)
 		os.Exit(1)
 	}
+
+	schedulerCtx, schedulerCancel := context.WithCancel(context.Background())
+	defer schedulerCancel()
+	notifications.StartDueReminderScheduler(schedulerCtx, notificationsSvc, 24*time.Hour)
 
 	srv := &http.Server{
 		Addr:              cfg.Addr,

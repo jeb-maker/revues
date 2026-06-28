@@ -71,6 +71,7 @@ func handleTestSMTP(conn net.Conn) {
 				}
 			}
 			writeSMTPLine(rw, "250 OK")
+			notifySMTPCapture()
 		case "QUIT":
 			writeSMTPLine(rw, "221 Bye")
 			return
