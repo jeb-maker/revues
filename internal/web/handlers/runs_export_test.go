@@ -91,6 +91,7 @@ func TestRuns_ExportCSV(t *testing.T) {
 	if len(records) != 3 {
 		t.Fatalf("len(records) = %d, want 3", len(records))
 	}
+	//nolint:misspell // French CSV column headers per issue #31
 	wantHeader := []string{"projet", "revue", "date", "points", "statuts", "commentaires", "auteur"}
 	for i, col := range wantHeader {
 		if records[0][i] != col {

@@ -8,6 +8,7 @@ import (
 	"github.com/jeb-maker/revues/internal/store"
 )
 
+//nolint:misspell // French CSV column headers per issue #31
 var runExportHeaders = []string{"projet", "revue", "date", "points", "statuts", "commentaires", "auteur"}
 
 // BuildRunCSV encodes export rows as CSV with a header row.

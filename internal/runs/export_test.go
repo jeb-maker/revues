@@ -36,6 +36,7 @@ func TestBuildRunCSV(t *testing.T) {
 	}
 
 	csv := string(data)
+	//nolint:misspell // French CSV column headers per issue #31
 	if !strings.HasPrefix(csv, "projet,revue,date,points,statuts,commentaires,auteur\n") {
 		t.Fatalf("unexpected header: %q", csv)
 	}
