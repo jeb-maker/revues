@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -33,6 +34,7 @@ type ChecklistRun struct {
 	CreatedBy         sql.NullInt64
 	StartedAt         sql.NullString
 	CompletedAt       sql.NullString
+	NotionURL         string
 	CreatedAt         string
 }
 
@@ -124,12 +126,12 @@ func (s *Store) RunByID(ctx context.Context, id int64) (*ChecklistRun, error) {
 	var run ChecklistRun
 	err := s.db.QueryRowContext(ctx, `
 		SELECT id, project_id, template_version_id, title, status, due_date, closing_note,
-		       created_by, started_at, completed_at, created_at
+		       created_by, started_at, completed_at, notion_url, created_at
 		FROM checklist_runs
 		WHERE id = ?
 	`, id).Scan(
 		&run.ID, &run.ProjectID, &run.TemplateVersionID, &run.Title, &run.Status, &run.DueDate,
-		&run.ClosingNote, &run.CreatedBy, &run.StartedAt, &run.CompletedAt, &run.CreatedAt,
+		&run.ClosingNote, &run.CreatedBy, &run.StartedAt, &run.CompletedAt, &run.NotionURL, &run.CreatedAt,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrRunNotFound
@@ -144,7 +146,7 @@ func (s *Store) RunByID(ctx context.Context, id int64) (*ChecklistRun, error) {
 func (s *Store) ListRunsByProject(ctx context.Context, projectID int64) ([]ChecklistRun, error) {
 	rows, err := s.db.QueryContext(ctx, `
 		SELECT id, project_id, template_version_id, title, status, due_date, closing_note,
-		       created_by, started_at, completed_at, created_at
+		       created_by, started_at, completed_at, notion_url, created_at
 		FROM checklist_runs
 		WHERE project_id = ? AND status != ?
 		ORDER BY created_at DESC
@@ -159,7 +161,7 @@ func (s *Store) ListRunsByProject(ctx context.Context, projectID int64) ([]Check
 		var run ChecklistRun
 		if err := rows.Scan(
 			&run.ID, &run.ProjectID, &run.TemplateVersionID, &run.Title, &run.Status, &run.DueDate,
-			&run.ClosingNote, &run.CreatedBy, &run.StartedAt, &run.CompletedAt, &run.CreatedAt,
+			&run.ClosingNote, &run.CreatedBy, &run.StartedAt, &run.CompletedAt, &run.NotionURL, &run.CreatedAt,
 		); err != nil {
 			return nil, fmt.Errorf("scan run: %w", err)
 		}
@@ -234,7 +236,7 @@ func (s *Store) StartRun(ctx context.Context, id int64) error {
 func (s *Store) ListRunsDueOn(ctx context.Context, datePrefix string) ([]ChecklistRun, error) {
 	rows, err := s.db.QueryContext(ctx, `
 		SELECT id, project_id, template_version_id, title, status, due_date, closing_note,
-		       created_by, started_at, completed_at, created_at
+		       created_by, started_at, completed_at, notion_url, created_at
 		FROM checklist_runs
 		WHERE status = ? AND due_date IS NOT NULL AND due_date LIKE ?
 		ORDER BY due_date, id
@@ -249,7 +251,7 @@ func (s *Store) ListRunsDueOn(ctx context.Context, datePrefix string) ([]Checkli
 		var run ChecklistRun
 		if err := rows.Scan(
 			&run.ID, &run.ProjectID, &run.TemplateVersionID, &run.Title, &run.Status, &run.DueDate,
-			&run.ClosingNote, &run.CreatedBy, &run.StartedAt, &run.CompletedAt, &run.CreatedAt,
+			&run.ClosingNote, &run.CreatedBy, &run.StartedAt, &run.CompletedAt, &run.NotionURL, &run.CreatedAt,
 		); err != nil {
 			return nil, fmt.Errorf("scan run due on: %w", err)
 		}
@@ -303,6 +305,22 @@ func (s *Store) CompleteRun(ctx context.Context, id int64, closingNote string) e
 		if run.Status != RunStatusInProgress {
 			return ErrInvalidRunStatus
 		}
+		return ErrRunNotFound
+	}
+	return nil
+}
+
+// SetRunNotionURL stores the Notion page URL for an exported run.
+func (s *Store) SetRunNotionURL(ctx context.Context, runID int64, notionURL string) error {
+	res, err := s.db.ExecContext(ctx, `UPDATE checklist_runs SET notion_url = ? WHERE id = ?`, strings.TrimSpace(notionURL), runID)
+	if err != nil {
+		return fmt.Errorf("set run notion url: %w", err)
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("set run notion url rows: %w", err)
+	}
+	if n == 0 {
 		return ErrRunNotFound
 	}
 	return nil

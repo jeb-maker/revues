@@ -245,29 +245,32 @@ type RunItemRowData struct {
 // RunShowData is view data for run detail.
 type RunShowData struct {
 	PageData
-	Project        *store.Project
-	Run            *store.ChecklistRun
-	Items          []store.RunItem
-	NokItems       []store.RunItem
-	JiraLinks      map[int64]store.IntegrationLink
-	Attachments    map[int64]*store.Attachment
-	Members        []store.ProjectMember
-	TemplateName   string
-	VersionNum     int
-	MemberRole     string
-	CanLaunch      bool
-	CanCheck       bool
-	CanAssign      bool
-	CanLinkJira    bool
-	JiraConfigured bool
-	CanComplete    bool
-	Progress       RunProgressData
-	ClosingNote    string
-	Message        string
-	ItemError      string
-	AssignError    string
-	CompleteError  string
-	Error          string
+	Project           *store.Project
+	Run               *store.ChecklistRun
+	Items             []store.RunItem
+	NokItems          []store.RunItem
+	JiraLinks         map[int64]store.IntegrationLink
+	Attachments       map[int64]*store.Attachment
+	Members           []store.ProjectMember
+	TemplateName      string
+	VersionNum        int
+	MemberRole        string
+	CanLaunch         bool
+	CanCheck          bool
+	CanAssign         bool
+	CanLinkJira       bool
+	JiraConfigured    bool
+	CanComplete       bool
+	NotionConfigured  bool
+	CanExportNotion   bool
+	Progress          RunProgressData
+	ClosingNote       string
+	Message           string
+	ItemError         string
+	AssignError       string
+	CompleteError     string
+	NotionExportError string
+	Error             string
 }
 
 // MyTasksData is view data for assigned tasks list.

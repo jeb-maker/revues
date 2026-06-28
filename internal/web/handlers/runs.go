@@ -13,6 +13,7 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"github.com/jeb-maker/revues/internal/auth"
+	"github.com/jeb-maker/revues/internal/integrations/notion"
 	"github.com/jeb-maker/revues/internal/integrations/webhooks"
 	"github.com/jeb-maker/revues/internal/items"
 	"github.com/jeb-maker/revues/internal/notifications"
@@ -27,6 +28,8 @@ type Runs struct {
 	Deps
 	EncryptionKey  []byte
 	AttachmentsDir string
+	BaseURL        string
+	NotionClient   *notion.Client
 	Webhooks       *webhooks.Dispatcher
 	Notifications  *notifications.Service
 }
@@ -565,35 +568,38 @@ func (h *Runs) renderRunShow(w http.ResponseWriter, r *http.Request, run *store.
 	attachmentsByItem := h.loadAttachmentsForItems(r.Context(), runItems)
 
 	data := viewtemplates.RunShowData{
-		PageData:       h.PageData(r, run.Title),
-		Project:        project,
-		Run:            run,
-		Items:          runItems,
-		NokItems:       nokItems,
-		JiraLinks:      jiraLinks,
-		Attachments:    attachmentsByItem,
-		Members:        members,
-		TemplateName:   versionInfo.Name,
-		VersionNum:     versionInfo.Version,
-		MemberRole:     memberRole,
-		CanLaunch:      runs.CanLaunch(user, memberRole),
-		CanCheck:       items.CanUpdate(user, memberRole),
-		CanAssign:      items.CanAssign(user, memberRole),
-		CanLinkJira:    items.CanLinkJira(user, memberRole),
-		JiraConfigured: h.jiraConfigured(r.Context()),
-		CanComplete:    runs.CanComplete(user, memberRole),
-		Progress:       h.progressData(run.ID, runItems),
-		Message:        extra.Message,
-		ItemError:      extra.ItemError,
-		AssignError:    extra.AssignError,
-		CompleteError:  extra.CompleteError,
-		ClosingNote:    extra.ClosingNote,
-		Error:          extra.Error,
+		PageData:          h.PageData(r, run.Title),
+		Project:           project,
+		Run:               run,
+		Items:             runItems,
+		NokItems:          nokItems,
+		JiraLinks:         jiraLinks,
+		Attachments:       attachmentsByItem,
+		Members:           members,
+		TemplateName:      versionInfo.Name,
+		VersionNum:        versionInfo.Version,
+		MemberRole:        memberRole,
+		CanLaunch:         runs.CanLaunch(user, memberRole),
+		CanCheck:          items.CanUpdate(user, memberRole),
+		CanAssign:         items.CanAssign(user, memberRole),
+		CanLinkJira:       items.CanLinkJira(user, memberRole),
+		JiraConfigured:    h.jiraConfigured(r.Context()),
+		CanComplete:       runs.CanComplete(user, memberRole),
+		NotionConfigured:  h.notionConfigured(r.Context()),
+		CanExportNotion:   runs.CanComplete(user, memberRole) && run.Status == store.RunStatusDone && strings.TrimSpace(run.NotionURL) == "",
+		Progress:          h.progressData(run.ID, runItems),
+		Message:           extra.Message,
+		ItemError:         extra.ItemError,
+		AssignError:       extra.AssignError,
+		CompleteError:     extra.CompleteError,
+		NotionExportError: extra.NotionExportError,
+		ClosingNote:       extra.ClosingNote,
+		Error:             extra.Error,
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	statusCode := http.StatusOK
-	if extra.ItemError != "" || extra.CompleteError != "" || extra.AssignError != "" {
+	if extra.ItemError != "" || extra.CompleteError != "" || extra.AssignError != "" || extra.NotionExportError != "" {
 		statusCode = http.StatusBadRequest
 	}
 	w.WriteHeader(statusCode)

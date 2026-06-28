@@ -5,6 +5,7 @@
 {{if .ItemError}}<p class="error">{{.ItemError}}</p>{{end}}
 {{if .AssignError}}<p class="error">{{.AssignError}}</p>{{end}}
 {{if .CompleteError}}<p class="error">{{.CompleteError}}</p>{{end}}
+{{if .NotionExportError}}<p class="error">{{.NotionExportError}}</p>{{end}}
 {{if .Error}}<p class="error">{{.Error}}</p>{{end}}
 
 <p class="muted">
@@ -26,6 +27,14 @@
 {{end}}
 <p>
   <a href="/runs/{{.Run.ID}}/export.csv" class="button">Exporter CSV</a>
+  {{if .Run.NotionURL}}
+  <a href="{{.Run.NotionURL}}" class="button" target="_blank" rel="noopener noreferrer">Voir dans Notion</a>
+  {{else if and .NotionConfigured .CanExportNotion}}
+  <form method="post" action="/runs/{{.Run.ID}}/export/notion" class="inline-form">
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+    <button type="submit" class="button">Exporter vers Notion</button>
+  </form>
+  {{end}}
 </p>
 {{end}}
 

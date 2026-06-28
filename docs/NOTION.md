@@ -21,7 +21,7 @@ Stockage chiffré dans la table `integrations` (`type = 'notion'`), même schém
 - En-tête `Authorization: Bearer {api_token}`
 - En-tête `Notion-Version: 2022-06-28`
 
-## Mapping export revue → Notion (#26, futur)
+## Mapping export revue → Notion (#26)
 
 | Revues | Propriété Notion | Type |
 |--------|------------------|------|
