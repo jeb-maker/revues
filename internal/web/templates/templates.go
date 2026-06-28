@@ -207,6 +207,7 @@ type RunItemRowData struct {
 	CSRFToken   string
 	CanCheck    bool
 	CanAssign   bool
+	JiraLink    store.IntegrationLink
 	ItemError   string
 	AssignError string
 }
@@ -218,6 +219,7 @@ type RunShowData struct {
 	Run           *store.ChecklistRun
 	Items         []store.RunItem
 	NokItems      []store.RunItem
+	JiraLinks     map[int64]store.IntegrationLink
 	Members       []store.ProjectMember
 	TemplateName  string
 	VersionNum    int
@@ -247,12 +249,18 @@ type MyTasksData struct {
 // RunItemShowData is view data for run item detail with audit history.
 type RunItemShowData struct {
 	PageData
-	Project    *store.Project
-	Run        *store.ChecklistRun
-	Item       *store.RunItem
-	Events     []store.RunItemEvent
-	MemberRole string
-	CanCheck   bool
+	Project        *store.Project
+	Run            *store.ChecklistRun
+	Item           *store.RunItem
+	Events         []store.RunItemEvent
+	JiraLink       *store.IntegrationLink
+	MemberRole     string
+	CanCheck       bool
+	CanLinkJira    bool
+	JiraConfigured bool
+	JiraIssueInput string
+	Message        string
+	LinkError      string
 }
 
 // Parse loads layout and page templates from the embedded filesystem.
@@ -273,7 +281,7 @@ func Parse() (*template.Template, error) {
 		},
 		"formatDueDate": formatDueDate,
 		"dueDateInput":  dueDateInput,
-		"runItemRow": func(run *store.ChecklistRun, item store.RunItem, members []store.ProjectMember, csrf string, canCheck, canAssign bool, itemErr, assignErr string) RunItemRowData {
+		"runItemRow": func(run *store.ChecklistRun, item store.RunItem, members []store.ProjectMember, csrf string, canCheck, canAssign bool, jiraLink store.IntegrationLink, itemErr, assignErr string) RunItemRowData {
 			return RunItemRowData{
 				RunID:       run.ID,
 				RunStatus:   run.Status,
@@ -282,6 +290,7 @@ func Parse() (*template.Template, error) {
 				CSRFToken:   csrf,
 				CanCheck:    canCheck,
 				CanAssign:   canAssign,
+				JiraLink:    jiraLink,
 				ItemError:   itemErr,
 				AssignError: assignErr,
 			}

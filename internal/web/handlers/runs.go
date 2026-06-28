@@ -28,6 +28,7 @@ type Runs struct {
 	Templates     *template.Template
 	Store         *store.Store
 	SessionSecret string
+	EncryptionKey []byte
 	Webhooks      *webhooks.Dispatcher
 	Notifications *notifications.Service
 }
@@ -336,39 +337,7 @@ func (h *Runs) ShowItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	item, err := h.Store.RunItemByID(r.Context(), run.ID, itemID)
-	if errors.Is(err, store.ErrRunItemNotFound) {
-		http.NotFound(w, r)
-		return
-	}
-	if err != nil {
-		slog.Error("load run item", "err", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
-	}
-
-	events, err := h.Store.ListRunItemEvents(r.Context(), item.ID)
-	if err != nil {
-		slog.Error("list run item events", "err", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
-	}
-
-	data := viewtemplates.RunItemShowData{
-		PageData:   h.pageData(r, item.Label),
-		Project:    project,
-		Run:        run,
-		Item:       item,
-		Events:     events,
-		MemberRole: memberRole,
-		CanCheck:   items.CanUpdate(user, memberRole),
-	}
-
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	if err := h.Templates.ExecuteTemplate(w, "run_item_show", data); err != nil {
-		slog.Error("render run item show", "err", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-	}
+	h.renderRunItemShow(w, r, run, project, user, memberRole, itemID, viewtemplates.RunItemShowData{})
 }
 
 // AssignItem sets or clears assignee on a run item.
@@ -594,12 +563,15 @@ func (h *Runs) renderRunShow(w http.ResponseWriter, r *http.Request, run *store.
 		}
 	}
 
+	jiraLinks := h.loadJiraLinksForItems(r.Context(), runItems)
+
 	data := viewtemplates.RunShowData{
 		PageData:      h.pageData(r, run.Title),
 		Project:       project,
 		Run:           run,
 		Items:         runItems,
 		NokItems:      nokItems,
+		JiraLinks:     jiraLinks,
 		Members:       members,
 		TemplateName:  versionInfo.Name,
 		VersionNum:    versionInfo.Version,
@@ -856,6 +828,9 @@ func (h *Runs) renderRunItemHTMX(w http.ResponseWriter, r *http.Request, run *st
 		CanAssign:   items.CanAssign(user, memberRole),
 		ItemError:   itemErr,
 		AssignError: assignErr,
+	}
+	if link, ok := h.loadJiraLinksForItems(r.Context(), []store.RunItem{item})[item.ID]; ok {
+		row.JiraLink = link
 	}
 	progress := h.progressData(run.ID, runItems)
 
