@@ -7,6 +7,7 @@ import (
 	"io/fs"
 	"time"
 
+	"github.com/jeb-maker/revues/internal/attachments"
 	"github.com/jeb-maker/revues/internal/store"
 	webassets "github.com/jeb-maker/revues/web"
 )
@@ -236,6 +237,7 @@ type RunItemRowData struct {
 	CanLinkJira    bool
 	JiraConfigured bool
 	JiraLink       store.IntegrationLink
+	Attachment     *store.Attachment
 	ItemError      string
 	AssignError    string
 }
@@ -248,6 +250,7 @@ type RunShowData struct {
 	Items          []store.RunItem
 	NokItems       []store.RunItem
 	JiraLinks      map[int64]store.IntegrationLink
+	Attachments    map[int64]*store.Attachment
 	Members        []store.ProjectMember
 	TemplateName   string
 	VersionNum     int
@@ -318,7 +321,13 @@ func Parse() (*template.Template, error) {
 		},
 		"formatDueDate": formatDueDate,
 		"dueDateInput":  dueDateInput,
-		"runItemRow": func(run *store.ChecklistRun, item store.RunItem, members []store.ProjectMember, csrf string, canCheck, canAssign, canLinkJira, jiraConfigured bool, jiraLink store.IntegrationLink, itemErr, assignErr string) RunItemRowData {
+		"attachmentIsImage": func(att *store.Attachment) bool {
+			if att == nil {
+				return false
+			}
+			return attachments.IsImageMime(att.MimeType)
+		},
+		"runItemRow": func(run *store.ChecklistRun, item store.RunItem, members []store.ProjectMember, csrf string, canCheck, canAssign, canLinkJira, jiraConfigured bool, jiraLink store.IntegrationLink, attachment *store.Attachment, itemErr, assignErr string) RunItemRowData {
 			return RunItemRowData{
 				RunID:          run.ID,
 				RunStatus:      run.Status,
@@ -330,6 +339,7 @@ func Parse() (*template.Template, error) {
 				CanLinkJira:    canLinkJira,
 				JiraConfigured: jiraConfigured,
 				JiraLink:       jiraLink,
+				Attachment:     attachment,
 				ItemError:      itemErr,
 				AssignError:    assignErr,
 			}

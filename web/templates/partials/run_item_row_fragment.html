@@ -39,6 +39,19 @@
     <input type="text" name="comment" form="item-form-{{.Item.ID}}" placeholder="Commentaire (requis si nok)" value="{{.Item.Comment}}" class="comment-inline" aria-label="Commentaire">
     {{else if .Item.Comment}}{{.Item.Comment}}{{else}}<span class="muted">—</span>{{end}}
   </td>
+  <td>
+    {{if .Attachment}}
+    <div class="attachment-display attachment-display-compact">
+      {{if attachmentIsImage .Attachment}}
+      <a href="/runs/{{.RunID}}/items/{{.Item.ID}}" class="attachment-thumb-link" title="{{.Attachment.Filename}}">
+        <img src="/attachments/{{.Attachment.ID}}?inline=1" alt="" class="attachment-thumb attachment-thumb-sm" width="48" height="36" loading="lazy">
+      </a>
+      {{else}}
+      <a href="/attachments/{{.Attachment.ID}}" class="attachment-download attachment-download-sm" title="Télécharger {{.Attachment.Filename}}">PDF</a>
+      {{end}}
+    </div>
+    {{else}}<span class="muted">—</span>{{end}}
+  </td>
   {{if and (eq .RunStatus "in_progress") (or .CanCheck .CanAssign)}}
   <td class="item-actions">
     {{if .ItemError}}<p class="error item-inline-error">{{.ItemError}}</p>{{end}}

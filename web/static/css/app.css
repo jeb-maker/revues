@@ -334,3 +334,34 @@ fieldset.template-row {
   white-space: nowrap;
   border: 0;
 }
+
+.attachment-display {
+  margin: 0.25rem 0;
+}
+
+.attachment-thumb-link {
+  display: inline-block;
+  line-height: 0;
+}
+
+.attachment-thumb {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.25rem;
+  border: 1px solid color-mix(in srgb, var(--text) 12%, transparent);
+  object-fit: cover;
+}
+
+.attachment-thumb-sm {
+  width: 48px;
+  height: 36px;
+}
+
+.attachment-download {
+  font-weight: 600;
+}
+
+.attachment-download-sm {
+  font-size: 0.8125rem;
+}

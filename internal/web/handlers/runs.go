@@ -562,6 +562,7 @@ func (h *Runs) renderRunShow(w http.ResponseWriter, r *http.Request, run *store.
 	}
 
 	jiraLinks := h.loadJiraLinksForItems(r.Context(), runItems)
+	attachmentsByItem := h.loadAttachmentsForItems(r.Context(), runItems)
 
 	data := viewtemplates.RunShowData{
 		PageData:       h.PageData(r, run.Title),
@@ -570,6 +571,7 @@ func (h *Runs) renderRunShow(w http.ResponseWriter, r *http.Request, run *store.
 		Items:          runItems,
 		NokItems:       nokItems,
 		JiraLinks:      jiraLinks,
+		Attachments:    attachmentsByItem,
 		Members:        members,
 		TemplateName:   versionInfo.Name,
 		VersionNum:     versionInfo.Version,
@@ -820,6 +822,9 @@ func (h *Runs) renderRunItemHTMX(w http.ResponseWriter, r *http.Request, run *st
 	}
 	if link, ok := h.loadJiraLinksForItems(r.Context(), []store.RunItem{item})[item.ID]; ok {
 		row.JiraLink = link
+	}
+	if att, ok := h.loadAttachmentsForItems(r.Context(), []store.RunItem{item})[item.ID]; ok {
+		row.Attachment = att
 	}
 	progress := h.progressData(run.ID, runItems)
 

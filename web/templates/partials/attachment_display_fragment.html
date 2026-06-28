@@ -1,0 +1,13 @@
+{{define "attachment_display_fragment"}}
+{{if .}}
+<div class="attachment-display">
+  {{if attachmentIsImage .}}
+  <a href="/attachments/{{.ID}}" class="attachment-thumb-link" title="Télécharger {{.Filename}}">
+    <img src="/attachments/{{.ID}}?inline=1" alt="{{.Filename}}" class="attachment-thumb" width="120" height="90" loading="lazy">
+  </a>
+  {{else}}
+  <a href="/attachments/{{.ID}}" class="attachment-download" title="Télécharger {{.Filename}}">PDF — {{.Filename}}</a>
+  {{end}}
+</div>
+{{end}}
+{{end}}
