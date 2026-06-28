@@ -13,6 +13,33 @@
 {{if .Item.Comment}}<p><strong>Commentaire :</strong> {{.Item.Comment}}</p>{{end}}
 {{if .Item.AssignedLogin}}<p class="muted">Assigné à : {{.Item.AssignedLogin}}</p>{{end}}
 
+{{if .Message}}<p class="success">{{.Message}}</p>{{end}}
+{{if .LinkError}}<p class="error">{{.LinkError}}</p>{{end}}
+
+<section class="panel">
+  <h2>Issue Jira</h2>
+  {{if .JiraLink}}
+  <p>
+    Liée à :
+    <a href="{{.JiraLink.ExternalURL}}" target="_blank" rel="noopener noreferrer">{{.JiraLink.ExternalKey}}</a>
+  </p>
+  {{else}}
+  <p class="muted">Aucune issue Jira liée.</p>
+  {{end}}
+  {{if and .CanLinkJira .JiraConfigured}}
+  <form method="post" action="/runs/{{.Run.ID}}/items/{{.Item.ID}}/jira-link" class="stack-form">
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+    <label>
+      Clé ou URL Jira
+      <input type="text" name="jira_issue" value="{{.JiraIssueInput}}" placeholder="PROJ-123 ou https://…/browse/PROJ-123" required>
+    </label>
+    <button type="submit">{{if .JiraLink}}Mettre à jour le lien{{else}}Lier l'issue{{end}}</button>
+  </form>
+  {{else if and .CanLinkJira (not .JiraConfigured)}}
+  <p class="muted">Jira n'est pas configuré — contactez un administrateur.</p>
+  {{end}}
+</section>
+
 <section class="panel">
   <h2>Historique des statuts ({{len .Events}})</h2>
   {{if .Events}}

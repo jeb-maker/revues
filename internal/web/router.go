@@ -104,6 +104,7 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, error) {
 		Templates:     tpl,
 		Store:         st,
 		SessionSecret: deps.Config.SessionSecret,
+		EncryptionKey: adminSMTPKey,
 		Webhooks:      webhookDispatcher,
 		Notifications: notificationsSvc,
 	}
@@ -157,6 +158,7 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, error) {
 		r.Get("/runs/{id}/items/{itemId}", runsHandler.ShowItem)
 		r.Post("/runs/{id}/items/{itemId}", runsHandler.UpdateItem)
 		r.Post("/runs/{id}/items/{itemId}/assign", runsHandler.AssignItem)
+		r.Post("/runs/{id}/items/{itemId}/jira-link", runsHandler.LinkJiraItem)
 		r.Post("/runs/{id}/start", runsHandler.Start)
 		r.Post("/runs/{id}/complete", runsHandler.Complete)
 		r.Get("/mes-taches", myTasks.List)

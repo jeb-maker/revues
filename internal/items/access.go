@@ -17,6 +17,11 @@ func CanUpdate(user *store.User, memberRole string) bool {
 	return memberRole == projects.LocalRoleLead || memberRole == projects.LocalRoleContributor
 }
 
+// CanLinkJira reports whether the user may link Jira issues to run items.
+func CanLinkJira(user *store.User, memberRole string) bool {
+	return CanUpdate(user, memberRole)
+}
+
 // CanAssign reports whether the user may assign run items to members.
 func CanAssign(user *store.User, memberRole string) bool {
 	if auth.HasMinRole(user.Role, auth.RoleAdmin) {

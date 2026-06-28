@@ -3,6 +3,11 @@
   <td>{{if .Item.Section}}{{.Item.Section}}{{else}}<span class="muted">—</span>{{end}}</td>
   <td><a href="/runs/{{.RunID}}/items/{{.Item.ID}}">{{.Item.Label}}</a></td>
   <td>
+    {{if .JiraLink.ExternalKey}}
+    <a href="{{.JiraLink.ExternalURL}}" target="_blank" rel="noopener noreferrer">{{.JiraLink.ExternalKey}}</a>
+    {{else}}<span class="muted">—</span>{{end}}
+  </td>
+  <td>
     {{if and (eq .RunStatus "in_progress") .CanCheck}}
     <select name="status" form="item-form-{{.Item.ID}}" required class="status-select" aria-label="Statut">
       <option value="pending" {{if eq .Item.Status "pending"}}selected{{end}}>pending</option>
