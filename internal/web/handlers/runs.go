@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"html/template"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -25,9 +24,7 @@ import (
 
 // Runs handles review launch wizard and run lifecycle.
 type Runs struct {
-	Templates     *template.Template
-	Store         *store.Store
-	SessionSecret string
+	Deps
 	EncryptionKey []byte
 	Webhooks      *webhooks.Dispatcher
 	Notifications *notifications.Service
@@ -63,7 +60,7 @@ func (h *Runs) WizardProjects(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := viewtemplates.RunWizardProjectsData{
-		PageData: h.pageData(r, "Lancer une revue"),
+		PageData: h.PageData(r, "Lancer une revue"),
 		Projects: launchProjects,
 		Step:     1,
 		Message:  r.URL.Query().Get("msg"),
@@ -91,7 +88,7 @@ func (h *Runs) WizardTemplates(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := viewtemplates.RunWizardTemplatesData{
-		PageData:   h.pageData(r, "Choisir un modèle"),
+		PageData:   h.PageData(r, "Choisir un modèle"),
 		Project:    project,
 		Templates:  templates,
 		Step:       2,
@@ -149,7 +146,7 @@ func (h *Runs) WizardLaunch(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := viewtemplates.RunWizardLaunchData{
-		PageData:   h.pageData(r, "Lancer la revue"),
+		PageData:   h.PageData(r, "Lancer la revue"),
 		Project:    project,
 		Template:   template,
 		Version:    version,
@@ -566,7 +563,7 @@ func (h *Runs) renderRunShow(w http.ResponseWriter, r *http.Request, run *store.
 	jiraLinks := h.loadJiraLinksForItems(r.Context(), runItems)
 
 	data := viewtemplates.RunShowData{
-		PageData:       h.pageData(r, run.Title),
+		PageData:       h.PageData(r, run.Title),
 		Project:        project,
 		Run:            run,
 		Items:          runItems,
@@ -715,7 +712,7 @@ func (h *Runs) renderLaunchError(w http.ResponseWriter, r *http.Request, project
 	}
 
 	data := viewtemplates.RunWizardLaunchData{
-		PageData:   h.pageData(r, "Lancer la revue"),
+		PageData:   h.PageData(r, "Lancer la revue"),
 		Project:    project,
 		Template:   template,
 		Version:    version,
@@ -731,17 +728,6 @@ func (h *Runs) renderLaunchError(w http.ResponseWriter, r *http.Request, project
 	if err := h.Templates.ExecuteTemplate(w, "run_wizard_launch", data); err != nil {
 		slog.Error("render run wizard launch error", "err", err)
 	}
-}
-
-func (h *Runs) pageData(r *http.Request, title string) viewtemplates.PageData {
-	data := viewtemplates.PageData{Title: title}
-	if user, ok := middleware.UserFromContext(r.Context()); ok {
-		data.User = user
-		if token := middleware.SessionTokenFromContext(r); token != "" {
-			data.CSRFToken = auth.CSRFToken(token, h.SessionSecret)
-		}
-	}
-	return data
 }
 
 func memberRoleForLaunch(isMember bool, memberRole string) string {
@@ -825,7 +811,7 @@ func (h *Runs) renderRunItemHTMX(w http.ResponseWriter, r *http.Request, run *st
 		RunStatus:   run.Status,
 		Item:        item,
 		Members:     members,
-		CSRFToken:   h.pageData(r, "").CSRFToken,
+		CSRFToken:   h.PageData(r, "").CSRFToken,
 		CanCheck:    items.CanUpdate(user, memberRole),
 		CanAssign:   items.CanAssign(user, memberRole),
 		ItemError:   itemErr,

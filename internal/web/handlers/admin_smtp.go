@@ -2,25 +2,20 @@ package handlers
 
 import (
 	"errors"
-	"html/template"
 	"log/slog"
 	"net/http"
 	"net/mail"
 	"strings"
 
 	"github.com/jeb-maker/revues/internal/admin"
-	"github.com/jeb-maker/revues/internal/auth"
 	"github.com/jeb-maker/revues/internal/notifications"
-	"github.com/jeb-maker/revues/internal/store"
 	"github.com/jeb-maker/revues/internal/web/middleware"
 	"github.com/jeb-maker/revues/internal/web/templates"
 )
 
 // AdminSMTP manages encrypted SMTP relay settings.
 type AdminSMTP struct {
-	Templates     *template.Template
-	Store         *store.Store
-	SessionSecret string
+	Deps
 	EncryptionKey []byte
 }
 
@@ -194,21 +189,12 @@ func (h *AdminSMTP) renderForm(w http.ResponseWriter, r *http.Request, partial t
 
 func (h *AdminSMTP) pageData(r *http.Request) templates.AdminSMTPData {
 	data := templates.AdminSMTPData{
-		PageData:   templates.PageData{Title: "Configuration SMTP"},
+		PageData:   h.PageData(r, "Configuration SMTP"),
 		Port:       587,
 		CanEncrypt: len(h.EncryptionKey) > 0,
-		TestRecipient: func() string {
-			if user, ok := middleware.UserFromContext(r.Context()); ok {
-				return user.Email
-			}
-			return ""
-		}(),
 	}
 	if user, ok := middleware.UserFromContext(r.Context()); ok {
-		data.User = user
-		if token := middleware.SessionTokenFromContext(r); token != "" {
-			data.CSRFToken = auth.CSRFToken(token, h.SessionSecret)
-		}
+		data.TestRecipient = user.Email
 	}
 	return data
 }

@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"errors"
-	"html/template"
 	"log/slog"
 	"net/http"
 	"net/mail"
@@ -16,9 +15,7 @@ import (
 
 // AdminUsers manages the login email whitelist.
 type AdminUsers struct {
-	Templates     *template.Template
-	Store         *store.Store
-	SessionSecret string
+	Deps
 }
 
 // List shows whitelisted emails.
@@ -102,16 +99,9 @@ func (h *AdminUsers) Remove(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *AdminUsers) adminData(r *http.Request, title string) templates.AdminUsersData {
-	data := templates.AdminUsersData{
-		PageData: templates.PageData{Title: title},
+	return templates.AdminUsersData{
+		PageData: h.PageData(r, title),
 	}
-	if user, ok := middleware.UserFromContext(r.Context()); ok {
-		data.User = user
-		if token := middleware.SessionTokenFromContext(r); token != "" {
-			data.CSRFToken = auth.CSRFToken(token, h.SessionSecret)
-		}
-	}
-	return data
 }
 
 func (h *AdminUsers) renderError(w http.ResponseWriter, r *http.Request, message string) {

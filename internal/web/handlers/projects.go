@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"errors"
-	"html/template"
 	"log/slog"
 	"net/http"
 	"net/mail"
@@ -21,9 +20,7 @@ import (
 
 // Projects handles project CRUD and membership.
 type Projects struct {
-	Templates     *template.Template
-	Store         *store.Store
-	SessionSecret string
+	Deps
 }
 
 // List shows projects visible to the current user.
@@ -50,7 +47,7 @@ func (h *Projects) List(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := templates.ProjectsListData{
-		PageData:   h.pageData(r, "Tableau de bord", "projects"),
+		PageData:   h.PageDataTab(r, "Tableau de bord", "projects"),
 		Projects:   items,
 		ActiveRuns: activeRuns,
 		CanCreate:  projects.CanCreate(user),
@@ -77,7 +74,7 @@ func (h *Projects) NewForm(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := templates.ProjectFormData{
-		PageData:   h.pageData(r, "Nouveau projet", "projects"),
+		PageData:   h.PageDataTab(r, "Nouveau projet", "projects"),
 		FormAction: "/projects",
 	}
 
@@ -150,7 +147,7 @@ func (h *Projects) Show(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := templates.ProjectShowData{
-		PageData:         h.pageData(r, project.Name, ""),
+		PageData:         h.PageDataTab(r, project.Name, ""),
 		Project:          project,
 		Members:          members,
 		Runs:             projectRuns,
@@ -181,7 +178,7 @@ func (h *Projects) EditForm(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := templates.ProjectFormData{
-		PageData:   h.pageData(r, "Modifier "+project.Name, ""),
+		PageData:   h.PageDataTab(r, "Modifier "+project.Name, ""),
 		Project:    project,
 		FormAction: "/projects/" + strconv.FormatInt(project.ID, 10),
 	}
@@ -389,20 +386,9 @@ func (h *Projects) loadProject(w http.ResponseWriter, r *http.Request) (*store.P
 	return project, user, memberRole, true
 }
 
-func (h *Projects) pageData(r *http.Request, title, activeTab string) templates.PageData {
-	data := templates.PageData{Title: title, ActiveTab: activeTab}
-	if user, ok := middleware.UserFromContext(r.Context()); ok {
-		data.User = user
-		if token := middleware.SessionTokenFromContext(r); token != "" {
-			data.CSRFToken = auth.CSRFToken(token, h.SessionSecret)
-		}
-	}
-	return data
-}
-
 func (h *Projects) renderFormError(w http.ResponseWriter, r *http.Request, project *store.Project, action, message string) {
 	data := templates.ProjectFormData{
-		PageData:   h.pageData(r, "Projet", "projects"),
+		PageData:   h.PageDataTab(r, "Projet", "projects"),
 		Project:    project,
 		FormAction: action,
 		Error:      message,
@@ -437,7 +423,7 @@ func (h *Projects) renderShowError(w http.ResponseWriter, r *http.Request, proje
 	}
 
 	data := templates.ProjectShowData{
-		PageData:         h.pageData(r, project.Name, ""),
+		PageData:         h.PageDataTab(r, project.Name, ""),
 		Project:          project,
 		Members:          members,
 		Runs:             projectRuns,

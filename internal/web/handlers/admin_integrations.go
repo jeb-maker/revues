@@ -1,23 +1,17 @@
 package handlers
 
 import (
-	"html/template"
 	"log/slog"
 	"net/http"
 
 	"github.com/jeb-maker/revues/internal/admin"
-	"github.com/jeb-maker/revues/internal/auth"
 	"github.com/jeb-maker/revues/internal/integrations/jira"
-	"github.com/jeb-maker/revues/internal/store"
-	"github.com/jeb-maker/revues/internal/web/middleware"
 	"github.com/jeb-maker/revues/internal/web/templates"
 )
 
 // AdminIntegrations shows the unified integrations overview.
 type AdminIntegrations struct {
-	Templates     *template.Template
-	Store         *store.Store
-	SessionSecret string
+	Deps
 	EncryptionKey []byte
 }
 
@@ -49,16 +43,9 @@ func (h *AdminIntegrations) Show(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *AdminIntegrations) pageData(r *http.Request) templates.AdminIntegrationsData {
-	data := templates.AdminIntegrationsData{
-		PageData: templates.PageData{Title: "Intégrations"},
+	return templates.AdminIntegrationsData{
+		PageData: h.PageData(r, "Intégrations"),
 	}
-	if user, ok := middleware.UserFromContext(r.Context()); ok {
-		data.User = user
-		if token := middleware.SessionTokenFromContext(r); token != "" {
-			data.CSRFToken = auth.CSRFToken(token, h.SessionSecret)
-		}
-	}
-	return data
 }
 
 func (h *AdminIntegrations) service() *admin.IntegrationsService {

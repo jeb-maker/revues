@@ -125,7 +125,7 @@ func (h *Runs) renderRunItemShow(w http.ResponseWriter, r *http.Request, run *st
 	jiraLink, _ := h.Store.IntegrationLinkByRunItemAndType(r.Context(), item.ID, store.IntegrationTypeJira)
 
 	data := viewtemplates.RunItemShowData{
-		PageData:        h.pageData(r, item.Label),
+		PageData:        h.PageData(r, item.Label),
 		Project:         project,
 		Run:             run,
 		Item:            item,
