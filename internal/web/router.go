@@ -81,6 +81,7 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, error) {
 	adminWebhooks := &handlers.AdminWebhooks{Deps: handlerDeps, EncryptionKey: adminSMTPKey, Webhooks: webhookDispatcher}
 	adminSMTP := &handlers.AdminSMTP{Deps: handlerDeps, EncryptionKey: adminSMTPKey}
 	adminJira := &handlers.AdminJira{Deps: handlerDeps, EncryptionKey: adminSMTPKey}
+	adminNotion := &handlers.AdminNotion{Deps: handlerDeps, EncryptionKey: adminSMTPKey}
 	adminIntegrations := &handlers.AdminIntegrations{Deps: handlerDeps, EncryptionKey: adminSMTPKey}
 	projectsHandler := &handlers.Projects{Deps: handlerDeps}
 	checklistTemplates := &handlers.ChecklistTemplates{Deps: handlerDeps}
@@ -160,6 +161,8 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, error) {
 		r.Post("/admin/settings/webhooks", adminWebhooks.Save)
 		r.Get("/admin/integrations/jira", adminJira.Show)
 		r.Post("/admin/integrations/jira", adminJira.Save)
+		r.Get("/admin/integrations/notion", adminNotion.Show)
+		r.Post("/admin/integrations/notion", adminNotion.Save)
 	})
 
 	return r, notificationsSvc, nil

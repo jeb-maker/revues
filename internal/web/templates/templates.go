@@ -28,6 +28,17 @@ type AdminUsersData struct {
 	Error   string
 }
 
+type AdminNotionData struct {
+	PageData
+	WorkspaceName     string
+	DefaultDatabaseID string
+	HasAPIToken       bool
+	Configured        bool
+	CanEncrypt        bool
+	Message           string
+	Error             string
+}
+
 type AdminJiraData struct {
 	PageData
 	InstanceType string

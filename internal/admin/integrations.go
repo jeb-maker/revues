@@ -5,15 +5,16 @@ import (
 	"fmt"
 
 	"github.com/jeb-maker/revues/internal/integrations/jira"
+	"github.com/jeb-maker/revues/internal/integrations/notion"
 )
 
 const (
 	integrationPathSMTP     = "/admin/settings/smtp"
 	integrationPathWebhooks = "/admin/settings/webhooks"
 	integrationPathJira     = "/admin/integrations/jira"
+	integrationPathNotion   = "/admin/integrations/notion"
 )
 
-// IntegrationSummary is one row on the admin integrations overview.
 type IntegrationSummary struct {
 	Name        string
 	Description string
@@ -21,18 +22,16 @@ type IntegrationSummary struct {
 	ConfigPath  string
 }
 
-// IntegrationsOverview lists configured integrations and their status.
 type IntegrationsOverview struct {
 	Items []IntegrationSummary
 }
 
-// IntegrationsService loads integration status for the admin overview.
 type IntegrationsService struct {
 	Settings *SettingsService
 	Jira     *jira.Service
+	Notion   *notion.Service
 }
 
-// Overview returns enabled/disabled status for SMTP, Jira, and webhooks.
 func (s *IntegrationsService) Overview(ctx context.Context) (IntegrationsOverview, error) {
 	if s.Settings == nil {
 		return IntegrationsOverview{}, fmt.Errorf("settings service required")
@@ -40,7 +39,9 @@ func (s *IntegrationsService) Overview(ctx context.Context) (IntegrationsOvervie
 	if s.Jira == nil {
 		return IntegrationsOverview{}, fmt.Errorf("jira service required")
 	}
-
+	if s.Notion == nil {
+		return IntegrationsOverview{}, fmt.Errorf("notion service required")
+	}
 	smtpEnabled, err := s.smtpEnabled(ctx)
 	if err != nil {
 		return IntegrationsOverview{}, err
@@ -53,27 +54,16 @@ func (s *IntegrationsService) Overview(ctx context.Context) (IntegrationsOvervie
 	if err != nil {
 		return IntegrationsOverview{}, err
 	}
-
+	notionEnabled, err := s.notionEnabled(ctx)
+	if err != nil {
+		return IntegrationsOverview{}, err
+	}
 	return IntegrationsOverview{
 		Items: []IntegrationSummary{
-			{
-				Name:        "SMTP",
-				Description: "Relais email pour les notifications.",
-				Enabled:     smtpEnabled,
-				ConfigPath:  integrationPathSMTP,
-			},
-			{
-				Name:        "Jira",
-				Description: "Lier et créer des tickets depuis les revues.",
-				Enabled:     jiraEnabled,
-				ConfigPath:  integrationPathJira,
-			},
-			{
-				Name:        "Webhooks",
-				Description: "Notifications JSON signées vers des URLs externes.",
-				Enabled:     webhooksEnabled,
-				ConfigPath:  integrationPathWebhooks,
-			},
+			{Name: "SMTP", Description: "Relais email pour les notifications.", Enabled: smtpEnabled, ConfigPath: integrationPathSMTP},
+			{Name: "Jira", Description: "Lier et créer des tickets depuis les revues.", Enabled: jiraEnabled, ConfigPath: integrationPathJira},
+			{Name: "Notion", Description: "Archiver et importer des contenus depuis Notion.", Enabled: notionEnabled, ConfigPath: integrationPathNotion},
+			{Name: "Webhooks", Description: "Notifications JSON signées vers des URLs externes.", Enabled: webhooksEnabled, ConfigPath: integrationPathWebhooks},
 		},
 	}, nil
 }
@@ -104,6 +94,17 @@ func (s *IntegrationsService) jiraEnabled(ctx context.Context) (bool, error) {
 	cfg, ok, err := s.Jira.Load(ctx)
 	if err != nil {
 		return false, fmt.Errorf("load jira: %w", err)
+	}
+	if !ok {
+		return false, nil
+	}
+	return cfg.Configured(), nil
+}
+
+func (s *IntegrationsService) notionEnabled(ctx context.Context) (bool, error) {
+	cfg, ok, err := s.Notion.Load(ctx)
+	if err != nil {
+		return false, fmt.Errorf("load notion: %w", err)
 	}
 	if !ok {
 		return false, nil
