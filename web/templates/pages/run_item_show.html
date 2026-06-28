@@ -15,6 +15,7 @@
 
 {{if .Message}}<p class="success">{{.Message}}</p>{{end}}
 {{if .LinkError}}<p class="error">{{.LinkError}}</p>{{end}}
+{{if .CreateError}}<p class="error">{{.CreateError}}</p>{{end}}
 
 <section class="panel">
   <h2>Issue Jira</h2>
@@ -37,6 +38,21 @@
   </form>
   {{else if and .CanLinkJira (not .JiraConfigured)}}
   <p class="muted">Jira n'est pas configuré — contactez un administrateur.</p>
+  {{end}}
+
+  {{if and .ShowJiraCreate (not .JiraLink) (eq .Item.Status "nok")}}
+  <form method="post" action="/runs/{{.Run.ID}}/items/{{.Item.ID}}/jira-create" class="stack-form">
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+    <label>
+      Titre du ticket
+      <input type="text" name="jira_title" value="{{.JiraCreateTitle}}" required>
+    </label>
+    <label>
+      Description
+      <textarea name="jira_description" rows="6" required>{{.JiraCreateDesc}}</textarea>
+    </label>
+    <button type="submit">Créer ticket Jira</button>
+  </form>
   {{end}}
 </section>
 

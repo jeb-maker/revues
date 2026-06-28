@@ -35,6 +35,8 @@ func (h *AdminJira) Show(w http.ResponseWriter, r *http.Request) {
 		data.InstanceType = cfg.InstanceType
 		data.BaseURL = cfg.BaseURL
 		data.Email = cfg.Email
+		data.ProjectKey = cfg.ProjectKey
+		data.IssueType = cfg.IssueType
 		data.HasAPIToken = jira.HasSecret(cfg.APIToken)
 		data.HasPAT = jira.HasSecret(cfg.PAT)
 		data.Configured = cfg.Configured()
@@ -96,6 +98,8 @@ func (h *AdminJira) saveConfig(w http.ResponseWriter, r *http.Request) {
 			InstanceType: cfg.InstanceType,
 			BaseURL:      cfg.BaseURL,
 			Email:        cfg.Email,
+			ProjectKey:   cfg.ProjectKey,
+			IssueType:    cfg.IssueType,
 			HasAPIToken:  cfg.APIToken != "",
 			HasPAT:       cfg.PAT != "",
 			Error:        msg,
@@ -148,6 +152,8 @@ func (h *AdminJira) configFromForm(r *http.Request) jira.Config {
 		Email:        strings.TrimSpace(r.FormValue("email")),
 		APIToken:     r.FormValue("api_token"),
 		PAT:          r.FormValue("pat"),
+		ProjectKey:   strings.TrimSpace(r.FormValue("project_key")),
+		IssueType:    strings.TrimSpace(r.FormValue("issue_type")),
 	}
 }
 
@@ -156,6 +162,8 @@ func (h *AdminJira) renderForm(w http.ResponseWriter, r *http.Request, partial t
 	data.InstanceType = partial.InstanceType
 	data.BaseURL = partial.BaseURL
 	data.Email = partial.Email
+	data.ProjectKey = partial.ProjectKey
+	data.IssueType = partial.IssueType
 	data.HasAPIToken = partial.HasAPIToken
 	data.HasPAT = partial.HasPAT
 	data.Configured = partial.Configured

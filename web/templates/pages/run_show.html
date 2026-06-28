@@ -73,7 +73,7 @@
     </thead>
     <tbody id="run-items">
       {{range .Items}}
-      {{template "run_item_row_fragment" (runItemRow $.Run . $.Members $.CSRFToken $.CanCheck $.CanAssign (index $.JiraLinks .ID) "" "")}}
+      {{template "run_item_row_fragment" (runItemRow $.Run . $.Members $.CSRFToken $.CanCheck $.CanAssign $.CanLinkJira $.JiraConfigured (index $.JiraLinks .ID) "" "")}}
       {{end}}
     </tbody>
   </table>

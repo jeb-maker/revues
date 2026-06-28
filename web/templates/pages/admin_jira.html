@@ -51,6 +51,16 @@
       <input type="url" name="base_url" value="{{.BaseURL}}" required autocomplete="off" placeholder="https://votre-domaine.atlassian.net">
     </label>
 
+    <label>
+      Clé projet par défaut
+      <input type="text" name="project_key" value="{{.ProjectKey}}" autocomplete="off" placeholder="REV (requis pour créer des tickets)">
+    </label>
+
+    <label>
+      Type d'issue par défaut
+      <input type="text" name="issue_type" value="{{if .IssueType}}{{.IssueType}}{{else}}Task{{end}}" autocomplete="off" placeholder="Task">
+    </label>
+
     <fieldset>
       <legend>Jira Cloud</legend>
       <label>

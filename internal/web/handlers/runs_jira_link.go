@@ -125,27 +125,36 @@ func (h *Runs) renderRunItemShow(w http.ResponseWriter, r *http.Request, run *st
 	jiraLink, _ := h.Store.IntegrationLinkByRunItemAndType(r.Context(), item.ID, store.IntegrationTypeJira)
 
 	data := viewtemplates.RunItemShowData{
-		PageData:       h.pageData(r, item.Label),
-		Project:        project,
-		Run:            run,
-		Item:           item,
-		Events:         events,
-		JiraLink:       jiraLink,
-		MemberRole:     memberRole,
-		CanCheck:       items.CanUpdate(user, memberRole),
-		CanLinkJira:    items.CanLinkJira(user, memberRole),
-		JiraConfigured: h.jiraConfigured(r.Context()),
-		Message:        extra.Message,
-		LinkError:      extra.LinkError,
-		JiraIssueInput: extra.JiraIssueInput,
+		PageData:        h.pageData(r, item.Label),
+		Project:         project,
+		Run:             run,
+		Item:            item,
+		Events:          events,
+		JiraLink:        jiraLink,
+		MemberRole:      memberRole,
+		CanCheck:        items.CanUpdate(user, memberRole),
+		CanLinkJira:     items.CanLinkJira(user, memberRole),
+		JiraConfigured:  h.jiraConfigured(r.Context()),
+		Message:         extra.Message,
+		LinkError:       extra.LinkError,
+		JiraIssueInput:  extra.JiraIssueInput,
+		CreateError:     extra.CreateError,
+		ShowJiraCreate:  extra.ShowJiraCreate,
+		JiraCreateTitle: extra.JiraCreateTitle,
+		JiraCreateDesc:  extra.JiraCreateDesc,
 	}
 	if data.Message == "" {
 		data.Message = r.URL.Query().Get("msg")
 	}
+	if item.Status == store.RunItemStatusNOK && data.JiraLink == nil && data.CanLinkJira && data.JiraConfigured && !data.ShowJiraCreate {
+		data.ShowJiraCreate = true
+		itemURL := h.jiraRunItemContext(r, run, project, itemID).ItemURL
+		data.JiraCreateTitle, data.JiraCreateDesc = h.jiraCreateDefaults(r.Context(), run, project, item, itemURL)
+	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	statusCode := http.StatusOK
-	if extra.LinkError != "" {
+	if extra.LinkError != "" || extra.CreateError != "" {
 		statusCode = http.StatusBadRequest
 	}
 	w.WriteHeader(statusCode)
