@@ -89,6 +89,7 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, error) {
 		Deps:           handlerDeps,
 		EncryptionKey:  adminSMTPKey,
 		AttachmentsDir: deps.Config.AttachmentsDir,
+		BaseURL:        deps.Config.BaseURL,
 		Webhooks:       webhookDispatcher,
 		Notifications:  notificationsSvc,
 	}
@@ -135,6 +136,7 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, error) {
 		r.Get("/runs/new/projects/{id}/templates/{tid}", runsHandler.WizardLaunch)
 		r.Get("/runs/{id}", runsHandler.Show)
 		r.Get("/runs/{id}/export.csv", runsHandler.ExportCSV)
+		r.Post("/runs/{id}/export/notion", runsHandler.ExportNotion)
 		r.Get("/runs/{id}/items/{itemId}", runsHandler.ShowItem)
 		r.Post("/runs/{id}/items/{itemId}", runsHandler.UpdateItem)
 		r.Post("/runs/{id}/items/{itemId}/assign", runsHandler.AssignItem)

@@ -111,14 +111,14 @@ func scanActiveRunSummaries(rows interface {
 func (s *Store) ListRunsWithProgressByProject(ctx context.Context, projectID int64) ([]RunWithProgress, error) {
 	rows, err := s.db.QueryContext(ctx, `
 		SELECT r.id, r.project_id, r.template_version_id, r.title, r.status, r.due_date, r.closing_note,
-		       r.created_by, r.started_at, r.completed_at, r.created_at,
+		       r.created_by, r.started_at, r.completed_at, r.notion_url, r.created_at,
 		       COUNT(ri.id) AS total,
 		       SUM(CASE WHEN ri.status IN ('ok', 'na') THEN 1 ELSE 0 END) AS done
 		FROM checklist_runs r
 		LEFT JOIN run_items ri ON ri.run_id = r.id
 		WHERE r.project_id = ? AND r.status != ?
 		GROUP BY r.id, r.project_id, r.template_version_id, r.title, r.status, r.due_date, r.closing_note,
-		         r.created_by, r.started_at, r.completed_at, r.created_at
+		         r.created_by, r.started_at, r.completed_at, r.notion_url, r.created_at
 		ORDER BY r.created_at DESC
 	`, projectID, RunStatusArchived)
 	if err != nil {
@@ -131,7 +131,7 @@ func (s *Store) ListRunsWithProgressByProject(ctx context.Context, projectID int
 		var run RunWithProgress
 		if err := rows.Scan(
 			&run.ID, &run.ProjectID, &run.TemplateVersionID, &run.Title, &run.Status, &run.DueDate, &run.ClosingNote,
-			&run.CreatedBy, &run.StartedAt, &run.CompletedAt, &run.CreatedAt,
+			&run.CreatedBy, &run.StartedAt, &run.CompletedAt, &run.NotionURL, &run.CreatedAt,
 			&run.Total, &run.Done,
 		); err != nil {
 			return nil, fmt.Errorf("scan run with progress: %w", err)
