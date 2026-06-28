@@ -87,6 +87,25 @@ func TestLoginPage(t *testing.T) {
 	}
 }
 
+func TestLoginPage_EmailNotAllowed(t *testing.T) {
+	handler, _ := testRouter(t)
+
+	req := httptest.NewRequest(http.MethodGet, "/login?error=email+non+autoris%C3%A9", nil)
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+	body := rec.Body.String()
+	if !strings.Contains(body, "login-alert") {
+		t.Fatal("expected login alert")
+	}
+	if !strings.Contains(body, "pas autoris") {
+		t.Fatalf("expected clear unauthorized message, got: %s", body)
+	}
+}
+
 func TestCSRF_MissingToken(t *testing.T) {
 	handler, db := testRouter(t)
 	st := store.New(db)

@@ -5,6 +5,28 @@
 {{if .Message}}<p class="success">{{.Message}}</p>{{end}}
 {{if .Error}}<p class="error">{{.Error}}</p>{{end}}
 
+{{if and (not .Projects) (not .ActiveRuns)}}
+<section class="empty-state">
+  <h2>Bienvenue dans Revues</h2>
+  {{if eq .User.Role "admin"}}
+  <p>Votre instance est prête. Commencez par autoriser les utilisateurs, puis créez votre premier projet.</p>
+  <p class="empty-state-actions">
+    <a class="button" href="/admin/users">Gérer les utilisateurs autorisés</a>
+    <a class="button" href="/projects/new">Créer un projet</a>
+  </p>
+  {{else if eq .User.Role "editor"}}
+  <p>Aucun projet pour l'instant. Créez un projet pour y ajouter des modèles de checklist et lancer une revue.</p>
+  <p class="empty-state-actions">
+    <a class="button" href="/projects/new">Créer un projet</a>
+  </p>
+  {{else}}
+  <p>Aucun projet ne vous est encore assigné. Demandez à un administrateur ou à un lead de projet de vous ajouter comme membre.</p>
+  <p class="empty-state-actions">
+    <a class="button" href="/mes-taches">Voir mes tâches</a>
+  </p>
+  {{end}}
+</section>
+{{else}}
 {{if .CanCreate}}
 <p><a class="button" href="/projects/new">Nouveau projet</a></p>
 {{end}}
@@ -52,5 +74,6 @@
 </section>
 
 <p><a href="/runs/new">Lancer une revue</a></p>
+{{end}}
 {{template "layout_end" .}}
 {{end}}

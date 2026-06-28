@@ -17,6 +17,16 @@
 <p class="error">{{.Error}}</p>
 {{end}}
 
+{{if not .Emails}}
+<section class="onboarding-hint panel">
+  <h2>Premier démarrage</h2>
+  <p>Si personne ne peut encore se connecter, définissez l'email GitHub vérifié du premier administrateur :</p>
+  <pre><code>export REVUES_BOOTSTRAP_ADMIN_EMAIL=admin@example.com</code></pre>
+  <p>Au premier login avec cet email (whitelist vide), le rôle <strong>admin</strong> est accordé automatiquement. Ensuite, ajoutez les autres utilisateurs via le formulaire ci-dessous.</p>
+  <p class="muted">Voir aussi la documentation <code>docs/ONBOARDING.md</code>.</p>
+</section>
+{{end}}
+
 <section class="panel">
   <h2>Ajouter ou mettre à jour</h2>
   <form method="post" action="/admin/users" class="stack-form">
@@ -67,7 +77,7 @@
     </tbody>
   </table>
   {{else}}
-  <p class="muted">Aucun email autorisé. Utilisez le formulaire ci-dessus ou <code>REVUES_BOOTSTRAP_ADMIN_EMAIL</code> au premier login.</p>
+  <p class="muted">Aucun email autorisé pour l'instant.</p>
   {{end}}
 </section>
 

@@ -66,6 +66,52 @@ body {
   color: #b91c1c;
 }
 
+.login-alert {
+  margin: 1rem 0;
+  padding: 0.75rem 1rem;
+  border: 1px solid #b91c1c;
+  border-radius: 0.375rem;
+  background: color-mix(in srgb, #b91c1c 8%, transparent);
+}
+
+.login-alert p {
+  margin: 0;
+  color: var(--text);
+}
+
+.empty-state {
+  margin: 1.5rem 0;
+  padding: 1.25rem;
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  border-radius: 0.375rem;
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
+.empty-state h2 {
+  margin-top: 0;
+}
+
+.empty-state-actions {
+  margin-bottom: 0;
+}
+
+.empty-state-actions .button {
+  margin: 0.5rem 0.5rem 0 0;
+}
+
+.onboarding-hint pre {
+  margin: 0.75rem 0;
+  padding: 0.75rem 1rem;
+  overflow-x: auto;
+  border-radius: 0.375rem;
+  background: color-mix(in srgb, var(--text) 6%, transparent);
+}
+
+.onboarding-hint code {
+  font-family: ui-monospace, monospace;
+  font-size: 0.875rem;
+}
+
 .success {
   color: #047857;
 }
