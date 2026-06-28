@@ -15,6 +15,7 @@ type PageData struct {
 	User       *store.User
 	CSRFToken  string
 	LoginError string
+	ActiveTab  string
 }
 
 // AdminUsersData is view data for the whitelist admin screen.
@@ -25,13 +26,14 @@ type AdminUsersData struct {
 	Error   string
 }
 
-// ProjectsListData is view data for the project index.
+// ProjectsListData is view data for the project dashboard.
 type ProjectsListData struct {
 	PageData
-	Projects  []store.Project
-	CanCreate bool
-	Message   string
-	Error     string
+	Projects   []store.Project
+	ActiveRuns []store.ActiveRunSummary
+	CanCreate  bool
+	Message    string
+	Error      string
 }
 
 // ProjectFormData is view data for create/edit project forms.
@@ -47,13 +49,20 @@ type ProjectShowData struct {
 	PageData
 	Project          *store.Project
 	Members          []store.ProjectMember
-	Runs             []store.ChecklistRun
+	Runs             []store.RunWithProgress
+	NokItems         []store.ProjectNokItemSummary
 	MemberRole       string
 	CanManage        bool
 	CanManageMembers bool
 	CanLaunch        bool
 	Message          string
 	Error            string
+}
+
+// TemplatesIndexData is view data for the global templates tab.
+type TemplatesIndexData struct {
+	PageData
+	Templates []store.TemplateIndexRow
 }
 
 // TemplateEditorRow is one editable checklist point in the form.

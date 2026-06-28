@@ -1,5 +1,6 @@
 {{define "my_tasks"}}
 {{template "layout_start" .}}
+{{template "nav_tabs" .}}
 <h1>Mes tâches</h1>
 <p class="muted">Points qui vous sont assignés sur les revues en cours.</p>
 
@@ -47,6 +48,6 @@
 <p class="muted">Aucune tâche assignée pour ces filtres.</p>
 {{end}}
 
-<p><a href="/">← Accueil</a></p>
+<p><a href="/projects">← Tableau de bord</a></p>
 {{template "layout_end" .}}
 {{end}}

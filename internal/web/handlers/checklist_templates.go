@@ -26,6 +26,34 @@ type ChecklistTemplates struct {
 	SessionSecret string
 }
 
+// IndexAll lists checklist templates across visible projects.
+func (h *ChecklistTemplates) IndexAll(w http.ResponseWriter, r *http.Request) {
+	user, ok := middleware.UserFromContext(r.Context())
+	if !ok {
+		http.Redirect(w, r, "/login", http.StatusFound)
+		return
+	}
+
+	admin := auth.HasMinRole(user.Role, auth.RoleAdmin)
+	rows, err := h.Store.ListTemplateIndex(r.Context(), user.ID, admin)
+	if err != nil {
+		slog.Error("list template index", "err", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	data := viewtemplates.TemplatesIndexData{
+		PageData:  h.pageData(r, "Modèles", "templates"),
+		Templates: rows,
+	}
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	if err := h.Templates.ExecuteTemplate(w, "templates_index", data); err != nil {
+		slog.Error("render templates index", "err", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+	}
+}
+
 // List shows checklist templates for a project.
 func (h *ChecklistTemplates) List(w http.ResponseWriter, r *http.Request) {
 	project, user, memberRole, ok := h.loadProject(w, r)
@@ -41,7 +69,7 @@ func (h *ChecklistTemplates) List(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := viewtemplates.ChecklistTemplatesListData{
-		PageData:   h.pageData(r, "Modèles — "+project.Name),
+		PageData:   h.pageData(r, "Modèles — "+project.Name, "templates"),
 		Project:    project,
 		Templates:  items,
 		MemberRole: memberRole,
@@ -68,7 +96,7 @@ func (h *ChecklistTemplates) NewForm(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := viewtemplates.ChecklistTemplateFormData{
-		PageData:   h.pageData(r, "Nouveau modèle"),
+		PageData:   h.pageData(r, "Nouveau modèle", ""),
 		Project:    project,
 		Rows:       emptyEditorRows(extraRows(r, defaultTemplateEditorRows)),
 		FormAction: "/projects/" + strconv.FormatInt(project.ID, 10) + "/templates",
@@ -121,7 +149,7 @@ func (h *ChecklistTemplates) Show(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := viewtemplates.ChecklistTemplateShowData{
-		PageData:   h.pageData(r, template.Name),
+		PageData:   h.pageData(r, template.Name, ""),
 		Project:    project,
 		Template:   template,
 		Version:    version,
@@ -153,7 +181,7 @@ func (h *ChecklistTemplates) EditForm(w http.ResponseWriter, r *http.Request) {
 	rows = append(rows, emptyEditorRows(extraRows(r, 2))...)
 
 	data := viewtemplates.ChecklistTemplateFormData{
-		PageData:   h.pageData(r, "Modifier "+template.Name),
+		PageData:   h.pageData(r, "Modifier "+template.Name, ""),
 		Project:    project,
 		Template:   template,
 		Version:    version,
@@ -315,8 +343,8 @@ func (h *ChecklistTemplates) loadTemplate(w http.ResponseWriter, r *http.Request
 	return project, template, version, items, user, memberRole, true
 }
 
-func (h *ChecklistTemplates) pageData(r *http.Request, title string) viewtemplates.PageData {
-	data := viewtemplates.PageData{Title: title}
+func (h *ChecklistTemplates) pageData(r *http.Request, title, activeTab string) viewtemplates.PageData {
+	data := viewtemplates.PageData{Title: title, ActiveTab: activeTab}
 	if user, ok := middleware.UserFromContext(r.Context()); ok {
 		data.User = user
 		if token := middleware.SessionTokenFromContext(r); token != "" {
@@ -333,7 +361,7 @@ func (h *ChecklistTemplates) renderFormError(w http.ResponseWriter, r *http.Requ
 	}
 
 	data := viewtemplates.ChecklistTemplateFormData{
-		PageData:   h.pageData(r, "Modèle"),
+		PageData:   h.pageData(r, "Modèle", ""),
 		Project:    project,
 		Template:   template,
 		Version:    version,

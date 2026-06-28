@@ -5,7 +5,6 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/jeb-maker/revues/internal/auth"
 	"github.com/jeb-maker/revues/internal/web/middleware"
 	"github.com/jeb-maker/revues/internal/web/templates"
 )
@@ -26,11 +25,9 @@ func (h *Home) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	data := templates.PageData{Title: "Accueil"}
 
-	if user, ok := middleware.UserFromContext(r.Context()); ok {
-		data.User = user
-		if token := middleware.SessionTokenFromContext(r); token != "" {
-			data.CSRFToken = auth.CSRFToken(token, h.SessionSecret)
-		}
+	if _, ok := middleware.UserFromContext(r.Context()); ok {
+		http.Redirect(w, r, "/projects", http.StatusFound)
+		return
 	}
 
 	if err := h.Templates.ExecuteTemplate(w, "home", data); err != nil {

@@ -1,0 +1,7 @@
+{{define "nav_tabs"}}
+<nav class="nav-tabs" aria-label="Navigation principale">
+  <a href="/projects" class="nav-tab{{if eq .ActiveTab "projects"}} is-active{{end}}">Projets</a>
+  <a href="/mes-taches" class="nav-tab{{if eq .ActiveTab "tasks"}} is-active{{end}}">Mes tâches</a>
+  <a href="/modeles" class="nav-tab{{if eq .ActiveTab "templates"}} is-active{{end}}">Modèles</a>
+</nav>
+{{end}}
