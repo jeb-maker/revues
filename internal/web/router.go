@@ -84,6 +84,12 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, error) {
 		SessionSecret: deps.Config.SessionSecret,
 		EncryptionKey: adminSMTPKey,
 	}
+	adminJira := &handlers.AdminJira{
+		Templates:     tpl,
+		Store:         st,
+		SessionSecret: deps.Config.SessionSecret,
+		EncryptionKey: adminSMTPKey,
+	}
 	projectsHandler := &handlers.Projects{
 		Templates:     tpl,
 		Store:         st,
@@ -170,6 +176,8 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, error) {
 		r.Post("/admin/settings/smtp", adminSMTP.Save)
 		r.Get("/admin/settings/webhooks", adminWebhooks.Show)
 		r.Post("/admin/settings/webhooks", adminWebhooks.Save)
+		r.Get("/admin/integrations/jira", adminJira.Show)
+		r.Post("/admin/integrations/jira", adminJira.Save)
 	})
 
 	return r, notificationsSvc, nil

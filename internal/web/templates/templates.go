@@ -28,6 +28,19 @@ type AdminUsersData struct {
 	Error   string
 }
 
+type AdminJiraData struct {
+	PageData
+	InstanceType string
+	BaseURL      string
+	Email        string
+	HasAPIToken  bool
+	HasPAT       bool
+	Configured   bool
+	CanEncrypt   bool
+	Message      string
+	Error        string
+}
+
 // AdminSMTPData is view data for the SMTP admin screen.
 type AdminSMTPData struct {
 	PageData

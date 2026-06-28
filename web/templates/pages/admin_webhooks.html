@@ -6,6 +6,7 @@
   <a href="/admin/users">Utilisateurs</a>
   <a href="/admin/settings/smtp">SMTP</a>
   <a href="/admin/settings/webhooks" aria-current="page">Webhooks</a>
+  <a href="/admin/integrations/jira">Jira</a>
 </nav>
 {{if not .CanEncrypt}}<p class="error">REVUES_ENCRYPTION_KEY requise pour enregistrer.</p>{{end}}
 {{if .Message}}<p class="success">{{.Message}}</p>{{end}}
