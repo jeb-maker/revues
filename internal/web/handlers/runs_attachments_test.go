@@ -78,6 +78,99 @@ func TestUpload_SuccessJPEG(t *testing.T) {
 	}
 }
 
+func TestDownloadAttachment_InlineImage(t *testing.T) {
+	handler, db, _ := testRouterAttachments(t)
+	ctx := context.Background()
+	st := store.New(db)
+	run, item, token, csrf := seedRunItemForUpload(t, ctx, st)
+	var imgBuf bytes.Buffer
+	_ = jpeg.Encode(&imgBuf, image.NewRGBA(image.Rect(0, 0, 4, 4)), nil)
+	body, ct := multipartUpload(t, csrf, "shot.jpg", imgBuf.Bytes())
+	uploadReq := httptest.NewRequest(http.MethodPost, uploadURL(run.ID, item.ID), body)
+	uploadReq.Header.Set("Content-Type", ct)
+	uploadReq.AddCookie(&http.Cookie{Name: "revues_session", Value: token})
+	uploadRec := httptest.NewRecorder()
+	handler.ServeHTTP(uploadRec, uploadReq)
+	att, err := st.AttachmentByRunItemID(ctx, item.ID)
+	if err != nil {
+		t.Fatalf("AttachmentByRunItemID(): %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/attachments/%d?inline=1", att.ID), nil)
+	req.AddCookie(&http.Cookie{Name: "revues_session", Value: token})
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status=%d", rec.Code)
+	}
+	if cd := rec.Header().Get("Content-Disposition"); cd != "inline" {
+		t.Fatalf("Content-Disposition=%q want inline", cd)
+	}
+	if ct := rec.Header().Get("Content-Type"); ct != "image/jpeg" {
+		t.Fatalf("Content-Type=%q", ct)
+	}
+}
+
+func TestDownloadAttachment_PDFDownload(t *testing.T) {
+	handler, db, _ := testRouterAttachments(t)
+	ctx := context.Background()
+	st := store.New(db)
+	run, item, token, csrf := seedRunItemForUpload(t, ctx, st)
+	body, ct := multipartUpload(t, csrf, "doc.pdf", []byte("%PDF-1.4 test"))
+	uploadReq := httptest.NewRequest(http.MethodPost, uploadURL(run.ID, item.ID), body)
+	uploadReq.Header.Set("Content-Type", ct)
+	uploadReq.AddCookie(&http.Cookie{Name: "revues_session", Value: token})
+	handler.ServeHTTP(httptest.NewRecorder(), uploadReq)
+	att, err := st.AttachmentByRunItemID(ctx, item.ID)
+	if err != nil {
+		t.Fatalf("AttachmentByRunItemID(): %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/attachments/%d", att.ID), nil)
+	req.AddCookie(&http.Cookie{Name: "revues_session", Value: token})
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status=%d", rec.Code)
+	}
+	if cd := rec.Header().Get("Content-Disposition"); !strings.Contains(cd, `attachment; filename="doc.pdf"`) {
+		t.Fatalf("Content-Disposition=%q", cd)
+	}
+}
+
+func TestIDOR_CrossProjectAttachmentDownload(t *testing.T) {
+	handler, db, dir := testRouterAttachments(t)
+	ctx := context.Background()
+	st := store.New(db)
+	leadA, _ := st.UpsertGitHubUser(ctx, 701, "a", "a@ex.com", "A", "", auth.RoleEditor)
+	leadB, _ := st.UpsertGitHubUser(ctx, 702, "b", "b@ex.com", "B", "", auth.RoleEditor)
+	pB, _ := st.CreateProject(ctx, "B", "", leadB.ID)
+	tpl, _, _ := st.CreateChecklistTemplate(ctx, pB.ID, "T", leadB.ID, []store.TemplateItemInput{{Label: "P"}})
+	runB, _ := st.CreateChecklistRun(ctx, pB.ID, tpl.ID, "RB", leadB.ID, sql.NullString{})
+	_ = st.StartRun(ctx, runB.ID)
+	itemsB, _ := st.ListRunItems(ctx, runB.ID)
+	att, err := st.ReplaceAttachment(ctx, itemsB[0].ID, "secret.pdf", "application/pdf", "secret.pdf", 10)
+	if err != nil {
+		t.Fatalf("ReplaceAttachment(): %v", err)
+	}
+	if err := os.MkdirAll(dir, 0o750); err != nil {
+		t.Fatalf("MkdirAll(): %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, att.StoragePath), []byte("%PDF-1"), 0o640); err != nil {
+		t.Fatalf("WriteFile(): %v", err)
+	}
+	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
+	tokenA, _, _ := sessions.CreateLoginSession(ctx, leadA.ID)
+
+	req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/attachments/%d", att.ID), nil)
+	req.AddCookie(&http.Cookie{Name: "revues_session", Value: tokenA})
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("status=%d want 404", rec.Code)
+	}
+}
+
 func TestIDOR_CrossProjectAttachmentUpload(t *testing.T) {
 	handler, db, _ := testRouterAttachments(t)
 	ctx := context.Background()

@@ -69,11 +69,11 @@
   {{if .Items}}
   <table class="data-table">
     <thead>
-      <tr><th>Section</th><th>Point</th><th>Jira</th><th>Statut</th><th>Assigné</th><th>Commentaire</th>{{if and (eq $.Run.Status "in_progress") (or $.CanCheck $.CanAssign)}}<th></th>{{end}}</tr>
+      <tr><th>Section</th><th>Point</th><th>Jira</th><th>Statut</th><th>Assigné</th><th>Commentaire</th><th>PJ</th>{{if and (eq $.Run.Status "in_progress") (or $.CanCheck $.CanAssign)}}<th></th>{{end}}</tr>
     </thead>
     <tbody id="run-items">
       {{range .Items}}
-      {{template "run_item_row_fragment" (runItemRow $.Run . $.Members $.CSRFToken $.CanCheck $.CanAssign $.CanLinkJira $.JiraConfigured (index $.JiraLinks .ID) "" "")}}
+      {{template "run_item_row_fragment" (runItemRow $.Run . $.Members $.CSRFToken $.CanCheck $.CanAssign $.CanLinkJira $.JiraConfigured (index $.JiraLinks .ID) (index $.Attachments .ID) "" "")}}
       {{end}}
     </tbody>
   </table>

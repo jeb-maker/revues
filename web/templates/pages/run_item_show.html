@@ -60,7 +60,8 @@
 <section class="panel">
   <h2>Pièce jointe</h2>
   {{if .Attachment}}
-  <p>Fichier : <a href="/attachments/{{.Attachment.ID}}">{{.Attachment.Filename}}</a> <span class="muted">({{.Attachment.SizeBytes}} octets)</span></p>
+  {{template "attachment_display_fragment" .Attachment}}
+  <p class="muted">{{.Attachment.Filename}} — {{.Attachment.SizeBytes}} octets</p>
   {{else}}<p class="muted">Aucune pièce jointe.</p>{{end}}
   {{if .CanUpload}}
   <form method="post" action="/runs/{{.Run.ID}}/items/{{.Item.ID}}/attachment" enctype="multipart/form-data" class="stack-form">

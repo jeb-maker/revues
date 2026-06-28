@@ -51,6 +51,47 @@ func TestReplaceAttachment_OnePerRunItem(t *testing.T) {
 	}
 }
 
+func TestListAttachmentsByRunItemIDs(t *testing.T) {
+	ctx := context.Background()
+	db := openAttachmentTestDB(t)
+	st := store.New(db)
+
+	user, err := st.UpsertGitHubUser(ctx, 2, "u2", "u2@example.com", "U2", "", auth.RoleEditor)
+	if err != nil {
+		t.Fatalf("UpsertGitHubUser(): %v", err)
+	}
+	project, err := st.CreateProject(ctx, "P2", "", user.ID)
+	if err != nil {
+		t.Fatalf("CreateProject(): %v", err)
+	}
+	template, _, err := st.CreateChecklistTemplate(ctx, project.ID, "T", user.ID, []store.TemplateItemInput{
+		{Label: "A"},
+		{Label: "B"},
+	})
+	if err != nil {
+		t.Fatalf("CreateChecklistTemplate(): %v", err)
+	}
+	run, err := st.CreateChecklistRun(ctx, project.ID, template.ID, "R", user.ID, sql.NullString{})
+	if err != nil {
+		t.Fatalf("CreateChecklistRun(): %v", err)
+	}
+	items, err := st.ListRunItems(ctx, run.ID)
+	if err != nil || len(items) != 2 {
+		t.Fatalf("ListRunItems(): %v", err)
+	}
+	if _, err = st.ReplaceAttachment(ctx, items[0].ID, "a.jpg", "image/jpeg", "a.jpg", 10); err != nil {
+		t.Fatalf("ReplaceAttachment(): %v", err)
+	}
+
+	got, err := st.ListAttachmentsByRunItemIDs(ctx, []int64{items[0].ID, items[1].ID})
+	if err != nil {
+		t.Fatalf("ListAttachmentsByRunItemIDs(): %v", err)
+	}
+	if len(got) != 1 || got[items[0].ID].Filename != "a.jpg" {
+		t.Fatalf("attachments = %+v", got)
+	}
+}
+
 func openAttachmentTestDB(t *testing.T) *sql.DB {
 	t.Helper()
 	ctx := context.Background()

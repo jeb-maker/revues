@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"errors"
 	"log/slog"
 	"net/http"
@@ -132,8 +133,25 @@ func (h *Runs) DownloadAttachment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", att.MimeType)
-	w.Header().Set("Content-Disposition", contentDispositionAttachment(att.Filename))
+	if r.URL.Query().Get("inline") == "1" && attachments.IsImageMime(att.MimeType) {
+		w.Header().Set("Content-Disposition", "inline")
+	} else {
+		w.Header().Set("Content-Disposition", contentDispositionAttachment(att.Filename))
+	}
 	http.ServeFile(w, r, clean)
+}
+
+func (h *Runs) loadAttachmentsForItems(ctx context.Context, runItems []store.RunItem) map[int64]*store.Attachment {
+	itemIDs := make([]int64, len(runItems))
+	for i, item := range runItems {
+		itemIDs[i] = item.ID
+	}
+	attachmentsByItem, err := h.Store.ListAttachmentsByRunItemIDs(ctx, itemIDs)
+	if err != nil {
+		slog.Error("list attachments for run items", "err", err)
+		return map[int64]*store.Attachment{}
+	}
+	return attachmentsByItem
 }
 
 func (h *Runs) attachmentService() *attachments.Service {

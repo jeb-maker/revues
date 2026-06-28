@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -48,6 +49,39 @@ func (s *Store) AttachmentByID(ctx context.Context, id int64) (*Attachment, erro
 		return nil, fmt.Errorf("attachment by id: %w", err)
 	}
 	return &att, nil
+}
+
+func (s *Store) ListAttachmentsByRunItemIDs(ctx context.Context, runItemIDs []int64) (map[int64]*Attachment, error) {
+	out := make(map[int64]*Attachment, len(runItemIDs))
+	if len(runItemIDs) == 0 {
+		return out, nil
+	}
+	placeholders := make([]string, len(runItemIDs))
+	args := make([]any, len(runItemIDs))
+	for i, id := range runItemIDs {
+		placeholders[i] = "?"
+		args[i] = id
+	}
+	query := `
+		SELECT id, run_item_id, filename, mime_type, size_bytes, storage_path, created_at
+		FROM attachments WHERE run_item_id IN (` + strings.Join(placeholders, ",") + `)`
+	rows, err := s.db.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("list attachments by run item ids: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+	for rows.Next() {
+		att, scanErr := scanAttachment(rows)
+		if scanErr != nil {
+			return nil, fmt.Errorf("scan attachment: %w", scanErr)
+		}
+		copy := att
+		out[att.RunItemID] = &copy
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("list attachments rows: %w", err)
+	}
+	return out, nil
 }
 
 func (s *Store) RunIDForAttachment(ctx context.Context, attachmentID int64) (int64, error) {
