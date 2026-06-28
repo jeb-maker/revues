@@ -12,6 +12,7 @@ import (
 	"github.com/jeb-maker/revues/internal/admin"
 	"github.com/jeb-maker/revues/internal/auth"
 	"github.com/jeb-maker/revues/internal/config"
+	"github.com/jeb-maker/revues/internal/integrations/webhooks"
 	"github.com/jeb-maker/revues/internal/notifications"
 	"github.com/jeb-maker/revues/internal/store"
 	"github.com/jeb-maker/revues/internal/web/handlers"
@@ -75,6 +76,8 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, error) {
 		Settings: settingsSvc,
 		BaseURL:  deps.Config.BaseURL,
 	}
+	webhookDispatcher := &webhooks.Dispatcher{Settings: settingsSvc, Store: st, Runs: st, DevMode: deps.Config.Env == "development"}
+	adminWebhooks := &handlers.AdminWebhooks{Templates: tpl, Store: st, SessionSecret: deps.Config.SessionSecret, EncryptionKey: adminSMTPKey, Webhooks: webhookDispatcher}
 	adminSMTP := &handlers.AdminSMTP{
 		Templates:     tpl,
 		Store:         st,
@@ -101,6 +104,7 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, error) {
 		Templates:     tpl,
 		Store:         st,
 		SessionSecret: deps.Config.SessionSecret,
+		Webhooks:      webhookDispatcher,
 		Notifications: notificationsSvc,
 	}
 	myTasks := &handlers.MyTasks{
@@ -170,6 +174,8 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, error) {
 		r.Post("/admin/users/remove", adminUsers.Remove)
 		r.Get("/admin/settings/smtp", adminSMTP.Show)
 		r.Post("/admin/settings/smtp", adminSMTP.Save)
+		r.Get("/admin/settings/webhooks", adminWebhooks.Show)
+		r.Post("/admin/settings/webhooks", adminWebhooks.Save)
 		r.Get("/admin/integrations/jira", adminJira.Show)
 		r.Post("/admin/integrations/jira", adminJira.Save)
 	})

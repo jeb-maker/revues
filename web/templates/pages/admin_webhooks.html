@@ -1,0 +1,32 @@
+{{define "admin_webhooks"}}
+{{template "layout_start" .}}
+<h1>Configuration webhooks</h1>
+<p>Notifications JSON signées HMAC-SHA256. Voir <code>docs/WEBHOOKS.md</code>.</p>
+<nav class="admin-nav">
+  <a href="/admin/users">Utilisateurs</a>
+  <a href="/admin/settings/smtp">SMTP</a>
+  <a href="/admin/settings/webhooks" aria-current="page">Webhooks</a>
+  <a href="/admin/integrations/jira">Jira</a>
+</nav>
+{{if not .CanEncrypt}}<p class="error">REVUES_ENCRYPTION_KEY requise pour enregistrer.</p>{{end}}
+{{if .Message}}<p class="success">{{.Message}}</p>{{end}}
+{{if .Error}}<p class="error">{{.Error}}</p>{{end}}
+<section class="panel">
+  <h2>Destinataires</h2>
+  <form method="post" action="/admin/settings/webhooks" class="stack-form">
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+    <input type="hidden" name="action" value="save">
+    <label>URLs (HTTPS, une par ligne)<textarea name="urls" rows="4" required>{{.URLsText}}</textarea></label>
+    <label>Secret HMAC<input type="password" name="secret" placeholder="{{if .HasSecret}}Laisser vide pour conserver{{end}}"></label>
+    <label class="checkbox-label"><input type="checkbox" name="review_completed" value="on" {{if .ReviewCompleted}}checked{{end}}> review.completed</label>
+    <label class="checkbox-label"><input type="checkbox" name="review_item_nok" value="on" {{if .ReviewItemNOK}}checked{{end}}> review.item.nok</label>
+    <button type="submit" {{if not .CanEncrypt}}disabled{{end}}>Enregistrer</button>
+  </form>
+</section>
+<section class="panel">
+  <h2>Test</h2>
+  <form method="post" action="/admin/settings/webhooks"><input type="hidden" name="csrf_token" value="{{.CSRFToken}}"><input type="hidden" name="action" value="test"><button type="submit" {{if not .Configured}}disabled{{end}}>Envoyer un webhook de test</button></form>
+</section>
+<p><a href="/">← Retour</a></p>
+{{template "layout_end" .}}
+{{end}}
