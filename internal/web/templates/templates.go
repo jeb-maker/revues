@@ -44,6 +44,19 @@ type AdminSMTPData struct {
 	Error         string
 }
 
+// AdminWebhooksData is view data for the webhooks admin screen.
+type AdminWebhooksData struct {
+	PageData
+	URLsText        string
+	HasSecret       bool
+	ReviewCompleted bool
+	ReviewItemNOK   bool
+	Configured      bool
+	CanEncrypt      bool
+	Message         string
+	Error           string
+}
+
 // ProjectsListData is view data for the project dashboard.
 type ProjectsListData struct {
 	PageData

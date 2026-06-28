@@ -14,6 +14,7 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"github.com/jeb-maker/revues/internal/auth"
+	"github.com/jeb-maker/revues/internal/integrations/webhooks"
 	"github.com/jeb-maker/revues/internal/items"
 	"github.com/jeb-maker/revues/internal/runs"
 	"github.com/jeb-maker/revues/internal/store"
@@ -26,6 +27,7 @@ type Runs struct {
 	Templates     *template.Template
 	Store         *store.Store
 	SessionSecret string
+	Webhooks      *webhooks.Dispatcher
 }
 
 // WizardProjects is step 1: choose a project.
@@ -261,7 +263,16 @@ func (h *Runs) UpdateItem(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-
+	existing, err := h.Store.RunItemByID(r.Context(), run.ID, itemID)
+	if errors.Is(err, store.ErrRunItemNotFound) {
+		http.NotFound(w, r)
+		return
+	}
+	if err != nil {
+		slog.Error("load run item before update", "err", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
 	status := strings.TrimSpace(r.FormValue("status"))
 	comment := strings.TrimSpace(r.FormValue("comment"))
 
@@ -297,6 +308,9 @@ func (h *Runs) UpdateItem(w http.ResponseWriter, r *http.Request) {
 		slog.Error("update run item", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
+	}
+	if h.Webhooks != nil && status == store.RunItemStatusNOK && existing.Status != store.RunItemStatusNOK {
+		h.Webhooks.EmitReviewItemNOK(r.Context(), run.ID, itemID)
 	}
 
 	if h.isHTMX(r) {
@@ -480,6 +494,9 @@ func (h *Runs) Complete(w http.ResponseWriter, r *http.Request) {
 		slog.Error("complete run", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
+	}
+	if h.Webhooks != nil {
+		h.Webhooks.EmitReviewCompleted(r.Context(), run.ID)
 	}
 
 	http.Redirect(w, r, "/runs/"+strconv.FormatInt(run.ID, 10)+"?msg=Revue+termin%C3%A9e", http.StatusSeeOther)

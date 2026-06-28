@@ -9,8 +9,10 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 
+	"github.com/jeb-maker/revues/internal/admin"
 	"github.com/jeb-maker/revues/internal/auth"
 	"github.com/jeb-maker/revues/internal/config"
+	"github.com/jeb-maker/revues/internal/integrations/webhooks"
 	"github.com/jeb-maker/revues/internal/store"
 	"github.com/jeb-maker/revues/internal/web/handlers"
 	appmiddleware "github.com/jeb-maker/revues/internal/web/middleware"
@@ -64,6 +66,9 @@ func NewRouter(deps Deps) (http.Handler, error) {
 	if err != nil {
 		return nil, fmt.Errorf("encryption key: %w", err)
 	}
+	settingsSvc := &admin.SettingsService{Store: st, EncryptionKey: adminSMTPKey}
+	webhookDispatcher := &webhooks.Dispatcher{Settings: settingsSvc, Store: st, Runs: st, DevMode: deps.Config.Env == "development"}
+	adminWebhooks := &handlers.AdminWebhooks{Templates: tpl, Store: st, SessionSecret: deps.Config.SessionSecret, EncryptionKey: adminSMTPKey, Webhooks: webhookDispatcher}
 	adminSMTP := &handlers.AdminSMTP{
 		Templates:     tpl,
 		Store:         st,
@@ -84,6 +89,7 @@ func NewRouter(deps Deps) (http.Handler, error) {
 		Templates:     tpl,
 		Store:         st,
 		SessionSecret: deps.Config.SessionSecret,
+		Webhooks:      webhookDispatcher,
 	}
 	myTasks := &handlers.MyTasks{
 		Templates:     tpl,
@@ -152,6 +158,8 @@ func NewRouter(deps Deps) (http.Handler, error) {
 		r.Post("/admin/users/remove", adminUsers.Remove)
 		r.Get("/admin/settings/smtp", adminSMTP.Show)
 		r.Post("/admin/settings/smtp", adminSMTP.Save)
+		r.Get("/admin/settings/webhooks", adminWebhooks.Show)
+		r.Post("/admin/settings/webhooks", adminWebhooks.Save)
 	})
 
 	return r, nil
