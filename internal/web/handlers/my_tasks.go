@@ -1,23 +1,19 @@
 package handlers
 
 import (
-	"html/template"
 	"log/slog"
 	"net/http"
 	"strconv"
 
 	"github.com/jeb-maker/revues/internal/auth"
 	"github.com/jeb-maker/revues/internal/items"
-	"github.com/jeb-maker/revues/internal/store"
 	"github.com/jeb-maker/revues/internal/web/middleware"
 	viewtemplates "github.com/jeb-maker/revues/internal/web/templates"
 )
 
 // MyTasks lists run items assigned to the current user.
 type MyTasks struct {
-	Templates     *template.Template
-	Store         *store.Store
-	SessionSecret string
+	Deps
 }
 
 // List shows assigned tasks with optional project and status filters.
@@ -56,7 +52,7 @@ func (h *MyTasks) List(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := viewtemplates.MyTasksData{
-		PageData:        h.pageData(r, "Mes tâches", "tasks"),
+		PageData:        h.PageDataTab(r, "Mes tâches", "tasks"),
 		Tasks:           tasks,
 		Projects:        projects,
 		FilterProjectID: projectFilter,
@@ -68,15 +64,4 @@ func (h *MyTasks) List(w http.ResponseWriter, r *http.Request) {
 		slog.Error("render my tasks", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}
-}
-
-func (h *MyTasks) pageData(r *http.Request, title, activeTab string) viewtemplates.PageData {
-	data := viewtemplates.PageData{Title: title, ActiveTab: activeTab}
-	if user, ok := middleware.UserFromContext(r.Context()); ok {
-		data.User = user
-		if token := middleware.SessionTokenFromContext(r); token != "" {
-			data.CSRFToken = auth.CSRFToken(token, h.SessionSecret)
-		}
-	}
-	return data
 }

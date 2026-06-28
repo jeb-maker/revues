@@ -40,6 +40,11 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, error) {
 	}
 
 	st := store.New(deps.DB)
+	handlerDeps := handlers.Deps{
+		Templates:     tpl,
+		Store:         st,
+		SessionSecret: deps.Config.SessionSecret,
+	}
 	sessions := &auth.SessionManager{
 		Store:         st,
 		SessionSecret: deps.Config.SessionSecret,
@@ -58,11 +63,7 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, error) {
 		GitHub:    github,
 		Config:    deps.Config,
 	}
-	adminUsers := &handlers.AdminUsers{
-		Templates:     tpl,
-		Store:         st,
-		SessionSecret: deps.Config.SessionSecret,
-	}
+	adminUsers := &handlers.AdminUsers{Deps: handlerDeps}
 	adminSMTPKey, err := deps.Config.EncryptionKeyBytes()
 	if err != nil {
 		return nil, nil, fmt.Errorf("encryption key: %w", err)
@@ -77,48 +78,19 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, error) {
 		BaseURL:  deps.Config.BaseURL,
 	}
 	webhookDispatcher := &webhooks.Dispatcher{Settings: settingsSvc, Store: st, Runs: st, DevMode: deps.Config.Env == "development"}
-	adminWebhooks := &handlers.AdminWebhooks{Templates: tpl, Store: st, SessionSecret: deps.Config.SessionSecret, EncryptionKey: adminSMTPKey, Webhooks: webhookDispatcher}
-	adminSMTP := &handlers.AdminSMTP{
-		Templates:     tpl,
-		Store:         st,
-		SessionSecret: deps.Config.SessionSecret,
-		EncryptionKey: adminSMTPKey,
-	}
-	adminJira := &handlers.AdminJira{
-		Templates:     tpl,
-		Store:         st,
-		SessionSecret: deps.Config.SessionSecret,
-		EncryptionKey: adminSMTPKey,
-	}
-	adminIntegrations := &handlers.AdminIntegrations{
-		Templates:     tpl,
-		Store:         st,
-		SessionSecret: deps.Config.SessionSecret,
-		EncryptionKey: adminSMTPKey,
-	}
-	projectsHandler := &handlers.Projects{
-		Templates:     tpl,
-		Store:         st,
-		SessionSecret: deps.Config.SessionSecret,
-	}
-	checklistTemplates := &handlers.ChecklistTemplates{
-		Templates:     tpl,
-		Store:         st,
-		SessionSecret: deps.Config.SessionSecret,
-	}
+	adminWebhooks := &handlers.AdminWebhooks{Deps: handlerDeps, EncryptionKey: adminSMTPKey, Webhooks: webhookDispatcher}
+	adminSMTP := &handlers.AdminSMTP{Deps: handlerDeps, EncryptionKey: adminSMTPKey}
+	adminJira := &handlers.AdminJira{Deps: handlerDeps, EncryptionKey: adminSMTPKey}
+	adminIntegrations := &handlers.AdminIntegrations{Deps: handlerDeps, EncryptionKey: adminSMTPKey}
+	projectsHandler := &handlers.Projects{Deps: handlerDeps}
+	checklistTemplates := &handlers.ChecklistTemplates{Deps: handlerDeps}
 	runsHandler := &handlers.Runs{
-		Templates:     tpl,
-		Store:         st,
-		SessionSecret: deps.Config.SessionSecret,
+		Deps:          handlerDeps,
 		EncryptionKey: adminSMTPKey,
 		Webhooks:      webhookDispatcher,
 		Notifications: notificationsSvc,
 	}
-	myTasks := &handlers.MyTasks{
-		Templates:     tpl,
-		Store:         st,
-		SessionSecret: deps.Config.SessionSecret,
-	}
+	myTasks := &handlers.MyTasks{Deps: handlerDeps}
 
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
@@ -129,7 +101,7 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, error) {
 	r.Use(appmiddleware.CSRF(deps.Config.SessionSecret))
 
 	r.Get("/healthz", handlers.Health)
-	r.Get("/", (&handlers.Home{Templates: tpl, SessionSecret: deps.Config.SessionSecret}).ServeHTTP)
+	r.Get("/", (&handlers.Home{Deps: handlerDeps}).ServeHTTP)
 	r.Handle("/static/*", http.StripPrefix("/static/", http.FileServer(http.FS(staticFS))))
 
 	r.Get("/login", authHandler.Login)
