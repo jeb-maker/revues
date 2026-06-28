@@ -41,13 +41,20 @@ Tâches organisées pour délégation via [issues GitHub](https://github.com/jeb
 
 ### Vague 1a — ajouts post-revue adverse
 
-| Issue | Tâche | Area |
-|-------|-------|------|
-| [#31](https://github.com/jeb-maker/revues/issues/31) | Export CSV revue clôturée | core |
-| [#32](https://github.com/jeb-maker/revues/issues/32) | Échéance revue (`due_date`) | core |
-| [#34](https://github.com/jeb-maker/revues/issues/34) | Tests RBAC transversaux | auth |
+| Issue | Tâche | Area | Statut |
+|-------|-------|------|--------|
+| [#31](https://github.com/jeb-maker/revues/issues/31) | Export CSV revue clôturée | core | ✓ mergé |
+| [#32](https://github.com/jeb-maker/revues/issues/32) | Échéance revue (`due_date`) | core | ✓ mergé |
+| [#33](https://github.com/jeb-maker/revues/issues/33) | Backup SQLite + doc restauration | infra | ✓ mergé |
+| [#34](https://github.com/jeb-maker/revues/issues/34) | Tests RBAC transversaux | auth | ✓ mergé |
+| [#62](https://github.com/jeb-maker/revues/issues/62) | Tests OAuth GitHub mockés | auth | ouvert |
+| [#63](https://github.com/jeb-maker/revues/issues/63) | Onboarding et états vides | ui | ouvert |
+| [#64](https://github.com/jeb-maker/revues/issues/64) | Centraliser deps handlers (CSRF) | core | ouvert |
+| [#66](https://github.com/jeb-maker/revues/issues/66) | Valider parcours pilote vague 1a | meta | ouvert |
 
 **Critère de fin** : Marie crée un modèle, Thomas exécute une revue, Sophie exporte en CSV — sans Excel.
+
+> **Gate vague 2** : ne pas démarrer #19–#24 tant que #66 (parcours pilote) n'est pas PASS.
 
 ---
 
@@ -59,13 +66,14 @@ Tâches organisées pour délégation via [issues GitHub](https://github.com/jeb
 |-------|-------|-----------|
 | [#18](https://github.com/jeb-maker/revues/issues/18) | Admin SMTP | vague 1 |
 | [#19](https://github.com/jeb-maker/revues/issues/19) | Notifications email | #18 |
-| [#20](https://github.com/jeb-maker/revues/issues/20) | Config Jira (Cloud d'abord) | vague 1 |
+| [#20](https://github.com/jeb-maker/revues/issues/20) | Config Jira Cloud | vague 1a (#66) |
+| [#65](https://github.com/jeb-maker/revues/issues/65) | Jira Server/DC (icebox) | après #20–#22 |
 | [#21](https://github.com/jeb-maker/revues/issues/21) | Jira : lier issue | #20 |
 | [#22](https://github.com/jeb-maker/revues/issues/22) | Jira : créer ticket nok | #20, #21 |
 | [#23](https://github.com/jeb-maker/revues/issues/23) | Webhooks sortants | vague 1 |
 | [#24](https://github.com/jeb-maker/revues/issues/24) | Admin intégrations UI | #18, #23 |
 
-**Infra** : [#33](https://github.com/jeb-maker/revues/issues/33) Backup SQLite + doc restauration
+**Infra** : [#33](https://github.com/jeb-maker/revues/issues/33) Backup SQLite ✓
 
 ---
 
@@ -103,7 +111,9 @@ flowchart TD
     T13 --> T15[#15 Audit]
     T13 --> T16[#16 HTMX]
     T12 --> T17[#17 Dashboard]
-    T13 --> T31[#31 Export CSV]
+    T13 --> T31[#31 Export CSV ✓]
+    T31 --> T66[#66 Pilote]
+    T66 --> V2[Vague 2]
 ```
 
 ---
