@@ -2,6 +2,7 @@ package handlers_test
 
 import (
 	"context"
+	"database/sql"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
@@ -32,7 +33,7 @@ func TestRunItemShow_DisplaysAuditHistory(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateChecklistTemplate(): %v", err)
 	}
-	run, err := st.CreateChecklistRun(ctx, project.ID, template.ID, "Revue", lead.ID)
+	run, err := st.CreateChecklistRun(ctx, project.ID, template.ID, "Revue", lead.ID, sql.NullString{})
 	if err != nil {
 		t.Fatalf("CreateChecklistRun(): %v", err)
 	}
@@ -94,7 +95,7 @@ func TestIDOR_CrossProjectRunItemShow(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateChecklistTemplate(): %v", err)
 	}
-	run, err := st.CreateChecklistRun(ctx, projectA.ID, template.ID, "Revue", alice.ID)
+	run, err := st.CreateChecklistRun(ctx, projectA.ID, template.ID, "Revue", alice.ID, sql.NullString{})
 	if err != nil {
 		t.Fatalf("CreateChecklistRun(): %v", err)
 	}

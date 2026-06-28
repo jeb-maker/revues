@@ -1,9 +1,11 @@
 package templates
 
 import (
+	"database/sql"
 	"fmt"
 	"html/template"
 	"io/fs"
+	"time"
 
 	"github.com/jeb-maker/revues/internal/store"
 	webassets "github.com/jeb-maker/revues/web"
@@ -154,6 +156,7 @@ type RunWizardLaunchData struct {
 	Version    *store.TemplateVersion
 	ItemCount  int
 	Title      string
+	DueDate    string
 	FormAction string
 	Step       int
 	MemberRole string
@@ -242,6 +245,8 @@ func Parse() (*template.Template, error) {
 			}
 			return a / b
 		},
+		"formatDueDate": formatDueDate,
+		"dueDateInput":  dueDateInput,
 		"runItemRow": func(run *store.ChecklistRun, item store.RunItem, members []store.ProjectMember, csrf string, canCheck, canAssign bool, itemErr, assignErr string) RunItemRowData {
 			return RunItemRowData{
 				RunID:       run.ID,
@@ -267,4 +272,32 @@ func Parse() (*template.Template, error) {
 	}
 
 	return tpl, nil
+}
+
+func formatDueDate(due sql.NullString) string {
+	if !due.Valid || due.String == "" {
+		return ""
+	}
+	t, err := time.Parse(time.RFC3339, due.String)
+	if err != nil {
+		t, err = time.Parse("2006-01-02", due.String)
+		if err != nil {
+			return due.String
+		}
+	}
+	return t.UTC().Format("02/01/2006")
+}
+
+func dueDateInput(due sql.NullString) string {
+	if !due.Valid || due.String == "" {
+		return ""
+	}
+	t, err := time.Parse(time.RFC3339, due.String)
+	if err != nil {
+		t, err = time.Parse("2006-01-02", due.String)
+		if err != nil {
+			return ""
+		}
+	}
+	return t.UTC().Format("2006-01-02")
 }

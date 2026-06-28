@@ -2,6 +2,7 @@ package store_test
 
 import (
 	"context"
+	"database/sql"
 	"testing"
 
 	"github.com/jeb-maker/revues/internal/auth"
@@ -30,7 +31,7 @@ func TestCreateChecklistRunSnapshotsItems(t *testing.T) {
 		t.Fatalf("CreateChecklistTemplate(): %v", err)
 	}
 
-	run, err := st.CreateChecklistRun(ctx, project.ID, template.ID, "Revue Q1", lead.ID)
+	run, err := st.CreateChecklistRun(ctx, project.ID, template.ID, "Revue Q1", lead.ID, sql.NullString{})
 	if err != nil {
 		t.Fatalf("CreateChecklistRun(): %v", err)
 	}
@@ -50,6 +51,34 @@ func TestCreateChecklistRunSnapshotsItems(t *testing.T) {
 	}
 	if items[0].Label != "Point 1" || items[0].Status != "pending" || !items[0].SourceItemID.Valid {
 		t.Fatalf("first item = %+v", items[0])
+	}
+}
+
+func TestCreateChecklistRunWithDueDate(t *testing.T) {
+	ctx := context.Background()
+	db := openMemoryDB(t)
+	st := store.New(db)
+
+	lead, err := st.UpsertGitHubUser(ctx, 2, "lead", "lead@example.com", "Lead", "", auth.RoleEditor)
+	if err != nil {
+		t.Fatalf("UpsertGitHubUser(): %v", err)
+	}
+	project, err := st.CreateProject(ctx, "P", "", lead.ID)
+	if err != nil {
+		t.Fatalf("CreateProject(): %v", err)
+	}
+	template, _, err := st.CreateChecklistTemplate(ctx, project.ID, "Modèle", lead.ID, nil)
+	if err != nil {
+		t.Fatalf("CreateChecklistTemplate(): %v", err)
+	}
+
+	dueDate := sql.NullString{String: "2026-07-15T00:00:00Z", Valid: true}
+	run, err := st.CreateChecklistRun(ctx, project.ID, template.ID, "Revue datée", lead.ID, dueDate)
+	if err != nil {
+		t.Fatalf("CreateChecklistRun(): %v", err)
+	}
+	if !run.DueDate.Valid || run.DueDate.String != dueDate.String {
+		t.Fatalf("due_date = %+v, want %q", run.DueDate, dueDate.String)
 	}
 }
 
@@ -73,7 +102,7 @@ func TestRunStatusTransitions(t *testing.T) {
 		t.Fatalf("CreateChecklistTemplate(): %v", err)
 	}
 
-	run, err := st.CreateChecklistRun(ctx, project.ID, template.ID, "Revue", lead.ID)
+	run, err := st.CreateChecklistRun(ctx, project.ID, template.ID, "Revue", lead.ID, sql.NullString{})
 	if err != nil {
 		t.Fatalf("CreateChecklistRun(): %v", err)
 	}

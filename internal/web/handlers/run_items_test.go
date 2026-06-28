@@ -2,6 +2,7 @@ package handlers_test
 
 import (
 	"context"
+	"database/sql"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -33,7 +34,7 @@ func TestRunItem_NokRequiresComment(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateChecklistTemplate(): %v", err)
 	}
-	run, err := st.CreateChecklistRun(ctx, project.ID, template.ID, "Revue", lead.ID)
+	run, err := st.CreateChecklistRun(ctx, project.ID, template.ID, "Revue", lead.ID, sql.NullString{})
 	if err != nil {
 		t.Fatalf("CreateChecklistRun(): %v", err)
 	}
@@ -89,7 +90,7 @@ func TestRunComplete_RequiresClosingNote(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateChecklistTemplate(): %v", err)
 	}
-	run, err := st.CreateChecklistRun(ctx, project.ID, template.ID, "Revue", lead.ID)
+	run, err := st.CreateChecklistRun(ctx, project.ID, template.ID, "Revue", lead.ID, sql.NullString{})
 	if err != nil {
 		t.Fatalf("CreateChecklistRun(): %v", err)
 	}
@@ -149,7 +150,7 @@ func TestIDOR_CrossProjectRunItem(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateChecklistTemplate(): %v", err)
 	}
-	runA, err := st.CreateChecklistRun(ctx, projectA.ID, templateA.ID, "Revue A", alice.ID)
+	runA, err := st.CreateChecklistRun(ctx, projectA.ID, templateA.ID, "Revue A", alice.ID, sql.NullString{})
 	if err != nil {
 		t.Fatalf("CreateChecklistRun(): %v", err)
 	}
@@ -167,7 +168,7 @@ func TestIDOR_CrossProjectRunItem(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateChecklistTemplate(): %v", err)
 	}
-	runB, err := st.CreateChecklistRun(ctx, projectB.ID, templateB.ID, "Revue B", bob.ID)
+	runB, err := st.CreateChecklistRun(ctx, projectB.ID, templateB.ID, "Revue B", bob.ID, sql.NullString{})
 	if err != nil {
 		t.Fatalf("CreateChecklistRun(): %v", err)
 	}

@@ -12,6 +12,7 @@ type ActiveRunSummary struct {
 	Title       string
 	ProjectID   int64
 	ProjectName string
+	DueDate     sql.NullString
 	Done        int
 	Total       int
 	Percent     int
@@ -55,14 +56,14 @@ func (s *Store) ListActiveRunSummaries(ctx context.Context, userID int64, admin 
 	if admin {
 		rows, err = s.queryRows(ctx, activeRunSummariesSQL+`
 		WHERE r.status = ? AND p.archived_at IS NULL
-		GROUP BY r.id, r.title, r.project_id, p.name
+		GROUP BY r.id, r.title, r.project_id, p.name, r.due_date
 		ORDER BY r.started_at DESC, r.created_at DESC
 		`, RunStatusInProgress)
 	} else {
 		rows, err = s.queryRows(ctx, activeRunSummariesSQL+`
 		INNER JOIN project_members pm ON pm.project_id = p.id AND pm.user_id = ?
 		WHERE r.status = ? AND p.archived_at IS NULL
-		GROUP BY r.id, r.title, r.project_id, p.name
+		GROUP BY r.id, r.title, r.project_id, p.name, r.due_date
 		ORDER BY r.started_at DESC, r.created_at DESC
 		`, userID, RunStatusInProgress)
 	}
@@ -75,7 +76,7 @@ func (s *Store) ListActiveRunSummaries(ctx context.Context, userID int64, admin 
 }
 
 const activeRunSummariesSQL = `
-	SELECT r.id, r.title, r.project_id, p.name,
+	SELECT r.id, r.title, r.project_id, p.name, r.due_date,
 	       COUNT(ri.id) AS total,
 	       SUM(CASE WHEN ri.status IN ('ok', 'na') THEN 1 ELSE 0 END) AS done
 	FROM checklist_runs r
@@ -92,7 +93,7 @@ func scanActiveRunSummaries(rows interface {
 	for rows.Next() {
 		var summary ActiveRunSummary
 		if err := rows.Scan(
-			&summary.RunID, &summary.Title, &summary.ProjectID, &summary.ProjectName,
+			&summary.RunID, &summary.Title, &summary.ProjectID, &summary.ProjectName, &summary.DueDate,
 			&summary.Total, &summary.Done,
 		); err != nil {
 			return nil, fmt.Errorf("scan active run summary: %w", err)

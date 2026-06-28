@@ -2,6 +2,7 @@ package handlers_test
 
 import (
 	"context"
+	"database/sql"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
@@ -33,7 +34,7 @@ func TestDashboard_ShowsActiveRunProgress(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateChecklistTemplate(): %v", err)
 	}
-	run, err := st.CreateChecklistRun(ctx, project.ID, template.ID, "Sprint", lead.ID)
+	run, err := st.CreateChecklistRun(ctx, project.ID, template.ID, "Sprint", lead.ID, sql.NullString{})
 	if err != nil {
 		t.Fatalf("CreateChecklistRun(): %v", err)
 	}
@@ -77,6 +78,106 @@ func TestDashboard_ShowsActiveRunProgress(t *testing.T) {
 	}
 }
 
+func TestDashboard_ShowsRunDueDate(t *testing.T) {
+	handler, db := testRouter(t)
+	ctx := context.Background()
+	st := store.New(db)
+
+	lead, err := st.UpsertGitHubUser(ctx, 84, "lead", "lead@example.com", "Lead", "", auth.RoleEditor)
+	if err != nil {
+		t.Fatalf("UpsertGitHubUser(): %v", err)
+	}
+	project, err := st.CreateProject(ctx, "Delta", "desc", lead.ID)
+	if err != nil {
+		t.Fatalf("CreateProject(): %v", err)
+	}
+	template, _, err := st.CreateChecklistTemplate(ctx, project.ID, "Modèle", lead.ID, []store.TemplateItemInput{
+		{Label: "A", Required: true},
+	})
+	if err != nil {
+		t.Fatalf("CreateChecklistTemplate(): %v", err)
+	}
+	run, err := st.CreateChecklistRun(ctx, project.ID, template.ID, "Sprint J-7", lead.ID, sql.NullString{
+		String: "2026-07-01T00:00:00Z",
+		Valid:  true,
+	})
+	if err != nil {
+		t.Fatalf("CreateChecklistRun(): %v", err)
+	}
+	if err = st.StartRun(ctx, run.ID); err != nil {
+		t.Fatalf("StartRun(): %v", err)
+	}
+
+	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
+	token, _, err := sessions.CreateLoginSession(ctx, lead.ID)
+	if err != nil {
+		t.Fatalf("CreateLoginSession(): %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/projects", nil)
+	req.AddCookie(&http.Cookie{Name: "revues_session", Value: token})
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+	body := rec.Body.String()
+	if !strings.Contains(body, "01/07/2026") {
+		t.Fatal("expected formatted due date on dashboard")
+	}
+	if !strings.Contains(body, "Sprint J-7") {
+		t.Fatal("expected run title on dashboard")
+	}
+}
+
+func TestProjectShow_ShowsRunDueDate(t *testing.T) {
+	handler, db := testRouter(t)
+	ctx := context.Background()
+	st := store.New(db)
+
+	lead, err := st.UpsertGitHubUser(ctx, 85, "lead", "lead@example.com", "Lead", "", auth.RoleEditor)
+	if err != nil {
+		t.Fatalf("UpsertGitHubUser(): %v", err)
+	}
+	project, err := st.CreateProject(ctx, "Epsilon", "", lead.ID)
+	if err != nil {
+		t.Fatalf("CreateProject(): %v", err)
+	}
+	template, _, err := st.CreateChecklistTemplate(ctx, project.ID, "Modèle", lead.ID, nil)
+	if err != nil {
+		t.Fatalf("CreateChecklistTemplate(): %v", err)
+	}
+	if _, err = st.CreateChecklistRun(ctx, project.ID, template.ID, "Revue Q3", lead.ID, sql.NullString{
+		String: "2026-09-30T00:00:00Z",
+		Valid:  true,
+	}); err != nil {
+		t.Fatalf("CreateChecklistRun(): %v", err)
+	}
+
+	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
+	token, _, err := sessions.CreateLoginSession(ctx, lead.ID)
+	if err != nil {
+		t.Fatalf("CreateLoginSession(): %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/projects/"+strconv.FormatInt(project.ID, 10), nil)
+	req.AddCookie(&http.Cookie{Name: "revues_session", Value: token})
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+	body := rec.Body.String()
+	if !strings.Contains(body, "30/09/2026") {
+		t.Fatal("expected formatted due date on project page")
+	}
+	if !strings.Contains(body, "Revue Q3") {
+		t.Fatal("expected run title on project page")
+	}
+}
+
 func TestProjectShow_ShowsNokItems(t *testing.T) {
 	handler, db := testRouter(t)
 	ctx := context.Background()
@@ -96,7 +197,7 @@ func TestProjectShow_ShowsNokItems(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateChecklistTemplate(): %v", err)
 	}
-	run, err := st.CreateChecklistRun(ctx, project.ID, template.ID, "Revue", lead.ID)
+	run, err := st.CreateChecklistRun(ctx, project.ID, template.ID, "Revue", lead.ID, sql.NullString{})
 	if err != nil {
 		t.Fatalf("CreateChecklistRun(): %v", err)
 	}
