@@ -57,6 +57,19 @@ type AdminSMTPData struct {
 	Error         string
 }
 
+type AdminIntegrationRow struct {
+	Name        string
+	Description string
+	Enabled     bool
+	ConfigPath  string
+}
+
+type AdminIntegrationsData struct {
+	PageData
+	Integrations []AdminIntegrationRow
+	Error        string
+}
+
 // AdminWebhooksData is view data for the webhooks admin screen.
 type AdminWebhooksData struct {
 	PageData

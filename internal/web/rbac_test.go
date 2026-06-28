@@ -262,6 +262,8 @@ func TestRBAC_Matrix(t *testing.T) {
 		{"GET /admin/users editor denied", http.MethodGet, "/admin/users", "lead", "", http.StatusForbidden},
 		{"GET /admin/users reader denied", http.MethodGet, "/admin/users", "reader", "", http.StatusForbidden},
 		{"GET /admin/users admin ok", http.MethodGet, "/admin/users", "admin", "", http.StatusOK},
+		{"GET /admin/integrations editor denied", http.MethodGet, "/admin/integrations", "lead", "", http.StatusForbidden},
+		{"GET /admin/integrations admin ok", http.MethodGet, "/admin/integrations", "admin", "", http.StatusOK},
 		{"POST /admin/users editor denied", http.MethodPost, "/admin/users", "lead", "email=x@example.com&role=editor", http.StatusForbidden},
 	}
 
