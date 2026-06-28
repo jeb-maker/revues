@@ -26,7 +26,7 @@ func TestDashboard_ActiveRunsAndNokItems(t *testing.T) {
 			break
 		}
 	}
-	if err := st.UpdateRunItemStatus(ctx, run.ID, secondID, 1, items.StatusNOK, "bloquant"); err != nil {
+	if err = st.UpdateRunItemStatus(ctx, run.ID, secondID, 1, items.StatusNOK, "bloquant"); err != nil {
 		t.Fatalf("UpdateRunItemStatus(nok): %v", err)
 	}
 
