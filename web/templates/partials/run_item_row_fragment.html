@@ -5,6 +5,11 @@
   <td>
     {{if .JiraLink.ExternalKey}}
     <a href="{{.JiraLink.ExternalURL}}" target="_blank" rel="noopener noreferrer">{{.JiraLink.ExternalKey}}</a>
+    {{else if and (eq .Item.Status "nok") .CanLinkJira .JiraConfigured}}
+    <form method="post" action="/runs/{{.RunID}}/items/{{.Item.ID}}/jira-create" class="inline-form">
+      <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+      <button type="submit" class="button-secondary">Créer ticket Jira</button>
+    </form>
     {{else}}<span class="muted">—</span>{{end}}
   </td>
   <td>

@@ -33,6 +33,8 @@ type AdminJiraData struct {
 	InstanceType string
 	BaseURL      string
 	Email        string
+	ProjectKey   string
+	IssueType    string
 	HasAPIToken  bool
 	HasPAT       bool
 	Configured   bool
@@ -200,41 +202,45 @@ type RunProgressData struct {
 
 // RunItemRowData is view data for a single run item table row fragment.
 type RunItemRowData struct {
-	RunID       int64
-	RunStatus   string
-	Item        store.RunItem
-	Members     []store.ProjectMember
-	CSRFToken   string
-	CanCheck    bool
-	CanAssign   bool
-	JiraLink    store.IntegrationLink
-	ItemError   string
-	AssignError string
+	RunID          int64
+	RunStatus      string
+	Item           store.RunItem
+	Members        []store.ProjectMember
+	CSRFToken      string
+	CanCheck       bool
+	CanAssign      bool
+	CanLinkJira    bool
+	JiraConfigured bool
+	JiraLink       store.IntegrationLink
+	ItemError      string
+	AssignError    string
 }
 
 // RunShowData is view data for run detail.
 type RunShowData struct {
 	PageData
-	Project       *store.Project
-	Run           *store.ChecklistRun
-	Items         []store.RunItem
-	NokItems      []store.RunItem
-	JiraLinks     map[int64]store.IntegrationLink
-	Members       []store.ProjectMember
-	TemplateName  string
-	VersionNum    int
-	MemberRole    string
-	CanLaunch     bool
-	CanCheck      bool
-	CanAssign     bool
-	CanComplete   bool
-	Progress      RunProgressData
-	ClosingNote   string
-	Message       string
-	ItemError     string
-	AssignError   string
-	CompleteError string
-	Error         string
+	Project        *store.Project
+	Run            *store.ChecklistRun
+	Items          []store.RunItem
+	NokItems       []store.RunItem
+	JiraLinks      map[int64]store.IntegrationLink
+	Members        []store.ProjectMember
+	TemplateName   string
+	VersionNum     int
+	MemberRole     string
+	CanLaunch      bool
+	CanCheck       bool
+	CanAssign      bool
+	CanLinkJira    bool
+	JiraConfigured bool
+	CanComplete    bool
+	Progress       RunProgressData
+	ClosingNote    string
+	Message        string
+	ItemError      string
+	AssignError    string
+	CompleteError  string
+	Error          string
 }
 
 // MyTasksData is view data for assigned tasks list.
@@ -249,18 +255,22 @@ type MyTasksData struct {
 // RunItemShowData is view data for run item detail with audit history.
 type RunItemShowData struct {
 	PageData
-	Project        *store.Project
-	Run            *store.ChecklistRun
-	Item           *store.RunItem
-	Events         []store.RunItemEvent
-	JiraLink       *store.IntegrationLink
-	MemberRole     string
-	CanCheck       bool
-	CanLinkJira    bool
-	JiraConfigured bool
-	JiraIssueInput string
-	Message        string
-	LinkError      string
+	Project         *store.Project
+	Run             *store.ChecklistRun
+	Item            *store.RunItem
+	Events          []store.RunItemEvent
+	JiraLink        *store.IntegrationLink
+	MemberRole      string
+	CanCheck        bool
+	CanLinkJira     bool
+	JiraConfigured  bool
+	JiraIssueInput  string
+	Message         string
+	LinkError       string
+	CreateError     string
+	ShowJiraCreate  bool
+	JiraCreateTitle string
+	JiraCreateDesc  string
 }
 
 // Parse loads layout and page templates from the embedded filesystem.
@@ -281,18 +291,20 @@ func Parse() (*template.Template, error) {
 		},
 		"formatDueDate": formatDueDate,
 		"dueDateInput":  dueDateInput,
-		"runItemRow": func(run *store.ChecklistRun, item store.RunItem, members []store.ProjectMember, csrf string, canCheck, canAssign bool, jiraLink store.IntegrationLink, itemErr, assignErr string) RunItemRowData {
+		"runItemRow": func(run *store.ChecklistRun, item store.RunItem, members []store.ProjectMember, csrf string, canCheck, canAssign, canLinkJira, jiraConfigured bool, jiraLink store.IntegrationLink, itemErr, assignErr string) RunItemRowData {
 			return RunItemRowData{
-				RunID:       run.ID,
-				RunStatus:   run.Status,
-				Item:        item,
-				Members:     members,
-				CSRFToken:   csrf,
-				CanCheck:    canCheck,
-				CanAssign:   canAssign,
-				JiraLink:    jiraLink,
-				ItemError:   itemErr,
-				AssignError: assignErr,
+				RunID:          run.ID,
+				RunStatus:      run.Status,
+				Item:           item,
+				Members:        members,
+				CSRFToken:      csrf,
+				CanCheck:       canCheck,
+				CanAssign:      canAssign,
+				CanLinkJira:    canLinkJira,
+				JiraConfigured: jiraConfigured,
+				JiraLink:       jiraLink,
+				ItemError:      itemErr,
+				AssignError:    assignErr,
 			}
 		},
 	})

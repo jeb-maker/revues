@@ -14,8 +14,9 @@ import (
 )
 
 const (
-	InstanceCloud  = "cloud"
-	InstanceServer = "server"
+	InstanceCloud    = "cloud"
+	InstanceServer   = "server"
+	DefaultIssueType = "Task"
 )
 
 // ErrEncryptionNotConfigured is returned when REVUES_ENCRYPTION_KEY is missing.
@@ -28,6 +29,8 @@ type Config struct {
 	Email        string
 	APIToken     string
 	PAT          string
+	ProjectKey   string
+	IssueType    string
 }
 
 // Configured reports whether Jira credentials are complete for the instance type.
@@ -51,6 +54,8 @@ type configPayload struct {
 	Email        string `json:"email"`
 	APIToken     string `json:"api_token"`
 	PAT          string `json:"pat"`
+	ProjectKey   string `json:"project_key"`
+	IssueType    string `json:"issue_type"`
 }
 
 // Service loads and stores encrypted Jira integration settings.
@@ -83,7 +88,13 @@ func (s *Service) Load(ctx context.Context) (Config, bool, error) {
 		return Config{}, false, fmt.Errorf("parse jira integration: %w", err)
 	}
 
-	return Config(payload), true, nil
+	cfg := Config(payload)
+	cfg.ProjectKey = strings.ToUpper(strings.TrimSpace(cfg.ProjectKey))
+	cfg.IssueType = strings.TrimSpace(cfg.IssueType)
+	if cfg.IssueType == "" {
+		cfg.IssueType = DefaultIssueType
+	}
+	return cfg, true, nil
 }
 
 // Save encrypts and stores Jira config.
@@ -95,12 +106,19 @@ func (s *Service) Save(ctx context.Context, cfg Config) error {
 		return err
 	}
 
+	issueType := strings.TrimSpace(cfg.IssueType)
+	if issueType == "" {
+		issueType = DefaultIssueType
+	}
+
 	payload, err := json.Marshal(configPayload{
 		InstanceType: cfg.InstanceType,
 		BaseURL:      NormalizeBaseURL(cfg.BaseURL),
 		Email:        strings.TrimSpace(cfg.Email),
 		APIToken:     cfg.APIToken,
 		PAT:          cfg.PAT,
+		ProjectKey:   strings.ToUpper(strings.TrimSpace(cfg.ProjectKey)),
+		IssueType:    issueType,
 	})
 	if err != nil {
 		return fmt.Errorf("marshal jira integration: %w", err)
