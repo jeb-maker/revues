@@ -1,6 +1,11 @@
 package config
 
-import "os"
+import (
+	"encoding/base64"
+	"os"
+
+	"github.com/jeb-maker/revues/internal/crypto"
+)
 
 // Config holds runtime settings loaded from the environment.
 type Config struct {
@@ -9,6 +14,7 @@ type Config struct {
 	DatabasePath        string
 	Env                 string
 	SessionSecret       string
+	EncryptionKey       string
 	GitHubClientID      string
 	GitHubClientSecret  string
 	BootstrapAdminEmail string
@@ -22,6 +28,7 @@ func Load() Config {
 		DatabasePath:        envOr("REVUES_DATABASE_PATH", "data/revues.db"),
 		Env:                 envOr("REVUES_ENV", "development"),
 		SessionSecret:       envOr("REVUES_SESSION_SECRET", "change-me-32-random-bytes-minimum"),
+		EncryptionKey:       os.Getenv("REVUES_ENCRYPTION_KEY"),
 		GitHubClientID:      os.Getenv("REVUES_GITHUB_CLIENT_ID"),
 		GitHubClientSecret:  os.Getenv("REVUES_GITHUB_CLIENT_SECRET"),
 		BootstrapAdminEmail: os.Getenv("REVUES_BOOTSTRAP_ADMIN_EMAIL"),
@@ -33,9 +40,26 @@ func (c Config) SecureCookies() bool {
 	return c.Env == "production"
 }
 
+// EncryptionKeyBytes decodes REVUES_ENCRYPTION_KEY when configured.
+func (c Config) EncryptionKeyBytes() ([]byte, error) {
+	if c.EncryptionKey == "" {
+		return nil, nil
+	}
+	return crypto.DecodeKey(c.EncryptionKey)
+}
+
 func envOr(key, fallback string) string {
 	if v := os.Getenv(key); v != "" {
 		return v
 	}
 	return fallback
+}
+
+// TestEncryptionKey returns a valid base64 key for tests.
+func TestEncryptionKey() string {
+	key := make([]byte, crypto.KeySize)
+	for i := range key {
+		key[i] = byte(i + 1)
+	}
+	return base64.StdEncoding.EncodeToString(key)
 }
