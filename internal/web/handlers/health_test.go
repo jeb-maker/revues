@@ -35,10 +35,11 @@ func testRouter(t *testing.T) (http.Handler, *sql.DB) {
 	}
 
 	cfg := config.Config{
-		Addr:          ":8080",
-		BaseURL:       "http://example.com",
-		SessionSecret: "test-secret-at-least-thirty-two-bytes",
-		Env:           "development",
+		Addr:           ":8080",
+		BaseURL:        "http://example.com",
+		SessionSecret:  "test-secret-at-least-thirty-two-bytes",
+		Env:            "development",
+		AttachmentsDir: t.TempDir() + "/attachments",
 	}
 
 	handler, _, err := appweb.NewRouter(appweb.Deps{Config: cfg, DB: db})

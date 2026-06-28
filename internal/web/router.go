@@ -86,10 +86,11 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, error) {
 	projectsHandler := &handlers.Projects{Deps: handlerDeps}
 	checklistTemplates := &handlers.ChecklistTemplates{Deps: handlerDeps}
 	runsHandler := &handlers.Runs{
-		Deps:          handlerDeps,
-		EncryptionKey: adminSMTPKey,
-		Webhooks:      webhookDispatcher,
-		Notifications: notificationsSvc,
+		Deps:           handlerDeps,
+		EncryptionKey:  adminSMTPKey,
+		AttachmentsDir: deps.Config.AttachmentsDir,
+		Webhooks:       webhookDispatcher,
+		Notifications:  notificationsSvc,
 	}
 	myTasks := &handlers.MyTasks{Deps: handlerDeps}
 
@@ -139,6 +140,8 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, error) {
 		r.Post("/runs/{id}/items/{itemId}/assign", runsHandler.AssignItem)
 		r.Post("/runs/{id}/items/{itemId}/jira-link", runsHandler.LinkJiraItem)
 		r.Post("/runs/{id}/items/{itemId}/jira-create", runsHandler.CreateJiraItem)
+		r.Post("/runs/{id}/items/{itemId}/attachment", runsHandler.UploadAttachment)
+		r.Get("/attachments/{id}", runsHandler.DownloadAttachment)
 		r.Post("/runs/{id}/start", runsHandler.Start)
 		r.Post("/runs/{id}/complete", runsHandler.Complete)
 		r.Get("/mes-taches", myTasks.List)

@@ -1,0 +1,152 @@
+package handlers_test
+
+import (
+	"bytes"
+	"context"
+	"database/sql"
+	"fmt"
+	"image"
+	"image/jpeg"
+	"io"
+	"mime/multipart"
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+
+	"github.com/jeb-maker/revues/internal/auth"
+	"github.com/jeb-maker/revues/internal/config"
+	"github.com/jeb-maker/revues/internal/store"
+	appweb "github.com/jeb-maker/revues/internal/web"
+)
+
+func TestUpload_RejectsUnsupportedType(t *testing.T) {
+	handler, db, _ := testRouterAttachments(t)
+	run, item, token, csrf := seedRunItemForUpload(t, context.Background(), store.New(db))
+	body, ct := multipartUpload(t, csrf, "bad.txt", []byte("x"))
+	req := httptest.NewRequest(http.MethodPost, uploadURL(run.ID, item.ID), body)
+	req.Header.Set("Content-Type", ct)
+	req.AddCookie(&http.Cookie{Name: "revues_session", Value: token})
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+	if rec.Code != http.StatusBadRequest || !strings.Contains(rec.Body.String(), "non autorisé") {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestUpload_RejectsOversize(t *testing.T) {
+	handler, db, _ := testRouterAttachments(t)
+	run, item, token, csrf := seedRunItemForUpload(t, context.Background(), store.New(db))
+	data := make([]byte, 5*1024*1024+1)
+	data[0], data[1], data[2] = 0xFF, 0xD8, 0xFF
+	body, ct := multipartUpload(t, csrf, "big.jpg", data)
+	req := httptest.NewRequest(http.MethodPost, uploadURL(run.ID, item.ID), body)
+	req.Header.Set("Content-Type", ct)
+	req.AddCookie(&http.Cookie{Name: "revues_session", Value: token})
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+	if rec.Code != http.StatusBadRequest || !strings.Contains(rec.Body.String(), "5 Mo") {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestUpload_SuccessJPEG(t *testing.T) {
+	handler, db, dir := testRouterAttachments(t)
+	ctx := context.Background()
+	st := store.New(db)
+	run, item, token, csrf := seedRunItemForUpload(t, ctx, st)
+	src := image.NewRGBA(image.Rect(0, 0, 100, 100))
+	var imgBuf bytes.Buffer
+	_ = jpeg.Encode(&imgBuf, src, nil)
+	body, ct := multipartUpload(t, csrf, "proof.jpg", imgBuf.Bytes())
+	req := httptest.NewRequest(http.MethodPost, uploadURL(run.ID, item.ID), body)
+	req.Header.Set("Content-Type", ct)
+	req.AddCookie(&http.Cookie{Name: "revues_session", Value: token})
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+	if rec.Code != http.StatusSeeOther {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	att, err := st.AttachmentByRunItemID(ctx, item.ID)
+	if err != nil || att.Filename != "proof.jpg" {
+		t.Fatalf("attachment=%+v err=%v", att, err)
+	}
+	if _, err := os.Stat(filepath.Join(dir, att.StoragePath)); err != nil {
+		t.Fatalf("file missing: %v", err)
+	}
+}
+
+func TestIDOR_CrossProjectAttachmentUpload(t *testing.T) {
+	handler, db, _ := testRouterAttachments(t)
+	ctx := context.Background()
+	st := store.New(db)
+	leadA, _ := st.UpsertGitHubUser(ctx, 501, "a", "a@ex.com", "A", "", auth.RoleEditor)
+	leadB, _ := st.UpsertGitHubUser(ctx, 502, "b", "b@ex.com", "B", "", auth.RoleEditor)
+	pB, _ := st.CreateProject(ctx, "B", "", leadB.ID)
+	tpl, _, _ := st.CreateChecklistTemplate(ctx, pB.ID, "T", leadB.ID, []store.TemplateItemInput{{Label: "P"}})
+	runB, _ := st.CreateChecklistRun(ctx, pB.ID, tpl.ID, "RB", leadB.ID, sql.NullString{})
+	_ = st.StartRun(ctx, runB.ID)
+	itemsB, _ := st.ListRunItems(ctx, runB.ID)
+	pA, _ := st.CreateProject(ctx, "A", "", leadA.ID)
+	tplA, _, _ := st.CreateChecklistTemplate(ctx, pA.ID, "T", leadA.ID, []store.TemplateItemInput{{Label: "P"}})
+	runA, _ := st.CreateChecklistRun(ctx, pA.ID, tplA.ID, "RA", leadA.ID, sql.NullString{})
+	_ = st.StartRun(ctx, runA.ID)
+	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
+	token, _, _ := sessions.CreateLoginSession(ctx, leadA.ID)
+	csrf := auth.CSRFToken(token, "test-secret-at-least-thirty-two-bytes")
+	var imgBuf bytes.Buffer
+	_ = jpeg.Encode(&imgBuf, image.NewRGBA(image.Rect(0, 0, 8, 8)), nil)
+	body, ct := multipartUpload(t, csrf, "x.jpg", imgBuf.Bytes())
+	req := httptest.NewRequest(http.MethodPost, uploadURL(runA.ID, itemsB[0].ID), body)
+	req.Header.Set("Content-Type", ct)
+	req.AddCookie(&http.Cookie{Name: "revues_session", Value: token})
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("status=%d want 404", rec.Code)
+	}
+}
+
+func testRouterAttachments(t *testing.T) (http.Handler, *sql.DB, string) {
+	t.Helper()
+	ctx := context.Background()
+	dir := t.TempDir() + "/attachments"
+	db, _ := store.Open(ctx, t.TempDir()+"/test.db")
+	t.Cleanup(func() { _ = db.Close() })
+	_ = store.Migrate(ctx, db)
+	h, _, _ := appweb.NewRouter(appweb.Deps{Config: config.Config{
+		Addr: ":8080", BaseURL: "http://example.com", SessionSecret: "test-secret-at-least-thirty-two-bytes",
+		Env: "development", AttachmentsDir: dir,
+	}, DB: db})
+	return h, db, dir
+}
+
+func seedRunItemForUpload(t *testing.T, ctx context.Context, st *store.Store) (*store.ChecklistRun, store.RunItem, string, string) {
+	t.Helper()
+	lead, _ := st.UpsertGitHubUser(ctx, 600, "lead", "up@ex.com", "L", "", auth.RoleEditor)
+	p, _ := st.CreateProject(ctx, "P", "", lead.ID)
+	tpl, _, _ := st.CreateChecklistTemplate(ctx, p.ID, "M", lead.ID, []store.TemplateItemInput{{Label: "P"}})
+	run, _ := st.CreateChecklistRun(ctx, p.ID, tpl.ID, "R", lead.ID, sql.NullString{})
+	_ = st.StartRun(ctx, run.ID)
+	items, _ := st.ListRunItems(ctx, run.ID)
+	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
+	token, _, _ := sessions.CreateLoginSession(ctx, lead.ID)
+	return run, items[0], token, auth.CSRFToken(token, "test-secret-at-least-thirty-two-bytes")
+}
+
+func uploadURL(runID, itemID int64) string {
+	return fmt.Sprintf("/runs/%d/items/%d/attachment", runID, itemID)
+}
+
+func multipartUpload(t *testing.T, csrf, filename string, data []byte) (*bytes.Buffer, string) {
+	t.Helper()
+	var body bytes.Buffer
+	w := multipart.NewWriter(&body)
+	_ = w.WriteField("csrf_token", csrf)
+	part, _ := w.CreateFormFile("attachment", filename)
+	_, _ = io.Copy(part, bytes.NewReader(data))
+	_ = w.Close()
+	return &body, w.FormDataContentType()
+}

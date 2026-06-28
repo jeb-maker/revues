@@ -295,6 +295,9 @@ type RunItemShowData struct {
 	ShowJiraCreate  bool
 	JiraCreateTitle string
 	JiraCreateDesc  string
+	Attachment      *store.Attachment
+	CanUpload       bool
+	UploadError     string
 }
 
 // Parse loads layout and page templates from the embedded filesystem.

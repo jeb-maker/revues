@@ -123,6 +123,12 @@ func (h *Runs) renderRunItemShow(w http.ResponseWriter, r *http.Request, run *st
 	}
 
 	jiraLink, _ := h.Store.IntegrationLinkByRunItemAndType(r.Context(), item.ID, store.IntegrationTypeJira)
+	var attachment *store.Attachment
+	if att, attErr := h.Store.AttachmentByRunItemID(r.Context(), item.ID); attErr == nil {
+		attachment = att
+	} else if !errors.Is(attErr, store.ErrAttachmentNotFound) {
+		slog.Error("load attachment for run item show", "err", attErr)
+	}
 
 	data := viewtemplates.RunItemShowData{
 		PageData:        h.PageData(r, item.Label),
@@ -131,8 +137,10 @@ func (h *Runs) renderRunItemShow(w http.ResponseWriter, r *http.Request, run *st
 		Item:            item,
 		Events:          events,
 		JiraLink:        jiraLink,
+		Attachment:      attachment,
 		MemberRole:      memberRole,
 		CanCheck:        items.CanUpdate(user, memberRole),
+		CanUpload:       items.CanUpdate(user, memberRole) && run.Status == store.RunStatusInProgress,
 		CanLinkJira:     items.CanLinkJira(user, memberRole),
 		JiraConfigured:  h.jiraConfigured(r.Context()),
 		Message:         extra.Message,
@@ -142,6 +150,7 @@ func (h *Runs) renderRunItemShow(w http.ResponseWriter, r *http.Request, run *st
 		ShowJiraCreate:  extra.ShowJiraCreate,
 		JiraCreateTitle: extra.JiraCreateTitle,
 		JiraCreateDesc:  extra.JiraCreateDesc,
+		UploadError:     extra.UploadError,
 	}
 	if data.Message == "" {
 		data.Message = r.URL.Query().Get("msg")
@@ -154,7 +163,7 @@ func (h *Runs) renderRunItemShow(w http.ResponseWriter, r *http.Request, run *st
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	statusCode := http.StatusOK
-	if extra.LinkError != "" || extra.CreateError != "" {
+	if extra.LinkError != "" || extra.CreateError != "" || extra.UploadError != "" {
 		statusCode = http.StatusBadRequest
 	}
 	w.WriteHeader(statusCode)
