@@ -84,7 +84,7 @@ func (s *Store) ReplaceAttachment(ctx context.Context, runItemID int64, filename
 	}
 	defer func() { _ = tx.Rollback() }()
 
-	if _, err := tx.ExecContext(ctx, `DELETE FROM attachments WHERE run_item_id = ?`, runItemID); err != nil {
+	if _, err = tx.ExecContext(ctx, `DELETE FROM attachments WHERE run_item_id = ?`, runItemID); err != nil {
 		return nil, fmt.Errorf("delete existing attachment: %w", err)
 	}
 	now := time.Now().UTC().Format(time.RFC3339)

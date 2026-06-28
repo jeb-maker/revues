@@ -39,7 +39,7 @@ func (h *Runs) UploadAttachment(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	if _, err := h.Store.RunItemByID(r.Context(), run.ID, itemID); err != nil {
+	if _, err = h.Store.RunItemByID(r.Context(), run.ID, itemID); err != nil {
 		if errors.Is(err, store.ErrRunItemNotFound) {
 			http.NotFound(w, r)
 			return
@@ -48,7 +48,7 @@ func (h *Runs) UploadAttachment(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
-	if err := r.ParseMultipartForm(multipartMaxMemory); err != nil {
+	if err = r.ParseMultipartForm(multipartMaxMemory); err != nil {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
 	}
