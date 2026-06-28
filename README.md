@@ -5,6 +5,7 @@ Application de gestion de check-lists pour revues de projets — simple d'utilis
 ## Documentation
 
 - [Plan produit & technique](docs/PLAN.md)
+- [Onboarding (5 étapes)](docs/ONBOARDING.md)
 - [Roadmap & tâches déléguables](docs/ROADMAP.md)
 - [Guide de délégation GitHub](docs/DELEGATION.md)
 - [Revue adverse (juin 2026)](docs/REVIEW_ADVERSE.md)

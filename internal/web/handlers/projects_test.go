@@ -118,3 +118,53 @@ func TestProjects_ReaderCannotCreate(t *testing.T) {
 		t.Errorf("status = %d, want %d", rec.Code, http.StatusForbidden)
 	}
 }
+
+func TestDashboardEmptyState_ByRole(t *testing.T) {
+	roles := []struct {
+		role    string
+		want    string
+		notWant string
+	}{
+		{auth.RoleAdmin, "Gérer les utilisateurs autorisés", "ne vous est encore assigné"},
+		{auth.RoleEditor, "Créer un projet", "Gérer les utilisateurs autorisés"},
+		{auth.RoleReader, "ne vous est encore assigné", "Créer un projet"},
+	}
+
+	for _, tt := range roles {
+		t.Run(tt.role, func(t *testing.T) {
+			handler, db := testRouter(t)
+			ctx := context.Background()
+			st := store.New(db)
+
+			user, err := st.UpsertGitHubUser(ctx, 40, "user-"+tt.role, tt.role+"@example.com", tt.role, "", tt.role)
+			if err != nil {
+				t.Fatalf("UpsertGitHubUser(): %v", err)
+			}
+
+			sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
+			token, _, err := sessions.CreateLoginSession(ctx, user.ID)
+			if err != nil {
+				t.Fatalf("CreateLoginSession(): %v", err)
+			}
+
+			req := httptest.NewRequest(http.MethodGet, "/projects", nil)
+			req.AddCookie(&http.Cookie{Name: "revues_session", Value: token})
+			rec := httptest.NewRecorder()
+			handler.ServeHTTP(rec, req)
+
+			if rec.Code != http.StatusOK {
+				t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+			}
+			body := rec.Body.String()
+			if !strings.Contains(body, "empty-state") {
+				t.Fatal("expected empty dashboard state")
+			}
+			if !strings.Contains(body, tt.want) {
+				t.Fatalf("expected CTA %q in body", tt.want)
+			}
+			if tt.notWant != "" && strings.Contains(body, tt.notWant) {
+				t.Fatalf("unexpected CTA %q in body", tt.notWant)
+			}
+		})
+	}
+}

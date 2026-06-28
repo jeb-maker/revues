@@ -32,7 +32,7 @@ func (h *Auth) Login(w http.ResponseWriter, r *http.Request) {
 
 	data := templates.PageData{
 		Title:      "Connexion",
-		LoginError: r.URL.Query().Get("error"),
+		LoginError: auth.LoginErrorMessage(r.URL.Query().Get("error")),
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
