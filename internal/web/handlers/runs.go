@@ -3,6 +3,7 @@ package handlers
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"html/template"
 	"log/slog"
 	"net/http"
@@ -471,6 +472,56 @@ func (h *Runs) Complete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(w, r, "/runs/"+strconv.FormatInt(run.ID, 10)+"?msg=Revue+termin%C3%A9e", http.StatusSeeOther)
+}
+
+// ExportCSV downloads a CSV export for a completed run.
+func (h *Runs) ExportCSV(w http.ResponseWriter, r *http.Request) {
+	run, _, _, _, ok := h.loadRun(w, r)
+	if !ok {
+		return
+	}
+	if run.Status != store.RunStatusDone {
+		http.NotFound(w, r)
+		return
+	}
+
+	rows, err := h.Store.ListRunExportRows(r.Context(), run.ID)
+	if err != nil {
+		slog.Error("list run export rows", "err", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	csvData, err := runs.BuildRunCSV(rows)
+	if err != nil {
+		slog.Error("build run csv", "err", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	filename := exportCSVFilename(run)
+	w.Header().Set("Content-Type", "text/csv; charset=utf-8")
+	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, filename))
+	if _, writeErr := w.Write(csvData); writeErr != nil {
+		slog.Error("write run csv export", "err", writeErr)
+	}
+}
+
+func exportCSVFilename(run *store.ChecklistRun) string {
+	safe := strings.Map(func(r rune) rune {
+		switch {
+		case r >= 'a' && r <= 'z', r >= 'A' && r <= 'Z', r >= '0' && r <= '9':
+			return r
+		case r == '-', r == '_':
+			return r
+		default:
+			return '-'
+		}
+	}, strings.TrimSpace(run.Title))
+	if safe == "" {
+		return fmt.Sprintf("revue-%d.csv", run.ID)
+	}
+	return safe + ".csv"
 }
 
 func (h *Runs) renderRunShow(w http.ResponseWriter, r *http.Request, run *store.ChecklistRun, project *store.Project, user *store.User, memberRole string, extra viewtemplates.RunShowData) {
