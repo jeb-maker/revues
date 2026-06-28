@@ -122,7 +122,10 @@ func oauthCookie(t *testing.T, sessions *auth.SessionManager, state, verifier st
 func sessionCookieFromResponse(t *testing.T, rec *httptest.ResponseRecorder) *http.Cookie {
 	t.Helper()
 
-	for _, c := range rec.Result().Cookies() {
+	resp := rec.Result()
+	defer resp.Body.Close()
+
+	for _, c := range resp.Cookies() {
 		if c.Name == "revues_session" && c.Value != "" {
 			return c
 		}
@@ -181,7 +184,9 @@ func TestOAuthCallback_SuccessVerifiedWhitelisted(t *testing.T) {
 		t.Errorf("user = %+v, want email=%q role=%q", user, email, auth.RoleEditor)
 	}
 
-	for _, c := range rec.Result().Cookies() {
+	resp := rec.Result()
+	defer resp.Body.Close()
+	for _, c := range resp.Cookies() {
 		if c.Name == "revues_oauth" && c.MaxAge >= 0 {
 			t.Error("expected revues_oauth cookie to be cleared")
 		}
