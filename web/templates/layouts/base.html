@@ -4,19 +4,42 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
   {{if .CSRFToken}}<meta name="csrf-token" content="{{.CSRFToken}}">{{end}}
   <title>{{if .Title}}{{.Title}} — {{end}}Revues</title>
   <link rel="stylesheet" href="/static/css/app.css">
 </head>
 <body>
+  <a class="skip-link" href="#main">Aller au contenu</a>
   <header class="site-header">
-    <a href="/">Revues</a>
+    <div class="site-header__inner">
+      <a class="brand" href="/" aria-label="Revues — accueil">
+        <span class="brand__mark" aria-hidden="true">◈</span>
+        <span class="brand__name">Revues</span>
+      </a>
+      {{if .User}}
+      <div class="header-account">
+        {{if .User.AvatarURL}}<img class="header-account__avatar" src="{{.User.AvatarURL}}" alt="" width="28" height="28">{{end}}
+        <span class="header-account__name">{{if .User.DisplayName}}{{.User.DisplayName}}{{else}}{{.User.Login}}{{end}}</span>
+        <span class="status-badge status-{{.User.Role}} role-badge">{{.User.Role}}</span>
+        <form method="post" action="/logout" class="inline-form">
+          <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+          <button type="submit" class="button button-ghost button-sm">Déconnexion</button>
+        </form>
+      </div>
+      {{else}}
+      <a class="button button-ghost button-sm" href="/login">Connexion</a>
+      {{end}}
+    </div>
   </header>
-  <main class="site-main">
+  <main id="main" class="site-main">
 {{end}}
 
 {{define "layout_end"}}
   </main>
+  <footer class="site-footer">
+    <p>Revues — gestion de check-lists pour revues de projets.</p>
+  </footer>
   <script src="/static/js/htmx.js" defer></script>
   <script src="/static/js/app.js" defer></script>
 </body>
