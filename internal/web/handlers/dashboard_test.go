@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"github.com/jeb-maker/revues/internal/auth"
-	"github.com/jeb-maker/revues/internal/items"
+	runs "github.com/jeb-maker/revues/internal/features/runs"
 	"github.com/jeb-maker/revues/internal/store"
 )
 
@@ -45,7 +45,7 @@ func TestDashboard_ShowsActiveRunProgress(t *testing.T) {
 	if err != nil || len(runItems) != 2 {
 		t.Fatalf("ListRunItems() = %v, %v", runItems, err)
 	}
-	if err = st.UpdateRunItemStatus(ctx, run.ID, runItems[0].ID, lead.ID, items.StatusOK, ""); err != nil {
+	if err = st.UpdateRunItemStatus(ctx, run.ID, runItems[0].ID, lead.ID, runs.StatusOK, ""); err != nil {
 		t.Fatalf("UpdateRunItemStatus(): %v", err)
 	}
 
@@ -208,7 +208,7 @@ func TestProjectShow_ShowsNokItems(t *testing.T) {
 	if err != nil || len(runItems) != 1 {
 		t.Fatalf("ListRunItems() = %v, %v", runItems, err)
 	}
-	if err = st.UpdateRunItemStatus(ctx, run.ID, runItems[0].ID, lead.ID, items.StatusNOK, "à corriger"); err != nil {
+	if err = st.UpdateRunItemStatus(ctx, run.ID, runItems[0].ID, lead.ID, runs.StatusNOK, "à corriger"); err != nil {
 		t.Fatalf("UpdateRunItemStatus(): %v", err)
 	}
 

@@ -12,7 +12,7 @@ import (
 
 	"github.com/jeb-maker/revues/internal/auth"
 	"github.com/jeb-maker/revues/internal/features/projects"
-	"github.com/jeb-maker/revues/internal/items"
+	runs "github.com/jeb-maker/revues/internal/features/runs"
 	"github.com/jeb-maker/revues/internal/store"
 )
 
@@ -37,10 +37,10 @@ func setupDoneRun(t *testing.T, st *store.Store, ctx context.Context, lead *stor
 	if err != nil || len(runItems) != 2 {
 		t.Fatalf("ListRunItems() = %v, %v", runItems, err)
 	}
-	if err = st.UpdateRunItemStatus(ctx, run.ID, runItems[0].ID, lead.ID, items.StatusOK, ""); err != nil {
+	if err = st.UpdateRunItemStatus(ctx, run.ID, runItems[0].ID, lead.ID, runs.StatusOK, ""); err != nil {
 		t.Fatalf("UpdateRunItemStatus(): %v", err)
 	}
-	if err = st.UpdateRunItemStatus(ctx, run.ID, runItems[1].ID, lead.ID, items.StatusNOK, "Rotation manquante"); err != nil {
+	if err = st.UpdateRunItemStatus(ctx, run.ID, runItems[1].ID, lead.ID, runs.StatusNOK, "Rotation manquante"); err != nil {
 		t.Fatalf("UpdateRunItemStatus(): %v", err)
 	}
 	if err = st.CompleteRun(ctx, run.ID, "Clôturée"); err != nil {
@@ -102,10 +102,10 @@ func TestRuns_ExportCSV(t *testing.T) {
 	if records[1][0] != "Alpha" || records[1][1] != "Revue Q2" || records[1][3] != "Backup" {
 		t.Fatalf("first data row = %v", records[1])
 	}
-	if records[1][4] != items.StatusOK || records[1][6] != "lead" {
+	if records[1][4] != runs.StatusOK || records[1][6] != "lead" {
 		t.Fatalf("first data row status/author = %v", records[1])
 	}
-	if records[2][3] != "Logs" || records[2][4] != items.StatusNOK || records[2][5] != "Rotation manquante" {
+	if records[2][3] != "Logs" || records[2][4] != runs.StatusNOK || records[2][5] != "Rotation manquante" {
 		t.Fatalf("second data row = %v", records[2])
 	}
 	if records[1][2] == "" {

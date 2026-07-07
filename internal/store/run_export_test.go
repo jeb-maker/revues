@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/jeb-maker/revues/internal/auth"
-	"github.com/jeb-maker/revues/internal/items"
+	runs "github.com/jeb-maker/revues/internal/features/runs"
 	"github.com/jeb-maker/revues/internal/store"
 )
 
@@ -18,7 +18,7 @@ func TestListRunExportRows(t *testing.T) {
 		t.Fatalf("UpsertGitHubUser(): %v", err)
 	}
 
-	if err = st.UpdateRunItemStatus(ctx, run.ID, itemID, checker.ID, items.StatusOK, ""); err != nil {
+	if err = st.UpdateRunItemStatus(ctx, run.ID, itemID, checker.ID, runs.StatusOK, ""); err != nil {
 		t.Fatalf("UpdateRunItemStatus(): %v", err)
 	}
 	if err = st.CompleteRun(ctx, run.ID, "Terminé"); err != nil {
@@ -35,7 +35,7 @@ func TestListRunExportRows(t *testing.T) {
 	if rows[0].ProjectName != "P" || rows[0].RunTitle != "Revue" {
 		t.Fatalf("first row metadata = %+v", rows[0])
 	}
-	if rows[0].PointLabel != "Point 1" || rows[0].Status != items.StatusOK || rows[0].AuthorLogin != "checker" {
+	if rows[0].PointLabel != "Point 1" || rows[0].Status != runs.StatusOK || rows[0].AuthorLogin != "checker" {
 		t.Fatalf("first row item = %+v", rows[0])
 	}
 	if rows[0].RunDate == "" {

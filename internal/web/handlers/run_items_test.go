@@ -11,7 +11,7 @@ import (
 	"testing"
 
 	"github.com/jeb-maker/revues/internal/auth"
-	"github.com/jeb-maker/revues/internal/items"
+	runs "github.com/jeb-maker/revues/internal/features/runs"
 	"github.com/jeb-maker/revues/internal/store"
 )
 
@@ -55,7 +55,7 @@ func TestRunItem_NokRequiresComment(t *testing.T) {
 
 	form := url.Values{}
 	form.Set("csrf_token", csrf)
-	form.Set("status", items.StatusNOK)
+	form.Set("status", runs.StatusNOK)
 	form.Set("comment", "")
 	req := httptest.NewRequest(http.MethodPost, "/runs/"+strconv.FormatInt(run.ID, 10)+"/items/"+strconv.FormatInt(runItems[0].ID, 10), strings.NewReader(form.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
@@ -184,7 +184,7 @@ func TestIDOR_CrossProjectRunItem(t *testing.T) {
 
 	form := url.Values{}
 	form.Set("csrf_token", auth.CSRFToken(bobToken, "test-secret-at-least-thirty-two-bytes"))
-	form.Set("status", items.StatusOK)
+	form.Set("status", runs.StatusOK)
 	form.Set("comment", "")
 	req := httptest.NewRequest(http.MethodPost, "/runs/"+strconv.FormatInt(runA.ID, 10)+"/items/"+strconv.FormatInt(itemsA[0].ID, 10), strings.NewReader(form.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")

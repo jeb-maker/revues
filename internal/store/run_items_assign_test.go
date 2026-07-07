@@ -7,7 +7,7 @@ import (
 
 	"github.com/jeb-maker/revues/internal/auth"
 	"github.com/jeb-maker/revues/internal/features/projects"
-	"github.com/jeb-maker/revues/internal/items"
+	runs "github.com/jeb-maker/revues/internal/features/runs"
 	"github.com/jeb-maker/revues/internal/store"
 )
 
@@ -40,12 +40,12 @@ func TestAssignRunItem(t *testing.T) {
 		t.Fatalf("ListAssignedRunItems() = %v, %v", tasks, err)
 	}
 
-	filtered, err := st.ListAssignedRunItems(ctx, contrib.ID, run.ProjectID, items.StatusPending)
+	filtered, err := st.ListAssignedRunItems(ctx, contrib.ID, run.ProjectID, runs.StatusPending)
 	if err != nil || len(filtered) != 1 {
 		t.Fatalf("ListAssignedRunItems(filter) = %v, %v", filtered, err)
 	}
 
-	empty, err := st.ListAssignedRunItems(ctx, contrib.ID, run.ProjectID, items.StatusOK)
+	empty, err := st.ListAssignedRunItems(ctx, contrib.ID, run.ProjectID, runs.StatusOK)
 	if err != nil || len(empty) != 0 {
 		t.Fatalf("ListAssignedRunItems(ok filter) = %v, %v", empty, err)
 	}

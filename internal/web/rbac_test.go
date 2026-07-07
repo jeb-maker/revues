@@ -13,7 +13,7 @@ import (
 	"github.com/jeb-maker/revues/internal/auth"
 	"github.com/jeb-maker/revues/internal/config"
 	"github.com/jeb-maker/revues/internal/features/projects"
-	"github.com/jeb-maker/revues/internal/items"
+	runs "github.com/jeb-maker/revues/internal/features/runs"
 	"github.com/jeb-maker/revues/internal/store"
 	appweb "github.com/jeb-maker/revues/internal/web"
 )
@@ -211,17 +211,17 @@ func TestRBAC_Matrix(t *testing.T) {
 
 	contributorItem := url.Values{}
 	contributorItem.Set("csrf_token", f.csrf(f.tokens["contributor"]))
-	contributorItem.Set("status", items.StatusOK)
+	contributorItem.Set("status", runs.StatusOK)
 	contributorItem.Set("comment", "")
 
 	viewerItem := url.Values{}
 	viewerItem.Set("csrf_token", f.csrf(f.tokens["viewer"]))
-	viewerItem.Set("status", items.StatusOK)
+	viewerItem.Set("status", runs.StatusOK)
 	viewerItem.Set("comment", "")
 
 	outsiderItem := url.Values{}
 	outsiderItem.Set("csrf_token", f.csrf(f.tokens["outsider"]))
-	outsiderItem.Set("status", items.StatusOK)
+	outsiderItem.Set("status", runs.StatusOK)
 	outsiderItem.Set("comment", "")
 
 	tests := []struct {
@@ -310,7 +310,7 @@ func TestIDOR_CrossProject(t *testing.T) {
 
 	itemForm := url.Values{}
 	itemForm.Set("csrf_token", f.csrf(bobToken))
-	itemForm.Set("status", items.StatusOK)
+	itemForm.Set("status", runs.StatusOK)
 
 	tests := []struct {
 		name       string
@@ -343,7 +343,7 @@ func TestCSRF_MissingToken(t *testing.T) {
 	launchForm.Set("title", "Sans CSRF")
 
 	itemForm := url.Values{}
-	itemForm.Set("status", items.StatusOK)
+	itemForm.Set("status", runs.StatusOK)
 
 	adminForm := url.Values{}
 	adminForm.Set("email", "new@example.com")

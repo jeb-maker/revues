@@ -6,7 +6,7 @@ import (
 	"strconv"
 
 	"github.com/jeb-maker/revues/internal/auth"
-	"github.com/jeb-maker/revues/internal/items"
+	runs "github.com/jeb-maker/revues/internal/features/runs"
 	"github.com/jeb-maker/revues/internal/web/middleware"
 	viewtemplates "github.com/jeb-maker/revues/internal/web/templates"
 )
@@ -32,7 +32,7 @@ func (h *MyTasks) List(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	statusFilter := r.URL.Query().Get("status")
-	if statusFilter != "" && !items.ValidStatus(statusFilter) {
+	if statusFilter != "" && !runs.ValidStatus(statusFilter) {
 		statusFilter = ""
 	}
 

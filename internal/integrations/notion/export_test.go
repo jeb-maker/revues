@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
+	runs "github.com/jeb-maker/revues/internal/features/runs"
 	"github.com/jeb-maker/revues/internal/integrations/notion"
-	"github.com/jeb-maker/revues/internal/items"
 	"github.com/jeb-maker/revues/internal/store"
 )
 
@@ -42,7 +42,7 @@ func TestExportServiceExportRun(t *testing.T) {
 	run, _ := st.CreateChecklistRun(ctx, project.ID, template.ID, "Revue Q1", lead.ID, sql.NullString{})
 	_ = st.StartRun(ctx, run.ID)
 	runItems, _ := st.ListRunItems(ctx, run.ID)
-	_ = st.UpdateRunItemStatus(ctx, run.ID, runItems[0].ID, lead.ID, items.StatusOK, "")
+	_ = st.UpdateRunItemStatus(ctx, run.ID, runItems[0].ID, lead.ID, runs.StatusOK, "")
 	_ = st.CompleteRun(ctx, run.ID, "Clôturée")
 	exportSvc := &notion.ExportService{Store: st, EncryptionKey: svc.EncryptionKey, Client: &notion.Client{HTTPClient: srv.Client(), APIBaseURL: srv.URL + "/v1"}, BaseURL: "http://example.com"}
 	url, err := exportSvc.ExportRun(ctx, run.ID)

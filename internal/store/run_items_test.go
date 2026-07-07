@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/jeb-maker/revues/internal/auth"
-	"github.com/jeb-maker/revues/internal/items"
+	runs "github.com/jeb-maker/revues/internal/features/runs"
 	"github.com/jeb-maker/revues/internal/store"
 )
 
@@ -50,11 +50,11 @@ func TestUpdateRunItemStatusStoresNokWithComment(t *testing.T) {
 	ctx := context.Background()
 	st, run, itemID := setupInProgressRun(t)
 
-	if err := items.ValidateUpdate(items.StatusNOK, ""); !errors.Is(err, items.ErrCommentRequired) {
+	if err := runs.ValidateUpdate(runs.StatusNOK, ""); !errors.Is(err, runs.ErrCommentRequired) {
 		t.Fatalf("ValidateUpdate() should require comment")
 	}
 
-	err := st.UpdateRunItemStatus(ctx, run.ID, itemID, 1, items.StatusNOK, "Détail du problème")
+	err := st.UpdateRunItemStatus(ctx, run.ID, itemID, 1, runs.StatusNOK, "Détail du problème")
 	if err != nil {
 		t.Fatalf("UpdateRunItemStatus(): %v", err)
 	}
@@ -63,7 +63,7 @@ func TestUpdateRunItemStatusStoresNokWithComment(t *testing.T) {
 	if err != nil {
 		t.Fatalf("RunItemByID(): %v", err)
 	}
-	if item.Status != items.StatusNOK || item.Comment != "Détail du problème" {
+	if item.Status != runs.StatusNOK || item.Comment != "Détail du problème" {
 		t.Fatalf("item = %+v", item)
 	}
 }
@@ -72,7 +72,7 @@ func TestCompleteRunStoresClosingNote(t *testing.T) {
 	ctx := context.Background()
 	st, run, itemID := setupInProgressRun(t)
 
-	if err := st.UpdateRunItemStatus(ctx, run.ID, itemID, 1, items.StatusNOK, "Bloqué"); err != nil {
+	if err := st.UpdateRunItemStatus(ctx, run.ID, itemID, 1, runs.StatusNOK, "Bloqué"); err != nil {
 		t.Fatalf("UpdateRunItemStatus(): %v", err)
 	}
 
