@@ -17,6 +17,8 @@ import (
 	adminusers "github.com/jeb-maker/revues/internal/features/admin/users"
 	adminwebhooks "github.com/jeb-maker/revues/internal/features/admin/webhooks"
 	"github.com/jeb-maker/revues/internal/features/checklisttemplates"
+	home "github.com/jeb-maker/revues/internal/features/home"
+	mytasks "github.com/jeb-maker/revues/internal/features/mytasks"
 	"github.com/jeb-maker/revues/internal/features/projects"
 	runs "github.com/jeb-maker/revues/internal/features/runs"
 	"github.com/jeb-maker/revues/internal/integrations/webhooks"
@@ -112,7 +114,11 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, error) {
 		Webhooks:       webhookDispatcher,
 		Notifications:  notificationsSvc,
 	}
-	myTasks := &handlers.MyTasks{Deps: handlerDeps}
+	myTasks := &mytasks.MyTasks{Deps: mytasks.Deps{
+		Templates:     tpl,
+		Store:         st,
+		SessionSecret: deps.Config.SessionSecret,
+	}}
 
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
@@ -123,7 +129,11 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, error) {
 	r.Use(appmiddleware.CSRF(deps.Config.SessionSecret))
 
 	r.Get("/healthz", handlers.Health)
-	r.Get("/", (&handlers.Home{Deps: handlerDeps}).ServeHTTP)
+	r.Get("/", (&home.Home{Deps: home.Deps{
+		Templates:     tpl,
+		Store:         st,
+		SessionSecret: deps.Config.SessionSecret,
+	}}).ServeHTTP)
 	r.Handle("/static/*", http.StripPrefix("/static/", http.FileServer(http.FS(staticFS))))
 
 	r.Get("/login", authHandler.Login)

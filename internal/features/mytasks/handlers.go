@@ -1,15 +1,47 @@
-package handlers
+package mytasks
 
 import (
+	"html/template"
 	"log/slog"
 	"net/http"
 	"strconv"
 
 	"github.com/jeb-maker/revues/internal/auth"
 	runs "github.com/jeb-maker/revues/internal/features/runs"
+	"github.com/jeb-maker/revues/internal/store"
 	"github.com/jeb-maker/revues/internal/web/middleware"
 	viewtemplates "github.com/jeb-maker/revues/internal/web/templates"
 )
+
+// Deps holds shared dependencies for the mytasks HTTP handlers.
+//
+// This mirrors internal/web/handlers.Deps but is local to the mytasks feature
+// package to avoid an import cycle (features/mytasks must not import
+// internal/web/handlers). A follow-up issue may extract a shared base Deps.
+type Deps struct {
+	Templates     *template.Template
+	Store         *store.Store
+	SessionSecret string
+}
+
+// PageData builds shared view data with user and CSRF from the request context.
+func (d *Deps) PageData(r *http.Request, title string) viewtemplates.PageData {
+	data := viewtemplates.PageData{Title: title}
+	if user, ok := middleware.UserFromContext(r.Context()); ok {
+		data.User = user
+		if token := middleware.SessionTokenFromContext(r); token != "" {
+			data.CSRFToken = auth.CSRFToken(token, d.SessionSecret)
+		}
+	}
+	return data
+}
+
+// PageDataTab is PageData with ActiveTab set.
+func (d *Deps) PageDataTab(r *http.Request, title, activeTab string) viewtemplates.PageData {
+	data := d.PageData(r, title)
+	data.ActiveTab = activeTab
+	return data
+}
 
 // MyTasks lists run items assigned to the current user.
 type MyTasks struct {
