@@ -9,14 +9,14 @@ import (
 
 	"github.com/jeb-maker/revues/internal/features/admin/settings"
 	"github.com/jeb-maker/revues/internal/notifications"
-	"github.com/jeb-maker/revues/internal/web/handlers"
+	"github.com/jeb-maker/revues/internal/web/handlerdeps"
 	"github.com/jeb-maker/revues/internal/web/middleware"
 	"github.com/jeb-maker/revues/internal/web/templates"
 )
 
 // AdminSMTP manages encrypted SMTP relay settings.
 type AdminSMTP struct {
-	handlers.Deps
+	handlerdeps.HandlerDeps
 	EncryptionKey []byte
 }
 

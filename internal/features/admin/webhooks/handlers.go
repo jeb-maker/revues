@@ -8,13 +8,13 @@ import (
 
 	"github.com/jeb-maker/revues/internal/features/admin/settings"
 	whdispatch "github.com/jeb-maker/revues/internal/integrations/webhooks"
-	"github.com/jeb-maker/revues/internal/web/handlers"
+	"github.com/jeb-maker/revues/internal/web/handlerdeps"
 	"github.com/jeb-maker/revues/internal/web/templates"
 )
 
 // AdminWebhooks manages encrypted webhook notification settings.
 type AdminWebhooks struct {
-	handlers.Deps
+	handlerdeps.HandlerDeps
 	EncryptionKey []byte
 	Webhooks      *whdispatch.Dispatcher
 }

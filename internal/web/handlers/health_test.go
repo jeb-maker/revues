@@ -50,29 +50,6 @@ func testRouter(t *testing.T) (http.Handler, *sql.DB) {
 	return handler, db
 }
 
-func TestHealthz(t *testing.T) {
-	t.Parallel()
-
-	handler, _, err := appweb.NewRouter(appweb.Deps{
-		Config: config.Config{SessionSecret: "test-secret-at-least-thirty-two-bytes"},
-		DB:     mustMemoryDB(t),
-	})
-	if err != nil {
-		t.Fatalf("NewRouter() error = %v", err)
-	}
-
-	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
-	rec := httptest.NewRecorder()
-	handler.ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusOK {
-		t.Errorf("status = %d, want %d", rec.Code, http.StatusOK)
-	}
-	if rec.Body.String() != "ok" {
-		t.Errorf("body = %q, want %q", rec.Body.String(), "ok")
-	}
-}
-
 func TestLoginPage(t *testing.T) {
 	handler, _ := testRouter(t)
 

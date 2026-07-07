@@ -12,8 +12,8 @@ import (
 
 	"github.com/jeb-maker/revues/internal/auth"
 	"github.com/jeb-maker/revues/internal/config"
+	authhandler "github.com/jeb-maker/revues/internal/features/auth"
 	"github.com/jeb-maker/revues/internal/store"
-	"github.com/jeb-maker/revues/internal/web/handlers"
 	"github.com/jeb-maker/revues/internal/web/templates"
 )
 
@@ -83,7 +83,7 @@ func startOAuthGitHubMock(t *testing.T, mock oauthGitHubMock) (*httptest.Server,
 	return srv, github
 }
 
-func newOAuthAuthHandler(t *testing.T, github *auth.GitHubOAuth) (*handlers.Auth, *store.Store, *auth.SessionManager) {
+func newOAuthAuthHandler(t *testing.T, github *auth.GitHubOAuth) (*authhandler.Auth, *store.Store, *auth.SessionManager) {
 	t.Helper()
 
 	db := mustMemoryDB(t)
@@ -95,7 +95,7 @@ func newOAuthAuthHandler(t *testing.T, github *auth.GitHubOAuth) (*handlers.Auth
 		t.Fatalf("Parse templates: %v", err)
 	}
 
-	handler := &handlers.Auth{
+	handler := &authhandler.Auth{
 		Templates: tpl,
 		Store:     st,
 		Sessions:  sessions,
