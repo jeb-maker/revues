@@ -1,7 +1,8 @@
-package handlers
+package checklisttemplates
 
 import (
 	"errors"
+	"html/template"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -12,10 +13,40 @@ import (
 	"github.com/jeb-maker/revues/internal/auth"
 	"github.com/jeb-maker/revues/internal/integrations/notion"
 	"github.com/jeb-maker/revues/internal/store"
-	checklisttpl "github.com/jeb-maker/revues/internal/templates"
 	"github.com/jeb-maker/revues/internal/web/middleware"
 	viewtemplates "github.com/jeb-maker/revues/internal/web/templates"
 )
+
+// Deps holds shared dependencies for the checklisttemplates HTTP handlers.
+//
+// This mirrors internal/web/handlers.Deps but is local to the checklisttemplates
+// feature package to avoid an import cycle (features/checklisttemplates must not
+// import internal/web/handlers). A follow-up issue may extract a shared base
+// Deps.
+type Deps struct {
+	Templates     *template.Template
+	Store         *store.Store
+	SessionSecret string
+}
+
+// PageData builds shared view data with user and CSRF from the request context.
+func (d *Deps) PageData(r *http.Request, title string) viewtemplates.PageData {
+	data := viewtemplates.PageData{Title: title}
+	if user, ok := middleware.UserFromContext(r.Context()); ok {
+		data.User = user
+		if token := middleware.SessionTokenFromContext(r); token != "" {
+			data.CSRFToken = auth.CSRFToken(token, d.SessionSecret)
+		}
+	}
+	return data
+}
+
+// PageDataTab is PageData with ActiveTab set.
+func (d *Deps) PageDataTab(r *http.Request, title, activeTab string) viewtemplates.PageData {
+	data := d.PageData(r, title)
+	data.ActiveTab = activeTab
+	return data
+}
 
 const defaultTemplateEditorRows = 3
 
@@ -73,7 +104,7 @@ func (h *ChecklistTemplates) List(w http.ResponseWriter, r *http.Request) {
 		Project:    project,
 		Templates:  items,
 		MemberRole: memberRole,
-		CanManage:  checklisttpl.CanManage(user, memberRole),
+		CanManage:  CanManage(user, memberRole),
 		Message:    r.URL.Query().Get("msg"),
 	}
 
@@ -90,7 +121,7 @@ func (h *ChecklistTemplates) NewForm(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if !checklisttpl.CanManage(user, memberRole) {
+	if !CanManage(user, memberRole) {
 		http.NotFound(w, r)
 		return
 	}
@@ -115,7 +146,7 @@ func (h *ChecklistTemplates) Create(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if !checklisttpl.CanManage(user, memberRole) {
+	if !CanManage(user, memberRole) {
 		http.NotFound(w, r)
 		return
 	}
@@ -155,7 +186,7 @@ func (h *ChecklistTemplates) Show(w http.ResponseWriter, r *http.Request) {
 		Version:    version,
 		Items:      items,
 		MemberRole: memberRole,
-		CanManage:  checklisttpl.CanManage(user, memberRole),
+		CanManage:  CanManage(user, memberRole),
 		Message:    r.URL.Query().Get("msg"),
 	}
 
@@ -172,7 +203,7 @@ func (h *ChecklistTemplates) EditForm(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if !checklisttpl.CanManage(user, memberRole) {
+	if !CanManage(user, memberRole) {
 		http.NotFound(w, r)
 		return
 	}
@@ -202,7 +233,7 @@ func (h *ChecklistTemplates) Save(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if !checklisttpl.CanManage(user, memberRole) {
+	if !CanManage(user, memberRole) {
 		http.NotFound(w, r)
 		return
 	}
@@ -241,7 +272,7 @@ func (h *ChecklistTemplates) Archive(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if !checklisttpl.CanManage(user, memberRole) {
+	if !CanManage(user, memberRole) {
 		http.NotFound(w, r)
 		return
 	}
@@ -286,7 +317,7 @@ func (h *ChecklistTemplates) loadProject(w http.ResponseWriter, r *http.Request)
 		return nil, nil, "", false
 	}
 
-	if !checklisttpl.CanView(user, isMember) {
+	if !CanView(user, isMember) {
 		http.NotFound(w, r)
 		return nil, nil, "", false
 	}
