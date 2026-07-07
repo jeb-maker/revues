@@ -1,4 +1,4 @@
-package handlers_test
+package mytasks_test
 
 import (
 	"context"
@@ -10,10 +10,51 @@ import (
 	"strings"
 	"testing"
 
+	_ "modernc.org/sqlite"
+
 	"github.com/jeb-maker/revues/internal/auth"
+	"github.com/jeb-maker/revues/internal/config"
 	"github.com/jeb-maker/revues/internal/features/projects"
 	"github.com/jeb-maker/revues/internal/store"
+	appweb "github.com/jeb-maker/revues/internal/web"
 )
+
+// testRouter mirrors internal/web/handlers.testRouter. It is duplicated here
+// because the mytasks tests now live in the mytasks feature package and cannot
+// reach the handlers_test helper. A follow-up issue may extract a shared
+// test-router helper.
+func testRouter(t *testing.T) (http.Handler, *sql.DB) {
+	t.Helper()
+
+	ctx := context.Background()
+	db, err := store.Open(ctx, t.TempDir()+"/test.db")
+	if err != nil {
+		t.Fatalf("Open() error = %v", err)
+	}
+	t.Cleanup(func() {
+		if closeErr := db.Close(); closeErr != nil {
+			t.Errorf("Close() error = %v", closeErr)
+		}
+	})
+	if migrateErr := store.Migrate(ctx, db); migrateErr != nil {
+		t.Fatalf("Migrate() error = %v", migrateErr)
+	}
+
+	cfg := config.Config{
+		Addr:           ":8080",
+		BaseURL:        "http://example.com",
+		SessionSecret:  "test-secret-at-least-thirty-two-bytes",
+		Env:            "development",
+		AttachmentsDir: t.TempDir() + "/attachments",
+	}
+
+	handler, _, err := appweb.NewRouter(appweb.Deps{Config: cfg, DB: db})
+	if err != nil {
+		t.Fatalf("NewRouter() error = %v", err)
+	}
+
+	return handler, db
+}
 
 func TestAssignItem_LeadCanAssign(t *testing.T) {
 	handler, db := testRouter(t)

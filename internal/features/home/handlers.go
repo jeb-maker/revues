@@ -1,12 +1,25 @@
-package handlers
+package home
 
 import (
+	"html/template"
 	"log/slog"
 	"net/http"
 
+	"github.com/jeb-maker/revues/internal/store"
 	"github.com/jeb-maker/revues/internal/web/middleware"
 	"github.com/jeb-maker/revues/internal/web/templates"
 )
+
+// Deps holds shared dependencies for the home HTTP handlers.
+//
+// This mirrors internal/web/handlers.Deps but is local to the home feature
+// package to avoid an import cycle (features/home must not import
+// internal/web/handlers). A follow-up issue may extract a shared base Deps.
+type Deps struct {
+	Templates     *template.Template
+	Store         *store.Store
+	SessionSecret string
+}
 
 // Home renders the landing page.
 type Home struct {
