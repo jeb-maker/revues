@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/jeb-maker/revues/internal/admin"
+	"github.com/jeb-maker/revues/internal/features/admin/settings"
 	"github.com/jeb-maker/revues/internal/integrations/webhooks"
 )
 
@@ -74,7 +74,7 @@ func TestDispatcher_SendTest(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	}))
 	t.Cleanup(srv.Close)
-	cfg := admin.WebhookConfig{URLs: []string{srv.URL}, Secret: "test-secret", ReviewCompleted: true}
+	cfg := settings.WebhookConfig{URLs: []string{srv.URL}, Secret: "test-secret", ReviewCompleted: true}
 	d := &webhooks.Dispatcher{Settings: stubSettings{cfg, true}, Store: stubStore{}, DevMode: true, Client: srv.Client()}
 	if err := d.SendTest(context.Background()); err != nil {
 		t.Fatal(err)
@@ -107,11 +107,11 @@ func TestValidateTargetURL_ResolvesLoopback(t *testing.T) {
 }
 
 type stubSettings struct {
-	cfg admin.WebhookConfig
+	cfg settings.WebhookConfig
 	ok  bool
 }
 
-func (s stubSettings) LoadWebhooks(context.Context) (admin.WebhookConfig, bool, error) {
+func (s stubSettings) LoadWebhooks(context.Context) (settings.WebhookConfig, bool, error) {
 	return s.cfg, s.ok, nil
 }
 

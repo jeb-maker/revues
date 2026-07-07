@@ -1,4 +1,4 @@
-package handlers
+package smtp
 
 import (
 	"errors"
@@ -7,15 +7,16 @@ import (
 	"net/mail"
 	"strings"
 
-	"github.com/jeb-maker/revues/internal/admin"
+	"github.com/jeb-maker/revues/internal/features/admin/settings"
 	"github.com/jeb-maker/revues/internal/notifications"
+	"github.com/jeb-maker/revues/internal/web/handlers"
 	"github.com/jeb-maker/revues/internal/web/middleware"
 	"github.com/jeb-maker/revues/internal/web/templates"
 )
 
 // AdminSMTP manages encrypted SMTP relay settings.
 type AdminSMTP struct {
-	Deps
+	handlers.Deps
 	EncryptionKey []byte
 }
 
@@ -68,13 +69,13 @@ func (h *AdminSMTP) saveConfig(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	port, err := admin.ParsePort(r.FormValue("port"))
+	port, err := settings.ParsePort(r.FormValue("port"))
 	if err != nil {
 		h.renderForm(w, r, templates.AdminSMTPData{Error: err.Error()})
 		return
 	}
 
-	cfg := admin.SMTPConfig{
+	cfg := settings.SMTPConfig{
 		Host:     strings.TrimSpace(r.FormValue("host")),
 		Port:     port,
 		TLS:      r.FormValue("tls") == "on" || r.FormValue("tls") == "1",
@@ -89,7 +90,7 @@ func (h *AdminSMTP) saveConfig(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if hasCurrent {
-		cfg.Password = admin.MergePassword(current, r.FormValue("password"))
+		cfg.Password = settings.MergePassword(current, r.FormValue("password"))
 	} else {
 		cfg.Password = r.FormValue("password")
 	}
@@ -97,7 +98,7 @@ func (h *AdminSMTP) saveConfig(w http.ResponseWriter, r *http.Request) {
 	if err := h.settings().SaveSMTP(r.Context(), cfg); err != nil {
 		var msg string
 		switch {
-		case errors.Is(err, admin.ErrEncryptionNotConfigured):
+		case errors.Is(err, settings.ErrEncryptionNotConfigured):
 			msg = "REVUES_ENCRYPTION_KEY est requis pour enregistrer la configuration SMTP."
 		default:
 			msg = err.Error()
@@ -199,8 +200,8 @@ func (h *AdminSMTP) pageData(r *http.Request) templates.AdminSMTPData {
 	return data
 }
 
-func (h *AdminSMTP) settings() *admin.SettingsService {
-	return &admin.SettingsService{
+func (h *AdminSMTP) settings() *settings.SettingsService {
+	return &settings.SettingsService{
 		Store:         h.Store,
 		EncryptionKey: h.EncryptionKey,
 	}

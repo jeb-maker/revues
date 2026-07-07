@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/jeb-maker/revues/internal/admin"
+	"github.com/jeb-maker/revues/internal/features/admin/settings"
 	"github.com/jeb-maker/revues/internal/notifications"
 )
 
@@ -22,7 +22,7 @@ func TestMailerSend(t *testing.T) {
 	host, port := startTestSMTPServer(t)
 
 	m := notifications.Mailer{
-		Config: admin.SMTPConfig{
+		Config: settings.SMTPConfig{
 			Host: host,
 			Port: port,
 			From: "revues@example.com",

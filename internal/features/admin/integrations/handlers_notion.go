@@ -1,4 +1,4 @@
-package handlers
+package integrations
 
 import (
 	"net/http"
@@ -6,15 +6,18 @@ import (
 	"strings"
 
 	"github.com/jeb-maker/revues/internal/integrations/notion"
+	"github.com/jeb-maker/revues/internal/web/handlers"
 	"github.com/jeb-maker/revues/internal/web/templates"
 )
 
+// AdminNotion manages encrypted Notion integration settings.
 type AdminNotion struct {
-	Deps
+	handlers.Deps
 	EncryptionKey []byte
 	NotionClient  *notion.Client
 }
 
+// Show renders the Notion configuration form.
 func (h *AdminNotion) Show(w http.ResponseWriter, r *http.Request) {
 	data := templates.AdminNotionData{
 		PageData:   h.PageData(r, "Configuration Notion"),
@@ -35,6 +38,7 @@ func (h *AdminNotion) Show(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// Save stores Notion settings or tests the connection.
 func (h *AdminNotion) Save(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "Bad Request", http.StatusBadRequest)

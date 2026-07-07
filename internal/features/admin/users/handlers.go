@@ -1,4 +1,4 @@
-package handlers
+package users
 
 import (
 	"errors"
@@ -9,13 +9,14 @@ import (
 
 	"github.com/jeb-maker/revues/internal/auth"
 	"github.com/jeb-maker/revues/internal/store"
+	"github.com/jeb-maker/revues/internal/web/handlers"
 	"github.com/jeb-maker/revues/internal/web/middleware"
 	"github.com/jeb-maker/revues/internal/web/templates"
 )
 
 // AdminUsers manages the login email whitelist.
 type AdminUsers struct {
-	Deps
+	handlers.Deps
 }
 
 // List shows whitelisted emails.

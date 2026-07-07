@@ -19,7 +19,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/jeb-maker/revues/internal/admin"
+	"github.com/jeb-maker/revues/internal/features/admin/settings"
 	"github.com/jeb-maker/revues/internal/store"
 )
 
@@ -33,7 +33,7 @@ const (
 )
 
 type SettingsLoader interface {
-	LoadWebhooks(ctx context.Context) (admin.WebhookConfig, bool, error)
+	LoadWebhooks(ctx context.Context) (settings.WebhookConfig, bool, error)
 }
 
 type DeliveryStore interface {
@@ -127,7 +127,7 @@ func (d *Dispatcher) emitAsync(ctx context.Context, eventType string, build func
 	}()
 }
 
-func (d *Dispatcher) deliverWithRetry(ctx context.Context, cfg admin.WebhookConfig, target, eventID, eventType string, body []byte) error {
+func (d *Dispatcher) deliverWithRetry(ctx context.Context, cfg settings.WebhookConfig, target, eventID, eventType string, body []byte) error {
 	var lastErr error
 	for attempt := 1; attempt <= maxAttempts; attempt++ {
 		statusCode, err := d.deliverOnce(ctx, cfg.Secret, target, eventID, eventType, body)

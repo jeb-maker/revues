@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/jeb-maker/revues/internal/admin"
+	"github.com/jeb-maker/revues/internal/features/admin/settings"
 )
 
 // ErrNotConfigured is returned when SMTP is not configured.
@@ -18,7 +18,7 @@ var ErrNotConfigured = errors.New("smtp not configured")
 
 // Mailer sends plain-text email via configured SMTP relay.
 type Mailer struct {
-	Config admin.SMTPConfig
+	Config settings.SMTPConfig
 }
 
 // Enabled reports whether the mailer can send messages.

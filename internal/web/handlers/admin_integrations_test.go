@@ -7,10 +7,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/jeb-maker/revues/internal/admin"
 	"github.com/jeb-maker/revues/internal/auth"
 	"github.com/jeb-maker/revues/internal/config"
 	"github.com/jeb-maker/revues/internal/crypto"
+	adminsettings "github.com/jeb-maker/revues/internal/features/admin/settings"
 	"github.com/jeb-maker/revues/internal/store"
 )
 
@@ -54,8 +54,8 @@ func TestAdminIntegrations_ShowStatus(t *testing.T) {
 	if err != nil {
 		t.Fatalf("DecodeKey(): %v", err)
 	}
-	settings := &admin.SettingsService{Store: st, EncryptionKey: key}
-	if saveErr := settings.SaveSMTP(ctx, admin.SMTPConfig{
+	settings := &adminsettings.SettingsService{Store: st, EncryptionKey: key}
+	if saveErr := settings.SaveSMTP(ctx, adminsettings.SMTPConfig{
 		Host: "smtp.example.com",
 		Port: 587,
 		From: "revues@example.com",

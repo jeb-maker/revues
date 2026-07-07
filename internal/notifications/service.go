@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jeb-maker/revues/internal/admin"
+	"github.com/jeb-maker/revues/internal/features/admin/settings"
 	"github.com/jeb-maker/revues/internal/store"
 )
 
@@ -15,7 +15,7 @@ const sendTimeout = 30 * time.Second
 
 // SettingsLoader loads SMTP configuration for outbound email.
 type SettingsLoader interface {
-	LoadSMTP(ctx context.Context) (admin.SMTPConfig, bool, error)
+	LoadSMTP(ctx context.Context) (settings.SMTPConfig, bool, error)
 }
 
 // Service sends business notification emails asynchronously.
