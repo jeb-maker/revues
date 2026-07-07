@@ -180,6 +180,9 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, error) {
 		r.Post("/runs/{id}/complete", runsHandler.Complete)
 		r.Get("/mes-taches", myTasks.List)
 		r.Get("/modeles", checklistTemplates.IndexAll)
+		r.Get("/modeles/new", checklistTemplates.NewWizard)
+		r.Post("/projects/{id}/templates/new/row", checklistTemplates.AddRow)
+		r.Delete("/projects/{id}/templates/new/row/{idx}", checklistTemplates.DeleteRow)
 	})
 
 	r.Group(func(r chi.Router) {

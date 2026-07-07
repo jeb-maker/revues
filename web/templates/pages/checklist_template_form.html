@@ -4,7 +4,7 @@
 <p class="muted">Projet : {{.Project.Name}}{{if .Version}} · version actuelle v{{.Version.Version}}{{end}}</p>
 {{if .Error}}<p class="error">{{.Error}}</p>{{end}}
 
-<form method="post" action="{{.FormAction}}" class="stack-form">
+<form method="post" action="{{.FormAction}}" class="stack-form" id="template-form">
   <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
   <label>
     Nom du modèle
@@ -14,9 +14,11 @@
   <section class="panel">
     <h2>Points du modèle</h2>
     <p class="muted">Sections et points ordonnés. Laissez le libellé vide pour ignorer une ligne.</p>
+    <div id="template-rows-container">
     {{range $i, $row := .Rows}}
-    <fieldset class="template-row">
+    <fieldset class="template-row" id="template-row-{{$i}}">
       <legend>Point {{add $i 1}}</legend>
+      <input type="hidden" name="item_row_idx" value="{{$i}}">
       <label>
         Section
         <input type="text" name="item_section" maxlength="200" value="{{$row.Section}}">
@@ -33,8 +35,16 @@
         <input type="checkbox" name="item_required" value="{{$i}}" {{if $row.Required}}checked{{end}}>
         Point requis
       </label>
+      <div class="template-row-actions">
+        <button type="button" class="button-ghost button-sm" hx-post="/projects/{{$.Project.ID}}/templates/new/row" hx-vals='{"idx":"{{$i}}","csrf_token":"{{$.CSRFToken}}"}'
+                hx-target="#template-row-{{$i}}" hx-swap="afterend">+</button>
+        <button type="button" class="button-ghost button-sm" hx-delete="/projects/{{$.Project.ID}}/templates/new/row/{{$i}}"
+                hx-headers='{"X-CSRF-Token":"{{$.CSRFToken}}"}'
+                hx-target="#template-row-{{$i}}" hx-swap="outerHTML">−</button>
+      </div>
     </fieldset>
     {{end}}
+    </div>
     <p>
       {{if .Template}}
       <a href="/projects/{{.Project.ID}}/templates/{{.Template.ID}}/edit?rows={{add (len .Rows) 2}}">Ajouter des lignes vides</a>

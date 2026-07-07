@@ -55,6 +55,97 @@ type ChecklistTemplates struct {
 	NotionClient  *notion.Client
 }
 
+// NewWizard shows a project picker before creating a new template.
+func (h *ChecklistTemplates) NewWizard(w http.ResponseWriter, r *http.Request) {
+	user, ok := middleware.UserFromContext(r.Context())
+	if !ok {
+		http.Redirect(w, r, "/login", http.StatusFound)
+		return
+	}
+
+	admin := auth.HasMinRole(user.Role, auth.RoleAdmin)
+	allProjects, err := h.Store.ListProjects(r.Context(), user.ID, admin)
+	if err != nil {
+		slog.Error("list projects for wizard", "err", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	var manageProjects []store.Project
+	for _, project := range allProjects {
+		memberRole, _, err := h.Store.MemberRole(r.Context(), project.ID, user.ID)
+		if err != nil {
+			slog.Error("member role", "err", err)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+		if CanManage(user, memberRole) {
+			manageProjects = append(manageProjects, project)
+		}
+	}
+
+	data := viewtemplates.TemplateNewWizardData{
+		PageData: h.PageDataTab(r, "Nouveau modèle", "templates"),
+		Projects: manageProjects,
+	}
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	if err := h.Templates.ExecuteTemplate(w, "templates_new_wizard", data); err != nil {
+		slog.Error("render template new wizard", "err", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+	}
+}
+
+// AddRow returns an empty template editor row fragment for HTMX insertion.
+func (h *ChecklistTemplates) AddRow(w http.ResponseWriter, r *http.Request) {
+	project, user, memberRole, ok := h.loadProject(w, r)
+	if !ok {
+		return
+	}
+	if !CanManage(user, memberRole) {
+		http.NotFound(w, r)
+		return
+	}
+
+	idx := 0
+	if raw := strings.TrimSpace(r.FormValue("idx")); raw != "" {
+		if n, err := strconv.Atoi(raw); err == nil {
+			idx = n + 1
+		}
+	}
+
+	csrf := ""
+	if token := middleware.SessionTokenFromContext(r); token != "" {
+		csrf = auth.CSRFToken(token, h.SessionSecret)
+	}
+
+	data := viewtemplates.TemplateRowFragmentData{
+		ProjectID: project.ID,
+		Index:     idx,
+		CSRFToken: csrf,
+	}
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	if err := h.Templates.ExecuteTemplate(w, "template_row_fragment", data); err != nil {
+		slog.Error("render template row fragment", "err", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+	}
+}
+
+// DeleteRow removes a template editor row via HTMX (returns empty).
+func (h *ChecklistTemplates) DeleteRow(w http.ResponseWriter, r *http.Request) {
+	_, user, memberRole, ok := h.loadProject(w, r)
+	if !ok {
+		return
+	}
+	if !CanManage(user, memberRole) {
+		http.NotFound(w, r)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
 // IndexAll lists checklist templates across visible projects.
 func (h *ChecklistTemplates) IndexAll(w http.ResponseWriter, r *http.Request) {
 	user, ok := middleware.UserFromContext(r.Context())
@@ -436,7 +527,11 @@ func parseTemplateItems(r *http.Request) ([]store.TemplateItemInput, string) {
 	sections := r.Form["item_section"]
 	labels := r.Form["item_label"]
 	helps := r.Form["item_help"]
+	rowIndices := r.Form["item_row_idx"]
 	if len(sections) != len(labels) || len(labels) != len(helps) {
+		return nil, "Les lignes du modèle sont incohérentes."
+	}
+	if len(rowIndices) != 0 && len(rowIndices) != len(labels) {
 		return nil, "Les lignes du modèle sont incohérentes."
 	}
 
@@ -449,17 +544,27 @@ func parseTemplateItems(r *http.Request) ([]store.TemplateItemInput, string) {
 		required[index] = true
 	}
 
+	useRowIdx := len(rowIndices) == len(labels)
+
 	var items []store.TemplateItemInput
 	for i := range labels {
 		label := strings.TrimSpace(labels[i])
 		if label == "" {
 			continue
 		}
+		isRequired := false
+		if useRowIdx {
+			if idx, err := strconv.Atoi(rowIndices[i]); err == nil {
+				isRequired = required[idx]
+			}
+		} else {
+			isRequired = required[i]
+		}
 		items = append(items, store.TemplateItemInput{
 			Section:  strings.TrimSpace(sections[i]),
 			Label:    label,
 			HelpText: strings.TrimSpace(helps[i]),
-			Required: required[i],
+			Required: isRequired,
 		})
 	}
 
@@ -470,6 +575,7 @@ func parseTemplateItemsToRows(r *http.Request) []viewtemplates.TemplateEditorRow
 	sections := r.Form["item_section"]
 	labels := r.Form["item_label"]
 	helps := r.Form["item_help"]
+	rowIndices := r.Form["item_row_idx"]
 	maxLen := len(labels)
 	if len(sections) > maxLen {
 		maxLen = len(sections)
@@ -486,6 +592,8 @@ func parseTemplateItemsToRows(r *http.Request) []viewtemplates.TemplateEditorRow
 		}
 	}
 
+	useRowIdx := len(rowIndices) == maxLen
+
 	rows := make([]viewtemplates.TemplateEditorRow, maxLen)
 	for i := 0; i < maxLen; i++ {
 		if i < len(sections) {
@@ -497,7 +605,13 @@ func parseTemplateItemsToRows(r *http.Request) []viewtemplates.TemplateEditorRow
 		if i < len(helps) {
 			rows[i].HelpText = helps[i]
 		}
-		rows[i].Required = required[i]
+		if useRowIdx {
+			if idx, err := strconv.Atoi(rowIndices[i]); err == nil {
+				rows[i].Required = required[idx]
+			}
+		} else {
+			rows[i].Required = required[i]
+		}
 	}
 	return rows
 }
