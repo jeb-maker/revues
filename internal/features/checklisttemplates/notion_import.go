@@ -1,4 +1,4 @@
-package handlers
+package checklisttemplates
 
 import (
 	"errors"
@@ -10,7 +10,6 @@ import (
 	"github.com/jeb-maker/revues/internal/crypto"
 	"github.com/jeb-maker/revues/internal/integrations/notion"
 	"github.com/jeb-maker/revues/internal/store"
-	checklisttpl "github.com/jeb-maker/revues/internal/templates"
 	viewtemplates "github.com/jeb-maker/revues/internal/web/templates"
 )
 
@@ -22,7 +21,7 @@ const (
 
 func (h *ChecklistTemplates) NotionImportForm(w http.ResponseWriter, r *http.Request) {
 	project, user, memberRole, ok := h.loadProject(w, r)
-	if !ok || !checklisttpl.CanManage(user, memberRole) {
+	if !ok || !CanManage(user, memberRole) {
 		if ok {
 			http.NotFound(w, r)
 		}
@@ -43,7 +42,7 @@ func (h *ChecklistTemplates) NotionImportForm(w http.ResponseWriter, r *http.Req
 
 func (h *ChecklistTemplates) NotionImport(w http.ResponseWriter, r *http.Request) {
 	project, user, memberRole, ok := h.loadProject(w, r)
-	if !ok || !checklisttpl.CanManage(user, memberRole) {
+	if !ok || !CanManage(user, memberRole) {
 		if ok {
 			http.NotFound(w, r)
 		}

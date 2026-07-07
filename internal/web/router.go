@@ -12,6 +12,7 @@ import (
 	"github.com/jeb-maker/revues/internal/admin"
 	"github.com/jeb-maker/revues/internal/auth"
 	"github.com/jeb-maker/revues/internal/config"
+	"github.com/jeb-maker/revues/internal/features/checklisttemplates"
 	"github.com/jeb-maker/revues/internal/features/projects"
 	"github.com/jeb-maker/revues/internal/integrations/webhooks"
 	"github.com/jeb-maker/revues/internal/notifications"
@@ -89,7 +90,11 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, error) {
 		Store:         st,
 		SessionSecret: deps.Config.SessionSecret,
 	}}
-	checklistTemplates := &handlers.ChecklistTemplates{Deps: handlerDeps, EncryptionKey: adminSMTPKey}
+	checklistTemplates := &checklisttemplates.ChecklistTemplates{Deps: checklisttemplates.Deps{
+		Templates:     tpl,
+		Store:         st,
+		SessionSecret: deps.Config.SessionSecret,
+	}, EncryptionKey: adminSMTPKey}
 	runsHandler := &handlers.Runs{
 		Deps:           handlerDeps,
 		EncryptionKey:  adminSMTPKey,
