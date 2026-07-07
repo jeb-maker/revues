@@ -3,14 +3,7 @@
 <h1>Utilisateurs autorisés</h1>
 <p>Gérez les emails autorisés à se connecter via GitHub et leur rôle global.</p>
 
-<nav class="admin-nav">
-  <a href="/admin/users" aria-current="page">Utilisateurs</a>
-  <a href="/admin/integrations">Intégrations</a>
-  <a href="/admin/settings/smtp">SMTP</a>
-  <a href="/admin/settings/webhooks">Webhooks</a>
-  <a href="/admin/integrations/jira">Jira</a>
-  <a href="/admin/integrations/notion">Notion</a>
-</nav>
+{{template "admin_nav" .}}
 
 {{if .Message}}
 <p class="success">{{.Message}}</p>

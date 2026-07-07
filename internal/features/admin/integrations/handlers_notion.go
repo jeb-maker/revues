@@ -24,6 +24,7 @@ func (h *AdminNotion) Show(w http.ResponseWriter, r *http.Request) {
 		CanEncrypt: len(h.EncryptionKey) > 0,
 		Message:    r.URL.Query().Get("msg"),
 	}
+	data.AdminSection = "notion"
 	if cfg, ok, err := h.service().Load(r.Context()); err != nil {
 		data.Error = "Impossible de charger la configuration Notion."
 	} else if ok {
@@ -86,12 +87,14 @@ func (h *AdminNotion) testConnection(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *AdminNotion) renderError(w http.ResponseWriter, r *http.Request, msg string) {
-	w.WriteHeader(http.StatusBadRequest)
-	_ = h.Templates.ExecuteTemplate(w, "admin_notion", templates.AdminNotionData{
+	data := templates.AdminNotionData{
 		PageData:   h.PageData(r, "Configuration Notion"),
 		CanEncrypt: len(h.EncryptionKey) > 0,
 		Error:      msg,
-	})
+	}
+	data.AdminSection = "notion"
+	w.WriteHeader(http.StatusBadRequest)
+	_ = h.Templates.ExecuteTemplate(w, "admin_notion", data)
 }
 
 func (h *AdminNotion) service() *notion.Service {

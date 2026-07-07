@@ -181,11 +181,13 @@ func (h *AdminJira) renderForm(w http.ResponseWriter, r *http.Request, partial t
 }
 
 func (h *AdminJira) pageData(r *http.Request) templates.AdminJiraData {
-	return templates.AdminJiraData{
+	data := templates.AdminJiraData{
 		PageData:     h.PageData(r, "Configuration Jira"),
 		InstanceType: jira.InstanceCloud,
 		CanEncrypt:   len(h.EncryptionKey) > 0,
 	}
+	data.AdminSection = "jira"
+	return data
 }
 
 func (h *AdminJira) service() *jira.Service {

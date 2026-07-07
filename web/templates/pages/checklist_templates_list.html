@@ -1,5 +1,6 @@
 {{define "checklist_templates_list"}}
 {{template "layout_start" .}}
+{{template "nav_tabs" .}}
 <h1>Modèles — {{.Project.Name}}</h1>
 {{if .Message}}<p class="success">{{.Message}}</p>{{end}}
 {{if .Error}}<p class="error">{{.Error}}</p>{{end}}

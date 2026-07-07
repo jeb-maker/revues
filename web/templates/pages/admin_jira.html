@@ -3,14 +3,7 @@
 <h1>Configuration Jira</h1>
 <p>Connectez Revues à Jira Cloud ou Server/Data Center pour lier et créer des tickets depuis les revues.</p>
 
-<nav class="admin-nav">
-  <a href="/admin/users">Utilisateurs</a>
-  <a href="/admin/integrations">Intégrations</a>
-  <a href="/admin/settings/smtp">SMTP</a>
-  <a href="/admin/settings/webhooks">Webhooks</a>
-  <a href="/admin/integrations/jira" aria-current="page">Jira</a>
-  <a href="/admin/integrations/notion">Notion</a>
-</nav>
+{{template "admin_nav" .}}
 
 {{if not .CanEncrypt}}
 <p class="error">REVUES_ENCRYPTION_KEY n'est pas configurée : vous pouvez consulter ce formulaire mais l'enregistrement est désactivé.</p>

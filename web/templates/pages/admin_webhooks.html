@@ -2,14 +2,7 @@
 {{template "layout_start" .}}
 <h1>Configuration webhooks</h1>
 <p>Notifications JSON signées HMAC-SHA256. Voir <code>docs/WEBHOOKS.md</code>.</p>
-<nav class="admin-nav">
-  <a href="/admin/users">Utilisateurs</a>
-  <a href="/admin/integrations">Intégrations</a>
-  <a href="/admin/settings/smtp">SMTP</a>
-  <a href="/admin/settings/webhooks" aria-current="page">Webhooks</a>
-  <a href="/admin/integrations/jira">Jira</a>
-  <a href="/admin/integrations/notion">Notion</a>
-</nav>
+{{template "admin_nav" .}}
 {{if not .CanEncrypt}}<p class="error">REVUES_ENCRYPTION_KEY requise pour enregistrer.</p>{{end}}
 {{if .Message}}<p class="success">{{.Message}}</p>{{end}}
 {{if .Error}}<p class="error">{{.Error}}</p>{{end}}

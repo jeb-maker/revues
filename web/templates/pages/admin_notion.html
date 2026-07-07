@@ -2,14 +2,7 @@
 {{template "layout_start" .}}
 <h1>Configuration Notion</h1>
 <p>Connectez Revues à Notion. Voir <code>docs/NOTION.md</code> pour le mapping des champs.</p>
-<nav class="admin-nav">
-  <a href="/admin/users">Utilisateurs</a>
-  <a href="/admin/integrations">Intégrations</a>
-  <a href="/admin/settings/smtp">SMTP</a>
-  <a href="/admin/settings/webhooks">Webhooks</a>
-  <a href="/admin/integrations/jira">Jira</a>
-  <a href="/admin/integrations/notion" aria-current="page">Notion</a>
-</nav>
+{{template "admin_nav" .}}
 {{if not .CanEncrypt}}<p class="error">REVUES_ENCRYPTION_KEY n'est pas configurée.</p>{{end}}
 {{if .Message}}<p class="success">{{.Message}}</p>{{end}}
 {{if .Error}}<p class="error">{{.Error}}</p>{{end}}

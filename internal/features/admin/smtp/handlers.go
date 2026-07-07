@@ -194,6 +194,7 @@ func (h *AdminSMTP) pageData(r *http.Request) templates.AdminSMTPData {
 		Port:       587,
 		CanEncrypt: len(h.EncryptionKey) > 0,
 	}
+	data.AdminSection = "smtp"
 	if user, ok := middleware.UserFromContext(r.Context()); ok {
 		data.TestRecipient = user.Email
 	}
