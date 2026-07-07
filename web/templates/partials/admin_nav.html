@@ -1,10 +1,16 @@
 {{define "admin_nav"}}
-<nav class="admin-nav">
-  <a href="/admin/users"{{if eq .AdminSection "users"}} aria-current="page"{{end}}>Utilisateurs</a>
-  <a href="/admin/integrations"{{if eq .AdminSection "integrations"}} aria-current="page"{{end}}>Intégrations</a>
-  <a href="/admin/settings/smtp"{{if eq .AdminSection "smtp"}} aria-current="page"{{end}}>SMTP</a>
-  <a href="/admin/settings/webhooks"{{if eq .AdminSection "webhooks"}} aria-current="page"{{end}}>Webhooks</a>
-  <a href="/admin/integrations/jira"{{if eq .AdminSection "jira"}} aria-current="page"{{end}}>Jira</a>
-  <a href="/admin/integrations/notion"{{if eq .AdminSection "notion"}} aria-current="page"{{end}}>Notion</a>
+<nav class="admin-nav" aria-label="Administration">
+  <div class="admin-nav__group">
+    <span class="admin-nav__group-label">Gestion</span>
+    <a href="/admin/users"{{if eq .AdminSection "users"}} aria-current="page"{{end}}>Utilisateurs</a>
+  </div>
+  <div class="admin-nav__group">
+    <span class="admin-nav__group-label">Intégrations</span>
+    <a href="/admin/integrations"{{if eq .AdminSection "integrations"}} aria-current="page"{{end}}>Vue d'ensemble</a>
+    <a href="/admin/settings/smtp"{{if eq .AdminSection "smtp"}} aria-current="page"{{end}}>SMTP</a>
+    <a href="/admin/settings/webhooks"{{if eq .AdminSection "webhooks"}} aria-current="page"{{end}}>Webhooks</a>
+    <a href="/admin/integrations/jira"{{if eq .AdminSection "jira"}} aria-current="page"{{end}}>Jira</a>
+    <a href="/admin/integrations/notion"{{if eq .AdminSection "notion"}} aria-current="page"{{end}}>Notion</a>
+  </div>
 </nav>
 {{end}}
