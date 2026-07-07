@@ -12,6 +12,7 @@ import (
 	"github.com/jeb-maker/revues/internal/admin"
 	"github.com/jeb-maker/revues/internal/auth"
 	"github.com/jeb-maker/revues/internal/config"
+	"github.com/jeb-maker/revues/internal/features/projects"
 	"github.com/jeb-maker/revues/internal/integrations/webhooks"
 	"github.com/jeb-maker/revues/internal/notifications"
 	"github.com/jeb-maker/revues/internal/store"
@@ -83,7 +84,11 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, error) {
 	adminJira := &handlers.AdminJira{Deps: handlerDeps, EncryptionKey: adminSMTPKey}
 	adminNotion := &handlers.AdminNotion{Deps: handlerDeps, EncryptionKey: adminSMTPKey}
 	adminIntegrations := &handlers.AdminIntegrations{Deps: handlerDeps, EncryptionKey: adminSMTPKey}
-	projectsHandler := &handlers.Projects{Deps: handlerDeps}
+	projectsHandler := &projects.Projects{Deps: projects.Deps{
+		Templates:     tpl,
+		Store:         st,
+		SessionSecret: deps.Config.SessionSecret,
+	}}
 	checklistTemplates := &handlers.ChecklistTemplates{Deps: handlerDeps, EncryptionKey: adminSMTPKey}
 	runsHandler := &handlers.Runs{
 		Deps:           handlerDeps,

@@ -1,7 +1,8 @@
-package handlers
+package projects
 
 import (
 	"errors"
+	"html/template"
 	"log/slog"
 	"net/http"
 	"net/mail"
@@ -11,12 +12,40 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"github.com/jeb-maker/revues/internal/auth"
-	"github.com/jeb-maker/revues/internal/projects"
-	"github.com/jeb-maker/revues/internal/runs"
 	"github.com/jeb-maker/revues/internal/store"
 	"github.com/jeb-maker/revues/internal/web/middleware"
 	"github.com/jeb-maker/revues/internal/web/templates"
 )
+
+// Deps holds shared dependencies for the projects HTTP handlers.
+//
+// This mirrors internal/web/handlers.Deps but is local to the projects feature
+// package to avoid an import cycle (features/projects must not import
+// internal/web/handlers). A follow-up issue may extract a shared base Deps.
+type Deps struct {
+	Templates     *template.Template
+	Store         *store.Store
+	SessionSecret string
+}
+
+// PageData builds shared view data with user and CSRF from the request context.
+func (d *Deps) PageData(r *http.Request, title string) templates.PageData {
+	data := templates.PageData{Title: title}
+	if user, ok := middleware.UserFromContext(r.Context()); ok {
+		data.User = user
+		if token := middleware.SessionTokenFromContext(r); token != "" {
+			data.CSRFToken = auth.CSRFToken(token, d.SessionSecret)
+		}
+	}
+	return data
+}
+
+// PageDataTab is PageData with ActiveTab set.
+func (d *Deps) PageDataTab(r *http.Request, title, activeTab string) templates.PageData {
+	data := d.PageData(r, title)
+	data.ActiveTab = activeTab
+	return data
+}
 
 // Projects handles project CRUD and membership.
 type Projects struct {
@@ -50,7 +79,7 @@ func (h *Projects) List(w http.ResponseWriter, r *http.Request) {
 		PageData:   h.PageDataTab(r, "Tableau de bord", "projects"),
 		Projects:   items,
 		ActiveRuns: activeRuns,
-		CanCreate:  projects.CanCreate(user),
+		CanCreate:  CanCreate(user),
 		Message:    r.URL.Query().Get("msg"),
 	}
 
@@ -68,7 +97,7 @@ func (h *Projects) NewForm(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/login", http.StatusFound)
 		return
 	}
-	if !projects.CanCreate(user) {
+	if !CanCreate(user) {
 		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}
@@ -92,7 +121,7 @@ func (h *Projects) Create(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/login", http.StatusFound)
 		return
 	}
-	if !projects.CanCreate(user) {
+	if !CanCreate(user) {
 		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}
@@ -153,9 +182,9 @@ func (h *Projects) Show(w http.ResponseWriter, r *http.Request) {
 		Runs:             projectRuns,
 		NokItems:         nokItems,
 		MemberRole:       memberRole,
-		CanManage:        projects.CanManage(user, memberRole),
-		CanManageMembers: projects.CanManageMembers(user, memberRole),
-		CanLaunch:        runs.CanLaunch(user, memberRole),
+		CanManage:        CanManage(user, memberRole),
+		CanManageMembers: CanManageMembers(user, memberRole),
+		CanLaunch:        CanLaunch(user, memberRole),
 		Message:          r.URL.Query().Get("msg"),
 	}
 
@@ -172,7 +201,7 @@ func (h *Projects) EditForm(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if !projects.CanManage(user, memberRole) {
+	if !CanManage(user, memberRole) {
 		http.NotFound(w, r)
 		return
 	}
@@ -196,7 +225,7 @@ func (h *Projects) Update(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if !projects.CanManage(user, memberRole) {
+	if !CanManage(user, memberRole) {
 		http.NotFound(w, r)
 		return
 	}
@@ -227,7 +256,7 @@ func (h *Projects) Archive(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if !projects.CanManage(user, memberRole) {
+	if !CanManage(user, memberRole) {
 		http.NotFound(w, r)
 		return
 	}
@@ -247,7 +276,7 @@ func (h *Projects) AddMember(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if !projects.CanManageMembers(user, memberRole) {
+	if !CanManageMembers(user, memberRole) {
 		http.NotFound(w, r)
 		return
 	}
@@ -263,7 +292,7 @@ func (h *Projects) AddMember(w http.ResponseWriter, r *http.Request) {
 	}
 
 	role := strings.TrimSpace(r.FormValue("role"))
-	if !projects.ValidLocalRole(role) {
+	if !ValidLocalRole(role) {
 		h.renderShowError(w, r, project, user, memberRole, "Rôle local invalide.")
 		return
 	}
@@ -294,7 +323,7 @@ func (h *Projects) RemoveMember(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if !projects.CanManageMembers(user, memberRole) {
+	if !CanManageMembers(user, memberRole) {
 		http.NotFound(w, r)
 		return
 	}
@@ -325,7 +354,7 @@ func (h *Projects) RemoveMember(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if targetRole == projects.LocalRoleLead {
+	if targetRole == LocalRoleLead {
 		leads, err := h.Store.CountProjectLeads(r.Context(), project.ID)
 		if err != nil {
 			slog.Error("count project leads", "err", err)
@@ -378,7 +407,7 @@ func (h *Projects) loadProject(w http.ResponseWriter, r *http.Request) (*store.P
 		return nil, nil, "", false
 	}
 
-	if !projects.CanView(user, isMember) {
+	if !CanView(user, isMember) {
 		http.NotFound(w, r)
 		return nil, nil, "", false
 	}
@@ -429,8 +458,8 @@ func (h *Projects) renderShowError(w http.ResponseWriter, r *http.Request, proje
 		Runs:             projectRuns,
 		NokItems:         nokItems,
 		MemberRole:       memberRole,
-		CanManage:        projects.CanManage(user, memberRole),
-		CanManageMembers: projects.CanManageMembers(user, memberRole),
+		CanManage:        CanManage(user, memberRole),
+		CanManageMembers: CanManageMembers(user, memberRole),
 		Error:            message,
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")

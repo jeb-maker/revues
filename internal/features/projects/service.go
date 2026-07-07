@@ -48,3 +48,20 @@ func CanManage(user *store.User, memberRole string) bool {
 func CanManageMembers(user *store.User, memberRole string) bool {
 	return CanManage(user, memberRole)
 }
+
+// CanLaunch reports whether the user may create or start a run on the project.
+//
+// This mirrors internal/runs.CanLaunch. It is duplicated here to avoid an
+// import cycle: the projects feature handlers need launch permission for the
+// project show view, and internal/runs imports this package for project role
+// constants. Once features/runs is extracted (follow-up issue), this can be
+// consolidated.
+func CanLaunch(user *store.User, memberRole string) bool {
+	if auth.HasMinRole(user.Role, auth.RoleAdmin) {
+		return true
+	}
+	if !auth.HasMinRole(user.Role, auth.RoleEditor) {
+		return false
+	}
+	return memberRole == LocalRoleLead || memberRole == LocalRoleContributor
+}
