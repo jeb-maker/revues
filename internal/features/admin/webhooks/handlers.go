@@ -102,10 +102,12 @@ func (h *AdminWebhooks) renderForm(w http.ResponseWriter, r *http.Request, parti
 }
 
 func (h *AdminWebhooks) pageData(r *http.Request) templates.AdminWebhooksData {
-	return templates.AdminWebhooksData{
+	data := templates.AdminWebhooksData{
 		PageData:   h.PageData(r, "Configuration webhooks"),
 		CanEncrypt: len(h.EncryptionKey) > 0,
 	}
+	data.AdminSection = "webhooks"
+	return data
 }
 
 func (h *AdminWebhooks) settings() *settings.SettingsService {

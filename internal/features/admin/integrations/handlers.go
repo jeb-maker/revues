@@ -45,9 +45,11 @@ func (h *AdminIntegrations) Show(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *AdminIntegrations) pageData(r *http.Request) templates.AdminIntegrationsData {
-	return templates.AdminIntegrationsData{
+	data := templates.AdminIntegrationsData{
 		PageData: h.PageData(r, "Intégrations"),
 	}
+	data.AdminSection = "integrations"
+	return data
 }
 
 func (h *AdminIntegrations) service() *IntegrationsService {

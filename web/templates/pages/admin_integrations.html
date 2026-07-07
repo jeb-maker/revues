@@ -3,14 +3,7 @@
 <h1>Intégrations</h1>
 <p>Vue d'ensemble des connexions externes. Configurez chaque intégration depuis sa page dédiée.</p>
 
-<nav class="admin-nav">
-  <a href="/admin/users">Utilisateurs</a>
-  <a href="/admin/integrations" aria-current="page">Intégrations</a>
-  <a href="/admin/settings/smtp">SMTP</a>
-  <a href="/admin/settings/webhooks">Webhooks</a>
-  <a href="/admin/integrations/jira">Jira</a>
-  <a href="/admin/integrations/notion">Notion</a>
-</nav>
+{{template "admin_nav" .}}
 
 {{if .Error}}
 <p class="error">{{.Error}}</p>
