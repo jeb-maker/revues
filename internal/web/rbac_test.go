@@ -259,6 +259,8 @@ func TestRBAC_Matrix(t *testing.T) {
 		{"POST run item outsider denied", http.MethodPost, f.runItemPath(), "outsider", outsiderItem.Encode(), http.StatusNotFound},
 
 		// POST /admin/* — auth + admin.
+		{"GET /admin editor denied", http.MethodGet, "/admin", "lead", "", http.StatusForbidden},
+		{"GET /admin admin redirect", http.MethodGet, "/admin", "admin", "", http.StatusFound},
 		{"GET /admin/users editor denied", http.MethodGet, "/admin/users", "lead", "", http.StatusForbidden},
 		{"GET /admin/users reader denied", http.MethodGet, "/admin/users", "reader", "", http.StatusForbidden},
 		{"GET /admin/users admin ok", http.MethodGet, "/admin/users", "admin", "", http.StatusOK},
