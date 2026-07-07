@@ -186,7 +186,7 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, error) {
 		r.Use(appmiddleware.RequireAuth)
 		r.Use(appmiddleware.RequireRole(auth.RoleAdmin))
 		r.Get("/admin", func(w http.ResponseWriter, r *http.Request) {
-			http.Redirect(w, r, "/admin/users", http.StatusFound)
+			http.Redirect(w, r, "/admin/integrations", http.StatusFound)
 		})
 		r.Get("/admin/users", adminUsers.List)
 		r.Post("/admin/users", adminUsers.Add)
