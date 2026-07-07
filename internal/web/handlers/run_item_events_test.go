@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"github.com/jeb-maker/revues/internal/auth"
-	"github.com/jeb-maker/revues/internal/items"
+	runs "github.com/jeb-maker/revues/internal/features/runs"
 	"github.com/jeb-maker/revues/internal/store"
 )
 
@@ -44,7 +44,7 @@ func TestRunItemShow_DisplaysAuditHistory(t *testing.T) {
 	if err != nil || len(runItems) != 1 {
 		t.Fatalf("ListRunItems(): %v", err)
 	}
-	if err = st.UpdateRunItemStatus(ctx, run.ID, runItems[0].ID, lead.ID, items.StatusOK, ""); err != nil {
+	if err = st.UpdateRunItemStatus(ctx, run.ID, runItems[0].ID, lead.ID, runs.StatusOK, ""); err != nil {
 		t.Fatalf("UpdateRunItemStatus(): %v", err)
 	}
 

@@ -20,6 +20,7 @@ import (
 	home "github.com/jeb-maker/revues/internal/features/home"
 	mytasks "github.com/jeb-maker/revues/internal/features/mytasks"
 	"github.com/jeb-maker/revues/internal/features/projects"
+	runs "github.com/jeb-maker/revues/internal/features/runs"
 	"github.com/jeb-maker/revues/internal/integrations/webhooks"
 	"github.com/jeb-maker/revues/internal/notifications"
 	"github.com/jeb-maker/revues/internal/store"
@@ -101,8 +102,12 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, error) {
 		Store:         st,
 		SessionSecret: deps.Config.SessionSecret,
 	}, EncryptionKey: adminSMTPKey}
-	runsHandler := &handlers.Runs{
-		Deps:           handlerDeps,
+	runsHandler := &runs.Runs{
+		Deps: runs.Deps{
+			Templates:     tpl,
+			Store:         st,
+			SessionSecret: deps.Config.SessionSecret,
+		},
 		EncryptionKey:  adminSMTPKey,
 		AttachmentsDir: deps.Config.AttachmentsDir,
 		BaseURL:        deps.Config.BaseURL,

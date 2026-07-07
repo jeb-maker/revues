@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/jeb-maker/revues/internal/items"
+	runs "github.com/jeb-maker/revues/internal/features/runs"
 	"github.com/jeb-maker/revues/internal/store"
 )
 
@@ -12,7 +12,7 @@ func TestDashboard_ActiveRunsAndNokItems(t *testing.T) {
 	ctx := context.Background()
 	st, run, itemID := setupInProgressRun(t)
 
-	if err := st.UpdateRunItemStatus(ctx, run.ID, itemID, 1, items.StatusOK, ""); err != nil {
+	if err := st.UpdateRunItemStatus(ctx, run.ID, itemID, 1, runs.StatusOK, ""); err != nil {
 		t.Fatalf("UpdateRunItemStatus(ok): %v", err)
 	}
 	runItems, err := st.ListRunItems(ctx, run.ID)
@@ -26,7 +26,7 @@ func TestDashboard_ActiveRunsAndNokItems(t *testing.T) {
 			break
 		}
 	}
-	if err = st.UpdateRunItemStatus(ctx, run.ID, secondID, 1, items.StatusNOK, "bloquant"); err != nil {
+	if err = st.UpdateRunItemStatus(ctx, run.ID, secondID, 1, runs.StatusNOK, "bloquant"); err != nil {
 		t.Fatalf("UpdateRunItemStatus(nok): %v", err)
 	}
 

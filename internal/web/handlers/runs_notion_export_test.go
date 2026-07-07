@@ -16,9 +16,9 @@ import (
 	"github.com/jeb-maker/revues/internal/auth"
 	"github.com/jeb-maker/revues/internal/config"
 	"github.com/jeb-maker/revues/internal/features/projects"
+	runs "github.com/jeb-maker/revues/internal/features/runs"
 	"github.com/jeb-maker/revues/internal/integrations/notion"
 	"github.com/jeb-maker/revues/internal/store"
-	"github.com/jeb-maker/revues/internal/web/handlers"
 	appmiddleware "github.com/jeb-maker/revues/internal/web/middleware"
 	viewtemplates "github.com/jeb-maker/revues/internal/web/templates"
 )
@@ -43,8 +43,8 @@ func testNotionExportRouter(t *testing.T, encKey string, notionClient *notion.Cl
 	key, _ := base64.StdEncoding.DecodeString(encKey)
 	tpl, _ := viewtemplates.Parse()
 	st := store.New(db)
-	deps := handlers.Deps{Templates: tpl, Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
-	runsHandler := &handlers.Runs{Deps: deps, EncryptionKey: key, BaseURL: "http://example.com", NotionClient: notionClient}
+	deps := runs.Deps{Templates: tpl, Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
+	runsHandler := &runs.Runs{Deps: deps, EncryptionKey: key, BaseURL: "http://example.com", NotionClient: notionClient}
 	r := chi.NewRouter()
 	r.Use(appmiddleware.LoadUser(st))
 	r.Use(appmiddleware.CSRF("test-secret-at-least-thirty-two-bytes"))
