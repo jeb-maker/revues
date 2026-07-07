@@ -12,9 +12,8 @@ import (
 
 // Deps holds shared dependencies for the home HTTP handlers.
 //
-// This mirrors internal/web/handlers.Deps but is local to the home feature
-// package to avoid an import cycle (features/home must not import
-// internal/web/handlers). A follow-up issue may extract a shared base Deps.
+// This mirrors internal/web/handlerdeps.HandlerDeps but is local to the home
+// feature package to avoid an import cycle.
 type Deps struct {
 	Templates     *template.Template
 	Store         *store.Store

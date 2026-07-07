@@ -16,6 +16,7 @@ import (
 	adminsmtp "github.com/jeb-maker/revues/internal/features/admin/smtp"
 	adminusers "github.com/jeb-maker/revues/internal/features/admin/users"
 	adminwebhooks "github.com/jeb-maker/revues/internal/features/admin/webhooks"
+	authhandler "github.com/jeb-maker/revues/internal/features/auth"
 	"github.com/jeb-maker/revues/internal/features/checklisttemplates"
 	home "github.com/jeb-maker/revues/internal/features/home"
 	mytasks "github.com/jeb-maker/revues/internal/features/mytasks"
@@ -24,7 +25,7 @@ import (
 	"github.com/jeb-maker/revues/internal/integrations/webhooks"
 	"github.com/jeb-maker/revues/internal/notifications"
 	"github.com/jeb-maker/revues/internal/store"
-	"github.com/jeb-maker/revues/internal/web/handlers"
+	"github.com/jeb-maker/revues/internal/web/handlerdeps"
 	appmiddleware "github.com/jeb-maker/revues/internal/web/middleware"
 	"github.com/jeb-maker/revues/internal/web/templates"
 	webassets "github.com/jeb-maker/revues/web"
@@ -49,7 +50,7 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, error) {
 	}
 
 	st := store.New(deps.DB)
-	handlerDeps := handlers.Deps{
+	handlerDeps := handlerdeps.HandlerDeps{
 		Templates:     tpl,
 		Store:         st,
 		SessionSecret: deps.Config.SessionSecret,
@@ -65,14 +66,14 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, error) {
 		BaseURL:      deps.Config.BaseURL,
 	}
 
-	authHandler := &handlers.Auth{
+	authHandler := &authhandler.Auth{
 		Templates: tpl,
 		Store:     st,
 		Sessions:  sessions,
 		GitHub:    github,
 		Config:    deps.Config,
 	}
-	adminUsers := &adminusers.AdminUsers{Deps: handlerDeps}
+	adminUsers := &adminusers.AdminUsers{HandlerDeps: handlerDeps}
 	adminSMTPKey, err := deps.Config.EncryptionKeyBytes()
 	if err != nil {
 		return nil, nil, fmt.Errorf("encryption key: %w", err)
@@ -87,11 +88,11 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, error) {
 		BaseURL:  deps.Config.BaseURL,
 	}
 	webhookDispatcher := &webhooks.Dispatcher{Settings: settingsSvc, Store: st, Runs: st, DevMode: deps.Config.Env == "development"}
-	adminWebhooks := &adminwebhooks.AdminWebhooks{Deps: handlerDeps, EncryptionKey: adminSMTPKey, Webhooks: webhookDispatcher}
-	adminSMTP := &adminsmtp.AdminSMTP{Deps: handlerDeps, EncryptionKey: adminSMTPKey}
-	adminJira := &adminintegrations.AdminJira{Deps: handlerDeps, EncryptionKey: adminSMTPKey}
-	adminNotion := &adminintegrations.AdminNotion{Deps: handlerDeps, EncryptionKey: adminSMTPKey}
-	adminIntegrations := &adminintegrations.AdminIntegrations{Deps: handlerDeps, EncryptionKey: adminSMTPKey}
+	adminWebhooks := &adminwebhooks.AdminWebhooks{HandlerDeps: handlerDeps, EncryptionKey: adminSMTPKey, Webhooks: webhookDispatcher}
+	adminSMTP := &adminsmtp.AdminSMTP{HandlerDeps: handlerDeps, EncryptionKey: adminSMTPKey}
+	adminJira := &adminintegrations.AdminJira{HandlerDeps: handlerDeps, EncryptionKey: adminSMTPKey}
+	adminNotion := &adminintegrations.AdminNotion{HandlerDeps: handlerDeps, EncryptionKey: adminSMTPKey}
+	adminIntegrations := &adminintegrations.AdminIntegrations{HandlerDeps: handlerDeps, EncryptionKey: adminSMTPKey}
 	projectsHandler := &projects.Projects{Deps: projects.Deps{
 		Templates:     tpl,
 		Store:         st,
@@ -128,7 +129,7 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, error) {
 	r.Use(appmiddleware.LoadUser(st))
 	r.Use(appmiddleware.CSRF(deps.Config.SessionSecret))
 
-	r.Get("/healthz", handlers.Health)
+	r.Get("/healthz", Health)
 	r.Get("/", (&home.Home{Deps: home.Deps{
 		Templates:     tpl,
 		Store:         st,

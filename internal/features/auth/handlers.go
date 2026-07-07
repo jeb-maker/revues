@@ -1,4 +1,4 @@
-package handlers
+package auth
 
 import (
 	"errors"
@@ -13,7 +13,6 @@ import (
 	"github.com/jeb-maker/revues/internal/web/templates"
 )
 
-// Auth handles login, OAuth callback and logout.
 type Auth struct {
 	Templates *template.Template
 	Store     *store.Store
@@ -22,7 +21,6 @@ type Auth struct {
 	Config    config.Config
 }
 
-// Login shows the GitHub sign-in page.
 func (h *Auth) Login(w http.ResponseWriter, r *http.Request) {
 	if user, ok := middleware.UserFromContext(r.Context()); ok {
 		slog.Debug("already authenticated", "user_id", user.ID)
@@ -42,7 +40,6 @@ func (h *Auth) Login(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// StartGitHub begins the OAuth Authorization Code + PKCE flow.
 func (h *Auth) StartGitHub(w http.ResponseWriter, r *http.Request) {
 	if h.GitHub.ClientID == "" || h.GitHub.ClientSecret == "" {
 		http.Redirect(w, r, "/login?error=oauth+non+configur%C3%A9", http.StatusFound)
@@ -70,7 +67,6 @@ func (h *Auth) StartGitHub(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, url, http.StatusFound)
 }
 
-// Callback completes GitHub OAuth and creates a server session.
 func (h *Auth) Callback(w http.ResponseWriter, r *http.Request) {
 	if errParam := r.URL.Query().Get("error"); errParam != "" {
 		http.Redirect(w, r, "/login?error="+errParam, http.StatusFound)
@@ -152,7 +148,6 @@ func (h *Auth) Callback(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/", http.StatusFound)
 }
 
-// Logout destroys the current session.
 func (h *Auth) Logout(w http.ResponseWriter, r *http.Request) {
 	token, err := auth.SessionTokenFromRequest(r)
 	if err == nil {

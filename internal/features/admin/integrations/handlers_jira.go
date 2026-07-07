@@ -7,13 +7,13 @@ import (
 	"strings"
 
 	"github.com/jeb-maker/revues/internal/integrations/jira"
-	"github.com/jeb-maker/revues/internal/web/handlers"
+	"github.com/jeb-maker/revues/internal/web/handlerdeps"
 	"github.com/jeb-maker/revues/internal/web/templates"
 )
 
 // AdminJira manages encrypted Jira integration settings.
 type AdminJira struct {
-	handlers.Deps
+	handlerdeps.HandlerDeps
 	EncryptionKey []byte
 	JiraClient    *jira.Client
 }

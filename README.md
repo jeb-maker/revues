@@ -42,16 +42,30 @@ Variables d'environnement : voir [.env.example](.env.example) (`REVUES_DATABASE_
 
 Au démarrage, les migrations goose s'appliquent automatiquement.
 
-## Structure (bootstrap)
+## Structure
 
 ```
-cmd/revues/           # point d'entrée, wiring serveur
-internal/store/       # connexion SQLite, migrations goose
-internal/web/         # router chi, handlers HTTP
-internal/config/      # configuration REVUES_*
-migrations/           # SQL goose (source d'exécution)
+cmd/revues/           # point d entrée, wiring serveur
+internal/
+  features/           # code métier par feature (vertical)
+    projects/         # store + service + handlers
+    runs/             # store + service + handlers (inclut items)
+    checklisttemplates/  # store + service + handlers
+    admin/            # users, smtp, webhooks, integrations config
+    mytasks/          # handlers
+    home/             # handlers
+    auth/             # handler OAuth (service dans internal/auth/)
+  store/              # connexion SQLite, migrations goose, requêtes SQL
+  web/                # router chi, middleware, templating, health
+  auth/               # OAuth, sessions, CSRF, RBAC types
+  config/             # REVUES_* env vars
+  integrations/       # clients API externes (jira, notion, webhooks)
+  notifications/      # mailing
+  attachments/        # upload et mime
+  crypto/             # chiffrement settings
 web/static/           # CSS, JS (servi sur /static/)
 web/templates/        # html/template (layout + pages)
+migrations/           # SQL goose
 data/                 # SQLite (gitignored)
 ```
 

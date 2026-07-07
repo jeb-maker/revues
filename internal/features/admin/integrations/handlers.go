@@ -7,13 +7,13 @@ import (
 	"github.com/jeb-maker/revues/internal/features/admin/settings"
 	"github.com/jeb-maker/revues/internal/integrations/jira"
 	"github.com/jeb-maker/revues/internal/integrations/notion"
-	"github.com/jeb-maker/revues/internal/web/handlers"
+	"github.com/jeb-maker/revues/internal/web/handlerdeps"
 	"github.com/jeb-maker/revues/internal/web/templates"
 )
 
 // AdminIntegrations shows the unified integrations overview.
 type AdminIntegrations struct {
-	handlers.Deps
+	handlerdeps.HandlerDeps
 	EncryptionKey []byte
 }
 

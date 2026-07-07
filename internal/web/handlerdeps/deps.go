@@ -1,4 +1,8 @@
-package handlers
+// Package handlerdeps provides a shared HandlerDeps struct so that
+// internal/web/router.go and internal/features/admin/* can both use it
+// without creating an import cycle (router imports features, features
+// would import web back).
+package handlerdeps
 
 import (
 	"html/template"
@@ -10,15 +14,13 @@ import (
 	"github.com/jeb-maker/revues/internal/web/templates"
 )
 
-// Deps holds shared dependencies for HTML handlers.
-type Deps struct {
+type HandlerDeps struct {
 	Templates     *template.Template
 	Store         *store.Store
 	SessionSecret string
 }
 
-// PageData builds shared view data with user and CSRF from the request context.
-func (d *Deps) PageData(r *http.Request, title string) templates.PageData {
+func (d *HandlerDeps) PageData(r *http.Request, title string) templates.PageData {
 	data := templates.PageData{Title: title}
 	if user, ok := middleware.UserFromContext(r.Context()); ok {
 		data.User = user
@@ -29,8 +31,7 @@ func (d *Deps) PageData(r *http.Request, title string) templates.PageData {
 	return data
 }
 
-// PageDataTab is PageData with ActiveTab set.
-func (d *Deps) PageDataTab(r *http.Request, title, activeTab string) templates.PageData {
+func (d *HandlerDeps) PageDataTab(r *http.Request, title, activeTab string) templates.PageData {
 	data := d.PageData(r, title)
 	data.ActiveTab = activeTab
 	return data

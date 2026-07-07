@@ -20,8 +20,7 @@ import (
 
 // testRouter mirrors internal/web/handlers.testRouter. It is duplicated here
 // because the projects handlers tests now live in the projects feature package
-// and cannot reach the handlers_test helper. A follow-up issue may extract a
-// shared test-router helper.
+// and cannot reach the handlers_test helper.
 func testRouter(t *testing.T) (http.Handler, *sql.DB) {
 	t.Helper()
 
