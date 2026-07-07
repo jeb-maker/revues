@@ -202,6 +202,23 @@ type ChecklistTemplateShowData struct {
 	Error      string
 }
 
+// TemplateNewWizardData is view data for the "choose project" step when creating a template.
+type TemplateNewWizardData struct {
+	PageData
+	Projects []store.Project
+}
+
+// TemplateRowFragmentData is view data for a single template editor row fragment (HTMX).
+type TemplateRowFragmentData struct {
+	ProjectID int64
+	Index     int
+	Section   string
+	Label     string
+	HelpText  string
+	Required  bool
+	CSRFToken string
+}
+
 // RunWizardProjectsData is view data for run wizard step 1.
 type RunWizardProjectsData struct {
 	PageData

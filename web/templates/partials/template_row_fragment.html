@@ -1,0 +1,29 @@
+{{define "template_row_fragment"}}
+<fieldset class="template-row" id="template-row-{{.Index}}">
+  <legend>Point {{add .Index 1}}</legend>
+  <input type="hidden" name="item_row_idx" value="{{.Index}}">
+  <label>
+    Section
+    <input type="text" name="item_section" maxlength="200" value="{{.Section}}">
+  </label>
+  <label>
+    Libellé
+    <input type="text" name="item_label" maxlength="500" value="{{.Label}}">
+  </label>
+  <label>
+    Texte d'aide
+    <input type="text" name="item_help" maxlength="500" value="{{.HelpText}}">
+  </label>
+  <label class="checkbox-row">
+    <input type="checkbox" name="item_required" value="{{.Index}}" {{if .Required}}checked{{end}}>
+    Point requis
+  </label>
+  <div class="template-row-actions">
+    <button type="button" class="button-ghost button-sm" hx-post="/projects/{{.ProjectID}}/templates/new/row" hx-vals='{"idx":"{{.Index}}","csrf_token":"{{.CSRFToken}}"}'
+            hx-target="#template-row-{{.Index}}" hx-swap="afterend">+</button>
+    <button type="button" class="button-ghost button-sm" hx-delete="/projects/{{.ProjectID}}/templates/new/row/{{.Index}}"
+            hx-headers='{"X-CSRF-Token":"{{.CSRFToken}}"}'
+            hx-target="#template-row-{{.Index}}" hx-swap="outerHTML">−</button>
+  </div>
+</fieldset>
+{{end}}
