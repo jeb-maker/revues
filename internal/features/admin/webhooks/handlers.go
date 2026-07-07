@@ -1,4 +1,4 @@
-package handlers
+package webhooks
 
 import (
 	"errors"
@@ -6,17 +6,20 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/jeb-maker/revues/internal/admin"
-	"github.com/jeb-maker/revues/internal/integrations/webhooks"
+	"github.com/jeb-maker/revues/internal/features/admin/settings"
+	whdispatch "github.com/jeb-maker/revues/internal/integrations/webhooks"
+	"github.com/jeb-maker/revues/internal/web/handlers"
 	"github.com/jeb-maker/revues/internal/web/templates"
 )
 
+// AdminWebhooks manages encrypted webhook notification settings.
 type AdminWebhooks struct {
-	Deps
+	handlers.Deps
 	EncryptionKey []byte
-	Webhooks      *webhooks.Dispatcher
+	Webhooks      *whdispatch.Dispatcher
 }
 
+// Show renders the webhook configuration form.
 func (h *AdminWebhooks) Show(w http.ResponseWriter, r *http.Request) {
 	data := h.pageData(r)
 	data.Message = r.URL.Query().Get("msg")
@@ -37,6 +40,7 @@ func (h *AdminWebhooks) Show(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// Save stores webhook settings or sends a test delivery.
 func (h *AdminWebhooks) Save(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
@@ -54,20 +58,20 @@ func (h *AdminWebhooks) saveConfig(w http.ResponseWriter, r *http.Request) {
 		h.renderForm(w, r, templates.AdminWebhooksData{Error: "REVUES_ENCRYPTION_KEY est requis pour enregistrer la configuration webhooks."})
 		return
 	}
-	cfg := admin.WebhookConfig{URLs: admin.ParseWebhookURLs(r.FormValue("urls")), ReviewCompleted: r.FormValue("review_completed") == "on", ReviewItemNOK: r.FormValue("review_item_nok") == "on"}
+	cfg := settings.WebhookConfig{URLs: settings.ParseWebhookURLs(r.FormValue("urls")), ReviewCompleted: r.FormValue("review_completed") == "on", ReviewItemNOK: r.FormValue("review_item_nok") == "on"}
 	current, hasCurrent, err := h.settings().LoadWebhooks(r.Context())
 	if err != nil {
 		h.renderForm(w, r, templates.AdminWebhooksData{Error: "Impossible de charger la configuration existante."})
 		return
 	}
 	if hasCurrent {
-		cfg.Secret = admin.MergeWebhookSecret(current, r.FormValue("secret"))
+		cfg.Secret = settings.MergeWebhookSecret(current, r.FormValue("secret"))
 	} else {
 		cfg.Secret = r.FormValue("secret")
 	}
 	if err := h.settings().SaveWebhooks(r.Context(), cfg); err != nil {
 		msg := err.Error()
-		if errors.Is(err, admin.ErrEncryptionNotConfigured) {
+		if errors.Is(err, settings.ErrEncryptionNotConfigured) {
 			msg = "REVUES_ENCRYPTION_KEY est requis pour enregistrer la configuration webhooks."
 		}
 		h.renderForm(w, r, templates.AdminWebhooksData{URLsText: strings.Join(cfg.URLs, "\n"), ReviewCompleted: cfg.ReviewCompleted, ReviewItemNOK: cfg.ReviewItemNOK, Error: msg})
@@ -104,6 +108,6 @@ func (h *AdminWebhooks) pageData(r *http.Request) templates.AdminWebhooksData {
 	}
 }
 
-func (h *AdminWebhooks) settings() *admin.SettingsService {
-	return &admin.SettingsService{Store: h.Store, EncryptionKey: h.EncryptionKey}
+func (h *AdminWebhooks) settings() *settings.SettingsService {
+	return &settings.SettingsService{Store: h.Store, EncryptionKey: h.EncryptionKey}
 }

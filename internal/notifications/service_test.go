@@ -9,9 +9,9 @@ import (
 
 	_ "modernc.org/sqlite"
 
-	"github.com/jeb-maker/revues/internal/admin"
 	"github.com/jeb-maker/revues/internal/auth"
 	"github.com/jeb-maker/revues/internal/crypto"
+	adminsettings "github.com/jeb-maker/revues/internal/features/admin/settings"
 	"github.com/jeb-maker/revues/internal/notifications"
 	"github.com/jeb-maker/revues/internal/projects"
 	"github.com/jeb-maker/revues/internal/store"
@@ -181,7 +181,7 @@ func TestServiceSendDueReminders(t *testing.T) {
 	waitForSMTPMessages(t, 1)
 }
 
-func testNotificationDeps(t *testing.T) (*store.Store, *admin.SettingsService) {
+func testNotificationDeps(t *testing.T) (*store.Store, *adminsettings.SettingsService) {
 	t.Helper()
 
 	ctx := context.Background()
@@ -203,12 +203,12 @@ func testNotificationDeps(t *testing.T) (*store.Store, *admin.SettingsService) {
 
 	key := make([]byte, crypto.KeySize)
 	st := store.New(db)
-	return st, &admin.SettingsService{Store: st, EncryptionKey: key}
+	return st, &adminsettings.SettingsService{Store: st, EncryptionKey: key}
 }
 
-func saveTestSMTP(t *testing.T, settingsSvc *admin.SettingsService, host string, port int) {
+func saveTestSMTP(t *testing.T, settingsSvc *adminsettings.SettingsService, host string, port int) {
 	t.Helper()
-	if err := settingsSvc.SaveSMTP(context.Background(), admin.SMTPConfig{
+	if err := settingsSvc.SaveSMTP(context.Background(), adminsettings.SMTPConfig{
 		Host: host,
 		Port: port,
 		From: "revues@example.com",

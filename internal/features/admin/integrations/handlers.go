@@ -1,18 +1,19 @@
-package handlers
+package integrations
 
 import (
 	"log/slog"
 	"net/http"
 
-	"github.com/jeb-maker/revues/internal/admin"
+	"github.com/jeb-maker/revues/internal/features/admin/settings"
 	"github.com/jeb-maker/revues/internal/integrations/jira"
 	"github.com/jeb-maker/revues/internal/integrations/notion"
+	"github.com/jeb-maker/revues/internal/web/handlers"
 	"github.com/jeb-maker/revues/internal/web/templates"
 )
 
 // AdminIntegrations shows the unified integrations overview.
 type AdminIntegrations struct {
-	Deps
+	handlers.Deps
 	EncryptionKey []byte
 }
 
@@ -49,9 +50,9 @@ func (h *AdminIntegrations) pageData(r *http.Request) templates.AdminIntegration
 	}
 }
 
-func (h *AdminIntegrations) service() *admin.IntegrationsService {
-	return &admin.IntegrationsService{
-		Settings: &admin.SettingsService{
+func (h *AdminIntegrations) service() *IntegrationsService {
+	return &IntegrationsService{
+		Settings: &settings.SettingsService{
 			Store:         h.Store,
 			EncryptionKey: h.EncryptionKey,
 		},

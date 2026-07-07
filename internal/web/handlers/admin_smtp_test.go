@@ -12,10 +12,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/jeb-maker/revues/internal/admin"
 	"github.com/jeb-maker/revues/internal/auth"
 	"github.com/jeb-maker/revues/internal/config"
 	"github.com/jeb-maker/revues/internal/crypto"
+	adminsettings "github.com/jeb-maker/revues/internal/features/admin/settings"
 	"github.com/jeb-maker/revues/internal/store"
 	appweb "github.com/jeb-maker/revues/internal/web"
 )
@@ -89,7 +89,7 @@ func TestAdminSMTP_SaveAndTest(t *testing.T) {
 	if err != nil {
 		t.Fatalf("DecodeKey(): %v", err)
 	}
-	svc := &admin.SettingsService{Store: st, EncryptionKey: key}
+	svc := &adminsettings.SettingsService{Store: st, EncryptionKey: key}
 	cfg, ok, err := svc.LoadSMTP(ctx)
 	if err != nil || !ok {
 		t.Fatalf("LoadSMTP() = ok=%v err=%v", ok, err)

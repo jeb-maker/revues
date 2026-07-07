@@ -9,9 +9,13 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 
-	"github.com/jeb-maker/revues/internal/admin"
 	"github.com/jeb-maker/revues/internal/auth"
 	"github.com/jeb-maker/revues/internal/config"
+	adminintegrations "github.com/jeb-maker/revues/internal/features/admin/integrations"
+	adminsettings "github.com/jeb-maker/revues/internal/features/admin/settings"
+	adminsmtp "github.com/jeb-maker/revues/internal/features/admin/smtp"
+	adminusers "github.com/jeb-maker/revues/internal/features/admin/users"
+	adminwebhooks "github.com/jeb-maker/revues/internal/features/admin/webhooks"
 	"github.com/jeb-maker/revues/internal/integrations/webhooks"
 	"github.com/jeb-maker/revues/internal/notifications"
 	"github.com/jeb-maker/revues/internal/store"
@@ -63,12 +67,12 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, error) {
 		GitHub:    github,
 		Config:    deps.Config,
 	}
-	adminUsers := &handlers.AdminUsers{Deps: handlerDeps}
+	adminUsers := &adminusers.AdminUsers{Deps: handlerDeps}
 	adminSMTPKey, err := deps.Config.EncryptionKeyBytes()
 	if err != nil {
 		return nil, nil, fmt.Errorf("encryption key: %w", err)
 	}
-	settingsSvc := &admin.SettingsService{
+	settingsSvc := &adminsettings.SettingsService{
 		Store:         st,
 		EncryptionKey: adminSMTPKey,
 	}
@@ -78,11 +82,11 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, error) {
 		BaseURL:  deps.Config.BaseURL,
 	}
 	webhookDispatcher := &webhooks.Dispatcher{Settings: settingsSvc, Store: st, Runs: st, DevMode: deps.Config.Env == "development"}
-	adminWebhooks := &handlers.AdminWebhooks{Deps: handlerDeps, EncryptionKey: adminSMTPKey, Webhooks: webhookDispatcher}
-	adminSMTP := &handlers.AdminSMTP{Deps: handlerDeps, EncryptionKey: adminSMTPKey}
-	adminJira := &handlers.AdminJira{Deps: handlerDeps, EncryptionKey: adminSMTPKey}
-	adminNotion := &handlers.AdminNotion{Deps: handlerDeps, EncryptionKey: adminSMTPKey}
-	adminIntegrations := &handlers.AdminIntegrations{Deps: handlerDeps, EncryptionKey: adminSMTPKey}
+	adminWebhooks := &adminwebhooks.AdminWebhooks{Deps: handlerDeps, EncryptionKey: adminSMTPKey, Webhooks: webhookDispatcher}
+	adminSMTP := &adminsmtp.AdminSMTP{Deps: handlerDeps, EncryptionKey: adminSMTPKey}
+	adminJira := &adminintegrations.AdminJira{Deps: handlerDeps, EncryptionKey: adminSMTPKey}
+	adminNotion := &adminintegrations.AdminNotion{Deps: handlerDeps, EncryptionKey: adminSMTPKey}
+	adminIntegrations := &adminintegrations.AdminIntegrations{Deps: handlerDeps, EncryptionKey: adminSMTPKey}
 	projectsHandler := &handlers.Projects{Deps: handlerDeps}
 	checklistTemplates := &handlers.ChecklistTemplates{Deps: handlerDeps, EncryptionKey: adminSMTPKey}
 	runsHandler := &handlers.Runs{

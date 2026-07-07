@@ -1,4 +1,4 @@
-package admin_test
+package settings_test
 
 import (
 	"context"
@@ -8,12 +8,12 @@ import (
 
 	_ "modernc.org/sqlite"
 
-	"github.com/jeb-maker/revues/internal/admin"
 	"github.com/jeb-maker/revues/internal/crypto"
+	"github.com/jeb-maker/revues/internal/features/admin/settings"
 	"github.com/jeb-maker/revues/internal/store"
 )
 
-func testSettingsService(t *testing.T) (*admin.SettingsService, *store.Store) {
+func testSettingsService(t *testing.T) (*settings.SettingsService, *store.Store) {
 	t.Helper()
 
 	ctx := context.Background()
@@ -35,14 +35,14 @@ func testSettingsService(t *testing.T) (*admin.SettingsService, *store.Store) {
 
 	key := make([]byte, crypto.KeySize)
 	st := store.New(db)
-	return &admin.SettingsService{Store: st, EncryptionKey: key}, st
+	return &settings.SettingsService{Store: st, EncryptionKey: key}, st
 }
 
 func TestSettingsServiceSaveLoadSMTP(t *testing.T) {
 	ctx := context.Background()
 	svc, _ := testSettingsService(t)
 
-	cfg := admin.SMTPConfig{
+	cfg := settings.SMTPConfig{
 		Host:     "smtp.example.com",
 		Port:     587,
 		TLS:      true,
@@ -71,27 +71,27 @@ func TestSettingsServiceSaveWithoutKey(t *testing.T) {
 	svc, _ := testSettingsService(t)
 	svc.EncryptionKey = nil
 
-	err := svc.SaveSMTP(ctx, admin.SMTPConfig{Host: "smtp.example.com", Port: 587, From: "a@example.com"})
+	err := svc.SaveSMTP(ctx, settings.SMTPConfig{Host: "smtp.example.com", Port: 587, From: "a@example.com"})
 	if err == nil {
 		t.Fatal("expected error without encryption key")
 	}
 }
 
 func TestValidateSMTP(t *testing.T) {
-	if err := admin.ValidateSMTP(admin.SMTPConfig{}); err == nil {
+	if err := settings.ValidateSMTP(settings.SMTPConfig{}); err == nil {
 		t.Fatal("expected validation error")
 	}
-	if err := admin.ValidateSMTP(admin.SMTPConfig{Host: "smtp.example.com", Port: 587, From: "revues@example.com"}); err != nil {
+	if err := settings.ValidateSMTP(settings.SMTPConfig{Host: "smtp.example.com", Port: 587, From: "revues@example.com"}); err != nil {
 		t.Fatalf("ValidateSMTP(): %v", err)
 	}
 }
 
 func TestMergePassword(t *testing.T) {
-	current := admin.SMTPConfig{Password: "stored"}
-	if got := admin.MergePassword(current, ""); got != "stored" {
+	current := settings.SMTPConfig{Password: "stored"}
+	if got := settings.MergePassword(current, ""); got != "stored" {
 		t.Fatalf("MergePassword(empty) = %q, want stored", got)
 	}
-	if got := admin.MergePassword(current, "new"); got != "new" {
+	if got := settings.MergePassword(current, "new"); got != "new" {
 		t.Fatalf("MergePassword(new) = %q, want new", got)
 	}
 }
@@ -105,5 +105,28 @@ func TestDecodeKeyUsedByService(t *testing.T) {
 	}
 	if len(decoded) != crypto.KeySize {
 		t.Fatalf("key length = %d", len(decoded))
+	}
+}
+
+func TestValidateWebhooks(t *testing.T) {
+	valid := settings.WebhookConfig{URLs: []string{"https://hooks.example.com/revues"}, Secret: "secret", ReviewCompleted: true}
+	if err := settings.ValidateWebhooks(valid); err != nil {
+		t.Fatalf("ValidateWebhooks(valid): %v", err)
+	}
+	for name, cfg := range map[string]settings.WebhookConfig{
+		"no urls": {Secret: "s", ReviewCompleted: true}, "no secret": {URLs: []string{"https://x.test"}, ReviewCompleted: true},
+		"no events": {URLs: []string{"https://x.test"}, Secret: "s"}, "bad url": {URLs: []string{"ftp://x.test"}, Secret: "s", ReviewCompleted: true},
+	} {
+		t.Run(name, func(t *testing.T) {
+			if err := settings.ValidateWebhooks(cfg); err == nil {
+				t.Fatal("expected validation error")
+			}
+		})
+	}
+}
+
+func TestParseWebhookURLs(t *testing.T) {
+	if len(settings.ParseWebhookURLs("https://a.test\nhttps://b.test, https://a.test\n")) != 2 {
+		t.Fatal("expected 2 urls")
 	}
 }

@@ -1,9 +1,10 @@
-package admin
+package integrations
 
 import (
 	"context"
 	"fmt"
 
+	"github.com/jeb-maker/revues/internal/features/admin/settings"
 	"github.com/jeb-maker/revues/internal/integrations/jira"
 	"github.com/jeb-maker/revues/internal/integrations/notion"
 )
@@ -15,6 +16,7 @@ const (
 	integrationPathNotion   = "/admin/integrations/notion"
 )
 
+// IntegrationSummary describes one integration row on the admin overview.
 type IntegrationSummary struct {
 	Name        string
 	Description string
@@ -22,16 +24,19 @@ type IntegrationSummary struct {
 	ConfigPath  string
 }
 
+// IntegrationsOverview aggregates integration statuses for the admin page.
 type IntegrationsOverview struct {
 	Items []IntegrationSummary
 }
 
+// IntegrationsService builds the integrations overview from configured services.
 type IntegrationsService struct {
-	Settings *SettingsService
+	Settings *settings.SettingsService
 	Jira     *jira.Service
 	Notion   *notion.Service
 }
 
+// Overview returns the configured status of every integration.
 func (s *IntegrationsService) Overview(ctx context.Context) (IntegrationsOverview, error) {
 	if s.Settings == nil {
 		return IntegrationsOverview{}, fmt.Errorf("settings service required")
