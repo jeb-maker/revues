@@ -16,6 +16,8 @@ import (
 	adminsmtp "github.com/jeb-maker/revues/internal/features/admin/smtp"
 	adminusers "github.com/jeb-maker/revues/internal/features/admin/users"
 	adminwebhooks "github.com/jeb-maker/revues/internal/features/admin/webhooks"
+	"github.com/jeb-maker/revues/internal/features/checklisttemplates"
+	"github.com/jeb-maker/revues/internal/features/projects"
 	"github.com/jeb-maker/revues/internal/integrations/webhooks"
 	"github.com/jeb-maker/revues/internal/notifications"
 	"github.com/jeb-maker/revues/internal/store"
@@ -87,8 +89,16 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, error) {
 	adminJira := &adminintegrations.AdminJira{Deps: handlerDeps, EncryptionKey: adminSMTPKey}
 	adminNotion := &adminintegrations.AdminNotion{Deps: handlerDeps, EncryptionKey: adminSMTPKey}
 	adminIntegrations := &adminintegrations.AdminIntegrations{Deps: handlerDeps, EncryptionKey: adminSMTPKey}
-	projectsHandler := &handlers.Projects{Deps: handlerDeps}
-	checklistTemplates := &handlers.ChecklistTemplates{Deps: handlerDeps, EncryptionKey: adminSMTPKey}
+	projectsHandler := &projects.Projects{Deps: projects.Deps{
+		Templates:     tpl,
+		Store:         st,
+		SessionSecret: deps.Config.SessionSecret,
+	}}
+	checklistTemplates := &checklisttemplates.ChecklistTemplates{Deps: checklisttemplates.Deps{
+		Templates:     tpl,
+		Store:         st,
+		SessionSecret: deps.Config.SessionSecret,
+	}, EncryptionKey: adminSMTPKey}
 	runsHandler := &handlers.Runs{
 		Deps:           handlerDeps,
 		EncryptionKey:  adminSMTPKey,

@@ -15,10 +15,10 @@ import (
 	"github.com/jeb-maker/revues/internal/auth"
 	"github.com/jeb-maker/revues/internal/config"
 	"github.com/jeb-maker/revues/internal/crypto"
+	"github.com/jeb-maker/revues/internal/features/checklisttemplates"
+	"github.com/jeb-maker/revues/internal/features/projects"
 	"github.com/jeb-maker/revues/internal/integrations/notion"
-	"github.com/jeb-maker/revues/internal/projects"
 	"github.com/jeb-maker/revues/internal/store"
-	"github.com/jeb-maker/revues/internal/web/handlers"
 	appmiddleware "github.com/jeb-maker/revues/internal/web/middleware"
 	viewtemplates "github.com/jeb-maker/revues/internal/web/templates"
 )
@@ -48,8 +48,8 @@ func TestNotionImport_CreateTemplateV1(t *testing.T) {
 	_ = (&notion.Service{Store: st, EncryptionKey: key}).Save(ctx, notion.Config{APIToken: "secret"})
 	tpl, _ := viewtemplates.Parse()
 	secret := "test-secret-at-least-thirty-two-bytes"
-	h := &handlers.ChecklistTemplates{
-		Deps:          handlers.Deps{Templates: tpl, Store: st, SessionSecret: secret},
+	h := &checklisttemplates.ChecklistTemplates{
+		Deps:          checklisttemplates.Deps{Templates: tpl, Store: st, SessionSecret: secret},
 		EncryptionKey: key,
 		NotionClient:  &notion.Client{HTTPClient: srv.Client(), APIBaseURL: srv.URL + "/v1"},
 	}

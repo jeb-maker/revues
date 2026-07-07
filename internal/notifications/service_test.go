@@ -12,8 +12,8 @@ import (
 	"github.com/jeb-maker/revues/internal/auth"
 	"github.com/jeb-maker/revues/internal/crypto"
 	adminsettings "github.com/jeb-maker/revues/internal/features/admin/settings"
+	"github.com/jeb-maker/revues/internal/features/projects"
 	"github.com/jeb-maker/revues/internal/notifications"
-	"github.com/jeb-maker/revues/internal/projects"
 	"github.com/jeb-maker/revues/internal/store"
 )
 

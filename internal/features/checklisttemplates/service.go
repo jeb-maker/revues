@@ -1,4 +1,4 @@
-package templates
+package checklisttemplates
 
 import (
 	"github.com/jeb-maker/revues/internal/auth"
@@ -11,7 +11,8 @@ func CanView(user *store.User, isMember bool) bool {
 	return projects.CanView(user, isMember)
 }
 
-// CanManage reports whether the user may create, edit or archive checklist templates.
+// CanManage reports whether the user may create, edit or archive checklist
+// templates.
 func CanManage(user *store.User, memberRole string) bool {
 	if auth.HasMinRole(user.Role, auth.RoleAdmin) {
 		return true

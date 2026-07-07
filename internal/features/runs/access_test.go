@@ -5,7 +5,7 @@ import (
 
 	"github.com/jeb-maker/revues/internal/auth"
 	"github.com/jeb-maker/revues/internal/features/projects"
-	"github.com/jeb-maker/revues/internal/runs"
+	"github.com/jeb-maker/revues/internal/features/runs"
 	"github.com/jeb-maker/revues/internal/store"
 )
 
