@@ -3,14 +3,7 @@
 <h1>Configuration SMTP</h1>
 <p>Configurez le relais SMTP pour les notifications email. Sans configuration, l'application fonctionne normalement mais n'envoie pas d'emails.</p>
 
-<nav class="admin-nav">
-  <a href="/admin/users">Utilisateurs</a>
-  <a href="/admin/integrations">Intégrations</a>
-  <a href="/admin/settings/smtp" aria-current="page">SMTP</a>
-  <a href="/admin/settings/webhooks">Webhooks</a>
-  <a href="/admin/integrations/jira">Jira</a>
-  <a href="/admin/integrations/notion">Notion</a>
-</nav>
+{{template "admin_nav" .}}
 
 {{if not .CanEncrypt}}
 <p class="error">REVUES_ENCRYPTION_KEY n'est pas configurée : vous pouvez consulter ce formulaire mais l'enregistrement est désactivé.</p>

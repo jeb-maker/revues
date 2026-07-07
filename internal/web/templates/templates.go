@@ -15,11 +15,12 @@ import (
 
 // PageData is shared view data for HTML pages.
 type PageData struct {
-	Title      string
-	User       *store.User
-	CSRFToken  string
-	LoginError string
-	ActiveTab  string
+	Title        string
+	User         *store.User
+	CSRFToken    string
+	LoginError   string
+	ActiveTab    string
+	AdminSection string
 }
 
 // AdminUsersData is view data for the whitelist admin screen.

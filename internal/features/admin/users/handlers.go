@@ -100,9 +100,11 @@ func (h *AdminUsers) Remove(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *AdminUsers) adminData(r *http.Request, title string) templates.AdminUsersData {
-	return templates.AdminUsersData{
+	data := templates.AdminUsersData{
 		PageData: h.PageData(r, title),
 	}
+	data.AdminSection = "users"
+	return data
 }
 
 func (h *AdminUsers) renderError(w http.ResponseWriter, r *http.Request, message string) {
