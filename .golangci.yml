@@ -1,12 +1,17 @@
+version: "2"
+
 run:
   timeout: 5m
   tests: true
   modules-download-mode: readonly
 
+formatters:
+  enable:
+    - gofmt
+
 linters:
   enable:
     - errcheck
-    - gosimple
     - govet
     - ineffassign
     - staticcheck
@@ -15,23 +20,22 @@ linters:
     - sqlclosecheck
     - noctx
     - errorlint
-    - gofmt
     - misspell
 
-linters-settings:
-  errcheck:
-    check-type-assertions: true
-  govet:
-    enable-all: true
-    disable:
-      - fieldalignment  # micro-optimisation, bruit sur structs
-  staticcheck:
-    checks: ["all", "-ST1000"]  # package comment optionnel en interne
+  settings:
+    errcheck:
+      check-type-assertions: true
+    govet:
+      enable-all: true
+      disable:
+        - fieldalignment
+    staticcheck:
+      checks: ["all", "-ST1000"]
 
 issues:
   exclude-rules:
     - path: _test\.go
       linters:
-        - errcheck  # fermeture httptest tolérée si test court
+        - errcheck
   max-issues-per-linter: 0
   max-same-issues: 0
