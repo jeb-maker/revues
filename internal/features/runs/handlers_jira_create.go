@@ -77,8 +77,9 @@ func (h *Runs) CreateJiraItem(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Runs) jiraCreateService() *jira.CreateService {
+	s, _ := h.Store.(*store.Store)
 	return &jira.CreateService{
-		Store:         h.Store.(*store.Store),
+		Store:         s,
 		EncryptionKey: h.EncryptionKey,
 	}
 }

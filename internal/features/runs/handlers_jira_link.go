@@ -60,8 +60,9 @@ func (h *Runs) LinkJiraItem(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Runs) jiraLinkService() *jira.LinkService {
+	s, _ := h.Store.(*store.Store)
 	return &jira.LinkService{
-		Store:         h.Store.(*store.Store),
+		Store:         s,
 		EncryptionKey: h.EncryptionKey,
 	}
 }
