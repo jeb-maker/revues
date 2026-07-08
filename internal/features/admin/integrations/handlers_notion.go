@@ -6,13 +6,12 @@ import (
 	"strings"
 
 	"github.com/jeb-maker/revues/internal/integrations/notion"
-	"github.com/jeb-maker/revues/internal/web/handlerdeps"
 	"github.com/jeb-maker/revues/internal/web/templates"
 )
 
 // AdminNotion manages encrypted Notion integration settings.
 type AdminNotion struct {
-	handlerdeps.HandlerDeps
+	Deps
 	EncryptionKey []byte
 	NotionClient  *notion.Client
 }

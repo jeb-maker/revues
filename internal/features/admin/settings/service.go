@@ -11,7 +11,6 @@ import (
 	"strings"
 
 	"github.com/jeb-maker/revues/internal/crypto"
-	"github.com/jeb-maker/revues/internal/store"
 )
 
 const (
@@ -73,7 +72,7 @@ type webhooksPayload struct {
 
 // SettingsService loads and stores encrypted application settings.
 type SettingsService struct {
-	Store         *store.Store
+	Store         SettingStore
 	EncryptionKey []byte
 }
 
@@ -84,7 +83,7 @@ func (s *SettingsService) LoadSMTP(ctx context.Context) (SMTPConfig, bool, error
 	}
 
 	encrypted, err := s.Store.GetSetting(ctx, SettingKeySMTP)
-	if errors.Is(err, store.ErrSettingNotFound) {
+	if errors.Is(err, ErrSettingNotFound) {
 		return SMTPConfig{}, false, nil
 	}
 	if err != nil {
@@ -141,7 +140,7 @@ func (s *SettingsService) SaveSMTP(ctx context.Context, cfg SMTPConfig) error {
 // ClearSMTP removes stored SMTP configuration.
 func (s *SettingsService) ClearSMTP(ctx context.Context) error {
 	if err := s.Store.DeleteSetting(ctx, SettingKeySMTP); err != nil {
-		if errors.Is(err, store.ErrSettingNotFound) {
+		if errors.Is(err, ErrSettingNotFound) {
 			return nil
 		}
 		return fmt.Errorf("clear smtp setting: %w", err)
@@ -155,7 +154,7 @@ func (s *SettingsService) LoadWebhooks(ctx context.Context) (WebhookConfig, bool
 		return WebhookConfig{}, false, nil
 	}
 	encrypted, err := s.Store.GetSetting(ctx, SettingKeyWebhooks)
-	if errors.Is(err, store.ErrSettingNotFound) {
+	if errors.Is(err, ErrSettingNotFound) {
 		return WebhookConfig{}, false, nil
 	}
 	if err != nil {

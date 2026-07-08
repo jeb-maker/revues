@@ -2,21 +2,38 @@ package users
 
 import (
 	"errors"
+	"html/template"
 	"log/slog"
 	"net/http"
 	"net/mail"
 	"strings"
 
 	"github.com/jeb-maker/revues/internal/auth"
-	"github.com/jeb-maker/revues/internal/store"
-	"github.com/jeb-maker/revues/internal/web/handlerdeps"
 	"github.com/jeb-maker/revues/internal/web/middleware"
 	"github.com/jeb-maker/revues/internal/web/templates"
 )
 
+// Deps holds dependencies for admin users handlers.
+type Deps struct {
+	Templates     *template.Template
+	Store         AllowedEmailStore
+	SessionSecret string
+}
+
+func (d *Deps) PageData(r *http.Request, title string) templates.PageData {
+	data := templates.PageData{Title: title}
+	if user, ok := middleware.UserFromContext(r.Context()); ok {
+		data.User = user
+		if token := middleware.SessionTokenFromContext(r); token != "" {
+			data.CSRFToken = auth.CSRFToken(token, d.SessionSecret)
+		}
+	}
+	return data
+}
+
 // AdminUsers manages the login email whitelist.
 type AdminUsers struct {
-	handlerdeps.HandlerDeps
+	Deps
 }
 
 // List shows whitelisted emails.
@@ -87,7 +104,7 @@ func (h *AdminUsers) Remove(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.Store.DeleteAllowedEmail(r.Context(), email); err != nil {
-		if errors.Is(err, store.ErrAllowedEmailNotFound) {
+		if errors.Is(err, ErrAllowedEmailNotFound) {
 			h.renderError(w, r, "Email introuvable.")
 			return
 		}

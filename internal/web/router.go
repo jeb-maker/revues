@@ -25,7 +25,6 @@ import (
 	"github.com/jeb-maker/revues/internal/integrations/webhooks"
 	"github.com/jeb-maker/revues/internal/notifications"
 	"github.com/jeb-maker/revues/internal/store"
-	"github.com/jeb-maker/revues/internal/web/handlerdeps"
 	appmiddleware "github.com/jeb-maker/revues/internal/web/middleware"
 	"github.com/jeb-maker/revues/internal/web/templates"
 	webassets "github.com/jeb-maker/revues/web"
@@ -50,11 +49,6 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, error) {
 	}
 
 	st := store.New(deps.DB)
-	handlerDeps := handlerdeps.HandlerDeps{
-		Templates:     tpl,
-		Store:         st,
-		SessionSecret: deps.Config.SessionSecret,
-	}
 	sessions := &auth.SessionManager{
 		Store:         st,
 		SessionSecret: deps.Config.SessionSecret,
@@ -73,7 +67,6 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, error) {
 		GitHub:    github,
 		Config:    deps.Config,
 	}
-	adminUsers := &adminusers.AdminUsers{HandlerDeps: handlerDeps}
 	adminSMTPKey, err := deps.Config.EncryptionKeyBytes()
 	if err != nil {
 		return nil, nil, fmt.Errorf("encryption key: %w", err)
@@ -88,11 +81,52 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, error) {
 		BaseURL:  deps.Config.BaseURL,
 	}
 	webhookDispatcher := &webhooks.Dispatcher{Settings: settingsSvc, Store: st, Runs: st, DevMode: deps.Config.Env == "development"}
-	adminWebhooks := &adminwebhooks.AdminWebhooks{HandlerDeps: handlerDeps, EncryptionKey: adminSMTPKey, Webhooks: webhookDispatcher}
-	adminSMTP := &adminsmtp.AdminSMTP{HandlerDeps: handlerDeps, EncryptionKey: adminSMTPKey}
-	adminJira := &adminintegrations.AdminJira{HandlerDeps: handlerDeps, EncryptionKey: adminSMTPKey}
-	adminNotion := &adminintegrations.AdminNotion{HandlerDeps: handlerDeps, EncryptionKey: adminSMTPKey}
-	adminIntegrations := &adminintegrations.AdminIntegrations{HandlerDeps: handlerDeps, EncryptionKey: adminSMTPKey}
+	adminUsers := &adminusers.AdminUsers{Deps: adminusers.Deps{
+		Templates:     tpl,
+		Store:         st,
+		SessionSecret: deps.Config.SessionSecret,
+	}}
+	adminWebhooks := &adminwebhooks.AdminWebhooks{
+		Deps: adminwebhooks.Deps{
+			Templates:     tpl,
+			Store:         st,
+			SessionSecret: deps.Config.SessionSecret,
+		},
+		EncryptionKey: adminSMTPKey,
+		Webhooks:      webhookDispatcher,
+	}
+	adminSMTP := &adminsmtp.AdminSMTP{
+		Deps: adminsmtp.Deps{
+			Templates:     tpl,
+			Store:         st,
+			SessionSecret: deps.Config.SessionSecret,
+		},
+		EncryptionKey: adminSMTPKey,
+	}
+	adminJira := &adminintegrations.AdminJira{
+		Deps: adminintegrations.Deps{
+			Templates:     tpl,
+			Store:         st,
+			SessionSecret: deps.Config.SessionSecret,
+		},
+		EncryptionKey: adminSMTPKey,
+	}
+	adminNotion := &adminintegrations.AdminNotion{
+		Deps: adminintegrations.Deps{
+			Templates:     tpl,
+			Store:         st,
+			SessionSecret: deps.Config.SessionSecret,
+		},
+		EncryptionKey: adminSMTPKey,
+	}
+	adminIntegrations := &adminintegrations.AdminIntegrations{
+		Deps: adminintegrations.Deps{
+			Templates:     tpl,
+			Store:         st,
+			SessionSecret: deps.Config.SessionSecret,
+		},
+		EncryptionKey: adminSMTPKey,
+	}
 	projectsHandler := &projects.Projects{Deps: projects.Deps{
 		Templates:     tpl,
 		Store:         st,
