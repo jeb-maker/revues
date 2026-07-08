@@ -1,48 +1,32 @@
 package checklisttemplates
 
 import (
+	"context"
+
 	"github.com/jeb-maker/revues/internal/store"
 )
 
-// Store wraps a *store.Store to expose checklist-template-related queries from
-// the checklisttemplates feature package. It embeds *store.Store so existing
-// checklist template SQL methods (CreateChecklistTemplate,
-// ChecklistTemplateByID, ListChecklistTemplates, etc.) are promoted and
-// accessible through the checklisttemplates feature namespace.
-//
-// The underlying SQL stays in internal/store for now because it is shared by
-// other features (runs, integrations) and the webhooks RunLoader interface.
-// A dedicated issue will migrate the SQL into this package once the depending
-// features are themselves extracted (mirrors the projects feature strategy).
-type Store struct {
-	*store.Store
+type ChecklistTemplateStore interface {
+	ChecklistTemplateByID(ctx context.Context, id int64) (*ChecklistTemplate, error)
+	ListChecklistTemplates(ctx context.Context, projectID int64) ([]ChecklistTemplateSummary, error)
+	CreateChecklistTemplate(ctx context.Context, projectID int64, name string, createdBy int64, items []TemplateItemInput) (*ChecklistTemplate, *TemplateVersion, error)
+	ArchiveChecklistTemplate(ctx context.Context, id int64) error
+	LatestTemplateVersion(ctx context.Context, templateID int64) (*TemplateVersion, error)
+	CreateTemplateVersion(ctx context.Context, templateID, createdBy int64, items []TemplateItemInput) (*TemplateVersion, error)
+	ListTemplateItems(ctx context.Context, versionID int64) ([]TemplateItem, error)
+	ListTemplateIndex(ctx context.Context, userID int64, admin bool) ([]TemplateIndexRow, error)
+	UpdateChecklistTemplateName(ctx context.Context, id int64, name string) error
+	ListProjects(ctx context.Context, userID int64, admin bool) ([]Project, error)
+	ProjectByID(ctx context.Context, id int64) (*Project, error)
+	MemberRole(ctx context.Context, projectID, userID int64) (string, bool, error)
 }
 
-// New returns a checklisttemplates Store backed by the given store.Store.
-func New(s *store.Store) *Store {
-	return &Store{Store: s}
-}
-
-// ChecklistTemplate re-exports store.ChecklistTemplate under the
-// checklisttemplates namespace.
 type ChecklistTemplate = store.ChecklistTemplate
-
-// ChecklistTemplateSummary re-exports store.ChecklistTemplateSummary under the
-// checklisttemplates namespace.
 type ChecklistTemplateSummary = store.ChecklistTemplateSummary
-
-// TemplateVersion re-exports store.TemplateVersion under the
-// checklisttemplates namespace.
 type TemplateVersion = store.TemplateVersion
-
-// TemplateItem re-exports store.TemplateItem under the checklisttemplates
-// namespace.
 type TemplateItem = store.TemplateItem
-
-// TemplateItemInput re-exports store.TemplateItemInput under the
-// checklisttemplates namespace.
 type TemplateItemInput = store.TemplateItemInput
+type Project = store.Project
+type TemplateIndexRow = store.TemplateIndexRow
 
-// ErrChecklistTemplateNotFound re-exports store.ErrChecklistTemplateNotFound
-// under the checklisttemplates namespace.
 var ErrChecklistTemplateNotFound = store.ErrChecklistTemplateNotFound

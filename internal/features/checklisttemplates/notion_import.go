@@ -203,7 +203,11 @@ func (h *ChecklistTemplates) notionConfigured(r *http.Request) (notion.Config, b
 	if len(h.EncryptionKey) != crypto.KeySize {
 		return notion.Config{}, false, nil
 	}
-	return (&notion.Service{Store: h.Store, EncryptionKey: h.EncryptionKey}).Load(r.Context())
+	st, ok := h.Store.(*store.Store)
+	if !ok {
+		return notion.Config{}, false, nil
+	}
+	return (&notion.Service{Store: st, EncryptionKey: h.EncryptionKey}).Load(r.Context())
 }
 
 func (h *ChecklistTemplates) notionClient() *notion.Client {

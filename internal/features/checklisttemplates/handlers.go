@@ -23,7 +23,7 @@ import (
 // checklisttemplates feature package to avoid an import cycle.
 type Deps struct {
 	Templates     *template.Template
-	Store         *store.Store
+	Store         ChecklistTemplateStore
 	SessionSecret string
 }
 
