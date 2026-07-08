@@ -10,4 +10,19 @@
       n.classList.toggle('nav-tabs--open');
     });
   }
+
+  function showToast(msg, isError) {
+    var t = document.getElementById('toast');
+    if (!t) return;
+    t.textContent = msg;
+    t.className = 'toast' + (isError ? ' toast--error' : '') + ' toast--show';
+    setTimeout(function () { t.className = 'toast'; }, 3000);
+  }
+
+  document.body.addEventListener('toast:success', function (e) {
+    showToast(e.detail.message || 'Action effectuée', false);
+  });
+  document.body.addEventListener('toast:error', function (e) {
+    showToast(e.detail.message || 'Erreur', true);
+  });
 })();

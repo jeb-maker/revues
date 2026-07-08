@@ -1,30 +1,28 @@
 {{define "run_item_show"}}
 {{template "layout_start" .}}
-<h1>{{.Item.Label}}</h1>
+<div class="card">
+  <h1>{{.Item.Label}}</h1>
+  <p class="muted">
+    Projet : <a href="/projects/{{.Project.ID}}">{{.Project.Name}}</a>
+    · Revue : <a href="/runs/{{.Run.ID}}">{{.Run.Title}}</a>
+    · Statut : <span class="status-badge status-{{.Item.Status}}">{{statusLabel .Item.Status}}</span>
+  </p>
 
-<p class="muted">
-  Projet : <a href="/projects/{{.Project.ID}}">{{.Project.Name}}</a>
-  · Revue : <a href="/runs/{{.Run.ID}}">{{.Run.Title}}</a>
-  · Statut actuel : {{.Item.Status}}
-</p>
-
-{{if .Item.Section}}<p class="muted">Section : {{.Item.Section}}</p>{{end}}
-{{if .Item.HelpText}}<p>{{.Item.HelpText}}</p>{{end}}
-{{if .Item.Comment}}<p><strong>Commentaire :</strong> {{.Item.Comment}}</p>{{end}}
-{{if .Item.AssignedLogin}}<p class="muted">Assigné à : {{.Item.AssignedLogin}}</p>{{end}}
+  {{if .Item.Section}}<p><strong>Section :</strong> {{.Item.Section}}</p>{{end}}
+  {{if .Item.HelpText}}<blockquote class="help-text">{{.Item.HelpText}}</blockquote>{{end}}
+  {{if .Item.Comment}}<div class="item-comment"><strong>Commentaire :</strong> {{.Item.Comment}}</div>{{end}}
+  {{if .Item.AssignedLogin}}<p class="muted">Assigné à : {{.Item.AssignedLogin}}</p>{{end}}
+</div>
 
 {{if .Message}}<p class="success">{{.Message}}</p>{{end}}
 {{if .LinkError}}<p class="error">{{.LinkError}}</p>{{end}}
 {{if .CreateError}}<p class="error">{{.CreateError}}</p>{{end}}
 {{if .UploadError}}<p class="error">{{.UploadError}}</p>{{end}}
 
-<section class="panel">
-  <h2>Issue Jira</h2>
+<div class="card">
+  <h2>{{icon "external-link"}} Issue Jira</h2>
   {{if .JiraLink}}
-  <p>
-    Liée à :
-    <a href="{{.JiraLink.ExternalURL}}" target="_blank" rel="noopener noreferrer">{{.JiraLink.ExternalKey}}</a>
-  </p>
+  <p>Liée à : <a href="{{.JiraLink.ExternalURL}}" target="_blank" rel="noopener noreferrer">{{.JiraLink.ExternalKey}}</a></p>
   {{else}}
   <p class="muted">Aucune issue Jira liée.</p>
   {{end}}
@@ -55,50 +53,53 @@
     <button type="submit">Créer ticket Jira</button>
   </form>
   {{end}}
-</section>
+</div>
 
-<section class="panel">
-  <h2>Pièce jointe</h2>
+<div class="card">
+  <h2>{{icon "download"}} Pièce jointe</h2>
   {{if .Attachment}}
-  {{template "attachment_display_fragment" .Attachment}}
-  <p class="muted">{{.Attachment.Filename}} — {{.Attachment.SizeBytes}} octets</p>
+  <div class="attachment-section">
+    {{template "attachment_display_fragment" .Attachment}}
+    <p class="muted">{{.Attachment.Filename}} — {{.Attachment.SizeBytes}} octets</p>
+  </div>
   {{else}}<p class="muted">Aucune pièce jointe.</p>{{end}}
   {{if .CanUpload}}
-  <form method="post" action="/runs/{{.Run.ID}}/items/{{.Item.ID}}/attachment" enctype="multipart/form-data" class="stack-form">
+  <form method="post" action="/runs/{{.Run.ID}}/items/{{.Item.ID}}/attachment" enctype="multipart/form-data" class="stack-form" hx-encoding="multipart/form-data" hx-post="/runs/{{.Run.ID}}/items/{{.Item.ID}}/attachment" hx-target="closest .card" hx-swap="outerHTML">
     <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
     <label>{{if .Attachment}}Remplacer le fichier{{else}}Ajouter un fichier{{end}}
       <input type="file" name="attachment" accept="image/jpeg,image/png,image/webp,application/pdf" required>
     </label>
     <p class="muted">JPEG, PNG, WebP ou PDF — max 5 Mo. Les images sont redimensionnées (1920 px max).</p>
-    <button type="submit">Enregistrer</button>
+    <button type="submit" class="button-secondary">{{icon "plus"}} Enregistrer</button>
   </form>
   {{end}}
-</section>
+</div>
 
-<section class="panel">
-  <h2>Historique des statuts ({{len .Events}})</h2>
+<div class="card">
+  <h2>{{icon "list"}} Historique des statuts ({{len .Events}})</h2>
   {{if .Events}}
-  <table class="data-table">
-    <thead>
-      <tr><th>Date</th><th>Utilisateur</th><th>Ancien</th><th>Nouveau</th><th>Commentaire</th></tr>
-    </thead>
-    <tbody>
-      {{range .Events}}
-      <tr>
-        <td>{{.CreatedAt}}</td>
-        <td>{{if .UserLogin}}{{.UserLogin}}{{else}}<span class="muted">—</span>{{end}}</td>
-        <td>{{if .OldStatus.Valid}}{{.OldStatus.String}}{{else}}<span class="muted">—</span>{{end}}</td>
-        <td>{{.NewStatus}}</td>
-        <td>{{if .Comment}}{{.Comment}}{{else}}<span class="muted">—</span>{{end}}</td>
-      </tr>
-      {{end}}
-    </tbody>
-  </table>
+  <div class="event-timeline">
+    {{range .Events}}
+    <div class="event-item">
+      <div class="event-marker event-marker--{{.NewStatus}}"></div>
+      <div class="event-body">
+        <p class="event-header">
+          <span class="status-badge status-{{.NewStatus}}">{{statusLabel .NewStatus}}</span>
+          {{if .OldStatus.Valid}}<span class="muted">(était {{statusLabel .OldStatus.String}})</span>{{end}}
+        </p>
+        <p class="event-meta muted">
+          {{.CreatedAt}} — {{if .UserLogin}}{{.UserLogin}}{{else}}<span class="muted">système</span>{{end}}
+        </p>
+        {{if .Comment}}<p class="event-comment">{{.Comment}}</p>{{end}}
+      </div>
+    </div>
+    {{end}}
+  </div>
   {{else}}
   <p class="muted">Aucun changement de statut enregistré.</p>
   {{end}}
-</section>
+</div>
 
-<p><a href="/runs/{{.Run.ID}}">← Retour à la revue</a></p>
+<p><a href="/runs/{{.Run.ID}}" class="button-ghost">{{icon "arrow-left"}} Retour à la revue</a></p>
 {{template "layout_end" .}}
 {{end}}

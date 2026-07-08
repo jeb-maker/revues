@@ -63,7 +63,7 @@ func TestRunItemShow_DisplaysAuditHistory(t *testing.T) {
 		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
 	}
 	body := rec.Body.String()
-	if !strings.Contains(body, "Historique") || !strings.Contains(body, "pending") || !strings.Contains(body, ">ok<") {
+	if !strings.Contains(body, "Historique") || !strings.Contains(body, "en_attente") || !strings.Contains(body, ">ok<") {
 		t.Fatal("expected audit history in item detail page")
 	}
 }
