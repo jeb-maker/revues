@@ -60,7 +60,7 @@ type configPayload struct {
 
 // Service loads and stores encrypted Jira integration settings.
 type Service struct {
-	Store         *store.Store
+	Store         ConfigStore
 	EncryptionKey []byte
 }
 
@@ -71,7 +71,7 @@ func (s *Service) Load(ctx context.Context) (Config, bool, error) {
 	}
 
 	row, err := s.Store.GetIntegrationByType(ctx, store.IntegrationTypeJira)
-	if errors.Is(err, store.ErrIntegrationNotFound) {
+	if errors.Is(err, ErrIntegrationNotFound) {
 		return Config{}, false, nil
 	}
 	if err != nil {

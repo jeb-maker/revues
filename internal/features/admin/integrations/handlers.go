@@ -1,19 +1,39 @@
 package integrations
 
 import (
+	"html/template"
 	"log/slog"
 	"net/http"
 
+	"github.com/jeb-maker/revues/internal/auth"
 	"github.com/jeb-maker/revues/internal/features/admin/settings"
 	"github.com/jeb-maker/revues/internal/integrations/jira"
 	"github.com/jeb-maker/revues/internal/integrations/notion"
-	"github.com/jeb-maker/revues/internal/web/handlerdeps"
+	"github.com/jeb-maker/revues/internal/web/middleware"
 	"github.com/jeb-maker/revues/internal/web/templates"
 )
 
+// Deps holds dependencies for admin integrations handlers.
+type Deps struct {
+	Templates     *template.Template
+	Store         AdminStore
+	SessionSecret string
+}
+
+func (d *Deps) PageData(r *http.Request, title string) templates.PageData {
+	data := templates.PageData{Title: title}
+	if user, ok := middleware.UserFromContext(r.Context()); ok {
+		data.User = user
+		if token := middleware.SessionTokenFromContext(r); token != "" {
+			data.CSRFToken = auth.CSRFToken(token, d.SessionSecret)
+		}
+	}
+	return data
+}
+
 // AdminIntegrations shows the unified integrations overview.
 type AdminIntegrations struct {
-	handlerdeps.HandlerDeps
+	Deps
 	EncryptionKey []byte
 }
 

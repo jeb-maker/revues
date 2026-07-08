@@ -31,7 +31,7 @@ type configPayload struct {
 }
 
 type Service struct {
-	Store         *store.Store
+	Store         ConfigStore
 	EncryptionKey []byte
 }
 
@@ -40,7 +40,7 @@ func (s *Service) Load(ctx context.Context) (Config, bool, error) {
 		return Config{}, false, nil
 	}
 	row, err := s.Store.GetIntegrationByType(ctx, store.IntegrationTypeNotion)
-	if errors.Is(err, store.ErrIntegrationNotFound) {
+	if errors.Is(err, ErrIntegrationNotFound) {
 		return Config{}, false, nil
 	}
 	if err != nil {
