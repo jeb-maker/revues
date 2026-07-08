@@ -13,6 +13,11 @@ import (
 	webassets "github.com/jeb-maker/revues/web"
 )
 
+type Breadcrumb struct {
+	URL   string
+	Label string
+}
+
 // PageData is shared view data for HTML pages.
 type PageData struct {
 	Title        string
@@ -21,6 +26,7 @@ type PageData struct {
 	LoginError   string
 	ActiveTab    string
 	AdminSection string
+	Breadcrumbs  []Breadcrumb
 }
 
 // AdminUsersData is view data for the whitelist admin screen.
@@ -353,6 +359,34 @@ func Parse() (*template.Template, error) {
 	}
 
 	tpl := template.New("").Funcs(template.FuncMap{
+		"icon": func(name string) template.HTML {
+			switch name {
+			case "plus":
+				return `<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v16m-8-8h16"/></svg>`
+			case "x":
+				return `<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M6 18L18 6"/></svg>`
+			case "arrow-left":
+				return `<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5m6-6l-6 6 6 6"/></svg>`
+			case "chevron-right":
+				return `<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 6l6 6-6 6"/></svg>`
+			case "menu":
+				return `<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>`
+			case "download":
+				return `<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4m5-5l4 4 4-4m-4 4V3"/></svg>`
+			case "external-link":
+				return `<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17L17 7m0 0H9m8 0v8"/></svg>`
+			case "check":
+				return `<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg>`
+			case "alert":
+				return `<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8v4m0 4h.01M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z"/></svg>`
+			case "settings":
+				return `<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1.08-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1.08 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1.08 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1.08z"/></svg>`
+			case "users":
+				return `<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`
+			default:
+				return ``
+			}
+		},
 		"add": func(a, b int) int { return a + b },
 		"mul": func(a, b int) int { return a * b },
 		"div": func(a, b int) int {

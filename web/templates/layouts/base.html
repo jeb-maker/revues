@@ -13,6 +13,9 @@
   <a class="skip-link" href="#main">Aller au contenu</a>
   <header class="site-header">
     <div class="site-header__inner">
+      <button class="hamburger" aria-label="Menu" aria-expanded="false">
+        {{icon "menu"}}
+      </button>
       <a class="brand" href="/" aria-label="Revues — accueil">
         <span class="brand__mark" aria-hidden="true">◈</span>
         <span class="brand__name">Revues</span>
@@ -33,6 +36,14 @@
     </div>
   </header>
   <main id="main" class="site-main{{block "main_class" .}}{{end}}">
+    {{if .Breadcrumbs}}
+    <nav class="breadcrumb" aria-label="Fil d'Ariane">
+      {{range $i, $b := .Breadcrumbs}}
+        {{if gt $i 0}}<span class="breadcrumb__sep" aria-hidden="true">{{icon "chevron-right"}}</span>{{end}}
+        {{if $b.URL}}<a href="{{$b.URL}}">{{$b.Label}}</a>{{else}}<span aria-current="page">{{$b.Label}}</span>{{end}}
+      {{end}}
+    </nav>
+    {{end}}
 {{end}}
 
 {{define "layout_end"}}
