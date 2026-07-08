@@ -100,8 +100,13 @@ func (h *Projects) NewForm(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	pd := h.PageDataTab(r, "Nouveau projet", "projects")
+	pd.Breadcrumbs = []templates.Breadcrumb{
+		{URL: "/projects", Label: "Projets"},
+		{Label: "Nouveau projet"},
+	}
 	data := templates.ProjectFormData{
-		PageData:   h.PageDataTab(r, "Nouveau projet", "projects"),
+		PageData:   pd,
 		FormAction: "/projects",
 	}
 
@@ -173,8 +178,13 @@ func (h *Projects) Show(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	pd := h.PageDataTab(r, project.Name, "")
+	pd.Breadcrumbs = []templates.Breadcrumb{
+		{URL: "/projects", Label: "Projets"},
+		{Label: project.Name},
+	}
 	data := templates.ProjectShowData{
-		PageData:         h.PageDataTab(r, project.Name, ""),
+		PageData:         pd,
 		Project:          project,
 		Members:          members,
 		Runs:             projectRuns,
@@ -204,8 +214,14 @@ func (h *Projects) EditForm(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	pd2 := h.PageDataTab(r, "Modifier "+project.Name, "")
+	pd2.Breadcrumbs = []templates.Breadcrumb{
+		{URL: "/projects", Label: "Projets"},
+		{URL: "/projects/" + strconv.FormatInt(project.ID, 10), Label: project.Name},
+		{Label: "Modifier"},
+	}
 	data := templates.ProjectFormData{
-		PageData:   h.PageDataTab(r, "Modifier "+project.Name, ""),
+		PageData:   pd2,
 		Project:    project,
 		FormAction: "/projects/" + strconv.FormatInt(project.ID, 10),
 	}
@@ -414,8 +430,13 @@ func (h *Projects) loadProject(w http.ResponseWriter, r *http.Request) (*Project
 }
 
 func (h *Projects) renderFormError(w http.ResponseWriter, r *http.Request, project *Project, action, message string) {
+	pd := h.PageDataTab(r, "Projet", "projects")
+	pd.Breadcrumbs = []templates.Breadcrumb{
+		{URL: "/projects", Label: "Projets"},
+		{Label: "Nouveau projet"},
+	}
 	data := templates.ProjectFormData{
-		PageData:   h.PageDataTab(r, "Projet", "projects"),
+		PageData:   pd,
 		Project:    project,
 		FormAction: action,
 		Error:      message,
@@ -449,8 +470,13 @@ func (h *Projects) renderShowError(w http.ResponseWriter, r *http.Request, proje
 		return
 	}
 
+	pd := h.PageDataTab(r, project.Name, "")
+	pd.Breadcrumbs = []templates.Breadcrumb{
+		{URL: "/projects", Label: "Projets"},
+		{Label: project.Name},
+	}
 	data := templates.ProjectShowData{
-		PageData:         h.PageDataTab(r, project.Name, ""),
+		PageData:         pd,
 		Project:          project,
 		Members:          members,
 		Runs:             projectRuns,

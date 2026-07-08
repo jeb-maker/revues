@@ -84,8 +84,13 @@ func (h *ChecklistTemplates) NewWizard(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	pd := h.PageDataTab(r, "Nouveau modèle", "templates")
+	pd.Breadcrumbs = []viewtemplates.Breadcrumb{
+		{URL: "/modeles", Label: "Modèles"},
+		{Label: "Nouveau modèle"},
+	}
 	data := viewtemplates.TemplateNewWizardData{
-		PageData: h.PageDataTab(r, "Nouveau modèle", "templates"),
+		PageData: pd,
 		Projects: manageProjects,
 	}
 
@@ -162,8 +167,12 @@ func (h *ChecklistTemplates) IndexAll(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	pd := h.PageDataTab(r, "Modèles", "templates")
+	pd.Breadcrumbs = []viewtemplates.Breadcrumb{
+		{Label: "Modèles"},
+	}
 	data := viewtemplates.TemplatesIndexData{
-		PageData:  h.PageDataTab(r, "Modèles", "templates"),
+		PageData:  pd,
 		Templates: rows,
 	}
 
@@ -188,8 +197,14 @@ func (h *ChecklistTemplates) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	pd := h.PageDataTab(r, "Modèles — "+project.Name, "templates")
+	pd.Breadcrumbs = []viewtemplates.Breadcrumb{
+		{URL: "/projects", Label: "Projets"},
+		{URL: "/projects/" + strconv.FormatInt(project.ID, 10), Label: project.Name},
+		{Label: "Modèles"},
+	}
 	data := viewtemplates.ChecklistTemplatesListData{
-		PageData:   h.PageDataTab(r, "Modèles — "+project.Name, "templates"),
+		PageData:   pd,
 		Project:    project,
 		Templates:  items,
 		MemberRole: memberRole,
@@ -215,8 +230,15 @@ func (h *ChecklistTemplates) NewForm(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	pd2 := h.PageDataTab(r, "Nouveau modèle", "")
+	pd2.Breadcrumbs = []viewtemplates.Breadcrumb{
+		{URL: "/projects", Label: "Projets"},
+		{URL: "/projects/" + strconv.FormatInt(project.ID, 10), Label: project.Name},
+		{URL: "/projects/" + strconv.FormatInt(project.ID, 10) + "/templates", Label: "Modèles"},
+		{Label: "Nouveau modèle"},
+	}
 	data := viewtemplates.ChecklistTemplateFormData{
-		PageData:   h.PageDataTab(r, "Nouveau modèle", ""),
+		PageData:   pd2,
 		Project:    project,
 		Rows:       emptyEditorRows(extraRows(r, defaultTemplateEditorRows)),
 		FormAction: "/projects/" + strconv.FormatInt(project.ID, 10) + "/templates",
@@ -268,8 +290,15 @@ func (h *ChecklistTemplates) Show(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	pd := h.PageDataTab(r, template.Name, "")
+	pd.Breadcrumbs = []viewtemplates.Breadcrumb{
+		{URL: "/projects", Label: "Projets"},
+		{URL: "/projects/" + strconv.FormatInt(project.ID, 10), Label: project.Name},
+		{URL: "/projects/" + strconv.FormatInt(project.ID, 10) + "/templates", Label: "Modèles"},
+		{Label: template.Name},
+	}
 	data := viewtemplates.ChecklistTemplateShowData{
-		PageData:   h.PageDataTab(r, template.Name, ""),
+		PageData:   pd,
 		Project:    project,
 		Template:   template,
 		Version:    version,
@@ -300,8 +329,16 @@ func (h *ChecklistTemplates) EditForm(w http.ResponseWriter, r *http.Request) {
 	rows := itemsToEditorRows(items)
 	rows = append(rows, emptyEditorRows(extraRows(r, 2))...)
 
+	pd := h.PageDataTab(r, "Modifier "+template.Name, "")
+	pd.Breadcrumbs = []viewtemplates.Breadcrumb{
+		{URL: "/projects", Label: "Projets"},
+		{URL: "/projects/" + strconv.FormatInt(project.ID, 10), Label: project.Name},
+		{URL: "/projects/" + strconv.FormatInt(project.ID, 10) + "/templates", Label: "Modèles"},
+		{URL: "/projects/" + strconv.FormatInt(project.ID, 10) + "/templates/" + strconv.FormatInt(template.ID, 10), Label: template.Name},
+		{Label: "Modifier"},
+	}
 	data := viewtemplates.ChecklistTemplateFormData{
-		PageData:   h.PageDataTab(r, "Modifier "+template.Name, ""),
+		PageData:   pd,
 		Project:    project,
 		Template:   template,
 		Version:    version,
@@ -469,8 +506,14 @@ func (h *ChecklistTemplates) renderFormError(w http.ResponseWriter, r *http.Requ
 		rows = emptyEditorRows(defaultTemplateEditorRows)
 	}
 
+	pd := h.PageDataTab(r, "Modèle", "")
+	pd.Breadcrumbs = []viewtemplates.Breadcrumb{
+		{URL: "/projects", Label: "Projets"},
+		{URL: "/projects/" + strconv.FormatInt(project.ID, 10), Label: project.Name},
+		{Label: "Nouveau modèle"},
+	}
 	data := viewtemplates.ChecklistTemplateFormData{
-		PageData:   h.PageDataTab(r, "Modèle", ""),
+		PageData:   pd,
 		Project:    project,
 		Template:   template,
 		Version:    version,

@@ -1,19 +1,25 @@
 {{define "templates_new_wizard"}}
 {{template "layout_start" .}}
 {{template "nav_tabs" .}}
-<h1>Nouveau modèle</h1>
-<p class="muted">Choisissez un projet pour lequel créer un modèle de check-list.</p>
+<div class="card">
+  <h1>Nouveau modèle</h1>
+  <p class="muted">Choisissez un projet pour lequel créer un modèle de check-list.</p>
 
-{{if .Projects}}
-<ul class="item-list">
-  {{range .Projects}}
-  <li><a href="/projects/{{.ID}}/templates/new">{{.Name}}</a></li>
+  {{if .Projects}}
+  <ul class="item-list">
+    {{range .Projects}}
+    <li><a href="/projects/{{.ID}}/templates/new">{{.Name}}</a></li>
+    {{end}}
+  </ul>
+  {{else}}
+  <div class="empty-state">
+    <p><strong>Aucun projet disponible</strong></p>
+    <p class="muted">Vous ne gérez aucun projet. Un administrateur doit vous ajouter comme gestionnaire.</p>
+    <div class="empty-state-actions"><a href="/projects" class="button">Voir les projets</a></div>
+  </div>
   {{end}}
-</ul>
-{{else}}
-<p class="muted">Aucun projet où vous pouvez créer des modèles.</p>
-{{end}}
 
-<p><a href="/modeles">← Retour aux modèles</a></p>
+  <p><a href="/modeles" class="button-ghost">{{icon "arrow-left"}} Retour aux modèles</a></p>
+</div>
 {{template "layout_end" .}}
 {{end}}

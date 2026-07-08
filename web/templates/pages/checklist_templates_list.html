@@ -8,22 +8,34 @@
 <p class="muted">Votre rôle sur ce projet : {{.MemberRole}}</p>
 
 {{if .CanManage}}
-<p><a class="button" href="/projects/{{.Project.ID}}/templates/new">Nouveau modèle</a> <a href="/projects/{{.Project.ID}}/templates/notion-import">Importer depuis Notion</a></p>
+<p><a class="button" href="/projects/{{.Project.ID}}/templates/new">{{icon "plus"}} Nouveau modèle</a> <a href="/projects/{{.Project.ID}}/templates/notion-import" class="button-ghost">Importer depuis Notion</a></p>
 {{end}}
 
 {{if .Templates}}
-<ul class="item-list">
-  {{range .Templates}}
-  <li>
-    <a href="/projects/{{$.Project.ID}}/templates/{{.ID}}">{{.Name}}</a>
-    <span class="muted"> — v{{.LatestVersion}} · {{.ItemCount}} point{{if ne .ItemCount 1}}s{{end}}</span>
-  </li>
-  {{end}}
-</ul>
+<table class="data-table">
+  <thead>
+    <tr><th>Nom</th><th>Version</th><th>Points</th></tr>
+  </thead>
+  <tbody>
+    {{range .Templates}}
+    <tr>
+      <td><a href="/projects/{{$.Project.ID}}/templates/{{.ID}}">{{.Name}}</a></td>
+      <td>v{{.LatestVersion}}</td>
+      <td>{{.ItemCount}}</td>
+    </tr>
+    {{end}}
+  </tbody>
+</table>
 {{else}}
-<p class="muted">Aucun modèle actif.</p>
+<div class="empty-state">
+  <p><strong>Aucun modèle actif</strong></p>
+  <p class="muted">Créez votre premier modèle de revue pour ce projet.</p>
+  {{if .CanManage}}
+  <div class="empty-state-actions"><a href="/projects/{{.Project.ID}}/templates/new" class="button">{{icon "plus"}} Créer un modèle</a></div>
+  {{end}}
+</div>
 {{end}}
 
-<p><a href="/projects/{{.Project.ID}}">← Retour au projet</a></p>
+<p><a href="/projects/{{.Project.ID}}" class="button-ghost">{{icon "arrow-left"}} Retour au projet</a></p>
 {{template "layout_end" .}}
 {{end}}

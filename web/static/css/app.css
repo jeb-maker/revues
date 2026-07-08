@@ -209,6 +209,55 @@ pre {
 .breadcrumb a:hover { color: var(--accent); }
 .breadcrumb__sep { color: var(--border-strong); user-select: none; }
 
+.stepper {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin: 0 0 1.25rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--border);
+}
+.stepper__step {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.stepper__num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 50%;
+  font-size: 0.78rem;
+  font-weight: 600;
+  background: var(--surface-2);
+  color: var(--muted);
+  flex-shrink: 0;
+}
+.stepper__step--done .stepper__num {
+  background: var(--success-soft);
+  color: var(--success);
+}
+.stepper__step--active .stepper__num {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.stepper__step--active .stepper__label {
+  color: var(--text);
+  font-weight: 600;
+}
+.stepper__sep {
+  display: inline-block;
+  width: 1.5rem;
+  height: 1px;
+  background: var(--border);
+  margin: 0 0.5rem;
+  flex-shrink: 0;
+}
+
 .button {
   display: inline-block;
   padding: 0.5rem 0.95rem;

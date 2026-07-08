@@ -1,20 +1,25 @@
 {{define "run_wizard_projects"}}
 {{template "layout_start" .}}
-<h1>Lancer une revue</h1>
-<p class="muted">Étape {{.Step}} sur 3 — choisissez un projet.</p>
-{{if .Message}}<p class="success">{{.Message}}</p>{{end}}
-{{if .Error}}<p class="error">{{.Error}}</p>{{end}}
+<div class="card">
+  <h1>Nouvelle revue</h1>
+  {{template "stepper" .Stepper}}
+  <p class="muted">Choisissez un projet pour lancer la revue.</p>
+  {{if .Message}}<p class="success">{{.Message}}</p>{{end}}
+  {{if .Error}}<p class="error">{{.Error}}</p>{{end}}
 
-{{if .Projects}}
-<ul class="item-list">
-  {{range .Projects}}
-  <li><a href="/runs/new/projects/{{.ID}}">{{.Name}}</a></li>
+  {{if .Projects}}
+  <ul class="item-list">
+    {{range .Projects}}
+    <li><a href="/runs/new/projects/{{.ID}}">{{.Name}}</a></li>
+    {{end}}
+  </ul>
+  {{else}}
+  <div class="empty-state">
+    <p><strong>Aucun projet disponible</strong></p>
+    <p class="muted">Vous n'avez pas accès à un projet où lancer une revue. Demandez à un administrateur de vous ajouter.</p>
+    <div class="empty-state-actions"><a href="/projects" class="button">Voir les projets</a></div>
+  </div>
   {{end}}
-</ul>
-{{else}}
-<p class="muted">Aucun projet où vous pouvez lancer une revue.</p>
-{{end}}
-
-<p><a href="/projects">← Retour aux projets</a></p>
+</div>
 {{template "layout_end" .}}
 {{end}}

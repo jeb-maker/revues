@@ -11,7 +11,7 @@
     <input type="text" name="name" required maxlength="200" value="{{if .Name}}{{.Name}}{{else if .Template}}{{.Template.Name}}{{end}}">
   </label>
 
-  <section class="panel">
+  <section class="card">
     <h2>Points du modèle</h2>
     <p class="muted">Sections et points ordonnés. Laissez le libellé vide pour ignorer une ligne.</p>
     <div id="template-rows-container">
@@ -21,15 +21,15 @@
       <input type="hidden" name="item_row_idx" value="{{$i}}">
       <label>
         Section
-        <input type="text" name="item_section" maxlength="200" value="{{$row.Section}}">
+        <input type="text" name="item_section" maxlength="200" value="{{$row.Section}}" placeholder="ex: Architecture">
       </label>
       <label>
         Libellé
-        <input type="text" name="item_label" maxlength="500" value="{{$row.Label}}">
+        <input type="text" name="item_label" maxlength="500" value="{{$row.Label}}" placeholder="ex: Le schéma DNS est à jour">
       </label>
       <label>
         Texte d'aide
-        <input type="text" name="item_help" maxlength="500" value="{{$row.HelpText}}">
+        <input type="text" name="item_help" maxlength="500" value="{{$row.HelpText}}" placeholder="Texte indicatif optionnel">
       </label>
       <label class="checkbox-row">
         <input type="checkbox" name="item_required" value="{{$i}}" {{if $row.Required}}checked{{end}}>
@@ -37,26 +37,49 @@
       </label>
       <div class="template-row-actions">
         <button type="button" class="button-ghost button-sm" hx-post="/projects/{{$.Project.ID}}/templates/new/row" hx-vals='{"idx":"{{$i}}","csrf_token":"{{$.CSRFToken}}"}'
-                hx-target="#template-row-{{$i}}" hx-swap="afterend">+</button>
+                hx-target="#template-row-{{$i}}" hx-swap="afterend">{{icon "plus"}}</button>
         <button type="button" class="button-ghost button-sm" hx-delete="/projects/{{$.Project.ID}}/templates/new/row/{{$i}}"
                 hx-headers='{"X-CSRF-Token":"{{$.CSRFToken}}"}'
-                hx-target="#template-row-{{$i}}" hx-swap="outerHTML">−</button>
+                hx-target="#template-row-{{$i}}" hx-swap="outerHTML">{{icon "x"}}</button>
       </div>
     </fieldset>
     {{end}}
     </div>
     <p>
       {{if .Template}}
-      <a href="/projects/{{.Project.ID}}/templates/{{.Template.ID}}/edit?rows={{add (len .Rows) 2}}">Ajouter des lignes vides</a>
+      <a href="/projects/{{.Project.ID}}/templates/{{.Template.ID}}/edit?rows={{add (len .Rows) 2}}" class="button-ghost button-sm">{{icon "plus"}} Ajouter des lignes</a>
       {{else}}
-      <a href="/projects/{{.Project.ID}}/templates/new?rows={{add (len .Rows) 2}}">Ajouter des lignes vides</a>
+      <a href="/projects/{{.Project.ID}}/templates/new?rows={{add (len .Rows) 2}}" class="button-ghost button-sm">{{icon "plus"}} Ajouter des lignes</a>
       {{end}}
     </p>
   </section>
 
-  <button type="submit">Enregistrer</button>
+  <button type="submit" class="button">{{icon "check"}} Enregistrer</button>
 </form>
 
-<p><a href="/projects/{{.Project.ID}}/templates">← Retour aux modèles</a></p>
+<div class="card" id="template-preview">
+  <h2>Aperçu</h2>
+  {{if .Rows}}
+  <table class="data-table">
+    <thead>
+      <tr><th>Section</th><th>Point</th><th>Aide</th><th>Requis</th></tr>
+    </thead>
+    <tbody>
+      {{range .Rows}}
+      <tr>
+        <td>{{if .Section}}{{.Section}}{{else}}<span class="muted">—</span>{{end}}</td>
+        <td>{{if .Label}}{{.Label}}{{else}}<span class="muted">—</span>{{end}}</td>
+        <td>{{if .HelpText}}{{.HelpText}}{{else}}<span class="muted">—</span>{{end}}</td>
+        <td>{{if .Required}}{{icon "check"}}{{else}}<span class="muted">—</span>{{end}}</td>
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+  {{else}}
+  <p class="muted">Ajoutez des points au modèle pour voir un aperçu.</p>
+  {{end}}
+</div>
+
+<p><a href="/projects/{{.Project.ID}}/templates" class="button-ghost">{{icon "arrow-left"}} Retour aux modèles</a></p>
 {{template "layout_end" .}}
 {{end}}

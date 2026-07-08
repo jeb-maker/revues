@@ -1,23 +1,22 @@
 {{define "checklist_template_show"}}
 {{template "layout_start" .}}
-<h1>{{.Template.Name}}</h1>
-{{if .Message}}<p class="success">{{.Message}}</p>{{end}}
-{{if .Error}}<p class="error">{{.Error}}</p>{{end}}
+<div class="card">
+  <h1>{{.Template.Name}}</h1>
+  {{if .Message}}<p class="success">{{.Message}}</p>{{end}}
+  {{if .Error}}<p class="error">{{.Error}}</p>{{end}}
 
-<p class="muted">Version {{.Version.Version}} · publiée le {{.Version.PublishedAt}}</p>
+  <p class="muted">Version {{.Version.Version}} · publiée le {{.Version.PublishedAt}}</p>
 
-{{if .CanManage}}
-<p>
-  <a href="/projects/{{.Project.ID}}/templates/{{.Template.ID}}/edit">Modifier</a>
-  ·
-  <form method="post" action="/projects/{{.Project.ID}}/templates/{{.Template.ID}}/archive" class="inline-form">
-    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
-    <button type="submit">Archiver</button>
-  </form>
-</p>
-{{end}}
+  {{if .CanManage}}
+  <p>
+    <a href="/projects/{{.Project.ID}}/templates/{{.Template.ID}}/edit" class="button">{{icon "settings"}} Modifier</a>
+    <form method="post" action="/projects/{{.Project.ID}}/templates/{{.Template.ID}}/archive" class="inline-form">
+      <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+      <button type="submit" class="button-ghost">Archiver</button>
+    </form>
+  </p>
+  {{end}}
 
-<section class="panel">
   <h2>Points ({{len .Items}})</h2>
   {{if .Items}}
   <table class="data-table">
@@ -30,20 +29,25 @@
         <td>{{if .Section}}{{.Section}}{{else}}<span class="muted">—</span>{{end}}</td>
         <td>{{.Label}}</td>
         <td>{{if .HelpText}}{{.HelpText}}{{else}}<span class="muted">—</span>{{end}}</td>
-        <td>{{if .Required}}oui{{else}}non{{end}}</td>
+        <td>{{if .Required}}{{icon "check"}}{{else}}<span class="muted">—</span>{{end}}</td>
       </tr>
       {{end}}
     </tbody>
   </table>
   {{else}}
-  <p class="muted">Aucun point dans cette version.</p>
+  <div class="empty-state">
+    <p><strong>Aucun point dans cette version</strong></p>
+    <p class="muted">Ce modèle n'a pas encore de points de check-list.</p>
+    {{if .CanManage}}
+    <div class="empty-state-actions"><a href="/projects/{{.Project.ID}}/templates/{{.Template.ID}}/edit" class="button">Ajouter des points</a></div>
+    {{end}}
+  </div>
   {{end}}
-</section>
 
-<p>
-  <a href="/projects/{{.Project.ID}}/templates">← Retour aux modèles</a>
-  ·
-  <a href="/projects/{{.Project.ID}}">Projet</a>
-</p>
+  <p style="margin-top:1.5rem">
+    <a href="/projects/{{.Project.ID}}/templates" class="button-ghost">{{icon "arrow-left"}} Retour aux modèles</a>
+    <a href="/projects/{{.Project.ID}}" class="button-ghost">Projet</a>
+  </p>
+</div>
 {{template "layout_end" .}}
 {{end}}
