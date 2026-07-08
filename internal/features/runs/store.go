@@ -1,60 +1,54 @@
 package runs
 
 import (
+	"context"
+	"database/sql"
 	"github.com/jeb-maker/revues/internal/store"
 )
 
-// Store wraps a *store.Store to expose run-related queries from the runs
-// feature package. It embeds *store.Store so existing run SQL methods
-// (CreateChecklistRun, RunByID, StartRun, ListRunItems, RunItemByID,
-// UpdateRunItemStatus, AssignRunItem, ListRunItemEvents, ListRunExportRows,
-// etc.) are promoted and accessible through the runs feature namespace.
-//
-// The underlying SQL stays in internal/store because it is shared by other
-// features (notifications, jira, notion integrations, dashboard, my_tasks)
-// and by router-level tests. A dedicated issue will migrate the SQL into this
-// package once the depending features are themselves extracted.
-type Store struct {
-	*store.Store
+type RunStore interface {
+	ProjectByID(ctx context.Context, id int64) (*store.Project, error)
+	ListProjects(ctx context.Context, userID int64, admin bool) ([]store.Project, error)
+	MemberRole(ctx context.Context, projectID, userID int64) (string, bool, error)
+	ListProjectMembers(ctx context.Context, projectID int64) ([]store.ProjectMember, error)
+	ChecklistTemplateByID(ctx context.Context, id int64) (*store.ChecklistTemplate, error)
+	ListChecklistTemplates(ctx context.Context, projectID int64) ([]store.ChecklistTemplateSummary, error)
+	LatestTemplateVersion(ctx context.Context, templateID int64) (*store.TemplateVersion, error)
+	ListTemplateItems(ctx context.Context, versionID int64) ([]store.TemplateItem, error)
+	TemplateVersionInfo(ctx context.Context, versionID int64) (*store.TemplateVersionInfo, error)
+	CreateChecklistRun(ctx context.Context, projectID, templateID int64, title string, createdBy int64, dueDate sql.NullString) (*store.ChecklistRun, error)
+	RunByID(ctx context.Context, id int64) (*store.ChecklistRun, error)
+	StartRun(ctx context.Context, id int64) error
+	CompleteRun(ctx context.Context, id int64, closingNote string) error
+	RunItemByID(ctx context.Context, runID, itemID int64) (*store.RunItem, error)
+	ListRunItems(ctx context.Context, runID int64) ([]store.RunItem, error)
+	ListNokRunItems(ctx context.Context, runID int64) ([]store.RunItem, error)
+	UpdateRunItemStatus(ctx context.Context, runID, itemID, userID int64, status, comment string) error
+	AssignRunItem(ctx context.Context, runID, itemID int64, assigneeID *int64) error
+	ListRunExportRows(ctx context.Context, runID int64) ([]store.RunExportRow, error)
+	ListRunItemEvents(ctx context.Context, runItemID int64) ([]store.RunItemEvent, error)
+	AttachmentByRunItemID(ctx context.Context, runItemID int64) (*store.Attachment, error)
+	ListAttachmentsByRunItemIDs(ctx context.Context, runItemIDs []int64) (map[int64]*store.Attachment, error)
+	RunIDForAttachment(ctx context.Context, attachmentID int64) (int64, error)
+	IntegrationLinkByRunItemAndType(ctx context.Context, runItemID int64, integrationType string) (*store.IntegrationLink, error)
+	ListIntegrationLinksByRunItemIDs(ctx context.Context, runItemIDs []int64, integrationType string) (map[int64]store.IntegrationLink, error)
 }
+type Store struct{ *store.Store }
 
-// New returns a runs Store backed by the given store.Store.
-func New(s *store.Store) *Store {
-	return &Store{Store: s}
-}
+func New(s *store.Store) *Store { return &Store{Store: s} }
 
-// ChecklistRun re-exports store.ChecklistRun under the runs namespace.
 type ChecklistRun = store.ChecklistRun
-
-// RunItem re-exports store.RunItem under the runs namespace.
 type RunItem = store.RunItem
-
-// RunItemEvent re-exports store.RunItemEvent under the runs namespace.
 type RunItemEvent = store.RunItemEvent
-
-// RunExportRow re-exports store.RunExportRow under the runs namespace.
 type RunExportRow = store.RunExportRow
-
-// AssignedRunItemSummary re-exports store.AssignedRunItemSummary.
 type AssignedRunItemSummary = store.AssignedRunItemSummary
 
-// ErrRunNotFound re-exports store.ErrRunNotFound under the runs namespace.
 var ErrRunNotFound = store.ErrRunNotFound
-
-// ErrInvalidRunStatus re-exports store.ErrInvalidRunStatus.
 var ErrInvalidRunStatus = store.ErrInvalidRunStatus
-
-// ErrRunItemNotFound re-exports store.ErrRunItemNotFound.
 var ErrRunItemNotFound = store.ErrRunItemNotFound
-
-// ErrRunNotEditable re-exports store.ErrRunNotEditable.
 var ErrRunNotEditable = store.ErrRunNotEditable
-
-// ErrInvalidAssignee re-exports store.ErrInvalidAssignee.
 var ErrInvalidAssignee = store.ErrInvalidAssignee
 
-// Item status constants re-exported under the runs namespace (formerly the
-// items package). They mirror store.RunItemStatus* values.
 const (
 	StatusPending = store.RunItemStatusPending
 	StatusOK      = store.RunItemStatusOK

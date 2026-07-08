@@ -34,7 +34,7 @@ func (h *Runs) ExportNotion(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Runs) notionExportService() *notion.ExportService {
-	svc := &notion.ExportService{Store: h.Store, EncryptionKey: h.EncryptionKey, BaseURL: h.BaseURL}
+	svc := &notion.ExportService{Store: h.Store.(*store.Store), EncryptionKey: h.EncryptionKey, BaseURL: h.BaseURL}
 	if h.NotionClient != nil {
 		svc.Client = h.NotionClient
 	}
@@ -42,7 +42,7 @@ func (h *Runs) notionExportService() *notion.ExportService {
 }
 
 func (h *Runs) notionConfigured(ctx context.Context) bool {
-	cfg, ok, err := (&notion.Service{Store: h.Store, EncryptionKey: h.EncryptionKey}).Load(ctx)
+	cfg, ok, err := (&notion.Service{Store: h.Store.(*store.Store), EncryptionKey: h.EncryptionKey}).Load(ctx)
 	return err == nil && ok && notion.ExportReady(cfg)
 }
 

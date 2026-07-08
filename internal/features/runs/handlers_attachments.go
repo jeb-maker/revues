@@ -153,7 +153,7 @@ func (h *Runs) loadAttachmentsForItems(ctx context.Context, runItems []store.Run
 }
 
 func (h *Runs) attachmentService() *attachments.Service {
-	return &attachments.Service{Store: h.Store, Dir: h.AttachmentsDir}
+	return &attachments.Service{Store: h.Store.(*store.Store), Dir: h.AttachmentsDir}
 }
 
 func uploadErrorMessage(err error) string {
