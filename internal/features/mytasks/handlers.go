@@ -8,7 +8,6 @@ import (
 
 	"github.com/jeb-maker/revues/internal/auth"
 	runs "github.com/jeb-maker/revues/internal/features/runs"
-	"github.com/jeb-maker/revues/internal/store"
 	"github.com/jeb-maker/revues/internal/web/middleware"
 	viewtemplates "github.com/jeb-maker/revues/internal/web/templates"
 )
@@ -19,7 +18,7 @@ import (
 // mytasks feature package to avoid an import cycle.
 type Deps struct {
 	Templates     *template.Template
-	Store         *store.Store
+	Store         AssignedTaskStore
 	SessionSecret string
 }
 
