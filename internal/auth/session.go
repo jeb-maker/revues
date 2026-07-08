@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"time"
-
-	"github.com/jeb-maker/revues/internal/store"
 )
 
 const (
@@ -16,7 +14,7 @@ const (
 
 // SessionManager handles browser session cookies and DB persistence.
 type SessionManager struct {
-	Store         *store.Store
+	Store         SessionStore
 	SessionSecret string
 	SecureCookies bool
 }

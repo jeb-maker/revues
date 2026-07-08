@@ -15,7 +15,7 @@ import (
 
 type Auth struct {
 	Templates *template.Template
-	Store     *store.Store
+	Store     AuthStore
 	Sessions  *auth.SessionManager
 	GitHub    *auth.GitHubOAuth
 	Config    config.Config
