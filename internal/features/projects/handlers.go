@@ -12,7 +12,6 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"github.com/jeb-maker/revues/internal/auth"
-	"github.com/jeb-maker/revues/internal/store"
 	"github.com/jeb-maker/revues/internal/web/middleware"
 	"github.com/jeb-maker/revues/internal/web/templates"
 )
@@ -23,7 +22,7 @@ import (
 // projects feature package to avoid an import cycle.
 type Deps struct {
 	Templates     *template.Template
-	Store         *store.Store
+	Store         ProjectStore
 	SessionSecret string
 }
 
@@ -297,7 +296,7 @@ func (h *Projects) AddMember(w http.ResponseWriter, r *http.Request) {
 	}
 
 	member, err := h.Store.UserByEmail(r.Context(), email)
-	if errors.Is(err, store.ErrUserNotFound) {
+	if errors.Is(err, ErrUserNotFound) {
 		h.renderShowError(w, r, project, user, memberRole, "Utilisateur introuvable (doit s'être connecté une fois).")
 		return
 	}
@@ -375,7 +374,7 @@ func (h *Projects) RemoveMember(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/projects/"+strconv.FormatInt(project.ID, 10)+"?msg=Membre+retir%C3%A9", http.StatusSeeOther)
 }
 
-func (h *Projects) loadProject(w http.ResponseWriter, r *http.Request) (*store.Project, *store.User, string, bool) {
+func (h *Projects) loadProject(w http.ResponseWriter, r *http.Request) (*Project, *User, string, bool) {
 	user, ok := middleware.UserFromContext(r.Context())
 	if !ok {
 		http.Redirect(w, r, "/login", http.StatusFound)
@@ -389,7 +388,7 @@ func (h *Projects) loadProject(w http.ResponseWriter, r *http.Request) (*store.P
 	}
 
 	project, err := h.Store.ProjectByID(r.Context(), id)
-	if errors.Is(err, store.ErrProjectNotFound) {
+	if errors.Is(err, ErrProjectNotFound) {
 		http.NotFound(w, r)
 		return nil, nil, "", false
 	}
@@ -414,7 +413,7 @@ func (h *Projects) loadProject(w http.ResponseWriter, r *http.Request) (*store.P
 	return project, user, memberRole, true
 }
 
-func (h *Projects) renderFormError(w http.ResponseWriter, r *http.Request, project *store.Project, action, message string) {
+func (h *Projects) renderFormError(w http.ResponseWriter, r *http.Request, project *Project, action, message string) {
 	data := templates.ProjectFormData{
 		PageData:   h.PageDataTab(r, "Projet", "projects"),
 		Project:    project,
@@ -428,7 +427,7 @@ func (h *Projects) renderFormError(w http.ResponseWriter, r *http.Request, proje
 	}
 }
 
-func (h *Projects) renderShowError(w http.ResponseWriter, r *http.Request, project *store.Project, user *store.User, memberRole, message string) {
+func (h *Projects) renderShowError(w http.ResponseWriter, r *http.Request, project *Project, user *User, memberRole, message string) {
 	members, err := h.Store.ListProjectMembers(r.Context(), project.ID)
 	if err != nil {
 		slog.Error("list project members", "err", err)
