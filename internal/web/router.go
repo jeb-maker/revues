@@ -172,8 +172,6 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, error) {
 	r.Handle("/static/*", http.StripPrefix("/static/", http.FileServer(http.FS(staticFS))))
 
 	r.Get("/login", authHandler.Login)
-	r.Get("/dev/login", authHandler.DevLoginPage)
-	r.Get("/dev/login/callback", authHandler.DevLogin)
 	r.Get("/auth/github/start", authHandler.StartGitHub)
 	r.Get("/auth/github/callback", authHandler.Callback)
 	r.Post("/logout", authHandler.Logout)
