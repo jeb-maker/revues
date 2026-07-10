@@ -3,6 +3,7 @@ package mytasks_test
 import (
 	"context"
 	"database/sql"
+	"github.com/jeb-maker/revues/internal/testutil"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -59,6 +60,7 @@ func TestAssignItem_LeadCanAssign(t *testing.T) {
 	handler, db := testRouter(t)
 	ctx := context.Background()
 	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
 
 	lead, err := st.UpsertGitHubUser(ctx, 60, "lead", "lead@example.com", "Lead", "", auth.RoleEditor)
 	if err != nil {
@@ -121,6 +123,7 @@ func TestAssignItem_ContributorForbidden(t *testing.T) {
 	handler, db := testRouter(t)
 	ctx := context.Background()
 	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
 
 	lead, err := st.UpsertGitHubUser(ctx, 70, "lead", "lead@example.com", "Lead", "", auth.RoleEditor)
 	if err != nil {
@@ -178,6 +181,7 @@ func TestMyTasks_ListAssigned(t *testing.T) {
 	handler, db := testRouter(t)
 	ctx := context.Background()
 	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
 
 	lead, err := st.UpsertGitHubUser(ctx, 80, "lead", "lead@example.com", "Lead", "", auth.RoleEditor)
 	if err != nil {

@@ -5,11 +5,13 @@ import (
 	"testing"
 
 	"github.com/jeb-maker/revues/internal/store"
+	"github.com/jeb-maker/revues/internal/testutil"
 )
 
 func TestIntegrationUpsertGet(t *testing.T) {
 	ctx := context.Background()
 	st, _ := testStore(t)
+	ctx = testutil.DefaultOrgContext(ctx, st)
 
 	payload := []byte("encrypted-jira-config")
 	if err := st.UpsertIntegrationByType(ctx, store.IntegrationTypeJira, true, payload); err != nil {

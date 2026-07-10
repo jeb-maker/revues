@@ -3,6 +3,7 @@ package store_test
 import (
 	"context"
 	"database/sql"
+	"github.com/jeb-maker/revues/internal/testutil"
 	"testing"
 
 	"github.com/jeb-maker/revues/internal/auth"
@@ -13,6 +14,7 @@ func TestCreateChecklistRunSnapshotsItems(t *testing.T) {
 	ctx := context.Background()
 	db := openMemoryDB(t)
 	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
 
 	lead, err := st.UpsertGitHubUser(ctx, 1, "lead", "lead@example.com", "Lead", "", auth.RoleEditor)
 	if err != nil {
@@ -58,6 +60,7 @@ func TestCreateChecklistRunWithDueDate(t *testing.T) {
 	ctx := context.Background()
 	db := openMemoryDB(t)
 	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
 
 	lead, err := st.UpsertGitHubUser(ctx, 2, "lead", "lead@example.com", "Lead", "", auth.RoleEditor)
 	if err != nil {
@@ -86,6 +89,7 @@ func TestRunStatusTransitions(t *testing.T) {
 	ctx := context.Background()
 	db := openMemoryDB(t)
 	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
 
 	lead, err := st.UpsertGitHubUser(ctx, 1, "lead", "lead@example.com", "Lead", "", auth.RoleEditor)
 	if err != nil {

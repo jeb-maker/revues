@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/jeb-maker/revues/internal/testutil"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -148,7 +149,7 @@ func TestOAuthCallback_SuccessVerifiedWhitelisted(t *testing.T) {
 	})
 
 	handler, st, sessions := newOAuthAuthHandler(t, github)
-	ctx := context.Background()
+	ctx := testutil.DefaultOrgContext(context.Background(), st)
 
 	if err := st.InsertAllowedEmail(ctx, email, auth.RoleEditor); err != nil {
 		t.Fatalf("InsertAllowedEmail(): %v", err)
@@ -214,7 +215,7 @@ func TestOAuthCallback_RefuseUnauthorizedEmail(t *testing.T) {
 	})
 
 	handler, st, sessions := newOAuthAuthHandler(t, github)
-	ctx := context.Background()
+	ctx := testutil.DefaultOrgContext(context.Background(), st)
 
 	if err := st.InsertAllowedEmail(ctx, "other@example.com", auth.RoleReader); err != nil {
 		t.Fatalf("InsertAllowedEmail(): %v", err)
@@ -250,7 +251,7 @@ func TestOAuthCallback_RefuseUnverifiedEmail(t *testing.T) {
 	})
 
 	handler, st, sessions := newOAuthAuthHandler(t, github)
-	ctx := context.Background()
+	ctx := testutil.DefaultOrgContext(context.Background(), st)
 
 	if err := st.InsertAllowedEmail(ctx, "unverified@example.com", auth.RoleReader); err != nil {
 		t.Fatalf("InsertAllowedEmail(): %v", err)

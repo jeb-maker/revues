@@ -1,7 +1,6 @@
 package store_test
 
 import (
-	"context"
 	"testing"
 
 	"github.com/jeb-maker/revues/internal/auth"
@@ -9,8 +8,7 @@ import (
 )
 
 func TestUpdateRunItemStatusCreatesAuditEvent(t *testing.T) {
-	ctx := context.Background()
-	st, run, itemID := setupInProgressRun(t)
+	ctx, st, run, itemID := setupInProgressRun(t)
 
 	lead, err := st.UpsertGitHubUser(ctx, 1, "lead", "lead@example.com", "Lead", "", auth.RoleEditor)
 	if err != nil {

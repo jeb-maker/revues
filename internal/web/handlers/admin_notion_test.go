@@ -13,12 +13,14 @@ import (
 	"github.com/jeb-maker/revues/internal/crypto"
 	"github.com/jeb-maker/revues/internal/integrations/notion"
 	"github.com/jeb-maker/revues/internal/store"
+	"github.com/jeb-maker/revues/internal/testutil"
 )
 
 func TestAdminNotion_ReaderForbidden(t *testing.T) {
 	handler, db := testRouter(t)
 	ctx := context.Background()
 	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
 	reader, err := st.UpsertGitHubUser(ctx, 1, "reader", "reader@example.com", "Reader", "", auth.RoleReader)
 	if err != nil {
 		t.Fatalf("UpsertGitHubUser(): %v", err)
@@ -41,6 +43,7 @@ func TestAdminNotion_Save(t *testing.T) {
 	handler, db := testRouterWithEncryptionKey(t, config.TestEncryptionKey())
 	ctx := context.Background()
 	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
 	adminUser, err := st.UpsertGitHubUser(ctx, 99, "admin", "admin@example.com", "Admin", "", auth.RoleAdmin)
 	if err != nil {
 		t.Fatalf("UpsertGitHubUser(): %v", err)
@@ -67,7 +70,7 @@ func TestAdminNotion_Save(t *testing.T) {
 	if err != nil {
 		t.Fatalf("DecodeKey(): %v", err)
 	}
-	cfg, ok, err := (&notion.Service{Store: st, EncryptionKey: key}).Load(ctx)
+	cfg, ok, err := (&notion.Service{Store: st, EncryptionKey: key}).Load(testutil.DefaultOrgContext(ctx, st))
 	if err != nil || !ok || cfg.APIToken != "notion-secret-token" {
 		t.Fatalf("Load() = %+v ok=%v err=%v", cfg, ok, err)
 	}

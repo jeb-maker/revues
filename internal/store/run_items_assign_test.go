@@ -1,7 +1,6 @@
 package store_test
 
 import (
-	"context"
 	"errors"
 	"testing"
 
@@ -12,8 +11,7 @@ import (
 )
 
 func TestAssignRunItem(t *testing.T) {
-	ctx := context.Background()
-	st, run, itemID := setupInProgressRun(t)
+	ctx, st, run, itemID := setupInProgressRun(t)
 
 	contrib, err := st.UpsertGitHubUser(ctx, 2, "contrib", "contrib@example.com", "Contrib", "", auth.RoleEditor)
 	if err != nil {
@@ -63,8 +61,7 @@ func TestAssignRunItem(t *testing.T) {
 }
 
 func TestAssignRunItemRejectsNonMember(t *testing.T) {
-	ctx := context.Background()
-	st, run, itemID := setupInProgressRun(t)
+	ctx, st, run, itemID := setupInProgressRun(t)
 
 	outsider, err := st.UpsertGitHubUser(ctx, 99, "outsider", "out@example.com", "Out", "", auth.RoleEditor)
 	if err != nil {

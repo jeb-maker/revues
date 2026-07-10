@@ -13,12 +13,13 @@ var ErrProjectNotFound = errors.New("project not found")
 
 // Project is a review project container.
 type Project struct {
-	ID          int64
-	Name        string
-	Description string
-	ArchivedAt  sql.NullString
-	CreatedAt   string
-	UpdatedAt   string
+	ID             int64
+	OrganizationID int64
+	Name           string
+	Description    string
+	ArchivedAt     sql.NullString
+	CreatedAt      string
+	UpdatedAt      string
 }
 
 // ProjectMember links a user to a project with a local role.
@@ -33,6 +34,11 @@ type ProjectMember struct {
 
 // CreateProject inserts a project and adds creator as lead.
 func (s *Store) CreateProject(ctx context.Context, name, description string, creatorID int64) (*Project, error) {
+	orgID, err := organizationIDFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	now := time.Now().UTC().Format(time.RFC3339)
 
 	tx, err := s.db.BeginTx(ctx, nil)
@@ -44,9 +50,9 @@ func (s *Store) CreateProject(ctx context.Context, name, description string, cre
 	}()
 
 	res, err := tx.ExecContext(ctx, `
-		INSERT INTO projects (name, description, created_at, updated_at)
-		VALUES (?, ?, ?, ?)
-	`, name, description, now, now)
+		INSERT INTO projects (organization_id, name, description, created_at, updated_at)
+		VALUES (?, ?, ?, ?, ?)
+	`, orgID, name, description, now, now)
 	if err != nil {
 		return nil, fmt.Errorf("insert project: %w", err)
 	}
@@ -71,13 +77,21 @@ func (s *Store) CreateProject(ctx context.Context, name, description string, cre
 	return s.ProjectByID(ctx, projectID)
 }
 
-// ProjectByID loads a project by primary key.
+// ProjectByID loads a project by primary key within the active organization.
 func (s *Store) ProjectByID(ctx context.Context, id int64) (*Project, error) {
+	orgID, err := organizationIDFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return s.projectByID(ctx, id, orgID)
+}
+
+func (s *Store) projectByID(ctx context.Context, id, orgID int64) (*Project, error) {
 	var p Project
 	err := s.db.QueryRowContext(ctx, `
-		SELECT id, name, description, archived_at, created_at, updated_at
-		FROM projects WHERE id = ?
-	`, id).Scan(&p.ID, &p.Name, &p.Description, &p.ArchivedAt, &p.CreatedAt, &p.UpdatedAt)
+		SELECT id, organization_id, name, description, archived_at, created_at, updated_at
+		FROM projects WHERE id = ? AND organization_id = ?
+	`, id, orgID).Scan(&p.ID, &p.OrganizationID, &p.Name, &p.Description, &p.ArchivedAt, &p.CreatedAt, &p.UpdatedAt)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrProjectNotFound
 	}
@@ -87,26 +101,45 @@ func (s *Store) ProjectByID(ctx context.Context, id int64) (*Project, error) {
 	return &p, nil
 }
 
-// ListProjects returns active projects visible to the user.
-func (s *Store) ListProjects(ctx context.Context, userID int64, admin bool) ([]Project, error) {
-	var rows *sql.Rows
-	var err error
+// ProjectByIDUnscoped loads a project without organization filtering (system jobs).
+func (s *Store) ProjectByIDUnscoped(ctx context.Context, id int64) (*Project, error) {
+	var p Project
+	err := s.db.QueryRowContext(ctx, `
+		SELECT id, organization_id, name, description, archived_at, created_at, updated_at
+		FROM projects WHERE id = ?
+	`, id).Scan(&p.ID, &p.OrganizationID, &p.Name, &p.Description, &p.ArchivedAt, &p.CreatedAt, &p.UpdatedAt)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, ErrProjectNotFound
+	}
+	if err != nil {
+		return nil, fmt.Errorf("project by id unscoped: %w", err)
+	}
+	return &p, nil
+}
 
+// ListProjects returns active projects visible to the user in the active organization.
+func (s *Store) ListProjects(ctx context.Context, userID int64, admin bool) ([]Project, error) {
+	orgID, err := organizationIDFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var rows *sql.Rows
 	if admin {
 		rows, err = s.db.QueryContext(ctx, `
-			SELECT id, name, description, archived_at, created_at, updated_at
+			SELECT id, organization_id, name, description, archived_at, created_at, updated_at
 			FROM projects
-			WHERE archived_at IS NULL
+			WHERE organization_id = ? AND archived_at IS NULL
 			ORDER BY name
-		`)
+		`, orgID)
 	} else {
 		rows, err = s.db.QueryContext(ctx, `
-			SELECT p.id, p.name, p.description, p.archived_at, p.created_at, p.updated_at
+			SELECT p.id, p.organization_id, p.name, p.description, p.archived_at, p.created_at, p.updated_at
 			FROM projects p
 			INNER JOIN project_members pm ON pm.project_id = p.id
-			WHERE pm.user_id = ? AND p.archived_at IS NULL
+			WHERE p.organization_id = ? AND pm.user_id = ? AND p.archived_at IS NULL
 			ORDER BY p.name
-		`, userID)
+		`, orgID, userID)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("list projects: %w", err)
@@ -116,7 +149,7 @@ func (s *Store) ListProjects(ctx context.Context, userID int64, admin bool) ([]P
 	var projects []Project
 	for rows.Next() {
 		var p Project
-		if err := rows.Scan(&p.ID, &p.Name, &p.Description, &p.ArchivedAt, &p.CreatedAt, &p.UpdatedAt); err != nil {
+		if err := rows.Scan(&p.ID, &p.OrganizationID, &p.Name, &p.Description, &p.ArchivedAt, &p.CreatedAt, &p.UpdatedAt); err != nil {
 			return nil, fmt.Errorf("scan project: %w", err)
 		}
 		projects = append(projects, p)
@@ -130,11 +163,16 @@ func (s *Store) ListProjects(ctx context.Context, userID int64, admin bool) ([]P
 
 // UpdateProject changes name and description.
 func (s *Store) UpdateProject(ctx context.Context, id int64, name, description string) error {
+	orgID, err := organizationIDFromContext(ctx)
+	if err != nil {
+		return err
+	}
+
 	now := time.Now().UTC().Format(time.RFC3339)
 	res, err := s.db.ExecContext(ctx, `
 		UPDATE projects SET name = ?, description = ?, updated_at = ?
-		WHERE id = ? AND archived_at IS NULL
-	`, name, description, now, id)
+		WHERE id = ? AND organization_id = ? AND archived_at IS NULL
+	`, name, description, now, id, orgID)
 	if err != nil {
 		return fmt.Errorf("update project: %w", err)
 	}
@@ -150,11 +188,16 @@ func (s *Store) UpdateProject(ctx context.Context, id int64, name, description s
 
 // ArchiveProject marks a project as archived.
 func (s *Store) ArchiveProject(ctx context.Context, id int64) error {
+	orgID, err := organizationIDFromContext(ctx)
+	if err != nil {
+		return err
+	}
+
 	now := time.Now().UTC().Format(time.RFC3339)
 	res, err := s.db.ExecContext(ctx, `
 		UPDATE projects SET archived_at = ?, updated_at = ?
-		WHERE id = ? AND archived_at IS NULL
-	`, now, now, id)
+		WHERE id = ? AND organization_id = ? AND archived_at IS NULL
+	`, now, now, id, orgID)
 	if err != nil {
 		return fmt.Errorf("archive project: %w", err)
 	}
@@ -170,10 +213,18 @@ func (s *Store) ArchiveProject(ctx context.Context, id int64) error {
 
 // MemberRole returns the local role for a user on a project.
 func (s *Store) MemberRole(ctx context.Context, projectID, userID int64) (string, bool, error) {
+	orgID, err := organizationIDFromContext(ctx)
+	if err != nil {
+		return "", false, err
+	}
+
 	var role string
-	err := s.db.QueryRowContext(ctx, `
-		SELECT role FROM project_members WHERE project_id = ? AND user_id = ?
-	`, projectID, userID).Scan(&role)
+	err = s.db.QueryRowContext(ctx, `
+		SELECT pm.role
+		FROM project_members pm
+		INNER JOIN projects p ON p.id = pm.project_id
+		WHERE pm.project_id = ? AND pm.user_id = ? AND p.organization_id = ?
+	`, projectID, userID, orgID).Scan(&role)
 	if errors.Is(err, sql.ErrNoRows) {
 		return "", false, nil
 	}
@@ -185,13 +236,19 @@ func (s *Store) MemberRole(ctx context.Context, projectID, userID int64) (string
 
 // ListProjectMembers returns members with user profile fields.
 func (s *Store) ListProjectMembers(ctx context.Context, projectID int64) ([]ProjectMember, error) {
+	orgID, err := organizationIDFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	rows, err := s.db.QueryContext(ctx, `
 		SELECT u.id, u.login, u.email, u.display_name, pm.role, pm.created_at
 		FROM project_members pm
 		INNER JOIN users u ON u.id = pm.user_id
-		WHERE pm.project_id = ?
+		INNER JOIN projects p ON p.id = pm.project_id
+		WHERE pm.project_id = ? AND p.organization_id = ?
 		ORDER BY u.login
-	`, projectID)
+	`, projectID, orgID)
 	if err != nil {
 		return nil, fmt.Errorf("list project members: %w", err)
 	}
@@ -214,8 +271,17 @@ func (s *Store) ListProjectMembers(ctx context.Context, projectID int64) ([]Proj
 
 // AddProjectMember assigns a user to a project.
 func (s *Store) AddProjectMember(ctx context.Context, projectID, userID int64, role string) error {
+	orgID, err := organizationIDFromContext(ctx)
+	if err != nil {
+		return err
+	}
+
+	if _, err := s.projectByID(ctx, projectID, orgID); err != nil {
+		return err
+	}
+
 	now := time.Now().UTC().Format(time.RFC3339)
-	_, err := s.db.ExecContext(ctx, `
+	_, err = s.db.ExecContext(ctx, `
 		INSERT INTO project_members (project_id, user_id, role, created_at)
 		VALUES (?, ?, ?, ?)
 		ON CONFLICT(project_id, user_id) DO UPDATE SET role = excluded.role
@@ -228,9 +294,16 @@ func (s *Store) AddProjectMember(ctx context.Context, projectID, userID int64, r
 
 // RemoveProjectMember removes a user from a project.
 func (s *Store) RemoveProjectMember(ctx context.Context, projectID, userID int64) error {
+	orgID, err := organizationIDFromContext(ctx)
+	if err != nil {
+		return err
+	}
+
 	res, err := s.db.ExecContext(ctx, `
-		DELETE FROM project_members WHERE project_id = ? AND user_id = ?
-	`, projectID, userID)
+		DELETE FROM project_members
+		WHERE project_id = ? AND user_id = ?
+		  AND project_id IN (SELECT id FROM projects WHERE id = ? AND organization_id = ?)
+	`, projectID, userID, projectID, orgID)
 	if err != nil {
 		return fmt.Errorf("remove project member: %w", err)
 	}
@@ -246,10 +319,18 @@ func (s *Store) RemoveProjectMember(ctx context.Context, projectID, userID int64
 
 // CountProjectLeads returns lead members count.
 func (s *Store) CountProjectLeads(ctx context.Context, projectID int64) (int, error) {
+	orgID, err := organizationIDFromContext(ctx)
+	if err != nil {
+		return 0, err
+	}
+
 	var count int
-	err := s.db.QueryRowContext(ctx, `
-		SELECT COUNT(*) FROM project_members WHERE project_id = ? AND role = 'lead'
-	`, projectID).Scan(&count)
+	err = s.db.QueryRowContext(ctx, `
+		SELECT COUNT(*)
+		FROM project_members pm
+		INNER JOIN projects p ON p.id = pm.project_id
+		WHERE pm.project_id = ? AND pm.role = 'lead' AND p.organization_id = ?
+	`, projectID, orgID).Scan(&count)
 	if err != nil {
 		return 0, fmt.Errorf("count project leads: %w", err)
 	}

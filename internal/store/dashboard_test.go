@@ -2,6 +2,7 @@ package store_test
 
 import (
 	"context"
+	"github.com/jeb-maker/revues/internal/testutil"
 	"testing"
 
 	runs "github.com/jeb-maker/revues/internal/features/runs"
@@ -9,8 +10,7 @@ import (
 )
 
 func TestDashboard_ActiveRunsAndNokItems(t *testing.T) {
-	ctx := context.Background()
-	st, run, itemID := setupInProgressRun(t)
+	ctx, st, run, itemID := setupInProgressRun(t)
 
 	if err := st.UpdateRunItemStatus(ctx, run.ID, itemID, 1, runs.StatusOK, ""); err != nil {
 		t.Fatalf("UpdateRunItemStatus(ok): %v", err)
@@ -62,6 +62,7 @@ func TestDashboard_TemplateIndexRespectsMembership(t *testing.T) {
 	ctx := context.Background()
 	db := openMemoryDB(t)
 	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
 
 	alice, err := st.UpsertGitHubUser(ctx, 70, "alice", "alice@example.com", "Alice", "", "editor")
 	if err != nil {

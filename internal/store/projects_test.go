@@ -13,6 +13,7 @@ func TestCreateProjectAddsLead(t *testing.T) {
 	ctx := context.Background()
 	db := openMemoryDB(t)
 	st := store.New(db)
+	ctx = defaultOrgCtx(ctx, st)
 
 	creator, err := st.UpsertGitHubUser(ctx, 1, "lead", "lead@example.com", "Lead", "", auth.RoleEditor)
 	if err != nil {
@@ -39,6 +40,7 @@ func TestListProjectsAdminSeesAll(t *testing.T) {
 	ctx := context.Background()
 	db := openMemoryDB(t)
 	st := store.New(db)
+	ctx = defaultOrgCtx(ctx, st)
 
 	a, err := st.UpsertGitHubUser(ctx, 1, "a", "a@example.com", "A", "", auth.RoleEditor)
 	if err != nil {

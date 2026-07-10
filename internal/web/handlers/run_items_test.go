@@ -3,6 +3,7 @@ package handlers_test
 import (
 	"context"
 	"database/sql"
+	"github.com/jeb-maker/revues/internal/testutil"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -19,6 +20,7 @@ func TestRunItem_NokRequiresComment(t *testing.T) {
 	handler, db := testRouter(t)
 	ctx := context.Background()
 	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
 
 	lead, err := st.UpsertGitHubUser(ctx, 40, "lead", "lead@example.com", "Lead", "", auth.RoleEditor)
 	if err != nil {
@@ -75,6 +77,7 @@ func TestRunComplete_RequiresClosingNote(t *testing.T) {
 	handler, db := testRouter(t)
 	ctx := context.Background()
 	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
 
 	lead, err := st.UpsertGitHubUser(ctx, 41, "lead", "lead@example.com", "Lead", "", auth.RoleEditor)
 	if err != nil {
@@ -125,6 +128,7 @@ func TestIDOR_CrossProjectRunItem(t *testing.T) {
 	handler, db := testRouter(t)
 	ctx := context.Background()
 	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
 
 	alice, err := st.UpsertGitHubUser(ctx, 50, "alice", "alice@example.com", "Alice", "", auth.RoleEditor)
 	if err != nil {

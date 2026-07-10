@@ -3,6 +3,7 @@ package handlers_test
 import (
 	"context"
 	"database/sql"
+	"github.com/jeb-maker/revues/internal/testutil"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -21,6 +22,7 @@ func TestIDOR_CrossProjectJiraCreate(t *testing.T) {
 	handler, db := testRouterWithEncryptionKey(t, config.TestEncryptionKey())
 	ctx := context.Background()
 	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
 
 	alice, err := st.UpsertGitHubUser(ctx, 90, "alice", "alice@example.com", "Alice", "", auth.RoleEditor)
 	if err != nil {
@@ -99,6 +101,7 @@ func TestJiraCreate_ViewerForbidden(t *testing.T) {
 	handler, db := testRouterWithEncryptionKey(t, config.TestEncryptionKey())
 	ctx := context.Background()
 	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
 
 	lead, err := st.UpsertGitHubUser(ctx, 100, "lead", "lead@example.com", "Lead", "", auth.RoleEditor)
 	if err != nil {
@@ -171,6 +174,7 @@ func TestJiraCreate_Success(t *testing.T) {
 	handler, db := testRouterWithEncryptionKey(t, config.TestEncryptionKey())
 	ctx := context.Background()
 	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
 
 	lead, err := st.UpsertGitHubUser(ctx, 110, "lead", "lead@example.com", "Lead", "", auth.RoleEditor)
 	if err != nil {
@@ -251,6 +255,7 @@ func TestJiraCreate_NotNOK(t *testing.T) {
 	handler, db := testRouterWithEncryptionKey(t, config.TestEncryptionKey())
 	ctx := context.Background()
 	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
 
 	lead, err := st.UpsertGitHubUser(ctx, 120, "lead", "lead@example.com", "Lead", "", auth.RoleEditor)
 	if err != nil {

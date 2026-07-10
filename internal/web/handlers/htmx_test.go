@@ -3,6 +3,7 @@ package handlers_test
 import (
 	"context"
 	"database/sql"
+	"github.com/jeb-maker/revues/internal/testutil"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -19,6 +20,7 @@ func TestUpdateItem_HTMXReturnsFragment(t *testing.T) {
 	handler, db := testRouter(t)
 	ctx := context.Background()
 	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
 
 	lead, err := st.UpsertGitHubUser(ctx, 60, "lead", "lead@example.com", "Lead", "", auth.RoleEditor)
 	if err != nil {
@@ -87,6 +89,7 @@ func TestUpdateItem_HTMXValidationError(t *testing.T) {
 	handler, db := testRouter(t)
 	ctx := context.Background()
 	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
 
 	lead, err := st.UpsertGitHubUser(ctx, 61, "lead", "lead@example.com", "Lead", "", auth.RoleEditor)
 	if err != nil {

@@ -5,6 +5,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"github.com/jeb-maker/revues/internal/testutil"
 	"image"
 	"image/jpeg"
 	"io"
@@ -24,7 +25,9 @@ import (
 
 func TestUpload_RejectsUnsupportedType(t *testing.T) {
 	handler, db, _ := testRouterAttachments(t)
-	run, item, token, csrf := seedRunItemForUpload(t, context.Background(), store.New(db))
+	st := store.New(db)
+	ctx := testutil.DefaultOrgContext(context.Background(), st)
+	run, item, token, csrf := seedRunItemForUpload(t, ctx, st)
 	body, ct := multipartUpload(t, csrf, "bad.txt", []byte("x"))
 	req := httptest.NewRequest(http.MethodPost, uploadURL(run.ID, item.ID), body)
 	req.Header.Set("Content-Type", ct)
@@ -38,7 +41,9 @@ func TestUpload_RejectsUnsupportedType(t *testing.T) {
 
 func TestUpload_RejectsOversize(t *testing.T) {
 	handler, db, _ := testRouterAttachments(t)
-	run, item, token, csrf := seedRunItemForUpload(t, context.Background(), store.New(db))
+	st := store.New(db)
+	ctx := testutil.DefaultOrgContext(context.Background(), st)
+	run, item, token, csrf := seedRunItemForUpload(t, ctx, st)
 	data := make([]byte, 5*1024*1024+1)
 	data[0], data[1], data[2] = 0xFF, 0xD8, 0xFF
 	body, ct := multipartUpload(t, csrf, "big.jpg", data)
@@ -56,6 +61,7 @@ func TestUpload_SuccessJPEG(t *testing.T) {
 	handler, db, dir := testRouterAttachments(t)
 	ctx := context.Background()
 	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
 	run, item, token, csrf := seedRunItemForUpload(t, ctx, st)
 	src := image.NewRGBA(image.Rect(0, 0, 100, 100))
 	var imgBuf bytes.Buffer
@@ -82,6 +88,7 @@ func TestDownloadAttachment_InlineImage(t *testing.T) {
 	handler, db, _ := testRouterAttachments(t)
 	ctx := context.Background()
 	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
 	run, item, token, csrf := seedRunItemForUpload(t, ctx, st)
 	var imgBuf bytes.Buffer
 	_ = jpeg.Encode(&imgBuf, image.NewRGBA(image.Rect(0, 0, 4, 4)), nil)
@@ -115,6 +122,7 @@ func TestDownloadAttachment_PDFDownload(t *testing.T) {
 	handler, db, _ := testRouterAttachments(t)
 	ctx := context.Background()
 	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
 	run, item, token, csrf := seedRunItemForUpload(t, ctx, st)
 	body, ct := multipartUpload(t, csrf, "doc.pdf", []byte("%PDF-1.4 test"))
 	uploadReq := httptest.NewRequest(http.MethodPost, uploadURL(run.ID, item.ID), body)
@@ -142,6 +150,7 @@ func TestIDOR_CrossProjectAttachmentDownload(t *testing.T) {
 	handler, db, dir := testRouterAttachments(t)
 	ctx := context.Background()
 	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
 	leadA, _ := st.UpsertGitHubUser(ctx, 701, "a", "a@ex.com", "A", "", auth.RoleEditor)
 	leadB, _ := st.UpsertGitHubUser(ctx, 702, "b", "b@ex.com", "B", "", auth.RoleEditor)
 	pB, _ := st.CreateProject(ctx, "B", "", leadB.ID)
@@ -175,6 +184,7 @@ func TestIDOR_CrossProjectAttachmentUpload(t *testing.T) {
 	handler, db, _ := testRouterAttachments(t)
 	ctx := context.Background()
 	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
 	leadA, _ := st.UpsertGitHubUser(ctx, 501, "a", "a@ex.com", "A", "", auth.RoleEditor)
 	leadB, _ := st.UpsertGitHubUser(ctx, 502, "b", "b@ex.com", "B", "", auth.RoleEditor)
 	pB, _ := st.CreateProject(ctx, "B", "", leadB.ID)

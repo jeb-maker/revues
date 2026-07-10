@@ -12,6 +12,7 @@ import (
 
 	"github.com/jeb-maker/revues/internal/integrations/jira"
 	"github.com/jeb-maker/revues/internal/store"
+	"github.com/jeb-maker/revues/internal/testutil"
 )
 
 func TestClientCreateIssueCloud(t *testing.T) {
@@ -146,6 +147,7 @@ func TestCreateServiceRunItem(t *testing.T) {
 
 	ctx := context.Background()
 	svc, st := testJiraService(t)
+	ctx = testutil.DefaultOrgContext(ctx, st)
 
 	lead, err := st.UpsertGitHubUser(ctx, 1, "lead", "lead@example.com", "Lead", "", "editor")
 	if err != nil {

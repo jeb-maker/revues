@@ -3,6 +3,7 @@ package notifications_test
 import (
 	"context"
 	"database/sql"
+	"github.com/jeb-maker/revues/internal/testutil"
 	"sync"
 	"testing"
 	"time"
@@ -18,8 +19,7 @@ import (
 )
 
 func TestServiceSkipsWhenSMTPNotConfigured(t *testing.T) {
-	ctx := context.Background()
-	st, settingsSvc := testNotificationDeps(t)
+	st, settingsSvc, ctx := testNotificationDeps(t)
 
 	lead, err := st.UpsertGitHubUser(ctx, 1, "lead", "lead@example.com", "Lead", "", auth.RoleEditor)
 	if err != nil {
@@ -48,10 +48,9 @@ func TestServiceSkipsWhenSMTPNotConfigured(t *testing.T) {
 }
 
 func TestServiceNotifyRunCompleted(t *testing.T) {
-	ctx := context.Background()
-	st, settingsSvc := testNotificationDeps(t)
+	st, settingsSvc, ctx := testNotificationDeps(t)
 	host, port := startCapturingSMTPServer(t)
-	saveTestSMTP(t, settingsSvc, host, port)
+	saveTestSMTP(t, ctx, settingsSvc, host, port)
 
 	lead, err := st.UpsertGitHubUser(ctx, 1, "lead", "lead@example.com", "Lead", "", auth.RoleEditor)
 	if err != nil {
@@ -88,10 +87,9 @@ func TestServiceNotifyRunCompleted(t *testing.T) {
 }
 
 func TestServiceNotifyItemAssigned(t *testing.T) {
-	ctx := context.Background()
-	st, settingsSvc := testNotificationDeps(t)
+	st, settingsSvc, ctx := testNotificationDeps(t)
 	host, port := startCapturingSMTPServer(t)
-	saveTestSMTP(t, settingsSvc, host, port)
+	saveTestSMTP(t, ctx, settingsSvc, host, port)
 
 	lead, err := st.UpsertGitHubUser(ctx, 1, "lead", "lead@example.com", "Lead", "", auth.RoleEditor)
 	if err != nil {
@@ -140,10 +138,9 @@ func TestServiceNotifyItemAssigned(t *testing.T) {
 }
 
 func TestServiceSendDueReminders(t *testing.T) {
-	ctx := context.Background()
-	st, settingsSvc := testNotificationDeps(t)
+	st, settingsSvc, ctx := testNotificationDeps(t)
 	host, port := startCapturingSMTPServer(t)
-	saveTestSMTP(t, settingsSvc, host, port)
+	saveTestSMTP(t, ctx, settingsSvc, host, port)
 
 	lead, err := st.UpsertGitHubUser(ctx, 1, "lead", "lead@example.com", "Lead", "", auth.RoleEditor)
 	if err != nil {
@@ -181,7 +178,7 @@ func TestServiceSendDueReminders(t *testing.T) {
 	waitForSMTPMessages(t, 1)
 }
 
-func testNotificationDeps(t *testing.T) (*store.Store, *adminsettings.SettingsService) {
+func testNotificationDeps(t *testing.T) (*store.Store, *adminsettings.SettingsService, context.Context) {
 	t.Helper()
 
 	ctx := context.Background()
@@ -203,12 +200,13 @@ func testNotificationDeps(t *testing.T) (*store.Store, *adminsettings.SettingsSe
 
 	key := make([]byte, crypto.KeySize)
 	st := store.New(db)
-	return st, &adminsettings.SettingsService{Store: st, EncryptionKey: key}
+	ctx = testutil.DefaultOrgContext(ctx, st)
+	return st, &adminsettings.SettingsService{Store: st, EncryptionKey: key}, ctx
 }
 
-func saveTestSMTP(t *testing.T, settingsSvc *adminsettings.SettingsService, host string, port int) {
+func saveTestSMTP(t *testing.T, ctx context.Context, settingsSvc *adminsettings.SettingsService, host string, port int) {
 	t.Helper()
-	if err := settingsSvc.SaveSMTP(context.Background(), adminsettings.SMTPConfig{
+	if err := settingsSvc.SaveSMTP(ctx, adminsettings.SMTPConfig{
 		Host: host,
 		Port: port,
 		From: "revues@example.com",

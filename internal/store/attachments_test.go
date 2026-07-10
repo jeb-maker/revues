@@ -3,6 +3,7 @@ package store_test
 import (
 	"context"
 	"database/sql"
+	"github.com/jeb-maker/revues/internal/testutil"
 	"testing"
 
 	"github.com/jeb-maker/revues/internal/auth"
@@ -13,6 +14,7 @@ func TestReplaceAttachment_OnePerRunItem(t *testing.T) {
 	ctx := context.Background()
 	db := openAttachmentTestDB(t)
 	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
 
 	user, err := st.UpsertGitHubUser(ctx, 1, "u", "u@example.com", "U", "", auth.RoleEditor)
 	if err != nil {
@@ -55,6 +57,7 @@ func TestListAttachmentsByRunItemIDs(t *testing.T) {
 	ctx := context.Background()
 	db := openAttachmentTestDB(t)
 	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
 
 	user, err := st.UpsertGitHubUser(ctx, 2, "u2", "u2@example.com", "U2", "", auth.RoleEditor)
 	if err != nil {

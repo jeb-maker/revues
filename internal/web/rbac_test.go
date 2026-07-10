@@ -3,6 +3,7 @@ package web_test
 import (
 	"context"
 	"database/sql"
+	"github.com/jeb-maker/revues/internal/testutil"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -48,6 +49,7 @@ func newRBACFixture(t *testing.T) *rbacFixture {
 	ctx := context.Background()
 	db := openTestDB(t)
 	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
 
 	cfg := config.Config{
 		Addr:          ":8080",

@@ -3,6 +3,7 @@ package integrations_test
 import (
 	"context"
 	"database/sql"
+	"github.com/jeb-maker/revues/internal/testutil"
 	"testing"
 
 	_ "modernc.org/sqlite"
@@ -15,7 +16,7 @@ import (
 	"github.com/jeb-maker/revues/internal/store"
 )
 
-func testSettingsService(t *testing.T) (*settings.SettingsService, *store.Store) {
+func testSettingsService(t *testing.T) (*settings.SettingsService, *store.Store, context.Context) {
 	t.Helper()
 
 	ctx := context.Background()
@@ -37,12 +38,12 @@ func testSettingsService(t *testing.T) (*settings.SettingsService, *store.Store)
 
 	key := make([]byte, crypto.KeySize)
 	st := store.New(db)
-	return &settings.SettingsService{Store: st, EncryptionKey: key}, st
+	ctx = testutil.DefaultOrgContext(ctx, st)
+	return &settings.SettingsService{Store: st, EncryptionKey: key}, st, ctx
 }
 
 func TestIntegrationsServiceOverview(t *testing.T) {
-	ctx := context.Background()
-	settingsSvc, st := testSettingsService(t)
+	settingsSvc, st, ctx := testSettingsService(t)
 	jiraSvc := &jira.Service{Store: st, EncryptionKey: settingsSvc.EncryptionKey}
 	notionSvc := &notion.Service{Store: st, EncryptionKey: settingsSvc.EncryptionKey}
 	svc := &integrations.IntegrationsService{Settings: settingsSvc, Jira: jiraSvc, Notion: notionSvc}

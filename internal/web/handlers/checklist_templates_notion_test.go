@@ -3,6 +3,7 @@ package handlers_test
 import (
 	"context"
 	"encoding/json"
+	"github.com/jeb-maker/revues/internal/testutil"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -44,6 +45,7 @@ func TestNotionImport_CreateTemplateV1(t *testing.T) {
 	ctx := context.Background()
 	db := mustMemoryDB(t)
 	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
 	key, _ := crypto.DecodeKey(config.TestEncryptionKey())
 	_ = (&notion.Service{Store: st, EncryptionKey: key}).Save(ctx, notion.Config{APIToken: "secret"})
 	tpl, _ := viewtemplates.Parse()
@@ -54,7 +56,7 @@ func TestNotionImport_CreateTemplateV1(t *testing.T) {
 		NotionClient:  &notion.Client{HTTPClient: srv.Client(), APIBaseURL: srv.URL + "/v1"},
 	}
 	r := chi.NewRouter()
-	r.Use(appmiddleware.LoadUser(st), appmiddleware.CSRF(secret))
+	r.Use(appmiddleware.LoadUser(st), appmiddleware.LoadActiveOrganization(st), appmiddleware.CSRF(secret))
 	r.Post("/projects/{id}/templates/notion-import", h.NotionImport)
 
 	lead, _ := st.UpsertGitHubUser(ctx, 40, "lead-notion", "lead-notion@example.com", "Lead", "", auth.RoleEditor)
@@ -80,6 +82,7 @@ func TestNotionImport_ContributorForbidden(t *testing.T) {
 	handler, db := testRouterWithEncryptionKey(t, config.TestEncryptionKey())
 	ctx := context.Background()
 	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
 	lead, _ := st.UpsertGitHubUser(ctx, 41, "lead2", "lead2@example.com", "Lead", "", auth.RoleEditor)
 	contrib, _ := st.UpsertGitHubUser(ctx, 42, "contrib2", "contrib2@example.com", "Contrib", "", auth.RoleEditor)
 	project, _ := st.CreateProject(ctx, "Team", "", lead.ID)

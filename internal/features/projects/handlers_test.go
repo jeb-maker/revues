@@ -3,6 +3,7 @@ package projects_test
 import (
 	"context"
 	"database/sql"
+	"github.com/jeb-maker/revues/internal/testutil"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -14,6 +15,7 @@ import (
 
 	"github.com/jeb-maker/revues/internal/auth"
 	"github.com/jeb-maker/revues/internal/config"
+	"github.com/jeb-maker/revues/internal/orgctx"
 	"github.com/jeb-maker/revues/internal/store"
 	appweb "github.com/jeb-maker/revues/internal/web"
 )
@@ -58,6 +60,7 @@ func TestIDOR_CrossProject(t *testing.T) {
 	handler, db := testRouter(t)
 	ctx := context.Background()
 	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
 
 	userA, err := st.UpsertGitHubUser(ctx, 10, "alice", "alice@example.com", "Alice", "", auth.RoleEditor)
 	if err != nil {
@@ -89,10 +92,66 @@ func TestIDOR_CrossProject(t *testing.T) {
 	}
 }
 
+func TestIDOR_CrossOrganization(t *testing.T) {
+	handler, db := testRouter(t)
+	ctx := context.Background()
+	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
+
+	alice, err := st.UpsertGitHubUser(ctx, 10, "alice", "alice@example.com", "Alice", "", auth.RoleEditor)
+	if err != nil {
+		t.Fatalf("UpsertGitHubUser(alice): %v", err)
+	}
+	bob, err := st.UpsertGitHubUser(ctx, 11, "bob", "bob@example.com", "Bob", "", auth.RoleEditor)
+	if err != nil {
+		t.Fatalf("UpsertGitHubUser(bob): %v", err)
+	}
+
+	orgA, err := st.CreateOrganization(ctx, "Org A", "org-a", alice.ID)
+	if err != nil {
+		t.Fatalf("CreateOrganization(org-a): %v", err)
+	}
+	orgB, err := st.CreateOrganization(ctx, "Org B", "org-b", bob.ID)
+	if err != nil {
+		t.Fatalf("CreateOrganization(org-b): %v", err)
+	}
+	if err := st.AddOrganizationMember(ctx, orgA.ID, alice.ID, store.OrgRoleOwner); err != nil {
+		t.Fatalf("AddOrganizationMember(alice): %v", err)
+	}
+	if err := st.AddOrganizationMember(ctx, orgB.ID, bob.ID, store.OrgRoleOwner); err != nil {
+		t.Fatalf("AddOrganizationMember(bob): %v", err)
+	}
+
+	ctxA := orgctx.WithOrganizationID(ctx, orgA.ID)
+	project, err := st.CreateProject(ctxA, "Secret", "hidden", alice.ID)
+	if err != nil {
+		t.Fatalf("CreateProject(): %v", err)
+	}
+	if err := st.AddProjectMember(ctxA, project.ID, bob.ID, "viewer"); err != nil {
+		t.Fatalf("AddProjectMember(bob): %v", err)
+	}
+
+	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
+	bobToken, _, err := sessions.CreateLoginSession(ctx, bob.ID, orgB.ID)
+	if err != nil {
+		t.Fatalf("CreateLoginSession(bob): %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/projects/"+strconv.FormatInt(project.ID, 10), nil)
+	req.AddCookie(&http.Cookie{Name: "revues_session", Value: bobToken})
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusNotFound {
+		t.Errorf("status = %d, want %d (cross-org IDOR must return 404)", rec.Code, http.StatusNotFound)
+	}
+}
+
 func TestProjects_CreateAndList(t *testing.T) {
 	handler, db := testRouter(t)
 	ctx := context.Background()
 	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
 
 	editor, err := st.UpsertGitHubUser(ctx, 20, "carol", "carol@example.com", "Carol", "", auth.RoleEditor)
 	if err != nil {
@@ -135,6 +194,7 @@ func TestProjects_ReaderCannotCreate(t *testing.T) {
 	handler, db := testRouter(t)
 	ctx := context.Background()
 	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
 
 	reader, err := st.UpsertGitHubUser(ctx, 30, "dave", "dave@example.com", "Dave", "", auth.RoleReader)
 	if err != nil {
@@ -176,6 +236,7 @@ func TestDashboardEmptyState_ByRole(t *testing.T) {
 			handler, db := testRouter(t)
 			ctx := context.Background()
 			st := store.New(db)
+			ctx = testutil.DefaultOrgContext(ctx, st)
 
 			user, err := st.UpsertGitHubUser(ctx, 40, "user-"+tt.role, tt.role+"@example.com", tt.role, "", tt.role)
 			if err != nil {
