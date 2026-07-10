@@ -129,7 +129,7 @@ func newRBACFixture(t *testing.T) *rbacFixture {
 		"reader":      reader,
 		"outsider":    outsider,
 	} {
-		token, _, err := sessions.CreateLoginSession(ctx, user.ID)
+		token, _, err := sessions.CreateLoginSession(ctx, user.ID, 0)
 		if err != nil {
 			t.Fatalf("CreateLoginSession(%s): %v", key, err)
 		}

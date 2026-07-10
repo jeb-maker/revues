@@ -71,7 +71,7 @@ func TestRuns_ExportNotion(t *testing.T) {
 	project, _ := st.CreateProject(ctx, "Alpha", "", lead.ID)
 	run := setupDoneRun(t, st, ctx, lead, project)
 	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
-	token, _, _ := sessions.CreateLoginSession(ctx, lead.ID)
+	token, _, _ := sessions.CreateLoginSession(ctx, lead.ID, 0)
 	form := url.Values{"csrf_token": {auth.CSRFToken(token, "test-secret-at-least-thirty-two-bytes")}}
 	req := httptest.NewRequest(http.MethodPost, "/runs/"+strconv.FormatInt(run.ID, 10)+"/export/notion", strings.NewReader(form.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
@@ -97,7 +97,7 @@ func TestRuns_ExportNotion_IDOR(t *testing.T) {
 	projectA, _ := st.CreateProject(ctx, "Secret", "", alice.ID)
 	run := setupDoneRun(t, st, ctx, alice, projectA)
 	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
-	bobToken, _, _ := sessions.CreateLoginSession(ctx, bob.ID)
+	bobToken, _, _ := sessions.CreateLoginSession(ctx, bob.ID, 0)
 	form := url.Values{"csrf_token": {auth.CSRFToken(bobToken, "test-secret-at-least-thirty-two-bytes")}}
 	req := httptest.NewRequest(http.MethodPost, "/runs/"+strconv.FormatInt(run.ID, 10)+"/export/notion", strings.NewReader(form.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
@@ -120,7 +120,7 @@ func TestRuns_ExportNotion_ViewerForbidden(t *testing.T) {
 	_ = st.AddProjectMember(ctx, project.ID, viewer.ID, projects.LocalRoleViewer)
 	run := setupDoneRun(t, st, ctx, lead, project)
 	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
-	token, _, _ := sessions.CreateLoginSession(ctx, viewer.ID)
+	token, _, _ := sessions.CreateLoginSession(ctx, viewer.ID, 0)
 	form := url.Values{"csrf_token": {auth.CSRFToken(token, "test-secret-at-least-thirty-two-bytes")}}
 	req := httptest.NewRequest(http.MethodPost, "/runs/"+strconv.FormatInt(run.ID, 10)+"/export/notion", strings.NewReader(form.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
@@ -141,7 +141,7 @@ func TestRuns_ShowDoneIncludesNotionExportButton(t *testing.T) {
 	project, _ := st.CreateProject(ctx, "Alpha", "", lead.ID)
 	run := setupDoneRun(t, st, ctx, lead, project)
 	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
-	token, _, _ := sessions.CreateLoginSession(ctx, lead.ID)
+	token, _, _ := sessions.CreateLoginSession(ctx, lead.ID, 0)
 	req := httptest.NewRequest(http.MethodGet, "/runs/"+strconv.FormatInt(run.ID, 10), nil)
 	req.AddCookie(&http.Cookie{Name: "revues_session", Value: token})
 	rec := httptest.NewRecorder()
@@ -160,7 +160,7 @@ func TestRuns_ShowDoneIncludesNotionLinkAfterExport(t *testing.T) {
 	run := setupDoneRun(t, st, ctx, lead, project)
 	_ = st.SetRunNotionURL(ctx, run.ID, "https://notion.so/revue-done")
 	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
-	token, _, _ := sessions.CreateLoginSession(ctx, lead.ID)
+	token, _, _ := sessions.CreateLoginSession(ctx, lead.ID, 0)
 	req := httptest.NewRequest(http.MethodGet, "/runs/"+strconv.FormatInt(run.ID, 10), nil)
 	req.AddCookie(&http.Cookie{Name: "revues_session", Value: token})
 	rec := httptest.NewRecorder()
@@ -181,7 +181,7 @@ func TestRuns_ExportNotion_NotDone(t *testing.T) {
 	run, _ := st.CreateChecklistRun(ctx, project.ID, template.ID, "Revue", lead.ID, sql.NullString{})
 	_ = st.StartRun(ctx, run.ID)
 	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
-	token, _, _ := sessions.CreateLoginSession(ctx, lead.ID)
+	token, _, _ := sessions.CreateLoginSession(ctx, lead.ID, 0)
 	form := url.Values{"csrf_token": {auth.CSRFToken(token, "test-secret-at-least-thirty-two-bytes")}}
 	req := httptest.NewRequest(http.MethodPost, "/runs/"+strconv.FormatInt(run.ID, 10)+"/export/notion", strings.NewReader(form.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")

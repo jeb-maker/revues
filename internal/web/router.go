@@ -161,6 +161,7 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, error) {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	r.Use(appmiddleware.LoadUser(st))
+	r.Use(appmiddleware.LoadActiveOrganization(st))
 	r.Use(appmiddleware.CSRF(deps.Config.SessionSecret))
 
 	r.Get("/healthz", Health)
@@ -175,6 +176,11 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, error) {
 	r.Get("/auth/github/start", authHandler.StartGitHub)
 	r.Get("/auth/github/callback", authHandler.Callback)
 	r.Post("/logout", authHandler.Logout)
+
+	r.Group(func(r chi.Router) {
+		r.Use(appmiddleware.RequireAuth)
+		r.Get("/org/select", orgSelectStub)
+	})
 
 	r.Group(func(r chi.Router) {
 		r.Use(appmiddleware.RequireAuth)
@@ -240,4 +246,10 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, error) {
 	})
 
 	return r, notificationsSvc, nil
+}
+
+func orgSelectStub(w http.ResponseWriter, _ *http.Request) {
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write([]byte("Organization selection"))
 }

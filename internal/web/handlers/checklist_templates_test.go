@@ -45,7 +45,7 @@ func TestIDOR_CrossProjectTemplate(t *testing.T) {
 	}
 
 	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
-	bobToken, _, err := sessions.CreateLoginSession(ctx, bob.ID)
+	bobToken, _, err := sessions.CreateLoginSession(ctx, bob.ID, 0)
 	if err != nil {
 		t.Fatalf("CreateLoginSession(bob): %v", err)
 	}
@@ -90,7 +90,7 @@ func TestChecklistTemplates_ContributorCannotEdit(t *testing.T) {
 	}
 
 	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
-	token, _, err := sessions.CreateLoginSession(ctx, contrib.ID)
+	token, _, err := sessions.CreateLoginSession(ctx, contrib.ID, 0)
 	if err != nil {
 		t.Fatalf("CreateLoginSession(): %v", err)
 	}
@@ -120,7 +120,7 @@ func TestChecklistTemplates_CreateAndVersion(t *testing.T) {
 	}
 
 	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
-	token, _, err := sessions.CreateLoginSession(ctx, lead.ID)
+	token, _, err := sessions.CreateLoginSession(ctx, lead.ID, 0)
 	if err != nil {
 		t.Fatalf("CreateLoginSession(): %v", err)
 	}

@@ -31,7 +31,7 @@ func TestAdminSMTP_ReaderForbidden(t *testing.T) {
 	}
 
 	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
-	token, _, err := sessions.CreateLoginSession(ctx, reader.ID)
+	token, _, err := sessions.CreateLoginSession(ctx, reader.ID, 0)
 	if err != nil {
 		t.Fatalf("CreateLoginSession(): %v", err)
 	}
@@ -63,7 +63,7 @@ func TestAdminSMTP_SaveAndTest(t *testing.T) {
 
 	secret := "test-secret-at-least-thirty-two-bytes"
 	sessions := &auth.SessionManager{Store: st, SessionSecret: secret}
-	token, _, err := sessions.CreateLoginSession(ctx, adminUser.ID)
+	token, _, err := sessions.CreateLoginSession(ctx, adminUser.ID, 0)
 	if err != nil {
 		t.Fatalf("CreateLoginSession(): %v", err)
 	}

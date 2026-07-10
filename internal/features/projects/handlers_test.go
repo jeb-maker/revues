@@ -74,7 +74,7 @@ func TestIDOR_CrossProject(t *testing.T) {
 	}
 
 	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
-	bobToken, _, err := sessions.CreateLoginSession(ctx, bob.ID)
+	bobToken, _, err := sessions.CreateLoginSession(ctx, bob.ID, 0)
 	if err != nil {
 		t.Fatalf("CreateLoginSession(bob): %v", err)
 	}
@@ -100,7 +100,7 @@ func TestProjects_CreateAndList(t *testing.T) {
 	}
 
 	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
-	token, _, err := sessions.CreateLoginSession(ctx, editor.ID)
+	token, _, err := sessions.CreateLoginSession(ctx, editor.ID, 0)
 	if err != nil {
 		t.Fatalf("CreateLoginSession(): %v", err)
 	}
@@ -142,7 +142,7 @@ func TestProjects_ReaderCannotCreate(t *testing.T) {
 	}
 
 	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
-	token, _, err := sessions.CreateLoginSession(ctx, reader.ID)
+	token, _, err := sessions.CreateLoginSession(ctx, reader.ID, 0)
 	if err != nil {
 		t.Fatalf("CreateLoginSession(): %v", err)
 	}
@@ -183,7 +183,7 @@ func TestDashboardEmptyState_ByRole(t *testing.T) {
 			}
 
 			sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
-			token, _, err := sessions.CreateLoginSession(ctx, user.ID)
+			token, _, err := sessions.CreateLoginSession(ctx, user.ID, 0)
 			if err != nil {
 				t.Fatalf("CreateLoginSession(): %v", err)
 			}
