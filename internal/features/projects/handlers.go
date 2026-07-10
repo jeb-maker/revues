@@ -74,12 +74,18 @@ func (h *Projects) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	orgRole, orgMember, _ := h.Store.OrganizationMemberRole(r.Context(), 0, user.ID)
+	if org, ok := middleware.OrganizationFromContext(r.Context()); ok {
+		orgRole, orgMember, _ = h.Store.OrganizationMemberRole(r.Context(), org.ID, user.ID)
+	}
+
 	data := templates.ProjectsListData{
-		PageData:   h.PageDataTab(r, "Tableau de bord", "projects"),
-		Projects:   items,
-		ActiveRuns: activeRuns,
-		CanCreate:  CanCreate(user),
-		Message:    r.URL.Query().Get("msg"),
+		PageData:          h.PageDataTab(r, "Tableau de bord", "projects"),
+		Projects:          items,
+		ActiveRuns:        activeRuns,
+		CanCreate:         CanCreate(user),
+		CanManageOrgUsers: CanManageOrgUsers(user, orgRole, orgMember),
+		Message:           r.URL.Query().Get("msg"),
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")

@@ -238,13 +238,18 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, error) {
 
 	r.Group(func(r chi.Router) {
 		r.Use(appmiddleware.RequireAuth)
+		r.Use(appmiddleware.RequireOrgAdmin(st))
+		r.Get("/admin/users", adminUsers.List)
+		r.Post("/admin/users", adminUsers.Add)
+		r.Post("/admin/users/remove", adminUsers.Remove)
+	})
+
+	r.Group(func(r chi.Router) {
+		r.Use(appmiddleware.RequireAuth)
 		r.Use(appmiddleware.RequireRole(auth.RoleAdmin))
 		r.Get("/admin", func(w http.ResponseWriter, r *http.Request) {
 			http.Redirect(w, r, "/admin/integrations", http.StatusFound)
 		})
-		r.Get("/admin/users", adminUsers.List)
-		r.Post("/admin/users", adminUsers.Add)
-		r.Post("/admin/users/remove", adminUsers.Remove)
 		r.Get("/admin/integrations", adminIntegrations.Show)
 		r.Get("/admin/settings/smtp", adminSMTP.Show)
 		r.Post("/admin/settings/smtp", adminSMTP.Save)

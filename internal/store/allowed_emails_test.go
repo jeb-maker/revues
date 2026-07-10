@@ -18,7 +18,7 @@ func TestResolveLoginRole(t *testing.T) {
 	db := openMemoryDB(t)
 	st := store.New(db)
 
-	t.Run("bootstrap admin when whitelist empty", func(t *testing.T) {
+	t.Run("bootstrap admin", func(t *testing.T) {
 		role, err := st.ResolveLoginRole(ctx, "Admin@Example.com", "admin@example.com")
 		if err != nil {
 			t.Fatalf("ResolveLoginRole() error = %v", err)
@@ -28,14 +28,17 @@ func TestResolveLoginRole(t *testing.T) {
 		}
 	})
 
-	t.Run("refuse when not whitelisted", func(t *testing.T) {
+	t.Run("self-service when not whitelisted", func(t *testing.T) {
 		orgCtx := defaultOrgCtx(ctx, st)
 		if err := st.InsertAllowedEmail(orgCtx, "allowed@example.com", auth.RoleReader); err != nil {
 			t.Fatalf("InsertAllowedEmail(): %v", err)
 		}
-		_, err := st.ResolveLoginRole(ctx, "other@example.com", "")
-		if !errors.Is(err, store.ErrEmailNotAllowed) {
-			t.Fatalf("error = %v, want ErrEmailNotAllowed", err)
+		role, err := st.ResolveLoginRole(ctx, "other@example.com", "")
+		if err != nil {
+			t.Fatalf("ResolveLoginRole() error = %v", err)
+		}
+		if role != auth.RoleEditor {
+			t.Errorf("role = %q, want editor", role)
 		}
 	})
 
@@ -48,6 +51,55 @@ func TestResolveLoginRole(t *testing.T) {
 			t.Errorf("role = %q, want reader", role)
 		}
 	})
+
+	t.Run("existing org member without whitelist", func(t *testing.T) {
+		user, err := st.UpsertGitHubUser(ctx, 42, "member", "member@example.com", "Member", "", auth.RoleReader)
+		if err != nil {
+			t.Fatalf("UpsertGitHubUser(): %v", err)
+		}
+		defaultOrg, err := st.OrganizationBySlug(ctx, "default")
+		if err != nil {
+			t.Fatalf("OrganizationBySlug(): %v", err)
+		}
+		if err := st.AddOrganizationMember(ctx, defaultOrg.ID, user.ID, store.OrgRoleMember); err != nil {
+			t.Fatalf("AddOrganizationMember(): %v", err)
+		}
+
+		role, err := st.ResolveLoginRole(ctx, "member@example.com", "")
+		if err != nil {
+			t.Fatalf("ResolveLoginRole() error = %v", err)
+		}
+		if role != auth.RoleReader {
+			t.Errorf("role = %q, want reader", role)
+		}
+	})
+}
+
+func TestEnsureBootstrapOrgOwner(t *testing.T) {
+	ctx := context.Background()
+	db := openMemoryDB(t)
+	st := store.New(db)
+
+	user, err := st.UpsertGitHubUser(ctx, 1, "bootstrap", "admin@example.com", "Admin", "", auth.RoleAdmin)
+	if err != nil {
+		t.Fatalf("UpsertGitHubUser(): %v", err)
+	}
+
+	if err := st.EnsureBootstrapOrgOwner(ctx, user.ID, "admin@example.com", "admin@example.com"); err != nil {
+		t.Fatalf("EnsureBootstrapOrgOwner(): %v", err)
+	}
+
+	defaultOrg, err := st.OrganizationBySlug(ctx, "default")
+	if err != nil {
+		t.Fatalf("OrganizationBySlug(): %v", err)
+	}
+	role, ok, err := st.OrganizationMemberRole(ctx, defaultOrg.ID, user.ID)
+	if err != nil {
+		t.Fatalf("OrganizationMemberRole(): %v", err)
+	}
+	if !ok || role != store.OrgRoleOwner {
+		t.Fatalf("role = %q, member = %v, want owner", role, ok)
+	}
 }
 
 func TestListAndDeleteAllowedEmail(t *testing.T) {

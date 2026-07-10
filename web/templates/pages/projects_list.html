@@ -8,13 +8,13 @@
 {{if and (not .Projects) (not .ActiveRuns)}}
 <section class="empty-state">
   <h2>Bienvenue dans Revues</h2>
-  {{if eq .User.Role "admin"}}
-  <p>Votre instance est prête. Commencez par autoriser les utilisateurs, puis créez votre premier projet.</p>
+  {{if .CanManageOrgUsers}}
+  <p>Votre organisation est prête. Commencez par autoriser les utilisateurs, puis créez votre premier projet.</p>
   <p class="empty-state-actions">
-    <a class="button" href="/admin/users">Gérer les utilisateurs autorisés</a>
+    <a class="button" href="/admin/users">Gérer les emails autorisés</a>
     <a class="button" href="/projects/new">Créer un projet</a>
   </p>
-  {{else if eq .User.Role "editor"}}
+  {{else if .CanCreate}}
   <p>Aucun projet pour l'instant. Créez un projet pour y ajouter des modèles de checklist et lancer une revue.</p>
   <p class="empty-state-actions">
     <a class="button" href="/projects/new">Créer un projet</a>

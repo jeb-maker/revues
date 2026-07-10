@@ -142,6 +142,12 @@ func (h *Auth) Callback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if err := h.Store.EnsureBootstrapOrgOwner(r.Context(), user.ID, profile.Email, h.Config.BootstrapAdminEmail); err != nil {
+		slog.Error("bootstrap org owner", "err", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
 	sessionOrgID, redirect, err := organizations.PostLoginRoute(r.Context(), h.Store, user.ID)
 	if err != nil {
 		slog.Error("post-login organization route", "err", err)

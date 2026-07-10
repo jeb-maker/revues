@@ -45,9 +45,12 @@ func (h *AdminUsers) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data := h.adminData(r, "Utilisateurs autorisés")
+	data := h.adminData(r, "Emails autorisés")
 	data.Emails = emails
 	data.Message = r.URL.Query().Get("msg")
+	if org, ok := middleware.OrganizationFromContext(r.Context()); ok {
+		data.OrganizationName = org.Name
+	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	if err := h.Templates.ExecuteTemplate(w, "admin_users", data); err != nil {
@@ -132,9 +135,12 @@ func (h *AdminUsers) renderError(w http.ResponseWriter, r *http.Request, message
 		return
 	}
 
-	data := h.adminData(r, "Utilisateurs autorisés")
+	data := h.adminData(r, "Emails autorisés")
 	data.Emails = emails
 	data.Error = message
+	if org, ok := middleware.OrganizationFromContext(r.Context()); ok {
+		data.OrganizationName = org.Name
+	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(http.StatusBadRequest)
