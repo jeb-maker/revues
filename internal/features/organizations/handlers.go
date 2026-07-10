@@ -10,7 +10,10 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/go-chi/chi/v5"
+
 	"github.com/jeb-maker/revues/internal/auth"
+	"github.com/jeb-maker/revues/internal/orgctx"
 	"github.com/jeb-maker/revues/internal/store"
 	"github.com/jeb-maker/revues/internal/web/middleware"
 	"github.com/jeb-maker/revues/internal/web/templates"
@@ -25,6 +28,9 @@ type OrgStore interface {
 	CreateOrganization(ctx context.Context, name, slug string, createdBy int64) (*store.Organization, error)
 	AddOrganizationMember(ctx context.Context, organizationID, userID int64, role string) error
 	OrganizationMemberRole(ctx context.Context, organizationID, userID int64) (string, bool, error)
+	OrganizationInvitationByID(ctx context.Context, id int64) (*store.OrganizationInvitation, error)
+	DeleteOrganizationInvitation(ctx context.Context, id int64) error
+	AddProjectMember(ctx context.Context, projectID, userID int64, role string) error
 }
 
 // Deps holds shared dependencies for organization HTTP handlers.
@@ -73,6 +79,7 @@ func (h *Organizations) pageData(r *http.Request, title string) templates.PageDa
 			data.CSRFToken = auth.CSRFToken(token, h.SessionSecret)
 		}
 	}
+	templates.ApplyHeaderFromContext(r, &data)
 	return data
 }
 
@@ -260,6 +267,121 @@ func (h *Organizations) Select(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(w, r, dashboardPath, http.StatusSeeOther)
+}
+
+// Switch changes the active organization for the current session.
+func (h *Organizations) Switch(w http.ResponseWriter, r *http.Request) {
+	user, ok := middleware.UserFromContext(r.Context())
+	if !ok {
+		http.Redirect(w, r, "/login", http.StatusFound)
+		return
+	}
+
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
+
+	orgID, err := strconv.ParseInt(r.FormValue("organization_id"), 10, 64)
+	if err != nil || orgID <= 0 {
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
+
+	if _, member, err := h.Store.OrganizationMemberRole(r.Context(), orgID, user.ID); err != nil || !member {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
+	if err := h.activateOrganization(w, r, orgID); err != nil {
+		slog.Error("switch organization", "err", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	redirect := r.FormValue("redirect")
+	if redirect == "" {
+		redirect = r.Header.Get("Referer")
+	}
+	if redirect == "" || !strings.HasPrefix(redirect, "/") || strings.HasPrefix(redirect, "//") {
+		redirect = dashboardPath
+	}
+
+	http.Redirect(w, r, redirect, http.StatusSeeOther)
+}
+
+// AcceptInvitation grants org membership from a pending invite and redirects to the project when set.
+func (h *Organizations) AcceptInvitation(w http.ResponseWriter, r *http.Request) {
+	user, ok := middleware.UserFromContext(r.Context())
+	if !ok {
+		http.Redirect(w, r, "/login", http.StatusFound)
+		return
+	}
+
+	inviteID, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	if err != nil || inviteID <= 0 {
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
+
+	invite, err := h.Store.OrganizationInvitationByID(r.Context(), inviteID)
+	if errors.Is(err, store.ErrOrganizationInvitationNotFound) {
+		http.NotFound(w, r)
+		return
+	}
+	if err != nil {
+		slog.Error("load organization invitation", "err", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	if strings.ToLower(strings.TrimSpace(user.Email)) != invite.Email {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
+	if _, member, err := h.Store.OrganizationMemberRole(r.Context(), invite.OrganizationID, user.ID); err != nil {
+		slog.Error("invitation org membership", "err", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	} else if !member {
+		if err := h.Store.AddOrganizationMember(r.Context(), invite.OrganizationID, user.ID, invite.OrgRole); err != nil {
+			slog.Error("accept invitation org member", "err", err)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+	}
+
+	if invite.ProjectID.Valid && invite.ProjectID.Int64 > 0 {
+		role := store.OrgRoleMember
+		if invite.ProjectRole.Valid && invite.ProjectRole.String != "" {
+			role = invite.ProjectRole.String
+		}
+		projectCtx := orgctx.WithOrganizationID(r.Context(), invite.OrganizationID)
+		if err := h.Store.AddProjectMember(projectCtx, invite.ProjectID.Int64, user.ID, role); err != nil {
+			slog.Error("accept invitation project member", "err", err)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+	}
+
+	if err := h.Store.DeleteOrganizationInvitation(r.Context(), invite.ID); err != nil {
+		slog.Error("delete organization invitation", "err", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	if err := h.activateOrganization(w, r, invite.OrganizationID); err != nil {
+		slog.Error("activate organization after invitation", "err", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	redirect := dashboardPath
+	if invite.ProjectID.Valid && invite.ProjectID.Int64 > 0 {
+		redirect = "/projects/" + strconv.FormatInt(invite.ProjectID.Int64, 10)
+	}
+	http.Redirect(w, r, redirect, http.StatusSeeOther)
 }
 
 func (h *Organizations) onboardingRedirect(count int) string {

@@ -73,6 +73,23 @@ func TestResolveLoginRole(t *testing.T) {
 			t.Errorf("role = %q, want reader", role)
 		}
 	})
+
+	t.Run("pending invitation", func(t *testing.T) {
+		defaultOrg, err := st.OrganizationBySlug(ctx, "default")
+		if err != nil {
+			t.Fatalf("OrganizationBySlug(): %v", err)
+		}
+		if err := st.CreateOrganizationInvitation(ctx, "invited@example.com", defaultOrg.ID, 0, ""); err != nil {
+			t.Fatalf("CreateOrganizationInvitation(): %v", err)
+		}
+		role, err := st.ResolveLoginRole(ctx, "invited@example.com", "")
+		if err != nil {
+			t.Fatalf("ResolveLoginRole() error = %v", err)
+		}
+		if role != auth.RoleEditor {
+			t.Errorf("role = %q, want editor", role)
+		}
+	})
 }
 
 func TestEnsureBootstrapOrgOwner(t *testing.T) {

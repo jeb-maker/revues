@@ -29,13 +29,16 @@ type StepperData struct {
 
 // PageData is shared view data for HTML pages.
 type PageData struct {
-	Title        string
-	User         *store.User
-	CSRFToken    string
-	LoginError   string
-	ActiveTab    string
-	AdminSection string
-	Breadcrumbs  []Breadcrumb
+	Title              string
+	User               *store.User
+	CSRFToken          string
+	LoginError         string
+	ActiveTab          string
+	AdminSection       string
+	Breadcrumbs        []Breadcrumb
+	ActiveOrganization *store.Organization
+	UserOrganizations  []store.OrganizationMembership
+	PendingInvitations []store.OrganizationInvitation
 }
 
 // AdminUsersData is view data for the org-scoped whitelist admin screen.

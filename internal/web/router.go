@@ -170,6 +170,7 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, error) {
 	r.Use(middleware.Recoverer)
 	r.Use(appmiddleware.LoadUser(st))
 	r.Use(appmiddleware.LoadActiveOrganization(st))
+	r.Use(appmiddleware.LoadHeaderData(st))
 	r.Use(appmiddleware.CSRF(deps.Config.SessionSecret))
 
 	r.Get("/healthz", Health)
@@ -191,10 +192,12 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, error) {
 		r.Post("/org/new", orgsHandler.Create)
 		r.Get("/org/select", orgsHandler.SelectForm)
 		r.Post("/org/select", orgsHandler.Select)
+		r.Post("/org/invitations/{id}/accept", orgsHandler.AcceptInvitation)
 	})
 
 	r.Group(func(r chi.Router) {
 		r.Use(appmiddleware.RequireAuth)
+		r.Post("/org/switch", orgsHandler.Switch)
 		r.Get("/projects", projectsHandler.List)
 		r.Get("/projects/new", projectsHandler.NewForm)
 		r.Post("/projects", projectsHandler.Create)

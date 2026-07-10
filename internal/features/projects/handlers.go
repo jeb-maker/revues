@@ -36,6 +36,7 @@ func (d *Deps) PageData(r *http.Request, title string) templates.PageData {
 			data.CSRFToken = auth.CSRFToken(token, d.SessionSecret)
 		}
 	}
+	templates.ApplyHeaderFromContext(r, &data)
 	return data
 }
 
@@ -329,7 +330,16 @@ func (h *Projects) AddMember(w http.ResponseWriter, r *http.Request) {
 
 	member, err := h.Store.UserByEmail(r.Context(), email)
 	if errors.Is(err, ErrUserNotFound) {
-		h.renderShowError(w, r, project, user, memberRole, callerOrgRole, "Utilisateur introuvable (doit s'être connecté une fois).")
+		if !CanInviteExternalToOrg(user, memberRole, callerOrgRole) {
+			http.NotFound(w, r)
+			return
+		}
+		if err := h.Store.CreateOrganizationInvitation(r.Context(), email, project.OrganizationID, project.ID, role); err != nil {
+			slog.Error("create organization invitation", "err", err)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+		http.Redirect(w, r, "/projects/"+strconv.FormatInt(project.ID, 10)+"?msg=Invitation+envoy%C3%A9e", http.StatusSeeOther)
 		return
 	}
 	if err != nil {

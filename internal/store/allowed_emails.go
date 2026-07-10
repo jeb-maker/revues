@@ -172,6 +172,12 @@ func (s *Store) ResolveLoginRole(ctx context.Context, email, bootstrapAdmin stri
 		return auth.RoleAdmin, nil
 	}
 
+	if ok, err := s.HasPendingInvitationByEmail(ctx, email); err != nil {
+		return "", fmt.Errorf("pending invitation lookup: %w", err)
+	} else if ok {
+		return auth.RoleEditor, nil
+	}
+
 	return auth.RoleEditor, nil
 }
 
