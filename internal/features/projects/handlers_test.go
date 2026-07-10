@@ -270,3 +270,208 @@ func TestDashboardEmptyState_ByRole(t *testing.T) {
 		})
 	}
 }
+
+func TestProjectInvite_ExternalUserAutoJoinedToOrg(t *testing.T) {
+	handler, db := testRouter(t)
+	ctx := context.Background()
+	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
+
+	lead, err := st.UpsertGitHubUser(ctx, 50, "lead", "lead@example.com", "Lead", "", auth.RoleEditor)
+	if err != nil {
+		t.Fatalf("UpsertGitHubUser(lead): %v", err)
+	}
+	external, err := st.UpsertGitHubUser(ctx, 51, "external", "external@other.com", "External", "", auth.RoleEditor)
+	if err != nil {
+		t.Fatalf("UpsertGitHubUser(external): %v", err)
+	}
+
+	defaultOrg, err := st.OrganizationBySlug(ctx, "default")
+	if err != nil {
+		t.Fatalf("OrganizationBySlug(default): %v", err)
+	}
+	if err := st.AddOrganizationMember(ctx, defaultOrg.ID, lead.ID, store.OrgRoleOwner); err != nil {
+		t.Fatalf("AddOrganizationMember(lead): %v", err)
+	}
+
+	project, err := st.CreateProject(ctx, "Invite test", "", lead.ID)
+	if err != nil {
+		t.Fatalf("CreateProject(): %v", err)
+	}
+
+	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
+	token, _, err := sessions.CreateLoginSession(ctx, lead.ID, defaultOrg.ID)
+	if err != nil {
+		t.Fatalf("CreateLoginSession(): %v", err)
+	}
+
+	form := url.Values{}
+	form.Set("csrf_token", auth.CSRFToken(token, "test-secret-at-least-thirty-two-bytes"))
+	form.Set("email", external.Email)
+	form.Set("role", "contributor")
+	req := httptest.NewRequest(http.MethodPost, "/projects/"+strconv.FormatInt(project.ID, 10)+"/members", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.AddCookie(&http.Cookie{Name: "revues_session", Value: token})
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusSeeOther {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusSeeOther)
+	}
+
+	role, inOrg, err := st.OrganizationMemberRole(ctx, defaultOrg.ID, external.ID)
+	if err != nil {
+		t.Fatalf("OrganizationMemberRole(external): %v", err)
+	}
+	if !inOrg {
+		t.Fatal("expected external user to be added to organization")
+	}
+	if role != store.OrgRoleMember {
+		t.Errorf("org role = %q, want %q", role, store.OrgRoleMember)
+	}
+
+	memberRole, isMember, err := st.MemberRole(ctx, project.ID, external.ID)
+	if err != nil {
+		t.Fatalf("MemberRole(external): %v", err)
+	}
+	if !isMember {
+		t.Fatal("expected external user on project")
+	}
+	if memberRole != "contributor" {
+		t.Errorf("project role = %q, want contributor", memberRole)
+	}
+}
+
+func TestProjectInvite_CrossOrgRejected(t *testing.T) {
+	handler, db := testRouter(t)
+	ctx := context.Background()
+	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
+
+	lead, err := st.UpsertGitHubUser(ctx, 60, "lead2", "lead2@example.com", "Lead2", "", auth.RoleEditor)
+	if err != nil {
+		t.Fatalf("UpsertGitHubUser(lead): %v", err)
+	}
+	contributor, err := st.UpsertGitHubUser(ctx, 61, "contrib2", "contrib2@example.com", "Contrib2", "", auth.RoleEditor)
+	if err != nil {
+		t.Fatalf("UpsertGitHubUser(contributor): %v", err)
+	}
+	external, err := st.UpsertGitHubUser(ctx, 62, "ext2", "ext2@other.com", "Ext2", "", auth.RoleEditor)
+	if err != nil {
+		t.Fatalf("UpsertGitHubUser(external): %v", err)
+	}
+
+	defaultOrg, err := st.OrganizationBySlug(ctx, "default")
+	if err != nil {
+		t.Fatalf("OrganizationBySlug(default): %v", err)
+	}
+	if err := st.AddOrganizationMember(ctx, defaultOrg.ID, lead.ID, store.OrgRoleOwner); err != nil {
+		t.Fatalf("AddOrganizationMember(lead): %v", err)
+	}
+	if err := st.AddOrganizationMember(ctx, defaultOrg.ID, contributor.ID, store.OrgRoleMember); err != nil {
+		t.Fatalf("AddOrganizationMember(contributor): %v", err)
+	}
+
+	project, err := st.CreateProject(ctx, "RBAC invite", "", lead.ID)
+	if err != nil {
+		t.Fatalf("CreateProject(): %v", err)
+	}
+	if err := st.AddProjectMember(ctx, project.ID, contributor.ID, "contributor"); err != nil {
+		t.Fatalf("AddProjectMember(contributor): %v", err)
+	}
+
+	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
+	token, _, err := sessions.CreateLoginSession(ctx, contributor.ID, defaultOrg.ID)
+	if err != nil {
+		t.Fatalf("CreateLoginSession(): %v", err)
+	}
+
+	form := url.Values{}
+	form.Set("csrf_token", auth.CSRFToken(token, "test-secret-at-least-thirty-two-bytes"))
+	form.Set("email", external.Email)
+	form.Set("role", "viewer")
+	req := httptest.NewRequest(http.MethodPost, "/projects/"+strconv.FormatInt(project.ID, 10)+"/members", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.AddCookie(&http.Cookie{Name: "revues_session", Value: token})
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusNotFound {
+		t.Errorf("status = %d, want %d (cross-org invite by non-privileged member)", rec.Code, http.StatusNotFound)
+	}
+
+	_, inOrg, err := st.OrganizationMemberRole(ctx, defaultOrg.ID, external.ID)
+	if err != nil {
+		t.Fatalf("OrganizationMemberRole(external): %v", err)
+	}
+	if inOrg {
+		t.Error("external user must not be added to organization")
+	}
+}
+
+func TestProjectInvite_OrgAdminCanInviteExternal(t *testing.T) {
+	handler, db := testRouter(t)
+	ctx := context.Background()
+	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
+
+	lead, err := st.UpsertGitHubUser(ctx, 70, "lead3", "lead3@example.com", "Lead3", "", auth.RoleEditor)
+	if err != nil {
+		t.Fatalf("UpsertGitHubUser(lead): %v", err)
+	}
+	orgAdmin, err := st.UpsertGitHubUser(ctx, 71, "orgadmin", "orgadmin@example.com", "OrgAdmin", "", auth.RoleEditor)
+	if err != nil {
+		t.Fatalf("UpsertGitHubUser(orgAdmin): %v", err)
+	}
+	external, err := st.UpsertGitHubUser(ctx, 72, "ext3", "ext3@other.com", "Ext3", "", auth.RoleEditor)
+	if err != nil {
+		t.Fatalf("UpsertGitHubUser(external): %v", err)
+	}
+
+	defaultOrg, err := st.OrganizationBySlug(ctx, "default")
+	if err != nil {
+		t.Fatalf("OrganizationBySlug(default): %v", err)
+	}
+	if err := st.AddOrganizationMember(ctx, defaultOrg.ID, lead.ID, store.OrgRoleOwner); err != nil {
+		t.Fatalf("AddOrganizationMember(lead): %v", err)
+	}
+	if err := st.AddOrganizationMember(ctx, defaultOrg.ID, orgAdmin.ID, store.OrgRoleAdmin); err != nil {
+		t.Fatalf("AddOrganizationMember(orgAdmin): %v", err)
+	}
+
+	project, err := st.CreateProject(ctx, "Org admin invite", "", lead.ID)
+	if err != nil {
+		t.Fatalf("CreateProject(): %v", err)
+	}
+	if err := st.AddProjectMember(ctx, project.ID, orgAdmin.ID, "viewer"); err != nil {
+		t.Fatalf("AddProjectMember(orgAdmin): %v", err)
+	}
+
+	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
+	token, _, err := sessions.CreateLoginSession(ctx, orgAdmin.ID, defaultOrg.ID)
+	if err != nil {
+		t.Fatalf("CreateLoginSession(): %v", err)
+	}
+
+	form := url.Values{}
+	form.Set("csrf_token", auth.CSRFToken(token, "test-secret-at-least-thirty-two-bytes"))
+	form.Set("email", external.Email)
+	form.Set("role", "viewer")
+	req := httptest.NewRequest(http.MethodPost, "/projects/"+strconv.FormatInt(project.ID, 10)+"/members", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.AddCookie(&http.Cookie{Name: "revues_session", Value: token})
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusSeeOther {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusSeeOther)
+	}
+
+	_, inOrg, err := st.OrganizationMemberRole(ctx, defaultOrg.ID, external.ID)
+	if err != nil {
+		t.Fatalf("OrganizationMemberRole(external): %v", err)
+	}
+	if !inOrg {
+		t.Fatal("expected external user to be added to organization")
+	}
+}

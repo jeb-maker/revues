@@ -12,6 +12,7 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"github.com/jeb-maker/revues/internal/auth"
+	"github.com/jeb-maker/revues/internal/store"
 	"github.com/jeb-maker/revues/internal/web/middleware"
 	"github.com/jeb-maker/revues/internal/web/templates"
 )
@@ -183,6 +184,8 @@ func (h *Projects) Show(w http.ResponseWriter, r *http.Request) {
 		{URL: "/projects", Label: "Projets"},
 		{Label: project.Name},
 	}
+	callerOrgRole, _, _ := h.Store.OrganizationMemberRole(r.Context(), project.OrganizationID, user.ID)
+
 	data := templates.ProjectShowData{
 		PageData:         pd,
 		Project:          project,
@@ -191,7 +194,7 @@ func (h *Projects) Show(w http.ResponseWriter, r *http.Request) {
 		NokItems:         nokItems,
 		MemberRole:       memberRole,
 		CanManage:        CanManage(user, memberRole),
-		CanManageMembers: CanManageMembers(user, memberRole),
+		CanManageMembers: CanAddProjectMember(user, memberRole, callerOrgRole),
 		CanLaunch:        CanLaunch(user, memberRole),
 		Message:          r.URL.Query().Get("msg"),
 	}
@@ -290,7 +293,14 @@ func (h *Projects) AddMember(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if !CanManageMembers(user, memberRole) {
+
+	callerOrgRole, _, err := h.Store.OrganizationMemberRole(r.Context(), project.OrganizationID, user.ID)
+	if err != nil {
+		slog.Error("caller org role", "err", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	if !CanAddProjectMember(user, memberRole, callerOrgRole) {
 		http.NotFound(w, r)
 		return
 	}
@@ -301,19 +311,19 @@ func (h *Projects) AddMember(w http.ResponseWriter, r *http.Request) {
 
 	email, err := normalizeMemberEmail(r.FormValue("email"))
 	if err != nil {
-		h.renderShowError(w, r, project, user, memberRole, "Email invalide.")
+		h.renderShowError(w, r, project, user, memberRole, callerOrgRole, "Email invalide.")
 		return
 	}
 
 	role := strings.TrimSpace(r.FormValue("role"))
 	if !ValidLocalRole(role) {
-		h.renderShowError(w, r, project, user, memberRole, "Rôle local invalide.")
+		h.renderShowError(w, r, project, user, memberRole, callerOrgRole, "Rôle local invalide.")
 		return
 	}
 
 	member, err := h.Store.UserByEmail(r.Context(), email)
 	if errors.Is(err, ErrUserNotFound) {
-		h.renderShowError(w, r, project, user, memberRole, "Utilisateur introuvable (doit s'être connecté une fois).")
+		h.renderShowError(w, r, project, user, memberRole, callerOrgRole, "Utilisateur introuvable (doit s'être connecté une fois).")
 		return
 	}
 	if err != nil {
@@ -322,13 +332,37 @@ func (h *Projects) AddMember(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	inviteeOrgRole, inviteeInOrg, err := h.Store.OrganizationMemberRole(r.Context(), project.OrganizationID, member.ID)
+	if err != nil {
+		slog.Error("invitee org role", "err", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	if !inviteeInOrg {
+		if !CanInviteExternalToOrg(user, memberRole, callerOrgRole) {
+			http.NotFound(w, r)
+			return
+		}
+		if err := h.Store.AddOrganizationMember(r.Context(), project.OrganizationID, member.ID, store.OrgRoleMember); err != nil {
+			slog.Error("add organization member", "err", err)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+	} else {
+		_ = inviteeOrgRole
+	}
+
 	if err := h.Store.AddProjectMember(r.Context(), project.ID, member.ID, role); err != nil {
 		slog.Error("add project member", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
-	http.Redirect(w, r, "/projects/"+strconv.FormatInt(project.ID, 10)+"?msg=Membre+ajout%C3%A9", http.StatusSeeOther)
+	msg := "Membre+ajout%C3%A9"
+	if !inviteeInOrg {
+		msg = "Membre+ajout%C3%A9+%28adh%C3%A9sion+%C3%A0+l%27organisation%29"
+	}
+	http.Redirect(w, r, "/projects/"+strconv.FormatInt(project.ID, 10)+"?msg="+msg, http.StatusSeeOther)
 }
 
 // RemoveMember removes a member from the project.
@@ -341,6 +375,12 @@ func (h *Projects) RemoveMember(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
+	callerOrgRole, _, err := h.Store.OrganizationMemberRole(r.Context(), project.OrganizationID, user.ID)
+	if err != nil {
+		slog.Error("caller org role", "err", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
@@ -348,12 +388,12 @@ func (h *Projects) RemoveMember(w http.ResponseWriter, r *http.Request) {
 
 	userID, err := strconv.ParseInt(r.FormValue("user_id"), 10, 64)
 	if err != nil {
-		h.renderShowError(w, r, project, user, memberRole, "Membre invalide.")
+		h.renderShowError(w, r, project, user, memberRole, callerOrgRole, "Membre invalide.")
 		return
 	}
 
 	if userID == user.ID {
-		h.renderShowError(w, r, project, user, memberRole, "Vous ne pouvez pas vous retirer vous-même.")
+		h.renderShowError(w, r, project, user, memberRole, callerOrgRole, "Vous ne pouvez pas vous retirer vous-même.")
 		return
 	}
 
@@ -364,7 +404,7 @@ func (h *Projects) RemoveMember(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !isMember {
-		h.renderShowError(w, r, project, user, memberRole, "Membre introuvable.")
+		h.renderShowError(w, r, project, user, memberRole, callerOrgRole, "Membre introuvable.")
 		return
 	}
 
@@ -376,7 +416,7 @@ func (h *Projects) RemoveMember(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if leads <= 1 {
-			h.renderShowError(w, r, project, user, memberRole, "Impossible de retirer le dernier lead.")
+			h.renderShowError(w, r, project, user, memberRole, callerOrgRole, "Impossible de retirer le dernier lead.")
 			return
 		}
 	}
@@ -448,7 +488,7 @@ func (h *Projects) renderFormError(w http.ResponseWriter, r *http.Request, proje
 	}
 }
 
-func (h *Projects) renderShowError(w http.ResponseWriter, r *http.Request, project *Project, user *User, memberRole, message string) {
+func (h *Projects) renderShowError(w http.ResponseWriter, r *http.Request, project *Project, user *User, memberRole, callerOrgRole, message string) {
 	members, err := h.Store.ListProjectMembers(r.Context(), project.ID)
 	if err != nil {
 		slog.Error("list project members", "err", err)
@@ -483,7 +523,7 @@ func (h *Projects) renderShowError(w http.ResponseWriter, r *http.Request, proje
 		NokItems:         nokItems,
 		MemberRole:       memberRole,
 		CanManage:        CanManage(user, memberRole),
-		CanManageMembers: CanManageMembers(user, memberRole),
+		CanManageMembers: CanAddProjectMember(user, memberRole, callerOrgRole),
 		Error:            message,
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")

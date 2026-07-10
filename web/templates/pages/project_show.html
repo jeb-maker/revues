@@ -99,6 +99,7 @@
 
   {{if .CanManageMembers}}
   <h3>Ajouter un membre</h3>
+  <p class="muted">Cette personne sera ajoutée à l'organisation si elle n'en fait pas déjà partie.</p>
   <form method="post" action="/projects/{{.Project.ID}}/members" class="stack-form">
     <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
     <label>
