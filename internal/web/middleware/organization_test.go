@@ -73,9 +73,16 @@ func TestLoadActiveOrganization_RedirectsWithoutMembership(t *testing.T) {
 	if err != nil {
 		t.Fatalf("UpsertGitHubUser(): %v", err)
 	}
+	memberOrg, err := st.CreateOrganization(ctx, "Member", "member-org", user.ID)
+	if err != nil {
+		t.Fatalf("CreateOrganization(member): %v", err)
+	}
 	otherOrg, err := st.CreateOrganization(ctx, "Other", "other", user.ID)
 	if err != nil {
-		t.Fatalf("CreateOrganization(): %v", err)
+		t.Fatalf("CreateOrganization(other): %v", err)
+	}
+	if err := st.AddOrganizationMember(ctx, memberOrg.ID, user.ID, store.OrgRoleMember); err != nil {
+		t.Fatalf("AddOrganizationMember(): %v", err)
 	}
 
 	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
@@ -132,6 +139,75 @@ func TestLoadActiveOrganization_ExemptOrgSelect(t *testing.T) {
 	})
 
 	req := httptest.NewRequest(http.MethodGet, "/org/select", nil)
+	req.AddCookie(&http.Cookie{Name: "revues_session", Value: token})
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+}
+
+func TestLoadActiveOrganization_RedirectsPendingWithoutOrganizations(t *testing.T) {
+	ctx := context.Background()
+	db := openTestDB(t)
+	st := store.New(db)
+
+	user, err := st.UpsertGitHubUser(ctx, 4, "dana", "dana@example.com", "Dana", "", auth.RoleReader)
+	if err != nil {
+		t.Fatalf("UpsertGitHubUser(): %v", err)
+	}
+
+	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
+	token, _, err := sessions.CreateLoginSession(ctx, user.ID, auth.SessionOrgPending)
+	if err != nil {
+		t.Fatalf("CreateLoginSession(): %v", err)
+	}
+
+	handler := chi.NewRouter()
+	handler.Use(appmiddleware.LoadUser(st))
+	handler.Use(appmiddleware.LoadActiveOrganization(st))
+	handler.Get("/projects", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/projects", nil)
+	req.AddCookie(&http.Cookie{Name: "revues_session", Value: token})
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusFound {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusFound)
+	}
+	if loc := rec.Header().Get("Location"); loc != "/org/new" {
+		t.Fatalf("Location = %q, want /org/new", loc)
+	}
+}
+
+func TestLoadActiveOrganization_ExemptOrgNew(t *testing.T) {
+	ctx := context.Background()
+	db := openTestDB(t)
+	st := store.New(db)
+
+	user, err := st.UpsertGitHubUser(ctx, 5, "erin", "erin@example.com", "Erin", "", auth.RoleReader)
+	if err != nil {
+		t.Fatalf("UpsertGitHubUser(): %v", err)
+	}
+
+	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
+	token, _, err := sessions.CreateLoginSession(ctx, user.ID, auth.SessionOrgPending)
+	if err != nil {
+		t.Fatalf("CreateLoginSession(): %v", err)
+	}
+
+	handler := chi.NewRouter()
+	handler.Use(appmiddleware.LoadUser(st))
+	handler.Use(appmiddleware.LoadActiveOrganization(st))
+	handler.Get("/org/new", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/org/new", nil)
 	req.AddCookie(&http.Cookie{Name: "revues_session", Value: token})
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)

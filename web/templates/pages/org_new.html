@@ -1,0 +1,32 @@
+{{define "org_new"}}
+{{template "layout_start" .}}
+<h1>Nouvelle organisation</h1>
+<p>Créez votre organisation pour commencer à utiliser Revues.</p>
+{{if .Error}}<p class="error">{{.Error}}</p>{{end}}
+
+<form method="post" action="/org/new" class="stack-form">
+  <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+  <label>
+    Nom
+    <input type="text" id="org-name" name="name" required maxlength="200" value="{{.Name}}">
+  </label>
+  <label>
+    Identifiant (slug)
+    <input type="text" id="org-slug" name="slug" maxlength="100" pattern="[a-z0-9]+(?:-[a-z0-9]+)*" value="{{.Slug}}" placeholder="mon-equipe">
+  </label>
+  <p class="form-hint">Lettres minuscules, chiffres et tirets. Pré-rempli depuis le nom.</p>
+  <button type="submit">Créer l'organisation</button>
+</form>
+<script>
+(function(){
+  var name=document.getElementById('org-name'),slug=document.getElementById('org-slug'),manual=false;
+  if(!name||!slug)return;
+  slug.addEventListener('input',function(){manual=true;});
+  name.addEventListener('input',function(){
+    if(manual)return;
+    slug.value=name.value.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+  });
+})();
+</script>
+{{template "layout_end" .}}
+{{end}}

@@ -1,0 +1,22 @@
+{{define "org_select"}}
+{{template "layout_start" .}}
+<h1>Choisir une organisation</h1>
+<p>Sélectionnez l'organisation avec laquelle vous souhaitez travailler.</p>
+{{if .Error}}<p class="error">{{.Error}}</p>{{end}}
+
+<form method="post" action="/org/select" class="stack-form org-select-form">
+  <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+  <fieldset class="stack-form">
+    <legend class="visually-hidden">Organisations</legend>
+    {{range .Organizations}}
+    <label>
+      <input type="radio" name="organization_id" value="{{.Organization.ID}}" required
+        {{if eq .Organization.ID $.DefaultOrgID}}checked{{end}}>
+      {{.Organization.Name}} <span class="form-hint">({{.Organization.Slug}})</span>
+    </label>
+    {{end}}
+  </fieldset>
+  <button type="submit">Continuer</button>
+</form>
+{{template "layout_end" .}}
+{{end}}

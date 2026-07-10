@@ -4,13 +4,18 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 )
 
 const (
 	sessionCookieName = "revues_session"
 	oauthCookieName   = "revues_oauth"
+	lastOrgCookieName = "revues_last_org"
 )
+
+// SessionOrgPending marks a login session waiting for organization selection.
+const SessionOrgPending int64 = -1
 
 // SessionManager handles browser session cookies and DB persistence.
 type SessionManager struct {
@@ -20,6 +25,7 @@ type SessionManager struct {
 }
 
 // CreateLoginSession rotates sessions and returns raw token + CSRF token.
+// Pass SessionOrgPending to create a session without an active organization.
 // When organizationID is zero the store resolves the active organization.
 func (m *SessionManager) CreateLoginSession(ctx context.Context, userID, organizationID int64) (string, string, error) {
 	orgID, err := m.Store.ResolveSessionOrganizationID(ctx, userID, organizationID)
@@ -50,6 +56,14 @@ func (m *SessionManager) ClearSession(ctx context.Context, sessionToken string) 
 	}
 
 	return m.Store.DeleteSession(ctx, HashToken(sessionToken))
+}
+
+// SetActiveOrganization updates the organization on the current session.
+func (m *SessionManager) SetActiveOrganization(ctx context.Context, sessionToken string, organizationID int64) error {
+	if sessionToken == "" {
+		return fmt.Errorf("session token: empty")
+	}
+	return m.Store.UpdateSessionOrganization(ctx, HashToken(sessionToken), organizationID)
 }
 
 // SetSessionCookie writes the session cookie on w.
@@ -86,6 +100,35 @@ func SessionTokenFromRequest(r *http.Request) (string, error) {
 	}
 
 	return c.Value, nil
+}
+
+// LastOrgIDFromRequest reads the remembered organization id cookie.
+func LastOrgIDFromRequest(r *http.Request) int64 {
+	c, err := r.Cookie(lastOrgCookieName)
+	if err != nil {
+		return 0
+	}
+	id, err := strconv.ParseInt(c.Value, 10, 64)
+	if err != nil || id <= 0 {
+		return 0
+	}
+	return id
+}
+
+// SetLastOrgCookie remembers the user's last selected organization.
+func SetLastOrgCookie(w http.ResponseWriter, orgID int64, secure bool) {
+	if orgID <= 0 {
+		return
+	}
+	http.SetCookie(w, &http.Cookie{
+		Name:     lastOrgCookieName,
+		Value:    strconv.FormatInt(orgID, 10),
+		Path:     "/",
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+		Secure:   secure,
+		MaxAge:   int((365 * 24 * time.Hour).Seconds()),
+	})
 }
 
 // SetOAuthCookie stores signed OAuth state for PKCE.
