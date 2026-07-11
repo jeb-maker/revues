@@ -43,11 +43,31 @@ func TestMigrateUpDown(t *testing.T) {
 	}
 }
 
+func TestOpenConfiguresPool(t *testing.T) {
+	ctx := context.Background()
+	path := t.TempDir() + "/pool.db"
+
+	db, err := store.Open(ctx, path, 8)
+	if err != nil {
+		t.Fatalf("Open() error = %v", err)
+	}
+	t.Cleanup(func() {
+		if err := db.Close(); err != nil {
+			t.Errorf("Close() error = %v", err)
+		}
+	})
+
+	stats := db.Stats()
+	if stats.MaxOpenConnections != 8 {
+		t.Fatalf("MaxOpenConnections = %d, want 8", stats.MaxOpenConnections)
+	}
+}
+
 func TestOpenFileCreatesDirectory(t *testing.T) {
 	ctx := context.Background()
 	path := t.TempDir() + "/nested/revues.db"
 
-	db, err := store.Open(ctx, path)
+	db, err := store.Open(ctx, path, 0)
 	if err != nil {
 		t.Fatalf("Open() error = %v", err)
 	}

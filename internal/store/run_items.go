@@ -80,6 +80,12 @@ func (s *Store) UpdateRunItemStatus(ctx context.Context, runID, itemID, userID i
 	now := time.Now().UTC().Format(time.RFC3339)
 	comment = strings.TrimSpace(comment)
 
+	return withSQLiteBusyRetry(ctx, func() error {
+		return s.updateRunItemStatusOnce(ctx, runID, itemID, userID, status, comment, now)
+	})
+}
+
+func (s *Store) updateRunItemStatusOnce(ctx context.Context, runID, itemID, userID int64, status, comment, now string) error {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("begin tx: %w", err)

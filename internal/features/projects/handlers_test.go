@@ -27,7 +27,7 @@ func testRouter(t *testing.T) (http.Handler, *sql.DB) {
 	t.Helper()
 
 	ctx := context.Background()
-	db, err := store.Open(ctx, t.TempDir()+"/test.db")
+	db, err := store.Open(ctx, t.TempDir()+"/test.db", 0)
 	if err != nil {
 		t.Fatalf("Open() error = %v", err)
 	}
@@ -220,7 +220,7 @@ func TestProjects_ReaderCannotCreate(t *testing.T) {
 	}
 }
 
-func TestDashboardEmptyState_ByRole(t *testing.T) {
+func TestRunsListEmptyState_ByRole(t *testing.T) {
 	roles := []struct {
 		role    string
 		orgRole string
@@ -257,7 +257,7 @@ func TestDashboardEmptyState_ByRole(t *testing.T) {
 				t.Fatalf("CreateLoginSession(): %v", err)
 			}
 
-			req := httptest.NewRequest(http.MethodGet, "/projects", nil)
+			req := httptest.NewRequest(http.MethodGet, "/revues", nil)
 			req.AddCookie(&http.Cookie{Name: "revues_session", Value: token})
 			rec := httptest.NewRecorder()
 			handler.ServeHTTP(rec, req)

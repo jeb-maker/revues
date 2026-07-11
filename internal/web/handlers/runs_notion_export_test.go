@@ -38,7 +38,7 @@ func setupNotionExport(t *testing.T, st *store.Store, ctx context.Context, encKe
 func testNotionExportRouter(t *testing.T, encKey string, notionClient *notion.Client) (http.Handler, *sql.DB) {
 	t.Helper()
 	ctx := context.Background()
-	db, _ := store.Open(ctx, t.TempDir()+"/test.db")
+	db, _ := store.Open(ctx, t.TempDir()+"/test.db", 0)
 	t.Cleanup(func() { _ = db.Close() })
 	_ = store.Migrate(ctx, db)
 	key, _ := base64.StdEncoding.DecodeString(encKey)

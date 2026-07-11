@@ -101,7 +101,7 @@ return tx.Commit()
 | Requêtes paramétrées | `$1` / `?` — **jamais** concat SQL |
 | `defer rows.Close()` | systématique après `Query` |
 | Transactions | update + audit dans la même tx |
-| Connexion | pool unique injecté ; `SetMaxOpenConns` raisonnable |
+| Connexion | pool injecté ; `REVUES_DB_MAX_OPEN_CONNS` (défaut 10), `busy_timeout` 5 s |
 | PRAGMA | `foreign_keys=ON`, `journal_mode=WAL` au démarrage |
 | Timeouts | `context` sur requêtes longues |
 
@@ -186,7 +186,7 @@ Fichiers : `*_test.go` colocalisés ou `package xxx_test` pour tests d'intégrat
 | Goroutines emails/webhooks | avec `context` et log erreur |
 | Pas de goroutine leak | lifecycle lié à la requête ou shutdown graceful |
 | Mutex | seulement si état partagé in-process (éviter si possible) |
-| SQLite | un writer — transactions courtes |
+| SQLite | un writer — transactions courtes ; lectures parallèles via pool + WAL ; retry `SQLITE_BUSY` sur écritures critiques |
 
 ---
 

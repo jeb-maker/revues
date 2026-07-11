@@ -45,6 +45,7 @@ Résumé :
 - Dates : ISO 8601 UTC en `TEXT`
 - Enums : `TEXT` + `CHECK` constraint
 - `PRAGMA foreign_keys=ON` à chaque connexion
+- Pool SQLite : `REVUES_DB_MAX_OPEN_CONNS` (défaut 10) — voir benchmarks `internal/store/concurrency_bench_test.go`
 
 ## Routes HTTP
 
@@ -99,6 +100,7 @@ Préfixe `REVUES_` :
 |----------|-------------|
 | `REVUES_ADDR` | `:8080` |
 | `REVUES_DATABASE_PATH` | `data/revues.db` |
+| `REVUES_DB_MAX_OPEN_CONNS` | Taille du pool SQLite (défaut `10`) |
 | `REVUES_SESSION_SECRET` | 32+ octets aléatoires |
 | `REVUES_ENCRYPTION_KEY` | 32 octets base64 (AES-256-GCM) |
 | `REVUES_GITHUB_CLIENT_ID` | OAuth |
