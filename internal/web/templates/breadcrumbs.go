@@ -78,6 +78,16 @@ func BCLogin() []Breadcrumb {
 	return []Breadcrumb{current("Connexion")}
 }
 
+// BCOrgNew is the organization creation form breadcrumb.
+func BCOrgNew() []Breadcrumb {
+	return []Breadcrumb{current("Nouvelle organisation")}
+}
+
+// BCOrgSelect is the organization selection screen breadcrumb.
+func BCOrgSelect() []Breadcrumb {
+	return []Breadcrumb{current("Choisir une organisation")}
+}
+
 // BCHome is the public landing page breadcrumb.
 func BCHome() []Breadcrumb {
 	return []Breadcrumb{current("Revues")}

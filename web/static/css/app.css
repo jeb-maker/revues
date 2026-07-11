@@ -75,12 +75,13 @@
 *, *::before, *::after { box-sizing: border-box; }
 html {
   -webkit-text-size-adjust: 100%;
-  scrollbar-gutter: stable;
+  height: 100%;
+  margin: 0;
 }
 body {
   margin: 0;
-  min-height: 100vh;
-  min-height: 100dvh;
+  height: 100%;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   font-family: var(--font-sans);
@@ -132,8 +133,6 @@ pre {
 
 .site-header {
   flex-shrink: 0;
-  position: sticky;
-  top: 0;
   z-index: 20;
   background: color-mix(in srgb, var(--surface) 88%, transparent);
   backdrop-filter: saturate(180%) blur(8px);
@@ -232,6 +231,7 @@ pre {
 }
 
 .invite-banner {
+  flex-shrink: 0;
   width: 100%;
   max-width: var(--maxw-wide);
   margin: 0 auto;
@@ -255,6 +255,15 @@ pre {
   line-height: 1;
 }
 .hamburger svg { display: block; }
+
+.site-shell {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  display: flex;
+  flex-direction: column;
+}
 
 .site-main {
   flex: 1 0 auto;

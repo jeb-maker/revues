@@ -34,10 +34,9 @@ func (h *Auth) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data := templates.PageData{
-		Title:      "Connexion",
+	data := templates.ApplyPageMeta(templates.PageData{
 		LoginError: auth.LoginErrorMessage(r.URL.Query().Get("error")),
-	}
+	}, templates.BCLogin())
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	if err := h.Templates.ExecuteTemplate(w, "login", data); err != nil {

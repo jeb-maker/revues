@@ -71,8 +71,8 @@ func PostLoginRoute(ctx context.Context, st interface {
 	}
 }
 
-func (h *Organizations) pageData(r *http.Request, title string) templates.PageData {
-	data := templates.PageData{Title: title}
+func (h *Organizations) pageData(r *http.Request) templates.PageData {
+	data := templates.PageData{}
 	if user, ok := middleware.UserFromContext(r.Context()); ok {
 		data.User = user
 		if token := middleware.SessionTokenFromContext(r); token != "" {
@@ -103,7 +103,7 @@ func (h *Organizations) NewForm(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := templates.OrgNewData{
-		PageData: h.pageData(r, "Nouvelle organisation"),
+		PageData: templates.ApplyPageMeta(h.pageData(r), templates.BCOrgNew()),
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -144,7 +144,7 @@ func (h *Organizations) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := templates.OrgNewData{
-		PageData: h.pageData(r, "Nouvelle organisation"),
+		PageData: templates.ApplyPageMeta(h.pageData(r), templates.BCOrgNew()),
 		Name:     name,
 		Slug:     slugInput,
 	}
@@ -224,7 +224,7 @@ func (h *Organizations) SelectForm(w http.ResponseWriter, r *http.Request) {
 	defaultOrgID := h.defaultOrgID(r, memberships)
 
 	data := templates.OrgSelectData{
-		PageData:      h.pageData(r, "Choisir une organisation"),
+		PageData:      templates.ApplyPageMeta(h.pageData(r), templates.BCOrgSelect()),
 		Organizations: memberships,
 		DefaultOrgID:  defaultOrgID,
 	}
@@ -444,7 +444,7 @@ func (h *Organizations) renderSelectError(w http.ResponseWriter, r *http.Request
 	}
 
 	data := templates.OrgSelectData{
-		PageData:      h.pageData(r, "Choisir une organisation"),
+		PageData:      templates.ApplyPageMeta(h.pageData(r), templates.BCOrgSelect()),
 		Organizations: memberships,
 		DefaultOrgID:  h.defaultOrgID(r, memberships),
 		Error:         msg,
