@@ -151,6 +151,7 @@ pre {
   letter-spacing: -0.01em;
 }
 .brand:hover { text-decoration: none; }
+.brand.is-active { color: var(--accent); }
 .brand__mark { color: var(--accent); font-size: 1.1rem; line-height: 1; }
 
 .site-nav {
@@ -269,12 +270,40 @@ pre {
   flex-wrap: wrap;
   align-items: center;
   gap: 0.35rem;
-  margin: 0 0 1rem;
+  margin: 0;
   font-size: 0.82rem;
   color: var(--muted);
 }
+.page-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+  margin-bottom: 1rem;
+}
+.page-header .breadcrumb {
+  flex: 1 1 auto;
+  min-width: min(100%, 12rem);
+}
+.page-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+.page-actions .button--icon {
+  min-width: 2.25rem;
+  padding-inline: 0.65rem;
+  font-size: 1.15rem;
+  line-height: 1;
+  text-align: center;
+}
 .breadcrumb a { color: var(--muted); }
 .breadcrumb a:hover { color: var(--accent); }
+.breadcrumb [aria-current="page"] { color: var(--text); font-weight: 500; }
 .breadcrumb__sep { color: var(--border-strong); user-select: none; }
 
 .stepper {

@@ -16,7 +16,7 @@
       <button class="hamburger" aria-label="Menu" aria-expanded="false">
         {{icon "menu"}}
       </button>
-      <a class="brand" href="/" aria-label="Revues — accueil">
+      <a class="brand{{if and .User (eq .ActiveTab "runs")}} is-active{{end}}" href="{{if .User}}/revues{{else}}/{{end}}" aria-label="Revues — accueil"{{if and .User (eq .ActiveTab "runs")}} aria-current="page"{{end}}>
         <span class="brand__mark" aria-hidden="true">◈</span>
         <span class="brand__name">Revues</span>
       </a>
@@ -65,12 +65,22 @@
   {{end}}
   <main id="main" class="site-main{{block "main_class" .}}{{end}}">
     {{if .Breadcrumbs}}
-    <nav class="breadcrumb" aria-label="Fil d'Ariane">
-      {{range $i, $b := .Breadcrumbs}}
-        {{if gt $i 0}}<span class="breadcrumb__sep" aria-hidden="true">{{icon "chevron-right"}}</span>{{end}}
-        {{if $b.URL}}<a href="{{$b.URL}}">{{$b.Label}}</a>{{else}}<span aria-current="page">{{$b.Label}}</span>{{end}}
+    <div class="page-header">
+      <nav class="breadcrumb" aria-label="Fil d'Ariane">
+        {{range $i, $b := .Breadcrumbs}}
+          {{if gt $i 0}}<span class="breadcrumb__sep" aria-hidden="true">{{icon "chevron-right"}}</span>{{end}}
+          {{if $b.URL}}<a href="{{$b.URL}}">{{$b.Label}}</a>{{else}}<span aria-current="page">{{$b.Label}}</span>{{end}}
+        {{end}}
+      </nav>
+      {{if .PageActions}}
+      <div class="page-actions">
+        {{range .PageActions}}
+        <a class="{{if .Primary}}button{{else}}button-secondary{{end}}{{if .IconOnly}} button--icon{{end}}" href="{{.URL}}" aria-label="{{if .Title}}{{.Title}}{{else}}{{.Label}}{{end}}" title="{{if .Title}}{{.Title}}{{else}}{{.Label}}{{end}}">{{.Label}}</a>
+        {{end}}
+      </div>
       {{end}}
-    </nav>
+    </div>
+    <h1 class="visually-hidden">{{breadcrumbCurrent .Breadcrumbs}}</h1>
     {{end}}
 {{end}}
 

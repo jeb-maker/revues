@@ -70,8 +70,12 @@ func (h *ChecklistTemplates) IndexAll(w http.ResponseWriter, r *http.Request) {
 	}
 
 	pd := h.PageDataTab(r, "Modèles", "templates")
-	pd.Breadcrumbs = []viewtemplates.Breadcrumb{
-		{Label: "Modèles"},
+	pd.Breadcrumbs = viewtemplates.BCTemplatesIndex()
+	if CanManageGlobal(user) {
+		pd.PageActions = []viewtemplates.PageAction{
+			viewtemplates.CreateAction("Nouveau modèle", "/modeles/new"),
+			viewtemplates.SecondaryAction("Importer depuis Notion", "/modeles/notion-import"),
+		}
 	}
 	data := viewtemplates.TemplatesIndexData{
 		PageData:  pd,

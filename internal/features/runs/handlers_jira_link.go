@@ -130,8 +130,11 @@ func (h *Runs) renderRunItemShow(w http.ResponseWriter, r *http.Request, run *st
 		slog.Error("load attachment for run item show", "err", attErr)
 	}
 
+	pd := h.PageData(r, item.Label)
+	pd.Breadcrumbs = viewtemplates.BCRunItemShow(run.Title, run.ID, item.Label)
+	pd.ActiveTab = "runs"
 	data := viewtemplates.RunItemShowData{
-		PageData:        h.PageData(r, item.Label),
+		PageData:        pd,
 		Project:         project,
 		Run:             run,
 		Item:            item,

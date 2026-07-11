@@ -1,6 +1,5 @@
 {{define "project_show"}}
 {{template "layout_start" .}}
-<h1>{{.Project.Name}}</h1>
 <p>{{.Project.Description}}</p>
 
 {{if .Message}}<p class="success">{{.Message}}</p>{{end}}
@@ -13,7 +12,7 @@
 <p class="muted">Tags : <span class="muted">aucun (seuls les modèles sans tag seront proposés)</span></p>
 {{end}}
 
-<p><a href="/projects/{{.Project.ID}}/templates">Modèles de check-list</a>{{if .CanLaunch}} · <a href="/runs/new/projects/{{.Project.ID}}">Lancer une revue</a>{{end}}</p>
+<p><a href="/projects/{{.Project.ID}}/templates">Modèles de check-list</a></p>
 
 {{if .CanManage}}
 <p>

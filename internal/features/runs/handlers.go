@@ -100,6 +100,10 @@ func (h *Runs) List(w http.ResponseWriter, r *http.Request) {
 		CanManageOrgUsers: projectfeature.CanManageOrgUsers(user, orgRole, orgMember),
 		Message:           r.URL.Query().Get("msg"),
 	}
+	data.Breadcrumbs = viewtemplates.BCRevues()
+	if len(projectItems) > 0 {
+		data.PageActions = []viewtemplates.PageAction{viewtemplates.LaunchAction("/runs/new")}
+	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	if err := h.Templates.ExecuteTemplate(w, "runs_list", data); err != nil {
@@ -138,9 +142,8 @@ func (h *Runs) WizardProjects(w http.ResponseWriter, r *http.Request) {
 	}
 
 	pd := h.PageData(r, "Lancer une revue")
-	pd.Breadcrumbs = []viewtemplates.Breadcrumb{
-		{Label: "Lancer une revue"},
-	}
+	pd.Breadcrumbs = viewtemplates.BCRunWizardProjects()
+	pd.ActiveTab = "runs"
 	data := viewtemplates.RunWizardProjectsData{
 		PageData: pd,
 		Projects: launchProjects,
@@ -171,10 +174,8 @@ func (h *Runs) WizardTemplates(w http.ResponseWriter, r *http.Request) {
 	}
 
 	pd := h.PageData(r, "Choisir un modèle")
-	pd.Breadcrumbs = []viewtemplates.Breadcrumb{
-		{URL: "/runs/new", Label: "Lancer une revue"},
-		{Label: project.Name},
-	}
+	pd.Breadcrumbs = viewtemplates.BCRunWizardTemplates(project.Name)
+	pd.ActiveTab = "runs"
 	data := viewtemplates.RunWizardTemplatesData{
 		PageData:   pd,
 		Project:    project,
@@ -246,11 +247,8 @@ func (h *Runs) WizardLaunch(w http.ResponseWriter, r *http.Request) {
 	}
 
 	pd := h.PageData(r, "Lancer la revue")
-	pd.Breadcrumbs = []viewtemplates.Breadcrumb{
-		{URL: "/runs/new", Label: "Lancer une revue"},
-		{URL: "/runs/new/projects/" + strconv.FormatInt(project.ID, 10), Label: project.Name},
-		{Label: template.Name},
-	}
+	pd.Breadcrumbs = viewtemplates.BCRunWizardLaunch(project.Name, project.ID, template.Name)
+	pd.ActiveTab = "runs"
 	data := viewtemplates.RunWizardLaunchData{
 		PageData:   pd,
 		Project:    project,
@@ -706,11 +704,8 @@ func (h *Runs) renderRunShow(w http.ResponseWriter, r *http.Request, run *store.
 	}
 
 	pd := h.PageData(r, run.Title)
-	pd.Breadcrumbs = []viewtemplates.Breadcrumb{
-		{URL: "/projects", Label: "Projets"},
-		{URL: "/projects/" + strconv.FormatInt(project.ID, 10), Label: project.Name},
-		{Label: run.Title},
-	}
+	pd.Breadcrumbs = viewtemplates.BCRunShow(run.Title)
+	pd.ActiveTab = "runs"
 	data := viewtemplates.RunShowData{
 		PageData:          pd,
 		Project:           project,
@@ -868,11 +863,8 @@ func (h *Runs) renderLaunchError(w http.ResponseWriter, r *http.Request, project
 	}
 
 	pd := h.PageData(r, "Lancer la revue")
-	pd.Breadcrumbs = []viewtemplates.Breadcrumb{
-		{URL: "/runs/new", Label: "Lancer une revue"},
-		{URL: "/runs/new/projects/" + strconv.FormatInt(project.ID, 10), Label: project.Name},
-		{Label: "Confirmer"},
-	}
+	pd.Breadcrumbs = viewtemplates.BCRunWizardLaunch(project.Name, project.ID, template.Name)
+	pd.ActiveTab = "runs"
 	data := viewtemplates.RunWizardLaunchData{
 		PageData:   pd,
 		Project:    project,

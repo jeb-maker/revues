@@ -18,6 +18,35 @@ type Breadcrumb struct {
 	Label string
 }
 
+// PageAction is a header action link (primary CTA or secondary).
+type PageAction struct {
+	Label    string
+	Title    string // tooltip and aria-label; defaults to Label when empty
+	URL      string
+	Primary  bool
+	IconOnly bool
+}
+
+// PrimaryAction returns a primary header button action.
+func PrimaryAction(label, url string) PageAction {
+	return PageAction{Label: label, Title: label, URL: url, Primary: true}
+}
+
+// CreateAction returns a compact "+" create button with an accessible title.
+func CreateAction(title, url string) PageAction {
+	return PageAction{Label: "+", Title: title, URL: url, Primary: true, IconOnly: true}
+}
+
+// LaunchAction returns the standard launch-revue header button.
+func LaunchAction(url string) PageAction {
+	return PageAction{Label: "Lancer", Title: "Lancer une revue", URL: url, Primary: true}
+}
+
+// SecondaryAction returns a secondary header action.
+func SecondaryAction(label, url string) PageAction {
+	return PageAction{Label: label, Title: label, URL: url, Primary: false}
+}
+
 type StepperStep struct {
 	Label  string
 	Status string
@@ -36,6 +65,7 @@ type PageData struct {
 	ActiveTab          string
 	AdminSection       string
 	Breadcrumbs        []Breadcrumb
+	PageActions        []PageAction
 	ActiveOrganization *store.Organization
 	UserOrganizations  []store.OrganizationMembership
 	PendingInvitations []store.OrganizationInvitation
@@ -447,6 +477,9 @@ func Parse() (*template.Template, error) {
 			}
 		},
 		"add": func(a, b int) int { return a + b },
+		"breadcrumbCurrent": func(crumbs []Breadcrumb) string {
+			return BreadcrumbCurrent(crumbs)
+		},
 		"sub": func(a, b int) int { return a - b },
 		"mul": func(a, b int) int { return a * b },
 		"div": func(a, b int) int {

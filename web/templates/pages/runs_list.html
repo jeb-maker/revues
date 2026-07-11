@@ -1,6 +1,5 @@
 {{define "runs_list"}}
 {{template "layout_start" .}}
-<h1 class="visually-hidden">Revues</h1>
 {{if .Message}}<p class="success">{{.Message}}</p>{{end}}
 {{if .Error}}<p class="error">{{.Error}}</p>{{end}}
 
@@ -26,8 +25,6 @@
   {{end}}
 </section>
 {{else}}
-<p><a class="button" href="/runs/new">Lancer une revue</a></p>
-
 {{if .ActiveRuns}}
 <div class="table-scroll">
 <table class="data-table">

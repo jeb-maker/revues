@@ -89,6 +89,7 @@ func (h *MyTasks) List(w http.ResponseWriter, r *http.Request) {
 		FilterProjectID: projectFilter,
 		FilterStatus:    statusFilter,
 	}
+	data.Breadcrumbs = viewtemplates.BCTasks()
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	if err := h.Templates.ExecuteTemplate(w, "my_tasks", data); err != nil {

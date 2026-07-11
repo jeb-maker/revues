@@ -80,6 +80,10 @@ func (h *Projects) List(w http.ResponseWriter, r *http.Request) {
 		CanManageOrgUsers: CanManageOrgUsers(user, orgRole, orgMember),
 		Message:           r.URL.Query().Get("msg"),
 	}
+	data.Breadcrumbs = templates.BCProjects()
+	if CanCreate(user) {
+		data.PageActions = []templates.PageAction{templates.CreateAction("Nouveau projet", "/projects/new")}
+	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	if err := h.Templates.ExecuteTemplate(w, "projects_list", data); err != nil {
@@ -186,9 +190,11 @@ func (h *Projects) Show(w http.ResponseWriter, r *http.Request) {
 	}
 
 	pd := h.PageDataTab(r, project.Name, "")
-	pd.Breadcrumbs = []templates.Breadcrumb{
-		{URL: "/projects", Label: "Projets"},
-		{Label: project.Name},
+	pd.Breadcrumbs = templates.BCProjectShow(project.Name)
+	if CanLaunch(user, memberRole) {
+		pd.PageActions = []templates.PageAction{
+			templates.LaunchAction("/runs/new/projects/" + strconv.FormatInt(project.ID, 10)),
+		}
 	}
 	callerOrgRole, _, _ := h.Store.OrganizationMemberRole(r.Context(), project.OrganizationID, user.ID)
 

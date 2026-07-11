@@ -302,7 +302,7 @@ func TestHome_RedirectsAuthenticatedUserToDashboard(t *testing.T) {
 	if rec.Code != http.StatusFound {
 		t.Fatalf("status = %d, want %d", rec.Code, http.StatusFound)
 	}
-	if loc := rec.Header().Get("Location"); loc != "/projects" {
-		t.Fatalf("Location = %q, want /projects", loc)
+	if loc := rec.Header().Get("Location"); loc != "/revues" {
+		t.Fatalf("Location = %q, want /revues", loc)
 	}
 }

@@ -33,10 +33,10 @@ func (h *Home) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	data := templates.PageData{Title: "Accueil"}
+	data := templates.ApplyPageMeta(templates.PageData{Title: "Accueil"}, templates.BCHome())
 
 	if _, ok := middleware.UserFromContext(r.Context()); ok {
-		http.Redirect(w, r, "/projects", http.StatusFound)
+		http.Redirect(w, r, "/revues", http.StatusFound)
 		return
 	}
 

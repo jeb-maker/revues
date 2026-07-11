@@ -1,6 +1,5 @@
 {{define "projects_list"}}
 {{template "layout_start" .}}
-<h1>Projets</h1>
 {{if .Message}}<p class="success">{{.Message}}</p>{{end}}
 {{if .Error}}<p class="error">{{.Error}}</p>{{end}}
 
@@ -26,10 +25,6 @@
   {{end}}
 </section>
 {{else}}
-{{if .CanCreate}}
-<p><a class="button" href="/projects/new">Nouveau projet</a></p>
-{{end}}
-
 <section class="panel">
   <h2>Projets ({{len .Projects}})</h2>
   <ul class="item-list">
