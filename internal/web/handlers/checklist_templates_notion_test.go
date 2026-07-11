@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"strconv"
 	"strings"
 	"testing"
 
@@ -17,7 +16,6 @@ import (
 	"github.com/jeb-maker/revues/internal/config"
 	"github.com/jeb-maker/revues/internal/crypto"
 	"github.com/jeb-maker/revues/internal/features/checklisttemplates"
-	"github.com/jeb-maker/revues/internal/features/projects"
 	"github.com/jeb-maker/revues/internal/integrations/notion"
 	"github.com/jeb-maker/revues/internal/store"
 	appmiddleware "github.com/jeb-maker/revues/internal/web/middleware"
@@ -57,14 +55,14 @@ func TestNotionImport_CreateTemplateV1(t *testing.T) {
 	}
 	r := chi.NewRouter()
 	r.Use(appmiddleware.LoadUser(st), appmiddleware.LoadActiveOrganization(st), appmiddleware.CSRF(secret))
-	r.Post("/projects/{id}/templates/notion-import", h.NotionImport)
+	r.Post("/modeles/notion-import", h.NotionImport)
 
 	lead, _ := st.UpsertGitHubUser(ctx, 40, "lead-notion", "lead-notion@example.com", "Lead", "", auth.RoleEditor)
-	project, _ := st.CreateProject(ctx, "Import", "", lead.ID)
+	project, _ := st.CreateProject(ctx, "Import", "", lead.ID, []string{"qa"})
 	sessions := &auth.SessionManager{Store: st, SessionSecret: secret}
 	token, _, _ := sessions.CreateLoginSession(ctx, lead.ID, 0)
-	form := url.Values{"csrf_token": {auth.CSRFToken(token, secret)}, "action": {"import"}, "database_id": {dbID}, "template_name": {"Modèle importé"}, "map_label": {"Name"}}
-	req := httptest.NewRequest(http.MethodPost, "/projects/"+strconv.FormatInt(project.ID, 10)+"/templates/notion-import", strings.NewReader(form.Encode()))
+	form := url.Values{"csrf_token": {auth.CSRFToken(token, secret)}, "action": {"import"}, "database_id": {dbID}, "template_name": {"Modèle importé"}, "map_label": {"Name"}, "tags": {"qa"}}
+	req := httptest.NewRequest(http.MethodPost, "/modeles/notion-import", strings.NewReader(form.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.AddCookie(&http.Cookie{Name: "revues_session", Value: token})
 	rec := httptest.NewRecorder()
@@ -78,24 +76,21 @@ func TestNotionImport_CreateTemplateV1(t *testing.T) {
 	}
 }
 
-func TestNotionImport_ContributorForbidden(t *testing.T) {
+func TestNotionImport_RequiresEditorRole(t *testing.T) {
 	handler, db := testRouterWithEncryptionKey(t, config.TestEncryptionKey())
 	ctx := context.Background()
 	st := store.New(db)
 	ctx = testutil.DefaultOrgContext(ctx, st)
-	lead, _ := st.UpsertGitHubUser(ctx, 41, "lead2", "lead2@example.com", "Lead", "", auth.RoleEditor)
-	contrib, _ := st.UpsertGitHubUser(ctx, 42, "contrib2", "contrib2@example.com", "Contrib", "", auth.RoleEditor)
-	project, _ := st.CreateProject(ctx, "Team", "", lead.ID)
-	_ = st.AddProjectMember(ctx, project.ID, contrib.ID, projects.LocalRoleContributor)
+	lead, _ := st.UpsertGitHubUser(ctx, 41, "lead2", "lead2@example.com", "Lead", "", auth.RoleAdmin)
+	_, _ = st.CreateProject(ctx, "Team", "", lead.ID, nil)
 	key, _ := crypto.DecodeKey(config.TestEncryptionKey())
 	_ = (&notion.Service{Store: st, EncryptionKey: key}).Save(ctx, notion.Config{APIToken: "secret"})
-	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
-	token, _, _ := sessions.CreateLoginSession(ctx, contrib.ID, 0)
-	req := httptest.NewRequest(http.MethodGet, "/projects/"+strconv.FormatInt(project.ID, 10)+"/templates/notion-import", nil)
-	req.AddCookie(&http.Cookie{Name: "revues_session", Value: token})
+
+	// Unauthenticated users are redirected away from notion import.
+	req := httptest.NewRequest(http.MethodGet, "/modeles/notion-import", nil)
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
-	if rec.Code != http.StatusNotFound {
-		t.Errorf("status=%d want 404", rec.Code)
+	if rec.Code != http.StatusFound {
+		t.Errorf("status=%d want 302 redirect to login", rec.Code)
 	}
 }

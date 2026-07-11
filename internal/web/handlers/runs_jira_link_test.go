@@ -33,16 +33,16 @@ func TestIDOR_CrossProjectJiraLink(t *testing.T) {
 		t.Fatalf("UpsertGitHubUser(bob): %v", err)
 	}
 
-	projectA, err := st.CreateProject(ctx, "A", "", alice.ID)
+	projectA, err := st.CreateProject(ctx, "A", "", alice.ID, nil)
 	if err != nil {
 		t.Fatalf("CreateProject(): %v", err)
 	}
-	projectB, err := st.CreateProject(ctx, "B", "", bob.ID)
+	projectB, err := st.CreateProject(ctx, "B", "", bob.ID, nil)
 	if err != nil {
 		t.Fatalf("CreateProject(bob): %v", err)
 	}
 
-	templateA, _, err := st.CreateChecklistTemplate(ctx, projectA.ID, "Modèle", alice.ID, []store.TemplateItemInput{
+	templateA, _, err := st.CreateChecklistTemplate(ctx, "Modèle", alice.ID, nil, []store.TemplateItemInput{
 		{Label: "Point", Required: true},
 	})
 	if err != nil {
@@ -57,7 +57,7 @@ func TestIDOR_CrossProjectJiraLink(t *testing.T) {
 		t.Fatalf("ListRunItems(): %v", err)
 	}
 
-	templateB, _, err := st.CreateChecklistTemplate(ctx, projectB.ID, "Modèle B", bob.ID, []store.TemplateItemInput{
+	templateB, _, err := st.CreateChecklistTemplate(ctx, "Modèle B", bob.ID, nil, []store.TemplateItemInput{
 		{Label: "Point B", Required: true},
 	})
 	if err != nil {
@@ -107,7 +107,7 @@ func TestJiraLink_ViewerForbidden(t *testing.T) {
 		t.Fatalf("UpsertGitHubUser(viewer): %v", err)
 	}
 
-	project, err := st.CreateProject(ctx, "P", "", lead.ID)
+	project, err := st.CreateProject(ctx, "P", "", lead.ID, nil)
 	if err != nil {
 		t.Fatalf("CreateProject(): %v", err)
 	}
@@ -115,7 +115,7 @@ func TestJiraLink_ViewerForbidden(t *testing.T) {
 		t.Fatalf("AddProjectMember(): %v", err)
 	}
 
-	template, _, err := st.CreateChecklistTemplate(ctx, project.ID, "Modèle", lead.ID, []store.TemplateItemInput{
+	template, _, err := st.CreateChecklistTemplate(ctx, "Modèle", lead.ID, nil, []store.TemplateItemInput{
 		{Label: "Point", Required: true},
 	})
 	if err != nil {
@@ -170,11 +170,11 @@ func TestJiraLink_Success(t *testing.T) {
 	if err != nil {
 		t.Fatalf("UpsertGitHubUser(): %v", err)
 	}
-	project, err := st.CreateProject(ctx, "P", "", lead.ID)
+	project, err := st.CreateProject(ctx, "P", "", lead.ID, nil)
 	if err != nil {
 		t.Fatalf("CreateProject(): %v", err)
 	}
-	template, _, err := st.CreateChecklistTemplate(ctx, project.ID, "Modèle", lead.ID, []store.TemplateItemInput{
+	template, _, err := st.CreateChecklistTemplate(ctx, "Modèle", lead.ID, nil, []store.TemplateItemInput{
 		{Label: "Point", Required: true},
 	})
 	if err != nil {

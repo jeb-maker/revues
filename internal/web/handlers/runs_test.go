@@ -31,16 +31,16 @@ func TestIDOR_CrossProjectRun(t *testing.T) {
 		t.Fatalf("UpsertGitHubUser(bob): %v", err)
 	}
 
-	projectA, err := st.CreateProject(ctx, "Secret", "", alice.ID)
+	projectA, err := st.CreateProject(ctx, "Secret", "", alice.ID, nil)
 	if err != nil {
 		t.Fatalf("CreateProject(): %v", err)
 	}
-	_, err = st.CreateProject(ctx, "Other", "", bob.ID)
+	_, err = st.CreateProject(ctx, "Other", "", bob.ID, nil)
 	if err != nil {
 		t.Fatalf("CreateProject(bob): %v", err)
 	}
 
-	template, _, err := st.CreateChecklistTemplate(ctx, projectA.ID, "Modèle", alice.ID, []store.TemplateItemInput{
+	template, _, err := st.CreateChecklistTemplate(ctx, "Modèle", alice.ID, nil, []store.TemplateItemInput{
 		{Label: "Point", Required: true},
 	})
 	if err != nil {
@@ -82,7 +82,7 @@ func TestRuns_ViewerCannotLaunch(t *testing.T) {
 		t.Fatalf("UpsertGitHubUser(viewer): %v", err)
 	}
 
-	project, err := st.CreateProject(ctx, "Team", "", lead.ID)
+	project, err := st.CreateProject(ctx, "Team", "", lead.ID, nil)
 	if err != nil {
 		t.Fatalf("CreateProject(): %v", err)
 	}
@@ -90,7 +90,7 @@ func TestRuns_ViewerCannotLaunch(t *testing.T) {
 		t.Fatalf("AddProjectMember(): %v", err)
 	}
 
-	template, _, err := st.CreateChecklistTemplate(ctx, project.ID, "Modèle", lead.ID, []store.TemplateItemInput{
+	template, _, err := st.CreateChecklistTemplate(ctx, "Modèle", lead.ID, nil, []store.TemplateItemInput{
 		{Label: "Point", Required: true},
 	})
 	if err != nil {
@@ -128,11 +128,11 @@ func TestRuns_WizardCreateAndStart(t *testing.T) {
 	if err != nil {
 		t.Fatalf("UpsertGitHubUser(): %v", err)
 	}
-	project, err := st.CreateProject(ctx, "Alpha", "", lead.ID)
+	project, err := st.CreateProject(ctx, "Alpha", "", lead.ID, nil)
 	if err != nil {
 		t.Fatalf("CreateProject(): %v", err)
 	}
-	template, _, err := st.CreateChecklistTemplate(ctx, project.ID, "Modèle", lead.ID, []store.TemplateItemInput{
+	template, _, err := st.CreateChecklistTemplate(ctx, "Modèle", lead.ID, nil, []store.TemplateItemInput{
 		{Section: "S", Label: "Check", Required: true},
 	})
 	if err != nil {
@@ -202,11 +202,11 @@ func TestRuns_CreateWithDueDate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("UpsertGitHubUser(): %v", err)
 	}
-	project, err := st.CreateProject(ctx, "Beta", "", lead.ID)
+	project, err := st.CreateProject(ctx, "Beta", "", lead.ID, nil)
 	if err != nil {
 		t.Fatalf("CreateProject(): %v", err)
 	}
-	template, _, err := st.CreateChecklistTemplate(ctx, project.ID, "Modèle", lead.ID, []store.TemplateItemInput{
+	template, _, err := st.CreateChecklistTemplate(ctx, "Modèle", lead.ID, nil, []store.TemplateItemInput{
 		{Label: "Point", Required: true},
 	})
 	if err != nil {

@@ -143,6 +143,7 @@ type ProjectsListData struct {
 type ProjectFormData struct {
 	PageData
 	Project    *store.Project
+	Tags       string
 	FormAction string
 	Error      string
 }
@@ -167,6 +168,7 @@ type OrgSelectData struct {
 type ProjectShowData struct {
 	PageData
 	Project          *store.Project
+	Tags             []string
 	Members          []store.ProjectMember
 	Runs             []store.RunWithProgress
 	NokItems         []store.ProjectNokItemSummary
@@ -182,20 +184,32 @@ type ProjectShowData struct {
 type TemplatesIndexData struct {
 	PageData
 	Templates []store.TemplateIndexRow
+	CanManage bool
 }
 
 // TemplateEditorRow is one editable checklist point in the form.
 type TemplateEditorRow struct {
-	Section  string
+	RowIndex int
 	Label    string
 	HelpText string
 	Required bool
 }
 
+// TemplateEditorSection is a group of checklist points under one section title.
+type TemplateEditorSection struct {
+	SectionIndex int
+	Title        string
+	Items        []TemplateEditorRow
+}
+
+// TemplateItemSection groups stored template items for read-only display.
+type TemplateItemSection struct {
+	Title string
+	Items []store.TemplateItem
+}
+
 type ChecklistTemplateNotionImportData struct {
 	PageData
-	Project          *store.Project
-	MemberRole       string
 	CanManage        bool
 	NotionConfigured bool
 	Step             string
@@ -204,6 +218,7 @@ type ChecklistTemplateNotionImportData struct {
 	DatabaseID       string
 	DatabaseTitle    string
 	TemplateName     string
+	Tags             string
 	Properties       []NotionPropertyOption
 	Mapping          notion.ColumnMapping
 	PreviewItems     []TemplateEditorRow
@@ -226,43 +241,41 @@ type ChecklistTemplatesListData struct {
 // ChecklistTemplateFormData is view data for create/edit template forms.
 type ChecklistTemplateFormData struct {
 	PageData
-	Project    *store.Project
-	Template   *store.ChecklistTemplate
-	Version    *store.TemplateVersion
-	Name       string
-	Rows       []TemplateEditorRow
-	FormAction string
-	Error      string
+	Template        *store.ChecklistTemplate
+	Version         *store.TemplateVersion
+	Name            string
+	Tags            string
+	TagsList        []string
+	Sections        []TemplateEditorSection
+	SectionsEnabled bool
+	NameError       string
+	ItemsError      string
+	FormAction      string
+	Error           string
+}
+
+// TemplateRowFragmentData is view data for HTMX row insertion.
+type TemplateRowFragmentData struct {
+	TemplateID int64
+	Index      int
+	CSRFToken  string
+	Section    string
+	Label      string
+	HelpText   string
+	Required   bool
 }
 
 // ChecklistTemplateShowData is view data for template detail.
 type ChecklistTemplateShowData struct {
 	PageData
-	Project    *store.Project
-	Template   *store.ChecklistTemplate
-	Version    *store.TemplateVersion
-	Items      []store.TemplateItem
-	MemberRole string
-	CanManage  bool
-	Message    string
-	Error      string
-}
-
-// TemplateNewWizardData is view data for the "choose project" step when creating a template.
-type TemplateNewWizardData struct {
-	PageData
-	Projects []store.Project
-}
-
-// TemplateRowFragmentData is view data for a single template editor row fragment (HTMX).
-type TemplateRowFragmentData struct {
-	ProjectID int64
-	Index     int
-	Section   string
-	Label     string
-	HelpText  string
-	Required  bool
-	CSRFToken string
+	Template     *store.ChecklistTemplate
+	Version      *store.TemplateVersion
+	Tags         []string
+	ItemSections []TemplateItemSection
+	ItemCount    int
+	CanManage    bool
+	Message      string
+	Error        string
 }
 
 // RunWizardProjectsData is view data for run wizard step 1.

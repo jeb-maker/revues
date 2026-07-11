@@ -33,10 +33,9 @@ type ProjectNokItemSummary struct {
 	RunTitle string
 }
 
-// TemplateIndexRow is a checklist template with project context for the global index.
+// TemplateIndexRow is a checklist template for the global index.
 type TemplateIndexRow struct {
 	ChecklistTemplateSummary
-	ProjectName string
 }
 
 func progressPercent(done, total int) int {
@@ -191,45 +190,31 @@ func (s *Store) ListProjectNokItems(ctx context.Context, projectID int64) ([]Pro
 	return items, nil
 }
 
-// ListTemplateIndex returns active templates across projects visible to the user.
+// ListTemplateIndex returns all active templates for the global catalog.
 func (s *Store) ListTemplateIndex(ctx context.Context, userID int64, admin bool) ([]TemplateIndexRow, error) {
+	_ = userID
+	_ = admin
+
 	orgID, err := organizationIDFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	baseSQL := `
+	rows, err := s.queryRows(ctx, `
 		SELECT
-			t.id, t.project_id, t.name, t.archived_at, t.created_at,
+			t.id, t.organization_id, t.project_id, t.name, t.archived_at, t.created_at,
 			v.version,
-			COUNT(i.id) AS item_count,
-			p.name
+			COUNT(i.id) AS item_count
 		FROM checklist_templates t
-		INNER JOIN projects p ON p.id = t.project_id
 		INNER JOIN template_versions v ON v.template_id = t.id
 		LEFT JOIN template_items i ON i.version_id = v.id
-		WHERE t.archived_at IS NULL AND p.archived_at IS NULL AND p.organization_id = ?
+		WHERE t.archived_at IS NULL AND t.organization_id = ?
 		  AND v.version = (
 			SELECT MAX(v2.version) FROM template_versions v2 WHERE v2.template_id = t.id
 		  )
-	`
-
-	var rows *sqlRowsWrapper
-	if admin {
-		rows, err = s.queryRows(ctx, baseSQL+`
-		GROUP BY t.id, t.project_id, t.name, t.archived_at, t.created_at, v.version, p.name
-		ORDER BY p.name, t.name
-		`, orgID)
-	} else {
-		rows, err = s.queryRows(ctx, baseSQL+`
-		  AND EXISTS (
-			SELECT 1 FROM project_members pm
-			WHERE pm.project_id = p.id AND pm.user_id = ?
-		  )
-		GROUP BY t.id, t.project_id, t.name, t.archived_at, t.created_at, v.version, p.name
-		ORDER BY p.name, t.name
-		`, orgID, userID)
-	}
+		GROUP BY t.id, t.organization_id, t.project_id, t.name, t.archived_at, t.created_at, v.version
+		ORDER BY t.name
+	`, orgID)
 	if err != nil {
 		return nil, fmt.Errorf("list template index: %w", err)
 	}
@@ -239,9 +224,8 @@ func (s *Store) ListTemplateIndex(ctx context.Context, userID int64, admin bool)
 	for rows.Next() {
 		var row TemplateIndexRow
 		if err := rows.Scan(
-			&row.ID, &row.ProjectID, &row.Name, &row.ArchivedAt, &row.CreatedAt,
+			&row.ID, &row.OrganizationID, &row.ProjectID, &row.Name, &row.ArchivedAt, &row.CreatedAt,
 			&row.LatestVersion, &row.ItemCount,
-			&row.ProjectName,
 		); err != nil {
 			return nil, fmt.Errorf("scan template index row: %w", err)
 		}
@@ -250,6 +234,15 @@ func (s *Store) ListTemplateIndex(ctx context.Context, userID int64, admin bool)
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("iterate template index: %w", err)
 	}
+
+	for i := range templates {
+		tags, err := s.ListTemplateTags(ctx, templates[i].ID)
+		if err != nil {
+			return nil, err
+		}
+		templates[i].Tags = tags
+	}
+
 	return templates, nil
 }
 

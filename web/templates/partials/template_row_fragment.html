@@ -19,11 +19,19 @@
     Point requis
   </label>
   <div class="template-row-actions">
-    <button type="button" class="button-ghost button-sm" hx-post="/projects/{{.ProjectID}}/templates/new/row" hx-vals='{"idx":"{{.Index}}","csrf_token":"{{.CSRFToken}}"}'
+    {{if .TemplateID}}
+    <button type="button" class="button-ghost button-sm" hx-post="/modeles/{{.TemplateID}}/edit/row" hx-vals='{"idx":"{{.Index}}","csrf_token":"{{.CSRFToken}}"}'
             hx-target="#template-row-{{.Index}}" hx-swap="afterend">+</button>
-    <button type="button" class="button-ghost button-sm" hx-delete="/projects/{{.ProjectID}}/templates/new/row/{{.Index}}"
+    <button type="button" class="button-ghost button-sm" hx-delete="/modeles/{{.TemplateID}}/edit/row/{{.Index}}"
             hx-headers='{"X-CSRF-Token":"{{.CSRFToken}}"}'
             hx-target="#template-row-{{.Index}}" hx-swap="outerHTML">−</button>
+    {{else}}
+    <button type="button" class="button-ghost button-sm" hx-post="/modeles/new/row" hx-vals='{"idx":"{{.Index}}","csrf_token":"{{.CSRFToken}}"}'
+            hx-target="#template-row-{{.Index}}" hx-swap="afterend">+</button>
+    <button type="button" class="button-ghost button-sm" hx-delete="/modeles/new/row/{{.Index}}"
+            hx-headers='{"X-CSRF-Token":"{{.CSRFToken}}"}'
+            hx-target="#template-row-{{.Index}}" hx-swap="outerHTML">−</button>
+    {{end}}
   </div>
 </fieldset>
 {{end}}

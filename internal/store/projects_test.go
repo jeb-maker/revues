@@ -20,7 +20,7 @@ func TestCreateProjectAddsLead(t *testing.T) {
 		t.Fatalf("UpsertGitHubUser(): %v", err)
 	}
 
-	project, err := st.CreateProject(ctx, "Alpha", "desc", creator.ID)
+	project, err := st.CreateProject(ctx, "Alpha", "desc", creator.ID, nil)
 	if err != nil {
 		t.Fatalf("CreateProject(): %v", err)
 	}
@@ -51,11 +51,11 @@ func TestListProjectsAdminSeesAll(t *testing.T) {
 		t.Fatalf("UpsertGitHubUser(b): %v", err)
 	}
 
-	_, err = st.CreateProject(ctx, "P1", "", a.ID)
+	_, err = st.CreateProject(ctx, "P1", "", a.ID, nil)
 	if err != nil {
 		t.Fatalf("CreateProject(p1): %v", err)
 	}
-	_, err = st.CreateProject(ctx, "P2", "", b.ID)
+	_, err = st.CreateProject(ctx, "P2", "", b.ID, nil)
 	if err != nil {
 		t.Fatalf("CreateProject(p2): %v", err)
 	}

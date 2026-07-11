@@ -32,14 +32,15 @@ type ProjectMember struct {
 	CreatedAt   string
 }
 
-// CreateProject inserts a project and adds creator as lead.
-func (s *Store) CreateProject(ctx context.Context, name, description string, creatorID int64) (*Project, error) {
+// CreateProject inserts a project, tags and adds creator as lead.
+func (s *Store) CreateProject(ctx context.Context, name, description string, creatorID int64, tags []string) (*Project, error) {
 	orgID, err := organizationIDFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	now := time.Now().UTC().Format(time.RFC3339)
+	tags = NormalizeTags(tags)
 
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -68,6 +69,10 @@ func (s *Store) CreateProject(ctx context.Context, name, description string, cre
 	`, projectID, creatorID, "lead", now)
 	if err != nil {
 		return nil, fmt.Errorf("insert project lead: %w", err)
+	}
+
+	if err := setProjectTagsTx(ctx, tx, projectID, tags); err != nil {
+		return nil, err
 	}
 
 	if err := tx.Commit(); err != nil {
@@ -161,15 +166,25 @@ func (s *Store) ListProjects(ctx context.Context, userID int64, admin bool) ([]P
 	return projects, nil
 }
 
-// UpdateProject changes name and description.
-func (s *Store) UpdateProject(ctx context.Context, id int64, name, description string) error {
+// UpdateProject changes name, description and tags.
+func (s *Store) UpdateProject(ctx context.Context, id int64, name, description string, tags []string) error {
 	orgID, err := organizationIDFromContext(ctx)
 	if err != nil {
 		return err
 	}
 
 	now := time.Now().UTC().Format(time.RFC3339)
-	res, err := s.db.ExecContext(ctx, `
+	tags = NormalizeTags(tags)
+
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin tx: %w", err)
+	}
+	defer func() {
+		_ = tx.Rollback()
+	}()
+
+	res, err := tx.ExecContext(ctx, `
 		UPDATE projects SET name = ?, description = ?, updated_at = ?
 		WHERE id = ? AND organization_id = ? AND archived_at IS NULL
 	`, name, description, now, id, orgID)
@@ -182,6 +197,14 @@ func (s *Store) UpdateProject(ctx context.Context, id int64, name, description s
 	}
 	if n == 0 {
 		return ErrProjectNotFound
+	}
+
+	if err := setProjectTagsTx(ctx, tx, id, tags); err != nil {
+		return err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit update project: %w", err)
 	}
 	return nil
 }

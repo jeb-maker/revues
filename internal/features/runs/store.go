@@ -17,6 +17,7 @@ type RunStore interface {
 	ListChecklistTemplates(ctx context.Context, projectID int64) ([]store.ChecklistTemplateSummary, error)
 	LatestTemplateVersion(ctx context.Context, templateID int64) (*store.TemplateVersion, error)
 	ListTemplateItems(ctx context.Context, versionID int64) ([]store.TemplateItem, error)
+	TemplateMatchesProject(ctx context.Context, projectID, templateID int64) (bool, error)
 	TemplateVersionInfo(ctx context.Context, versionID int64) (*store.TemplateVersionInfo, error)
 	CreateChecklistRun(ctx context.Context, projectID, templateID int64, title string, createdBy int64, dueDate sql.NullString) (*store.ChecklistRun, error)
 	RunByID(ctx context.Context, id int64) (*store.ChecklistRun, error)

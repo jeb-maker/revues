@@ -25,11 +25,11 @@ func TestServiceSkipsWhenSMTPNotConfigured(t *testing.T) {
 	if err != nil {
 		t.Fatalf("UpsertGitHubUser(): %v", err)
 	}
-	project, err := st.CreateProject(ctx, "P", "", lead.ID)
+	project, err := st.CreateProject(ctx, "P", "", lead.ID, nil)
 	if err != nil {
 		t.Fatalf("CreateProject(): %v", err)
 	}
-	template, _, err := st.CreateChecklistTemplate(ctx, project.ID, "Modèle", lead.ID, nil)
+	template, _, err := st.CreateChecklistTemplate(ctx, "Modèle", lead.ID, nil, nil)
 	if err != nil {
 		t.Fatalf("CreateChecklistTemplate(): %v", err)
 	}
@@ -60,14 +60,14 @@ func TestServiceNotifyRunCompleted(t *testing.T) {
 	if err != nil {
 		t.Fatalf("UpsertGitHubUser(member): %v", err)
 	}
-	project, err := st.CreateProject(ctx, "P", "", lead.ID)
+	project, err := st.CreateProject(ctx, "P", "", lead.ID, nil)
 	if err != nil {
 		t.Fatalf("CreateProject(): %v", err)
 	}
 	if err = st.AddProjectMember(ctx, project.ID, member.ID, projects.LocalRoleContributor); err != nil {
 		t.Fatalf("AddProjectMember(): %v", err)
 	}
-	template, _, err := st.CreateChecklistTemplate(ctx, project.ID, "Modèle", lead.ID, nil)
+	template, _, err := st.CreateChecklistTemplate(ctx, "Modèle", lead.ID, nil, nil)
 	if err != nil {
 		t.Fatalf("CreateChecklistTemplate(): %v", err)
 	}
@@ -99,14 +99,14 @@ func TestServiceNotifyItemAssigned(t *testing.T) {
 	if err != nil {
 		t.Fatalf("UpsertGitHubUser(assignee): %v", err)
 	}
-	project, err := st.CreateProject(ctx, "P", "", lead.ID)
+	project, err := st.CreateProject(ctx, "P", "", lead.ID, nil)
 	if err != nil {
 		t.Fatalf("CreateProject(): %v", err)
 	}
 	if err = st.AddProjectMember(ctx, project.ID, assignee.ID, projects.LocalRoleContributor); err != nil {
 		t.Fatalf("AddProjectMember(): %v", err)
 	}
-	template, _, err := st.CreateChecklistTemplate(ctx, project.ID, "Modèle", lead.ID, []store.TemplateItemInput{
+	template, _, err := st.CreateChecklistTemplate(ctx, "Modèle", lead.ID, nil, []store.TemplateItemInput{
 		{Label: "Point A", Required: true},
 	})
 	if err != nil {
@@ -146,11 +146,11 @@ func TestServiceSendDueReminders(t *testing.T) {
 	if err != nil {
 		t.Fatalf("UpsertGitHubUser(): %v", err)
 	}
-	project, err := st.CreateProject(ctx, "P", "", lead.ID)
+	project, err := st.CreateProject(ctx, "P", "", lead.ID, nil)
 	if err != nil {
 		t.Fatalf("CreateProject(): %v", err)
 	}
-	template, _, err := st.CreateChecklistTemplate(ctx, project.ID, "Modèle", lead.ID, nil)
+	template, _, err := st.CreateChecklistTemplate(ctx, "Modèle", lead.ID, nil, nil)
 	if err != nil {
 		t.Fatalf("CreateChecklistTemplate(): %v", err)
 	}

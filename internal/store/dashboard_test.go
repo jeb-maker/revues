@@ -58,7 +58,7 @@ func TestDashboard_ActiveRunsAndNokItems(t *testing.T) {
 	}
 }
 
-func TestDashboard_TemplateIndexRespectsMembership(t *testing.T) {
+func TestDashboard_TemplateIndexListsAllTemplates(t *testing.T) {
 	ctx := context.Background()
 	db := openMemoryDB(t)
 	st := store.New(db)
@@ -73,18 +73,18 @@ func TestDashboard_TemplateIndexRespectsMembership(t *testing.T) {
 		t.Fatalf("UpsertGitHubUser(bob): %v", err)
 	}
 
-	projectA, err := st.CreateProject(ctx, "Alpha", "", alice.ID)
+	_, err = st.CreateProject(ctx, "Alpha", "", alice.ID, nil)
 	if err != nil {
 		t.Fatalf("CreateProject(): %v", err)
 	}
-	projectB, err := st.CreateProject(ctx, "Beta", "", bob.ID)
+	_, err = st.CreateProject(ctx, "Beta", "", bob.ID, nil)
 	if err != nil {
 		t.Fatalf("CreateProject(bob): %v", err)
 	}
-	if _, _, err = st.CreateChecklistTemplate(ctx, projectA.ID, "Modèle A", alice.ID, nil); err != nil {
+	if _, _, err = st.CreateChecklistTemplate(ctx, "Modèle A", alice.ID, nil, nil); err != nil {
 		t.Fatalf("CreateChecklistTemplate(A): %v", err)
 	}
-	if _, _, err = st.CreateChecklistTemplate(ctx, projectB.ID, "Modèle B", bob.ID, nil); err != nil {
+	if _, _, err = st.CreateChecklistTemplate(ctx, "Modèle B", bob.ID, nil, nil); err != nil {
 		t.Fatalf("CreateChecklistTemplate(B): %v", err)
 	}
 
@@ -92,8 +92,8 @@ func TestDashboard_TemplateIndexRespectsMembership(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ListTemplateIndex(alice): %v", err)
 	}
-	if len(aliceRows) != 1 || aliceRows[0].Name != "Modèle A" {
-		t.Fatalf("ListTemplateIndex(alice) = %+v", aliceRows)
+	if len(aliceRows) != 2 {
+		t.Fatalf("ListTemplateIndex(alice) len = %d, want 2", len(aliceRows))
 	}
 
 	adminRows, err := st.ListTemplateIndex(ctx, alice.ID, true)

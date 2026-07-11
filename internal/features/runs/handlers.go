@@ -215,7 +215,18 @@ func (h *Runs) WizardLaunch(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
-	if template.ProjectID != project.ID || template.ArchivedAt.Valid {
+	if template.ArchivedAt.Valid {
+		http.NotFound(w, r)
+		return
+	}
+
+	matches, err := h.Store.TemplateMatchesProject(r.Context(), project.ID, template.ID)
+	if err != nil {
+		slog.Error("check template matches project", "err", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	if !matches {
 		http.NotFound(w, r)
 		return
 	}
@@ -307,7 +318,18 @@ func (h *Runs) Create(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
-	if template.ProjectID != project.ID || template.ArchivedAt.Valid {
+	if template.ArchivedAt.Valid {
+		http.NotFound(w, r)
+		return
+	}
+
+	matches, err := h.Store.TemplateMatchesProject(r.Context(), project.ID, template.ID)
+	if err != nil {
+		slog.Error("check template matches project", "err", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	if !matches {
 		http.NotFound(w, r)
 		return
 	}

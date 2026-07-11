@@ -6,27 +6,36 @@
   {{if .Error}}<p class="error">{{.Error}}</p>{{end}}
 
   <p class="muted">Version {{.Version.Version}} · publiée le {{.Version.PublishedAt}}</p>
+  {{if .Tags}}
+  <p class="muted">Tags : {{range $i, $tag := .Tags}}{{if $i}}, {{end}}<span class="tag">{{$tag}}</span>{{end}}</p>
+  {{else}}
+  <p class="muted">Tags : <span class="muted">aucun (compatible avec tous les projets)</span></p>
+  {{end}}
 
   {{if .CanManage}}
   <p>
-    <a href="/projects/{{.Project.ID}}/templates/{{.Template.ID}}/edit" class="button">{{icon "settings"}} Modifier</a>
-    <form method="post" action="/projects/{{.Project.ID}}/templates/{{.Template.ID}}/archive" class="inline-form">
+    <a href="/modeles/{{.Template.ID}}/edit" class="button">{{icon "settings"}} Modifier</a>
+    <form method="post" action="/modeles/{{.Template.ID}}/archive" class="inline-form">
       <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
       <button type="submit" class="button-ghost">Archiver</button>
     </form>
   </p>
   {{end}}
 
-  <h2>Points ({{len .Items}})</h2>
-  {{if .Items}}
+  <h2>Points ({{.ItemCount}})</h2>
+  {{if .ItemSections}}
+  {{range $sec := .ItemSections}}
+  {{if or $sec.Title (gt (len $.ItemSections) 1)}}
+  <h3>{{if $sec.Title}}{{$sec.Title}}{{else}}<span class="muted">Sans section</span>{{end}}</h3>
+  {{end}}
+  <div class="table-scroll">
   <table class="data-table">
     <thead>
-      <tr><th>Section</th><th>Point</th><th>Aide</th><th>Requis</th></tr>
+      <tr><th scope="col">Point</th><th scope="col">Aide</th><th scope="col">Requis</th></tr>
     </thead>
     <tbody>
-      {{range .Items}}
+      {{range $sec.Items}}
       <tr>
-        <td>{{if .Section}}{{.Section}}{{else}}<span class="muted">—</span>{{end}}</td>
         <td>{{.Label}}</td>
         <td>{{if .HelpText}}{{.HelpText}}{{else}}<span class="muted">—</span>{{end}}</td>
         <td>{{if .Required}}{{icon "check"}}{{else}}<span class="muted">—</span>{{end}}</td>
@@ -34,19 +43,20 @@
       {{end}}
     </tbody>
   </table>
+  </div>
+  {{end}}
   {{else}}
   <div class="empty-state">
     <p><strong>Aucun point dans cette version</strong></p>
     <p class="muted">Ce modèle n'a pas encore de points de check-list.</p>
     {{if .CanManage}}
-    <div class="empty-state-actions"><a href="/projects/{{.Project.ID}}/templates/{{.Template.ID}}/edit" class="button">Ajouter des points</a></div>
+    <div class="empty-state-actions"><a href="/modeles/{{.Template.ID}}/edit" class="button">Ajouter des points</a></div>
     {{end}}
   </div>
   {{end}}
 
   <p style="margin-top:1.5rem">
-    <a href="/projects/{{.Project.ID}}/templates" class="button-ghost">{{icon "arrow-left"}} Retour aux modèles</a>
-    <a href="/projects/{{.Project.ID}}" class="button-ghost">Projet</a>
+    <a href="/modeles" class="button-ghost">{{icon "arrow-left"}} Retour aux modèles</a>
   </p>
 </div>
 {{template "layout_end" .}}

@@ -42,7 +42,7 @@ func TestProjectByIDCrossOrganizationIDOR(t *testing.T) {
 	}
 
 	ctxA := orgctx.WithOrganizationID(ctx, orgA.ID)
-	project, err := st.CreateProject(ctxA, "Secret", "hidden", alice.ID)
+	project, err := st.CreateProject(ctxA, "Secret", "hidden", alice.ID, nil)
 	if err != nil {
 		t.Fatalf("CreateProject(): %v", err)
 	}

@@ -20,11 +20,11 @@ func TestReplaceAttachment_OnePerRunItem(t *testing.T) {
 	if err != nil {
 		t.Fatalf("UpsertGitHubUser(): %v", err)
 	}
-	project, err := st.CreateProject(ctx, "P", "", user.ID)
+	project, err := st.CreateProject(ctx, "P", "", user.ID, nil)
 	if err != nil {
 		t.Fatalf("CreateProject(): %v", err)
 	}
-	template, _, err := st.CreateChecklistTemplate(ctx, project.ID, "T", user.ID, []store.TemplateItemInput{{Label: "X"}})
+	template, _, err := st.CreateChecklistTemplate(ctx, "T", user.ID, nil, []store.TemplateItemInput{{Label: "X"}})
 	if err != nil {
 		t.Fatalf("CreateChecklistTemplate(): %v", err)
 	}
@@ -63,11 +63,11 @@ func TestListAttachmentsByRunItemIDs(t *testing.T) {
 	if err != nil {
 		t.Fatalf("UpsertGitHubUser(): %v", err)
 	}
-	project, err := st.CreateProject(ctx, "P2", "", user.ID)
+	project, err := st.CreateProject(ctx, "P2", "", user.ID, nil)
 	if err != nil {
 		t.Fatalf("CreateProject(): %v", err)
 	}
-	template, _, err := st.CreateChecklistTemplate(ctx, project.ID, "T", user.ID, []store.TemplateItemInput{
+	template, _, err := st.CreateChecklistTemplate(ctx, "T", user.ID, nil, []store.TemplateItemInput{
 		{Label: "A"},
 		{Label: "B"},
 	})

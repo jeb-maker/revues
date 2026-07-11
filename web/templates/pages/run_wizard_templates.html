@@ -3,22 +3,22 @@
 <div class="card">
   <h1>Nouvelle revue — {{.Project.Name}}</h1>
   {{template "stepper" .Stepper}}
-  <p class="muted">Choisissez un modèle de revue.</p>
+  <p class="muted">Choisissez un modèle de revue compatible avec ce projet.</p>
 
   {{if .Templates}}
   <ul class="item-list">
     {{range .Templates}}
     <li>
       <a href="/runs/new/projects/{{$.Project.ID}}/templates/{{.ID}}">{{.Name}}</a>
-      <span class="muted"> — v{{.LatestVersion}} · {{.ItemCount}} point{{if ne .ItemCount 1}}s{{end}}</span>
+      <span class="muted"> — v{{.LatestVersion}} · {{.ItemCount}} point{{if ne .ItemCount 1}}s{{end}}{{if .Tags}} · {{range $i, $tag := .Tags}}{{if $i}}, {{end}}{{$tag}}{{end}}{{end}}</span>
     </li>
     {{end}}
   </ul>
   {{else}}
   <div class="empty-state">
     <p><strong>Aucun modèle disponible</strong></p>
-    <p class="muted">Ce projet n'a pas encore de modèle de revue actif.</p>
-    <div class="empty-state-actions"><a href="/projects/{{.Project.ID}}/templates/new" class="button">Créer un modèle</a></div>
+    <p class="muted">Aucun modèle actif ne correspond aux tags de ce projet.</p>
+    <div class="empty-state-actions"><a href="/modeles" class="button">Voir les modèles</a></div>
   </div>
   {{end}}
 

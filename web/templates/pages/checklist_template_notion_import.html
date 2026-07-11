@@ -1,1 +1,42 @@
-{{define "checklist_template_notion_import"}}{{template "layout_start" .}}<h1>Importer depuis Notion</h1>{{if .Error}}<p class="error">{{.Error}}</p>{{end}}{{if eq .Step "source"}}<form method="post" action="{{.FormAction}}"><input type="hidden" name="csrf_token" value="{{.CSRFToken}}"><input type="hidden" name="action" value="fetch"><label>Base<input name="database_ref" required value="{{.DatabaseRef}}"></label><button>Charger</button></form>{{end}}{{if eq .Step "mapping"}}<form method="post" action="{{.FormAction}}"><input type="hidden" name="csrf_token" value="{{.CSRFToken}}"><input type="hidden" name="action" value="preview"><input type="hidden" name="database_id" value="{{.DatabaseID}}"><label>Libellé<select name="map_label" required>{{range .Properties}}{{if eq .Type "title"}}<option value="{{.Name}}">{{.Name}}</option>{{end}}{{end}}</select></label><button>Prévisualiser</button></form>{{end}}{{if eq .Step "preview"}}<form method="post" action="{{.FormAction}}"><input type="hidden" name="csrf_token" value="{{.CSRFToken}}"><input type="hidden" name="action" value="import"><input type="hidden" name="database_id" value="{{.DatabaseID}}"><input type="hidden" name="map_label" value="{{.Mapping.Label}}"><button>Importer v1</button></form>{{end}}<p><a href="/projects/{{.Project.ID}}/templates">Retour</a></p>{{template "layout_end" .}}{{end}}
+{{define "checklist_template_notion_import"}}
+{{template "layout_start" .}}
+<h1>Importer depuis Notion</h1>
+{{if .Error}}<p class="error">{{.Error}}</p>{{end}}
+
+{{if eq .Step "source"}}
+<form method="post" action="{{.FormAction}}" class="stack-form">
+  <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+  <input type="hidden" name="action" value="fetch">
+  <label>Base Notion<input name="database_ref" required value="{{.DatabaseRef}}"></label>
+  <label>Tags (optionnel)<input name="tags" maxlength="500" value="{{.Tags}}"></label>
+  <button type="submit">Charger</button>
+</form>
+{{end}}
+
+{{if eq .Step "mapping"}}
+<form method="post" action="{{.FormAction}}" class="stack-form">
+  <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+  <input type="hidden" name="action" value="preview">
+  <input type="hidden" name="database_id" value="{{.DatabaseID}}">
+  <input type="hidden" name="tags" value="{{.Tags}}">
+  <p class="muted">Base : {{.DatabaseTitle}}</p>
+  <label>Libellé<select name="map_label" required>{{range .Properties}}{{if eq .Type "title"}}<option value="{{.Name}}"{{if eq $.Mapping.Label .Name}} selected{{end}}>{{.Name}}</option>{{end}}{{end}}</select></label>
+  <button type="submit">Prévisualiser</button>
+</form>
+{{end}}
+
+{{if eq .Step "preview"}}
+<form method="post" action="{{.FormAction}}" class="stack-form">
+  <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+  <input type="hidden" name="action" value="import">
+  <input type="hidden" name="database_id" value="{{.DatabaseID}}">
+  <input type="hidden" name="map_label" value="{{.Mapping.Label}}">
+  <input type="hidden" name="tags" value="{{.Tags}}">
+  <p class="muted">{{.PreviewCount}} point(s) seront importés dans « {{.TemplateName}} ».</p>
+  <button type="submit">Importer v1</button>
+</form>
+{{end}}
+
+<p><a href="/modeles">← Retour aux modèles</a></p>
+{{template "layout_end" .}}
+{{end}}

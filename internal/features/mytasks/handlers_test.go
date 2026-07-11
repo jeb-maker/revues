@@ -70,14 +70,14 @@ func TestAssignItem_LeadCanAssign(t *testing.T) {
 	if err != nil {
 		t.Fatalf("UpsertGitHubUser(contrib): %v", err)
 	}
-	project, err := st.CreateProject(ctx, "Team", "", lead.ID)
+	project, err := st.CreateProject(ctx, "Team", "", lead.ID, nil)
 	if err != nil {
 		t.Fatalf("CreateProject(): %v", err)
 	}
 	if err = st.AddProjectMember(ctx, project.ID, contrib.ID, projects.LocalRoleContributor); err != nil {
 		t.Fatalf("AddProjectMember(): %v", err)
 	}
-	template, _, err := st.CreateChecklistTemplate(ctx, project.ID, "Modèle", lead.ID, []store.TemplateItemInput{
+	template, _, err := st.CreateChecklistTemplate(ctx, "Modèle", lead.ID, nil, []store.TemplateItemInput{
 		{Label: "Point", Required: true},
 	})
 	if err != nil {
@@ -133,14 +133,14 @@ func TestAssignItem_ContributorForbidden(t *testing.T) {
 	if err != nil {
 		t.Fatalf("UpsertGitHubUser(contrib): %v", err)
 	}
-	project, err := st.CreateProject(ctx, "Team", "", lead.ID)
+	project, err := st.CreateProject(ctx, "Team", "", lead.ID, nil)
 	if err != nil {
 		t.Fatalf("CreateProject(): %v", err)
 	}
 	if err = st.AddProjectMember(ctx, project.ID, contrib.ID, projects.LocalRoleContributor); err != nil {
 		t.Fatalf("AddProjectMember(): %v", err)
 	}
-	template, _, err := st.CreateChecklistTemplate(ctx, project.ID, "Modèle", lead.ID, []store.TemplateItemInput{
+	template, _, err := st.CreateChecklistTemplate(ctx, "Modèle", lead.ID, nil, []store.TemplateItemInput{
 		{Label: "Point", Required: true},
 	})
 	if err != nil {
@@ -191,14 +191,14 @@ func TestMyTasks_ListAssigned(t *testing.T) {
 	if err != nil {
 		t.Fatalf("UpsertGitHubUser(contrib): %v", err)
 	}
-	project, err := st.CreateProject(ctx, "Alpha", "", lead.ID)
+	project, err := st.CreateProject(ctx, "Alpha", "", lead.ID, nil)
 	if err != nil {
 		t.Fatalf("CreateProject(): %v", err)
 	}
 	if err = st.AddProjectMember(ctx, project.ID, contrib.ID, projects.LocalRoleContributor); err != nil {
 		t.Fatalf("AddProjectMember(): %v", err)
 	}
-	template, _, err := st.CreateChecklistTemplate(ctx, project.ID, "Modèle", lead.ID, []store.TemplateItemInput{
+	template, _, err := st.CreateChecklistTemplate(ctx, "Modèle", lead.ID, nil, []store.TemplateItemInput{
 		{Label: "Ma tâche", Required: true},
 	})
 	if err != nil {
