@@ -13,15 +13,15 @@ var ErrSessionNotFound = errors.New("session not found")
 
 const sessionTTL = 7 * 24 * time.Hour
 
-// CreateSession stores a new session for userID and returns the raw token.
-func (s *Store) CreateSession(ctx context.Context, userID int64, tokenHash string) error {
+// CreateSession stores a new session for userID in organizationID.
+func (s *Store) CreateSession(ctx context.Context, userID, organizationID int64, tokenHash string) error {
 	now := time.Now().UTC()
 	expires := now.Add(sessionTTL).Format(time.RFC3339)
 
 	_, err := s.db.ExecContext(ctx, `
-		INSERT INTO sessions (token_hash, user_id, expires_at, created_at)
-		VALUES (?, ?, ?, ?)
-	`, tokenHash, userID, expires, now.Format(time.RFC3339))
+		INSERT INTO sessions (token_hash, user_id, organization_id, expires_at, created_at)
+		VALUES (?, ?, ?, ?, ?)
+	`, tokenHash, userID, organizationID, expires, now.Format(time.RFC3339))
 	if err != nil {
 		return fmt.Errorf("insert session: %w", err)
 	}
@@ -29,21 +29,56 @@ func (s *Store) CreateSession(ctx context.Context, userID int64, tokenHash strin
 	return nil
 }
 
-// UserIDByTokenHash resolves an active session to a user id.
-func (s *Store) UserIDByTokenHash(ctx context.Context, tokenHash string) (int64, error) {
-	var userID int64
-	err := s.db.QueryRowContext(ctx, `
-		SELECT user_id FROM sessions
+// SessionByTokenHash resolves an active session to user and organization ids.
+func (s *Store) SessionByTokenHash(ctx context.Context, tokenHash string) (userID, organizationID int64, err error) {
+	err = s.db.QueryRowContext(ctx, `
+		SELECT user_id, organization_id FROM sessions
 		WHERE token_hash = ? AND expires_at > ?
-	`, tokenHash, time.Now().UTC().Format(time.RFC3339)).Scan(&userID)
+	`, tokenHash, time.Now().UTC().Format(time.RFC3339)).Scan(&userID, &organizationID)
 	if errors.Is(err, sql.ErrNoRows) {
-		return 0, ErrSessionNotFound
+		return 0, 0, ErrSessionNotFound
 	}
 	if err != nil {
-		return 0, fmt.Errorf("lookup session: %w", err)
+		return 0, 0, fmt.Errorf("lookup session: %w", err)
 	}
 
-	return userID, nil
+	return userID, organizationID, nil
+}
+
+// UserIDByTokenHash resolves an active session to a user id.
+func (s *Store) UserIDByTokenHash(ctx context.Context, tokenHash string) (int64, error) {
+	userID, _, err := s.SessionByTokenHash(ctx, tokenHash)
+	return userID, err
+}
+
+// ResolveSessionOrganizationID picks the organization stored in a new session.
+// When preferredOrganizationID is set it is returned as-is; otherwise the sole
+// membership is used, or the first membership when several exist. Users with no
+// membership are added to the default organization as member (bootstrap path).
+func (s *Store) ResolveSessionOrganizationID(ctx context.Context, userID, preferredOrganizationID int64) (int64, error) {
+	if preferredOrganizationID > 0 {
+		return preferredOrganizationID, nil
+	}
+
+	memberships, err := s.ListUserOrganizations(ctx, userID)
+	if err != nil {
+		return 0, fmt.Errorf("list user organizations: %w", err)
+	}
+	switch len(memberships) {
+	case 1:
+		return memberships[0].Organization.ID, nil
+	case 0:
+		defaultOrg, err := s.OrganizationBySlug(ctx, "default")
+		if err != nil {
+			return 0, fmt.Errorf("default organization: %w", err)
+		}
+		if err := s.AddOrganizationMember(ctx, defaultOrg.ID, userID, OrgRoleMember); err != nil {
+			return 0, fmt.Errorf("bootstrap default organization member: %w", err)
+		}
+		return defaultOrg.ID, nil
+	default:
+		return memberships[0].Organization.ID, nil
+	}
 }
 
 // DeleteSession removes a session by token hash.

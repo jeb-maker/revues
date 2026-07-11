@@ -65,7 +65,7 @@ func TestRuns_ExportCSV(t *testing.T) {
 	run := setupDoneRun(t, st, ctx, lead, project)
 
 	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
-	token, _, err := sessions.CreateLoginSession(ctx, lead.ID)
+	token, _, err := sessions.CreateLoginSession(ctx, lead.ID, 0)
 	if err != nil {
 		t.Fatalf("CreateLoginSession(): %v", err)
 	}
@@ -141,7 +141,7 @@ func TestRuns_ExportCSV_NotDone(t *testing.T) {
 	}
 
 	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
-	token, _, err := sessions.CreateLoginSession(ctx, lead.ID)
+	token, _, err := sessions.CreateLoginSession(ctx, lead.ID, 0)
 	if err != nil {
 		t.Fatalf("CreateLoginSession(): %v", err)
 	}
@@ -181,7 +181,7 @@ func TestRuns_ExportCSV_IDOR(t *testing.T) {
 	run := setupDoneRun(t, st, ctx, alice, projectA)
 
 	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
-	bobToken, _, err := sessions.CreateLoginSession(ctx, bob.ID)
+	bobToken, _, err := sessions.CreateLoginSession(ctx, bob.ID, 0)
 	if err != nil {
 		t.Fatalf("CreateLoginSession(bob): %v", err)
 	}
@@ -219,7 +219,7 @@ func TestRuns_ExportCSV_ViewerCanExport(t *testing.T) {
 	run := setupDoneRun(t, st, ctx, lead, project)
 
 	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
-	token, _, err := sessions.CreateLoginSession(ctx, viewer.ID)
+	token, _, err := sessions.CreateLoginSession(ctx, viewer.ID, 0)
 	if err != nil {
 		t.Fatalf("CreateLoginSession(): %v", err)
 	}
@@ -250,7 +250,7 @@ func TestRuns_ShowDoneIncludesExportButton(t *testing.T) {
 	run := setupDoneRun(t, st, ctx, lead, project)
 
 	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
-	token, _, err := sessions.CreateLoginSession(ctx, lead.ID)
+	token, _, err := sessions.CreateLoginSession(ctx, lead.ID, 0)
 	if err != nil {
 		t.Fatalf("CreateLoginSession(): %v", err)
 	}
@@ -300,7 +300,7 @@ func TestRuns_ShowInProgressOmitsExportButton(t *testing.T) {
 	}
 
 	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
-	token, _, err := sessions.CreateLoginSession(ctx, lead.ID)
+	token, _, err := sessions.CreateLoginSession(ctx, lead.ID, 0)
 	if err != nil {
 		t.Fatalf("CreateLoginSession(): %v", err)
 	}

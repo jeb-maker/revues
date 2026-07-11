@@ -160,7 +160,7 @@ func TestIDOR_CrossProjectAttachmentDownload(t *testing.T) {
 		t.Fatalf("WriteFile(): %v", err)
 	}
 	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
-	tokenA, _, _ := sessions.CreateLoginSession(ctx, leadA.ID)
+	tokenA, _, _ := sessions.CreateLoginSession(ctx, leadA.ID, 0)
 
 	req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/attachments/%d", att.ID), nil)
 	req.AddCookie(&http.Cookie{Name: "revues_session", Value: tokenA})
@@ -187,7 +187,7 @@ func TestIDOR_CrossProjectAttachmentUpload(t *testing.T) {
 	runA, _ := st.CreateChecklistRun(ctx, pA.ID, tplA.ID, "RA", leadA.ID, sql.NullString{})
 	_ = st.StartRun(ctx, runA.ID)
 	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
-	token, _, _ := sessions.CreateLoginSession(ctx, leadA.ID)
+	token, _, _ := sessions.CreateLoginSession(ctx, leadA.ID, 0)
 	csrf := auth.CSRFToken(token, "test-secret-at-least-thirty-two-bytes")
 	var imgBuf bytes.Buffer
 	_ = jpeg.Encode(&imgBuf, image.NewRGBA(image.Rect(0, 0, 8, 8)), nil)
@@ -225,7 +225,7 @@ func seedRunItemForUpload(t *testing.T, ctx context.Context, st *store.Store) (*
 	_ = st.StartRun(ctx, run.ID)
 	items, _ := st.ListRunItems(ctx, run.ID)
 	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
-	token, _, _ := sessions.CreateLoginSession(ctx, lead.ID)
+	token, _, _ := sessions.CreateLoginSession(ctx, lead.ID, 0)
 	return run, items[0], token, auth.CSRFToken(token, "test-secret-at-least-thirty-two-bytes")
 }
 

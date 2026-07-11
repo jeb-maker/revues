@@ -136,7 +136,7 @@ func (h *Auth) Callback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sessionToken, _, err := h.Sessions.CreateLoginSession(r.Context(), user.ID)
+	sessionToken, _, err := h.Sessions.CreateLoginSession(r.Context(), user.ID, 0)
 	if err != nil {
 		slog.Error("create session", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)

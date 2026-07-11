@@ -71,7 +71,7 @@ func TestIDOR_CrossProjectJiraLink(t *testing.T) {
 	}
 
 	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
-	bobToken, _, err := sessions.CreateLoginSession(ctx, bob.ID)
+	bobToken, _, err := sessions.CreateLoginSession(ctx, bob.ID, 0)
 	if err != nil {
 		t.Fatalf("CreateLoginSession(bob): %v", err)
 	}
@@ -128,7 +128,7 @@ func TestJiraLink_ViewerForbidden(t *testing.T) {
 	}
 
 	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
-	token, _, err := sessions.CreateLoginSession(ctx, viewer.ID)
+	token, _, err := sessions.CreateLoginSession(ctx, viewer.ID, 0)
 	if err != nil {
 		t.Fatalf("CreateLoginSession(): %v", err)
 	}
@@ -197,7 +197,7 @@ func TestJiraLink_Success(t *testing.T) {
 	}
 
 	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
-	token, _, err := sessions.CreateLoginSession(ctx, lead.ID)
+	token, _, err := sessions.CreateLoginSession(ctx, lead.ID, 0)
 	if err != nil {
 		t.Fatalf("CreateLoginSession(): %v", err)
 	}

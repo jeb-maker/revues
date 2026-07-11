@@ -50,7 +50,7 @@ func TestDashboard_ShowsActiveRunProgress(t *testing.T) {
 	}
 
 	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
-	token, _, err := sessions.CreateLoginSession(ctx, lead.ID)
+	token, _, err := sessions.CreateLoginSession(ctx, lead.ID, 0)
 	if err != nil {
 		t.Fatalf("CreateLoginSession(): %v", err)
 	}
@@ -109,7 +109,7 @@ func TestDashboard_ShowsRunDueDate(t *testing.T) {
 	}
 
 	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
-	token, _, err := sessions.CreateLoginSession(ctx, lead.ID)
+	token, _, err := sessions.CreateLoginSession(ctx, lead.ID, 0)
 	if err != nil {
 		t.Fatalf("CreateLoginSession(): %v", err)
 	}
@@ -156,7 +156,7 @@ func TestProjectShow_ShowsRunDueDate(t *testing.T) {
 	}
 
 	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
-	token, _, err := sessions.CreateLoginSession(ctx, lead.ID)
+	token, _, err := sessions.CreateLoginSession(ctx, lead.ID, 0)
 	if err != nil {
 		t.Fatalf("CreateLoginSession(): %v", err)
 	}
@@ -213,7 +213,7 @@ func TestProjectShow_ShowsNokItems(t *testing.T) {
 	}
 
 	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
-	token, _, err := sessions.CreateLoginSession(ctx, lead.ID)
+	token, _, err := sessions.CreateLoginSession(ctx, lead.ID, 0)
 	if err != nil {
 		t.Fatalf("CreateLoginSession(): %v", err)
 	}
@@ -253,7 +253,7 @@ func TestTemplatesIndex_ListsVisibleTemplates(t *testing.T) {
 	}
 
 	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
-	token, _, err := sessions.CreateLoginSession(ctx, user.ID)
+	token, _, err := sessions.CreateLoginSession(ctx, user.ID, 0)
 	if err != nil {
 		t.Fatalf("CreateLoginSession(): %v", err)
 	}
@@ -285,7 +285,7 @@ func TestHome_RedirectsAuthenticatedUserToDashboard(t *testing.T) {
 		t.Fatalf("UpsertGitHubUser(): %v", err)
 	}
 	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
-	token, _, err := sessions.CreateLoginSession(ctx, user.ID)
+	token, _, err := sessions.CreateLoginSession(ctx, user.ID, 0)
 	if err != nil {
 		t.Fatalf("CreateLoginSession(): %v", err)
 	}

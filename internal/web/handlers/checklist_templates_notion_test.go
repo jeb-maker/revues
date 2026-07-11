@@ -60,7 +60,7 @@ func TestNotionImport_CreateTemplateV1(t *testing.T) {
 	lead, _ := st.UpsertGitHubUser(ctx, 40, "lead-notion", "lead-notion@example.com", "Lead", "", auth.RoleEditor)
 	project, _ := st.CreateProject(ctx, "Import", "", lead.ID)
 	sessions := &auth.SessionManager{Store: st, SessionSecret: secret}
-	token, _, _ := sessions.CreateLoginSession(ctx, lead.ID)
+	token, _, _ := sessions.CreateLoginSession(ctx, lead.ID, 0)
 	form := url.Values{"csrf_token": {auth.CSRFToken(token, secret)}, "action": {"import"}, "database_id": {dbID}, "template_name": {"Modèle importé"}, "map_label": {"Name"}}
 	req := httptest.NewRequest(http.MethodPost, "/projects/"+strconv.FormatInt(project.ID, 10)+"/templates/notion-import", strings.NewReader(form.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
@@ -87,7 +87,7 @@ func TestNotionImport_ContributorForbidden(t *testing.T) {
 	key, _ := crypto.DecodeKey(config.TestEncryptionKey())
 	_ = (&notion.Service{Store: st, EncryptionKey: key}).Save(ctx, notion.Config{APIToken: "secret"})
 	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
-	token, _, _ := sessions.CreateLoginSession(ctx, contrib.ID)
+	token, _, _ := sessions.CreateLoginSession(ctx, contrib.ID, 0)
 	req := httptest.NewRequest(http.MethodGet, "/projects/"+strconv.FormatInt(project.ID, 10)+"/templates/notion-import", nil)
 	req.AddCookie(&http.Cookie{Name: "revues_session", Value: token})
 	rec := httptest.NewRecorder()

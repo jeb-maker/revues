@@ -98,7 +98,7 @@ func TestCSRF_MissingToken(t *testing.T) {
 		Store:         st,
 		SessionSecret: "test-secret-at-least-thirty-two-bytes",
 	}
-	token, _, err := sessions.CreateLoginSession(ctx, user.ID)
+	token, _, err := sessions.CreateLoginSession(ctx, user.ID, 0)
 	if err != nil {
 		t.Fatalf("CreateLoginSession() error = %v", err)
 	}
@@ -138,12 +138,12 @@ func TestSession_Fixation(t *testing.T) {
 
 	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
 
-	oldToken, _, err := sessions.CreateLoginSession(ctx, user.ID)
+	oldToken, _, err := sessions.CreateLoginSession(ctx, user.ID, 0)
 	if err != nil {
 		t.Fatalf("old session: %v", err)
 	}
 
-	newToken, _, err := sessions.CreateLoginSession(ctx, user.ID)
+	newToken, _, err := sessions.CreateLoginSession(ctx, user.ID, 0)
 	if err != nil {
 		t.Fatalf("new session: %v", err)
 	}
@@ -169,7 +169,7 @@ func TestLogoutWithCSRF(t *testing.T) {
 
 	secret := "test-secret-at-least-thirty-two-bytes"
 	sessions := &auth.SessionManager{Store: st, SessionSecret: secret}
-	token, _, err := sessions.CreateLoginSession(ctx, user.ID)
+	token, _, err := sessions.CreateLoginSession(ctx, user.ID, 0)
 	if err != nil {
 		t.Fatalf("CreateLoginSession() error = %v", err)
 	}

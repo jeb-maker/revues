@@ -19,7 +19,7 @@ func TestAdminWebhooks_ReaderForbidden(t *testing.T) {
 	st := store.New(db)
 	reader, _ := st.UpsertGitHubUser(ctx, 1, "reader", "reader@example.com", "Reader", "", auth.RoleReader)
 	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
-	token, _, _ := sessions.CreateLoginSession(ctx, reader.ID)
+	token, _, _ := sessions.CreateLoginSession(ctx, reader.ID, 0)
 	req := httptest.NewRequest(http.MethodGet, "/admin/settings/webhooks", nil)
 	req.AddCookie(&http.Cookie{Name: "revues_session", Value: token})
 	rec := httptest.NewRecorder()
@@ -38,7 +38,7 @@ func TestAdminWebhooks_SaveAndTest(t *testing.T) {
 	adminUser, _ := st.UpsertGitHubUser(ctx, 99, "admin", "admin@example.com", "Admin", "", auth.RoleAdmin)
 	secret := "test-secret-at-least-thirty-two-bytes"
 	sessions := &auth.SessionManager{Store: st, SessionSecret: secret}
-	token, _, _ := sessions.CreateLoginSession(ctx, adminUser.ID)
+	token, _, _ := sessions.CreateLoginSession(ctx, adminUser.ID, 0)
 	csrf := auth.CSRFToken(token, secret)
 	saveForm := url.Values{"csrf_token": {csrf}, "action": {"save"}, "urls": {receiver.URL}, "secret": {"webhook-hmac-secret"}, "review_completed": {"on"}, "review_item_nok": {"on"}}
 	saveReq := httptest.NewRequest(http.MethodPost, "/admin/settings/webhooks", strings.NewReader(saveForm.Encode()))

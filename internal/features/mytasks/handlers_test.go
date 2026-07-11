@@ -94,7 +94,7 @@ func TestAssignItem_LeadCanAssign(t *testing.T) {
 	}
 
 	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
-	token, _, err := sessions.CreateLoginSession(ctx, lead.ID)
+	token, _, err := sessions.CreateLoginSession(ctx, lead.ID, 0)
 	if err != nil {
 		t.Fatalf("CreateLoginSession(): %v", err)
 	}
@@ -156,7 +156,7 @@ func TestAssignItem_ContributorForbidden(t *testing.T) {
 	}
 
 	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
-	token, _, err := sessions.CreateLoginSession(ctx, contrib.ID)
+	token, _, err := sessions.CreateLoginSession(ctx, contrib.ID, 0)
 	if err != nil {
 		t.Fatalf("CreateLoginSession(): %v", err)
 	}
@@ -216,7 +216,7 @@ func TestMyTasks_ListAssigned(t *testing.T) {
 	}
 
 	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
-	token, _, err := sessions.CreateLoginSession(ctx, contrib.ID)
+	token, _, err := sessions.CreateLoginSession(ctx, contrib.ID, 0)
 	if err != nil {
 		t.Fatalf("CreateLoginSession(): %v", err)
 	}

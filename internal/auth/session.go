@@ -20,7 +20,13 @@ type SessionManager struct {
 }
 
 // CreateLoginSession rotates sessions and returns raw token + CSRF token.
-func (m *SessionManager) CreateLoginSession(ctx context.Context, userID int64) (string, string, error) {
+// When organizationID is zero the store resolves the active organization.
+func (m *SessionManager) CreateLoginSession(ctx context.Context, userID, organizationID int64) (string, string, error) {
+	orgID, err := m.Store.ResolveSessionOrganizationID(ctx, userID, organizationID)
+	if err != nil {
+		return "", "", err
+	}
+
 	if err := m.Store.DeleteUserSessions(ctx, userID); err != nil {
 		return "", "", err
 	}
@@ -30,7 +36,7 @@ func (m *SessionManager) CreateLoginSession(ctx context.Context, userID int64) (
 		return "", "", err
 	}
 
-	if err := m.Store.CreateSession(ctx, userID, hash); err != nil {
+	if err := m.Store.CreateSession(ctx, userID, orgID, hash); err != nil {
 		return "", "", err
 	}
 
