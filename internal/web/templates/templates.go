@@ -18,6 +18,15 @@ type Breadcrumb struct {
 	Label string
 }
 
+type StepperStep struct {
+	Label  string
+	Status string
+}
+
+type StepperData struct {
+	Steps []StepperStep
+}
+
 // PageData is shared view data for HTML pages.
 type PageData struct {
 	Title        string
@@ -230,6 +239,7 @@ type RunWizardProjectsData struct {
 	PageData
 	Projects []store.Project
 	Step     int
+	Stepper  StepperData
 	Message  string
 	Error    string
 }
@@ -240,6 +250,7 @@ type RunWizardTemplatesData struct {
 	Project    *store.Project
 	Templates  []store.ChecklistTemplateSummary
 	Step       int
+	Stepper    StepperData
 	MemberRole string
 	CanLaunch  bool
 	Message    string
@@ -257,6 +268,7 @@ type RunWizardLaunchData struct {
 	DueDate    string
 	FormAction string
 	Step       int
+	Stepper    StepperData
 	MemberRole string
 	CanLaunch  bool
 	Error      string
@@ -388,6 +400,7 @@ func Parse() (*template.Template, error) {
 			}
 		},
 		"add": func(a, b int) int { return a + b },
+		"sub": func(a, b int) int { return a - b },
 		"mul": func(a, b int) int { return a * b },
 		"div": func(a, b int) int {
 			if b == 0 {

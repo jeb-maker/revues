@@ -91,10 +91,15 @@ func (h *Runs) WizardProjects(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	pd := h.PageData(r, "Lancer une revue")
+	pd.Breadcrumbs = []viewtemplates.Breadcrumb{
+		{Label: "Lancer une revue"},
+	}
 	data := viewtemplates.RunWizardProjectsData{
-		PageData: h.PageData(r, "Lancer une revue"),
+		PageData: pd,
 		Projects: launchProjects,
 		Step:     1,
+		Stepper:  wizardStepper(1),
 		Message:  r.URL.Query().Get("msg"),
 	}
 
@@ -119,11 +124,17 @@ func (h *Runs) WizardTemplates(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	pd := h.PageData(r, "Choisir un modèle")
+	pd.Breadcrumbs = []viewtemplates.Breadcrumb{
+		{URL: "/runs/new", Label: "Lancer une revue"},
+		{Label: project.Name},
+	}
 	data := viewtemplates.RunWizardTemplatesData{
-		PageData:   h.PageData(r, "Choisir un modèle"),
+		PageData:   pd,
 		Project:    project,
 		Templates:  templates,
 		Step:       2,
+		Stepper:    wizardStepper(2),
 		MemberRole: memberRole,
 		CanLaunch:  CanLaunch(user, memberRole),
 	}
@@ -177,14 +188,21 @@ func (h *Runs) WizardLaunch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	pd := h.PageData(r, "Lancer la revue")
+	pd.Breadcrumbs = []viewtemplates.Breadcrumb{
+		{URL: "/runs/new", Label: "Lancer une revue"},
+		{URL: "/runs/new/projects/" + strconv.FormatInt(project.ID, 10), Label: project.Name},
+		{Label: template.Name},
+	}
 	data := viewtemplates.RunWizardLaunchData{
-		PageData:   h.PageData(r, "Lancer la revue"),
+		PageData:   pd,
 		Project:    project,
 		Template:   template,
 		Version:    version,
 		ItemCount:  len(items),
 		FormAction: "/projects/" + strconv.FormatInt(project.ID, 10) + "/runs",
 		Step:       3,
+		Stepper:    wizardStepper(3),
 		MemberRole: memberRole,
 		CanLaunch:  CanLaunch(user, memberRole),
 	}
@@ -595,8 +613,14 @@ func (h *Runs) renderRunShow(w http.ResponseWriter, r *http.Request, run *store.
 	jiraLinks := h.loadJiraLinksForItems(r.Context(), runItems)
 	attachmentsByItem := h.loadAttachmentsForItems(r.Context(), runItems)
 
+	pd := h.PageData(r, run.Title)
+	pd.Breadcrumbs = []viewtemplates.Breadcrumb{
+		{URL: "/projects", Label: "Projets"},
+		{URL: "/projects/" + strconv.FormatInt(project.ID, 10), Label: project.Name},
+		{Label: run.Title},
+	}
 	data := viewtemplates.RunShowData{
-		PageData:          h.PageData(r, run.Title),
+		PageData:          pd,
 		Project:           project,
 		Run:               run,
 		Items:             runItems,
@@ -748,8 +772,14 @@ func (h *Runs) renderLaunchError(w http.ResponseWriter, r *http.Request, project
 		}
 	}
 
+	pd := h.PageData(r, "Lancer la revue")
+	pd.Breadcrumbs = []viewtemplates.Breadcrumb{
+		{URL: "/runs/new", Label: "Lancer une revue"},
+		{URL: "/runs/new/projects/" + strconv.FormatInt(project.ID, 10), Label: project.Name},
+		{Label: "Confirmer"},
+	}
 	data := viewtemplates.RunWizardLaunchData{
-		PageData:   h.PageData(r, "Lancer la revue"),
+		PageData:   pd,
 		Project:    project,
 		Template:   template,
 		Version:    version,
@@ -758,6 +788,7 @@ func (h *Runs) renderLaunchError(w http.ResponseWriter, r *http.Request, project
 		DueDate:    strings.TrimSpace(r.FormValue("due_date")),
 		FormAction: "/projects/" + strconv.FormatInt(project.ID, 10) + "/runs",
 		Step:       3,
+		Stepper:    wizardStepper(3),
 		Error:      message,
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -790,6 +821,22 @@ func (h *Runs) progressData(runID int64, runItems []store.RunItem) viewtemplates
 		Total:   total,
 		Percent: percent,
 	}
+}
+
+func wizardStepper(current int) viewtemplates.StepperData {
+	labels := []string{"Projet", "Modèle", "Confirmation"}
+	var st viewtemplates.StepperData
+	for i, label := range labels {
+		status := ""
+		switch {
+		case i+1 < current:
+			status = "done"
+		case i+1 == current:
+			status = "active"
+		}
+		st.Steps = append(st.Steps, viewtemplates.StepperStep{Label: label, Status: status})
+	}
+	return st
 }
 
 func (h *Runs) renderRunItemHTMXSuccess(w http.ResponseWriter, r *http.Request, run *store.ChecklistRun, project *store.Project, user *store.User, memberRole string, itemID int64, itemErr, assignErr string) {
