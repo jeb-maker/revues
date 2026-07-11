@@ -14,6 +14,7 @@ import (
 	"github.com/jeb-maker/revues/internal/auth"
 	"github.com/jeb-maker/revues/internal/config"
 	"github.com/jeb-maker/revues/internal/store"
+	"github.com/jeb-maker/revues/internal/testutil"
 	appweb "github.com/jeb-maker/revues/internal/web"
 )
 
@@ -90,6 +91,7 @@ func newHTTPRunLoadFixture(t *testing.T) httpLoadFixture {
 	}
 
 	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
 	cfg := config.Config{
 		Addr:           ":8080",
 		BaseURL:        "http://example.com",
@@ -106,6 +108,13 @@ func newHTTPRunLoadFixture(t *testing.T) httpLoadFixture {
 	user, err := st.UpsertGitHubUser(ctx, 1, "load", "load@example.com", "Load", "", auth.RoleAdmin)
 	if err != nil {
 		t.Fatalf("UpsertGitHubUser(): %v", err)
+	}
+	defaultOrg, err := st.OrganizationBySlug(ctx, "default")
+	if err != nil {
+		t.Fatalf("OrganizationBySlug(default): %v", err)
+	}
+	if err = st.AddOrganizationMember(ctx, defaultOrg.ID, user.ID, store.OrgRoleOwner); err != nil {
+		t.Fatalf("AddOrganizationMember(): %v", err)
 	}
 	project, err := st.CreateProject(ctx, "Load", "", user.ID)
 	if err != nil {
@@ -127,7 +136,7 @@ func newHTTPRunLoadFixture(t *testing.T) httpLoadFixture {
 	}
 
 	sessions := &auth.SessionManager{Store: st, SessionSecret: testSessionSecret}
-	token, _, err := sessions.CreateLoginSession(ctx, user.ID)
+	token, _, err := sessions.CreateLoginSession(ctx, user.ID, defaultOrg.ID)
 	if err != nil {
 		t.Fatalf("CreateLoginSession(): %v", err)
 	}

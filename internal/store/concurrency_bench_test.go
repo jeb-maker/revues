@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/jeb-maker/revues/internal/auth"
+	"github.com/jeb-maker/revues/internal/orgctx"
 	"github.com/jeb-maker/revues/internal/store"
 )
 
@@ -20,8 +21,7 @@ func BenchmarkConcurrentListProjects_Pool10(b *testing.B) {
 }
 
 func benchmarkConcurrentListProjects(b *testing.B, maxOpen int) {
-	ctx := context.Background()
-	st, user := seedLoadFixturePool(b, maxOpen)
+	ctx, st, user := seedLoadFixturePool(b, maxOpen)
 
 	b.ReportAllocs()
 	b.ResetTimer()
@@ -37,18 +37,26 @@ func benchmarkConcurrentListProjects(b *testing.B, maxOpen int) {
 	})
 }
 
-func seedLoadFixturePool(b *testing.B, maxOpen int) (*store.Store, *store.User) {
+func seedLoadFixturePool(b *testing.B, maxOpen int) (context.Context, *store.Store, *store.User) {
 	b.Helper()
-	ctx := context.Background()
 	st := openWALFileStoreBench(b, maxOpen)
+	ctx := context.Background()
+	defaultOrg, err := st.OrganizationBySlug(ctx, "default")
+	if err != nil {
+		b.Fatalf("OrganizationBySlug(default): %v", err)
+	}
+	ctx = orgctx.WithOrganizationID(ctx, defaultOrg.ID)
 	user, err := st.UpsertGitHubUser(ctx, 1, "bench", "bench@example.com", "Bench", "", auth.RoleAdmin)
 	if err != nil {
 		b.Fatalf("UpsertGitHubUser(): %v", err)
 	}
+	if err = st.AddOrganizationMember(ctx, defaultOrg.ID, user.ID, store.OrgRoleOwner); err != nil {
+		b.Fatalf("AddOrganizationMember(): %v", err)
+	}
 	if _, err = st.CreateProject(ctx, "Bench", "", user.ID); err != nil {
 		b.Fatalf("CreateProject(): %v", err)
 	}
-	return st, user
+	return ctx, st, user
 }
 
 func openWALFileStoreBench(b *testing.B, maxOpen int) *store.Store {

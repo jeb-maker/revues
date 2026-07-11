@@ -12,6 +12,7 @@ import (
 
 	"github.com/jeb-maker/revues/internal/auth"
 	runs "github.com/jeb-maker/revues/internal/features/runs"
+	"github.com/jeb-maker/revues/internal/orgctx"
 	"github.com/jeb-maker/revues/internal/store"
 )
 
@@ -23,8 +24,7 @@ const (
 )
 
 func TestConcurrentReadsNoLock(t *testing.T) {
-	ctx := context.Background()
-	st, user := seedLoadFixture(t)
+	ctx, st, user := seedLoadFixture(t)
 
 	var lockErrors atomic.Int64
 	var wg sync.WaitGroup
@@ -59,8 +59,7 @@ func TestConcurrentReadsNoLock(t *testing.T) {
 }
 
 func TestConcurrentReadsWithWriterNoLock(t *testing.T) {
-	ctx := context.Background()
-	st, run, itemIDs := seedInProgressRunFileDB(t)
+	ctx, st, run, itemIDs := seedInProgressRunFileDB(t)
 
 	userID := int64(1)
 	statuses := []string{runs.StatusOK, runs.StatusPending, runs.StatusNA, runs.StatusNOK}
@@ -119,8 +118,7 @@ func TestConcurrentReadsWithWriterNoLock(t *testing.T) {
 }
 
 func TestWriterLatencyUnderReadLoad(t *testing.T) {
-	ctx := context.Background()
-	st, run, itemIDs := seedInProgressRunFileDB(t)
+	ctx, st, run, itemIDs := seedInProgressRunFileDB(t)
 
 	const readWorkers = 16
 	var slowWrites atomic.Int64
@@ -162,8 +160,7 @@ func TestWriterLatencyUnderReadLoad(t *testing.T) {
 
 // TestConcurrentDualWriterLockRate models two contributors updating different items.
 func TestConcurrentDualWriterLockRate(t *testing.T) {
-	ctx := context.Background()
-	st, run, itemIDs := seedInProgressRunFileDB(t)
+	ctx, st, run, itemIDs := seedInProgressRunFileDB(t)
 
 	const writeWorkers = 2
 	const iterations = 50
@@ -204,8 +201,7 @@ func TestConcurrentDualWriterLockRate(t *testing.T) {
 
 // TestConcurrentWriteStressCanary logs lock rate under unrealistic parallel write storms.
 func TestConcurrentWriteStressCanary(t *testing.T) {
-	ctx := context.Background()
-	st, run, itemIDs := seedInProgressRunFileDB(t)
+	ctx, st, run, itemIDs := seedInProgressRunFileDB(t)
 
 	const writeWorkers = 4
 	const iterations = 30
@@ -247,31 +243,45 @@ func lockRate(locks, total int64) float64 {
 	return float64(locks) / float64(total)
 }
 
-func seedLoadFixture(t *testing.T) (*store.Store, *store.User) {
+func seedLoadFixture(t *testing.T) (context.Context, *store.Store, *store.User) {
 	t.Helper()
 
-	ctx := context.Background()
 	st := openWALFileStore(t, store.DefaultMaxOpenConns)
+	ctx := orgCtxForStore(t, st)
 
 	user, err := st.UpsertGitHubUser(ctx, 1, "load", "load@example.com", "Load", "", auth.RoleAdmin)
 	if err != nil {
 		t.Fatalf("UpsertGitHubUser(): %v", err)
 	}
+	defaultOrg, err := st.OrganizationBySlug(ctx, "default")
+	if err != nil {
+		t.Fatalf("OrganizationBySlug(default): %v", err)
+	}
+	if err = st.AddOrganizationMember(ctx, defaultOrg.ID, user.ID, store.OrgRoleOwner); err != nil {
+		t.Fatalf("AddOrganizationMember(): %v", err)
+	}
 	if _, err = st.CreateProject(ctx, "Load", "desc", user.ID); err != nil {
 		t.Fatalf("CreateProject(): %v", err)
 	}
-	return st, user
+	return ctx, st, user
 }
 
-func seedInProgressRunFileDB(t *testing.T) (*store.Store, *store.ChecklistRun, []int64) {
+func seedInProgressRunFileDB(t *testing.T) (context.Context, *store.Store, *store.ChecklistRun, []int64) {
 	t.Helper()
 
-	ctx := context.Background()
 	st := openWALFileStore(t, store.DefaultMaxOpenConns)
+	ctx := orgCtxForStore(t, st)
 
 	lead, err := st.UpsertGitHubUser(ctx, 1, "lead", "lead@example.com", "Lead", "", auth.RoleEditor)
 	if err != nil {
 		t.Fatalf("UpsertGitHubUser(): %v", err)
+	}
+	defaultOrg, err := st.OrganizationBySlug(ctx, "default")
+	if err != nil {
+		t.Fatalf("OrganizationBySlug(default): %v", err)
+	}
+	if err = st.AddOrganizationMember(ctx, defaultOrg.ID, lead.ID, store.OrgRoleOwner); err != nil {
+		t.Fatalf("AddOrganizationMember(): %v", err)
 	}
 	project, err := st.CreateProject(ctx, "P", "", lead.ID)
 	if err != nil {
@@ -299,7 +309,18 @@ func seedInProgressRunFileDB(t *testing.T) (*store.Store, *store.ChecklistRun, [
 	for i, item := range runItems {
 		itemIDs[i] = item.ID
 	}
-	return st, run, itemIDs
+	return ctx, st, run, itemIDs
+}
+
+func orgCtxForStore(t *testing.T, st *store.Store) context.Context {
+	t.Helper()
+
+	ctx := context.Background()
+	defaultOrg, err := st.OrganizationBySlug(ctx, "default")
+	if err != nil {
+		t.Fatalf("OrganizationBySlug(default): %v", err)
+	}
+	return orgctx.WithOrganizationID(ctx, defaultOrg.ID)
 }
 
 func openWALFileStore(t *testing.T, maxOpen int) *store.Store {
