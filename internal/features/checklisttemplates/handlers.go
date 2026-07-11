@@ -139,8 +139,10 @@ func (h *ChecklistTemplates) NewForm(w http.ResponseWriter, r *http.Request) {
 	}
 
 	sections := emptyEditorSections(extraRows(r, defaultTemplateEditorRows))
+	pd := h.PageDataTab(r, "Nouveau modèle", "templates")
+	pd.Breadcrumbs = viewtemplates.BCTemplatesNewWizard()
 	data := viewtemplates.ChecklistTemplateFormData{
-		PageData:        h.PageDataTab(r, "Nouveau modèle", "templates"),
+		PageData:        pd,
 		Sections:        sections,
 		SectionsEnabled: sectionsEnabled(sections),
 		FormAction:      "/modeles",
@@ -243,8 +245,10 @@ func (h *ChecklistTemplates) EditForm(w http.ResponseWriter, r *http.Request) {
 
 	sections := itemsToEditorSections(items)
 
+	pd := h.PageDataTab(r, "Modifier "+template.Name, "templates")
+	pd.Breadcrumbs = viewtemplates.BCTemplateGlobalEdit(template.Name, template.ID)
 	data := viewtemplates.ChecklistTemplateFormData{
-		PageData:        h.PageDataTab(r, "Modifier "+template.Name, "templates"),
+		PageData:        pd,
 		Template:        template,
 		Version:         version,
 		Tags:            store.FormatTagsCSV(tags),
@@ -495,8 +499,14 @@ func (h *ChecklistTemplates) renderFormError(w http.ResponseWriter, r *http.Requ
 	if template != nil {
 		title = "Modifier " + template.Name
 	}
+	pd := h.PageDataTab(r, title, "templates")
+	if template != nil {
+		pd.Breadcrumbs = viewtemplates.BCTemplateGlobalEdit(template.Name, template.ID)
+	} else {
+		pd.Breadcrumbs = viewtemplates.BCTemplatesNewWizard()
+	}
 	data := viewtemplates.ChecklistTemplateFormData{
-		PageData:        h.PageDataTab(r, title, "templates"),
+		PageData:        pd,
 		Template:        template,
 		Version:         version,
 		Name:            name,

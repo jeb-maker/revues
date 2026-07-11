@@ -1,7 +1,6 @@
 {{define "checklist_template_show"}}
 {{template "layout_start" .}}
 <div class="card">
-  <h1>{{.Template.Name}}</h1>
   {{if .Message}}<p class="success">{{.Message}}</p>{{end}}
   {{if .Error}}<p class="error">{{.Error}}</p>{{end}}
 
@@ -55,9 +54,6 @@
   </div>
   {{end}}
 
-  <p style="margin-top:1.5rem">
-    <a href="/modeles" class="button-ghost">{{icon "arrow-left"}} Retour aux modèles</a>
-  </p>
 </div>
 {{template "layout_end" .}}
 {{end}}

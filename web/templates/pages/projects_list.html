@@ -27,11 +27,21 @@
 {{else}}
 <section class="panel">
   <h2>Projets ({{len .Projects}})</h2>
-  <ul class="item-list">
-    {{range .Projects}}
-    <li><a href="/projects/{{.ID}}">{{.Name}}</a>{{if .Description}} <span class="muted">— {{.Description}}</span>{{end}}</li>
-    {{end}}
-  </ul>
+  <div class="table-scroll">
+  <table class="data-table">
+    <thead>
+      <tr><th scope="col">Projet</th><th scope="col">Description</th></tr>
+    </thead>
+    <tbody>
+      {{range .Projects}}
+      <tr>
+        <td><a href="/projects/{{.ID}}">{{.Name}}</a></td>
+        <td>{{if .Description}}{{.Description}}{{else}}<span class="muted">—</span>{{end}}</td>
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+  </div>
 </section>
 {{end}}
 {{template "layout_end" .}}

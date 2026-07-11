@@ -1,23 +1,27 @@
 {{define "templates_index"}}
 {{template "layout_start" .}}
-<p class="muted">Modèles globaux de check-list. Les tags filtrent les modèles proposés par projet.</p>
-
 {{if .Templates}}
-<table class="data-table">
-  <thead>
-    <tr><th>Modèle</th><th>Tags</th><th>Version</th><th>Points</th></tr>
-  </thead>
-  <tbody>
-    {{range .Templates}}
-    <tr>
-      <td><a href="/modeles/{{.ID}}">{{.Name}}</a></td>
-      <td>{{if .Tags}}{{range $i, $tag := .Tags}}{{if $i}}, {{end}}<span class="tag">{{$tag}}</span>{{end}}{{else}}<span class="muted">tous projets</span>{{end}}</td>
-      <td>v{{.LatestVersion}}</td>
-      <td>{{.ItemCount}}</td>
-    </tr>
-    {{end}}
-  </tbody>
-</table>
+<section class="panel">
+  <h2>Modèles ({{len .Templates}})</h2>
+  <p class="muted">Modèles globaux de check-list. Les tags filtrent les modèles proposés par projet.</p>
+  <div class="table-scroll">
+  <table class="data-table">
+    <thead>
+      <tr><th scope="col">Modèle</th><th scope="col">Tags</th><th scope="col">Version</th><th scope="col">Points</th></tr>
+    </thead>
+    <tbody>
+      {{range .Templates}}
+      <tr>
+        <td><a href="/modeles/{{.ID}}">{{.Name}}</a></td>
+        <td>{{if .Tags}}{{range $i, $tag := .Tags}}{{if $i}}, {{end}}<span class="tag">{{$tag}}</span>{{end}}{{else}}<span class="muted">tous projets</span>{{end}}</td>
+        <td>v{{.LatestVersion}}</td>
+        <td>{{.ItemCount}}</td>
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+  </div>
+</section>
 {{else}}
 <p class="muted">Aucun modèle actif.</p>
 {{end}}

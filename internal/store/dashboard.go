@@ -6,13 +6,28 @@ import (
 	"fmt"
 )
 
-// ActiveRunSummary is an in-progress run with completion stats for the dashboard.
+const recentCompletedRunsLimit = 10
+
+// ActiveRunSummary is a draft or in-progress run with completion stats for the dashboard.
 type ActiveRunSummary struct {
 	RunID       int64
 	Title       string
 	ProjectID   int64
 	ProjectName string
+	Status      string
 	DueDate     sql.NullString
+	Done        int
+	Total       int
+	Percent     int
+}
+
+// CompletedRunSummary is a recently closed run for the dashboard.
+type CompletedRunSummary struct {
+	RunID       int64
+	Title       string
+	ProjectID   int64
+	ProjectName string
+	CompletedAt sql.NullString
 	Done        int
 	Total       int
 	Percent     int
@@ -45,7 +60,7 @@ func progressPercent(done, total int) int {
 	return done * 100 / total
 }
 
-// ListActiveRunSummaries returns in-progress runs visible to the user with completion stats.
+// ListActiveRunSummaries returns draft and in-progress runs visible to the user with completion stats.
 func (s *Store) ListActiveRunSummaries(ctx context.Context, userID int64, admin bool) ([]ActiveRunSummary, error) {
 	orgID, err := organizationIDFromContext(ctx)
 	if err != nil {
@@ -58,17 +73,17 @@ func (s *Store) ListActiveRunSummaries(ctx context.Context, userID int64, admin 
 
 	if admin {
 		rows, err = s.queryRows(ctx, activeRunSummariesSQL+`
-		WHERE r.status = ? AND p.archived_at IS NULL AND p.organization_id = ?
-		GROUP BY r.id, r.title, r.project_id, p.name, r.due_date
-		ORDER BY r.started_at DESC, r.created_at DESC
-		`, RunStatusInProgress, orgID)
+		WHERE r.status IN (?, ?) AND p.archived_at IS NULL AND p.organization_id = ?
+		GROUP BY r.id, r.title, r.project_id, p.name, r.due_date, r.status
+		ORDER BY CASE r.status WHEN ? THEN 0 ELSE 1 END, COALESCE(r.started_at, r.created_at) DESC
+		`, RunStatusDraft, RunStatusInProgress, orgID, RunStatusInProgress)
 	} else {
 		rows, err = s.queryRows(ctx, activeRunSummariesSQL+`
 		INNER JOIN project_members pm ON pm.project_id = p.id AND pm.user_id = ?
-		WHERE r.status = ? AND p.archived_at IS NULL AND p.organization_id = ?
-		GROUP BY r.id, r.title, r.project_id, p.name, r.due_date
-		ORDER BY r.started_at DESC, r.created_at DESC
-		`, userID, RunStatusInProgress, orgID)
+		WHERE r.status IN (?, ?) AND p.archived_at IS NULL AND p.organization_id = ?
+		GROUP BY r.id, r.title, r.project_id, p.name, r.due_date, r.status
+		ORDER BY CASE r.status WHEN ? THEN 0 ELSE 1 END, COALESCE(r.started_at, r.created_at) DESC
+		`, userID, RunStatusDraft, RunStatusInProgress, orgID, RunStatusInProgress)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("list active run summaries: %w", err)
@@ -78,13 +93,54 @@ func (s *Store) ListActiveRunSummaries(ctx context.Context, userID int64, admin 
 	return scanActiveRunSummaries(rows)
 }
 
+// ListRecentCompletedRunSummaries returns the most recently closed runs visible to the user.
+func (s *Store) ListRecentCompletedRunSummaries(ctx context.Context, userID int64, admin bool) ([]CompletedRunSummary, error) {
+	orgID, err := organizationIDFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var rows *sqlRowsWrapper
+	if admin {
+		rows, err = s.queryRows(ctx, completedRunSummariesSQL+`
+		WHERE r.status = ? AND p.archived_at IS NULL AND p.organization_id = ?
+		GROUP BY r.id, r.title, r.project_id, p.name, r.completed_at
+		ORDER BY r.completed_at DESC, r.id DESC
+		LIMIT ?
+		`, RunStatusDone, orgID, recentCompletedRunsLimit)
+	} else {
+		rows, err = s.queryRows(ctx, completedRunSummariesSQL+`
+		INNER JOIN project_members pm ON pm.project_id = p.id AND pm.user_id = ?
+		WHERE r.status = ? AND p.archived_at IS NULL AND p.organization_id = ?
+		GROUP BY r.id, r.title, r.project_id, p.name, r.completed_at
+		ORDER BY r.completed_at DESC, r.id DESC
+		LIMIT ?
+		`, userID, RunStatusDone, orgID, recentCompletedRunsLimit)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("list recent completed run summaries: %w", err)
+	}
+	defer rows.Close()
+
+	return scanCompletedRunSummaries(rows)
+}
+
 const activeRunSummariesSQL = `
-	SELECT r.id, r.title, r.project_id, p.name, r.due_date,
+	SELECT r.id, r.title, r.project_id, p.name, r.due_date, r.status,
 	       COUNT(ri.id) AS total,
 	       SUM(CASE WHEN ri.status IN ('ok', 'na') THEN 1 ELSE 0 END) AS done
 	FROM checklist_runs r
 	INNER JOIN projects p ON p.id = r.project_id
 	INNER JOIN run_items ri ON ri.run_id = r.id
+`
+
+const completedRunSummariesSQL = `
+	SELECT r.id, r.title, r.project_id, p.name, r.completed_at,
+	       COUNT(ri.id) AS total,
+	       SUM(CASE WHEN ri.status IN ('ok', 'na') THEN 1 ELSE 0 END) AS done
+	FROM checklist_runs r
+	INNER JOIN projects p ON p.id = r.project_id
+	LEFT JOIN run_items ri ON ri.run_id = r.id
 `
 
 func scanActiveRunSummaries(rows interface {
@@ -96,7 +152,7 @@ func scanActiveRunSummaries(rows interface {
 	for rows.Next() {
 		var summary ActiveRunSummary
 		if err := rows.Scan(
-			&summary.RunID, &summary.Title, &summary.ProjectID, &summary.ProjectName, &summary.DueDate,
+			&summary.RunID, &summary.Title, &summary.ProjectID, &summary.ProjectName, &summary.DueDate, &summary.Status,
 			&summary.Total, &summary.Done,
 		); err != nil {
 			return nil, fmt.Errorf("scan active run summary: %w", err)
@@ -106,6 +162,29 @@ func scanActiveRunSummaries(rows interface {
 	}
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("iterate active run summaries: %w", err)
+	}
+	return summaries, nil
+}
+
+func scanCompletedRunSummaries(rows interface {
+	Next() bool
+	Scan(dest ...any) error
+	Err() error
+}) ([]CompletedRunSummary, error) {
+	var summaries []CompletedRunSummary
+	for rows.Next() {
+		var summary CompletedRunSummary
+		if err := rows.Scan(
+			&summary.RunID, &summary.Title, &summary.ProjectID, &summary.ProjectName, &summary.CompletedAt,
+			&summary.Total, &summary.Done,
+		); err != nil {
+			return nil, fmt.Errorf("scan completed run summary: %w", err)
+		}
+		summary.Percent = progressPercent(summary.Done, summary.Total)
+		summaries = append(summaries, summary)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate completed run summaries: %w", err)
 	}
 	return summaries, nil
 }

@@ -1,6 +1,5 @@
 {{define "checklist_template_form"}}
 {{template "layout_start" .}}
-<h1>{{if .Template}}Modifier le modèle{{else}}Nouveau modèle{{end}}</h1>
 <p class="muted">{{if .Version}}Version actuelle v{{.Version.Version}} · {{end}}Les sections sont optionnelles. <a href="/modeles/notion-import">Importer depuis Notion</a></p>
 
 {{if and .Template .Version}}
@@ -110,8 +109,6 @@
     {{end}}
   </div>
 </form>
-
-<p class="muted"><a href="/modeles">← Retour aux modèles</a></p>
 {{template "layout_end" .}}
 {{end}}
 {{define "main_class"}} site-main--wide{{end}}

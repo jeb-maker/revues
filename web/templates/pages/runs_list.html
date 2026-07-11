@@ -26,25 +26,53 @@
 </section>
 {{else}}
 {{if .ActiveRuns}}
-<div class="table-scroll">
-<table class="data-table runs-table">
-  <thead>
-    <tr><th scope="col">Revue</th><th scope="col">Projet</th><th scope="col">Échéance</th><th scope="col">Progression</th></tr>
-  </thead>
-  <tbody>
-    {{range .ActiveRuns}}
-    <tr class="runs-table__data" style="--run-progress: {{.Percent}}%" aria-label="Progression {{.Done}} sur {{.Total}}, {{.Percent}} pourcent">
-      <td><a href="/runs/{{.RunID}}">{{.Title}}</a></td>
-      <td><a href="/projects/{{.ProjectID}}">{{.ProjectName}}</a></td>
-      <td>{{if .DueDate.Valid}}{{formatDueDate .DueDate}}{{else}}<span class="muted">—</span>{{end}}</td>
-      <td class="runs-table__stats muted">{{.Done}}/{{.Total}} ({{.Percent}}%)</td>
-    </tr>
-    {{end}}
-  </tbody>
-</table>
-</div>
+<section class="panel">
+  <h2>Actives</h2>
+  <div class="table-scroll">
+  <table class="data-table">
+    <thead>
+      <tr><th scope="col">Revue</th><th scope="col">Projet</th><th scope="col">Statut</th><th scope="col">Échéance</th><th scope="col">Progression</th></tr>
+    </thead>
+    <tbody>
+      {{range .ActiveRuns}}
+      <tr style="--run-progress: {{.Percent}}%" aria-label="Progression {{.Done}} sur {{.Total}}, {{.Percent}} pourcent">
+        <td><a href="/runs/{{.RunID}}">{{.Title}}</a></td>
+        <td><a href="/projects/{{.ProjectID}}">{{.ProjectName}}</a></td>
+        <td><span class="status-badge status-{{.Status}}">{{formatRunStatus .Status}}</span></td>
+        <td>{{if .DueDate.Valid}}{{formatDueDate .DueDate}}{{else}}<span class="muted">—</span>{{end}}</td>
+        <td class="data-table__stats muted">{{.Done}}/{{.Total}} ({{.Percent}}%)</td>
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+  </div>
+</section>
 {{else}}
-<p class="muted content-inset">Aucune revue en cours.</p>
+<p class="muted">Aucune revue active.</p>
+{{end}}
+
+{{if .CompletedRuns}}
+<section class="panel">
+  <h2>Terminées récemment</h2>
+  <p class="muted">Les revues clôturées restent accessibles depuis la fiche de chaque projet.</p>
+  <div class="table-scroll">
+  <table class="data-table">
+    <thead>
+      <tr><th scope="col">Revue</th><th scope="col">Projet</th><th scope="col">Clôturée le</th><th scope="col">Progression</th></tr>
+    </thead>
+    <tbody>
+      {{range .CompletedRuns}}
+      <tr style="--run-progress: {{.Percent}}%" aria-label="Progression {{.Done}} sur {{.Total}}, {{.Percent}} pourcent">
+        <td><a href="/runs/{{.RunID}}">{{.Title}}</a></td>
+        <td><a href="/projects/{{.ProjectID}}">{{.ProjectName}}</a></td>
+        <td>{{if .CompletedAt.Valid}}{{formatDueDate .CompletedAt}}{{else}}<span class="muted">—</span>{{end}}</td>
+        <td class="data-table__stats muted">{{.Done}}/{{.Total}} ({{.Percent}}%)</td>
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+  </div>
+</section>
 {{end}}
 {{end}}
 {{template "layout_end" .}}

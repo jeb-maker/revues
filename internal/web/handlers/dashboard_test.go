@@ -77,6 +77,123 @@ func TestDashboard_ShowsActiveRunProgress(t *testing.T) {
 	}
 }
 
+func TestDashboard_ShowsRecentCompletedRuns(t *testing.T) {
+	handler, db := testRouter(t)
+	ctx := context.Background()
+	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
+
+	lead, err := st.UpsertGitHubUser(ctx, 86, "lead", "lead@example.com", "Lead", "", auth.RoleEditor)
+	if err != nil {
+		t.Fatalf("UpsertGitHubUser(): %v", err)
+	}
+	project, err := st.CreateProject(ctx, "Zeta", "desc", lead.ID, nil)
+	if err != nil {
+		t.Fatalf("CreateProject(): %v", err)
+	}
+	template, _, err := st.CreateChecklistTemplate(ctx, "Modèle", lead.ID, nil, []store.TemplateItemInput{
+		{Label: "A", Required: true},
+	})
+	if err != nil {
+		t.Fatalf("CreateChecklistTemplate(): %v", err)
+	}
+	run, err := st.CreateChecklistRun(ctx, project.ID, template.ID, "Revue clôturée", lead.ID, sql.NullString{})
+	if err != nil {
+		t.Fatalf("CreateChecklistRun(): %v", err)
+	}
+	if err = st.StartRun(ctx, run.ID); err != nil {
+		t.Fatalf("StartRun(): %v", err)
+	}
+	runItems, err := st.ListRunItems(ctx, run.ID)
+	if err != nil || len(runItems) != 1 {
+		t.Fatalf("ListRunItems() = %v, %v", runItems, err)
+	}
+	if err = st.UpdateRunItemStatus(ctx, run.ID, runItems[0].ID, lead.ID, runs.StatusOK, ""); err != nil {
+		t.Fatalf("UpdateRunItemStatus(): %v", err)
+	}
+	if err = st.CompleteRun(ctx, run.ID, ""); err != nil {
+		t.Fatalf("CompleteRun(): %v", err)
+	}
+
+	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
+	token, _, err := sessions.CreateLoginSession(ctx, lead.ID, 0)
+	if err != nil {
+		t.Fatalf("CreateLoginSession(): %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/revues", nil)
+	req.AddCookie(&http.Cookie{Name: "revues_session", Value: token})
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+	body := rec.Body.String()
+	if !strings.Contains(body, "Terminées récemment") {
+		t.Fatal("expected completed runs section")
+	}
+	if !strings.Contains(body, "Revue clôturée") {
+		t.Fatal("expected completed run title")
+	}
+	if !strings.Contains(body, "100%") {
+		t.Fatal("expected completed run progress")
+	}
+	if !strings.Contains(body, "Aucune revue active") {
+		t.Fatal("expected empty active runs message")
+	}
+	if strings.Contains(body, "50%") {
+		t.Fatal("completed run should not appear in active progress table")
+	}
+}
+
+func TestDashboard_ShowsDraftRun(t *testing.T) {
+	handler, db := testRouter(t)
+	ctx := context.Background()
+	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
+
+	lead, err := st.UpsertGitHubUser(ctx, 87, "lead", "lead@example.com", "Lead", "", auth.RoleEditor)
+	if err != nil {
+		t.Fatalf("UpsertGitHubUser(): %v", err)
+	}
+	project, err := st.CreateProject(ctx, "DraftCo", "desc", lead.ID, nil)
+	if err != nil {
+		t.Fatalf("CreateProject(): %v", err)
+	}
+	template, _, err := st.CreateChecklistTemplate(ctx, "Modèle", lead.ID, nil, []store.TemplateItemInput{
+		{Label: "A", Required: true},
+	})
+	if err != nil {
+		t.Fatalf("CreateChecklistTemplate(): %v", err)
+	}
+	if _, err = st.CreateChecklistRun(ctx, project.ID, template.ID, "Revue brouillon", lead.ID, sql.NullString{}); err != nil {
+		t.Fatalf("CreateChecklistRun(): %v", err)
+	}
+
+	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
+	token, _, err := sessions.CreateLoginSession(ctx, lead.ID, 0)
+	if err != nil {
+		t.Fatalf("CreateLoginSession(): %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/revues", nil)
+	req.AddCookie(&http.Cookie{Name: "revues_session", Value: token})
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+	body := rec.Body.String()
+	if !strings.Contains(body, "Revue brouillon") {
+		t.Fatal("expected draft run title on dashboard")
+	}
+	if !strings.Contains(body, "brouillon") {
+		t.Fatal("expected draft status label on dashboard")
+	}
+}
+
 func TestDashboard_ShowsRunDueDate(t *testing.T) {
 	handler, db := testRouter(t)
 	ctx := context.Background()

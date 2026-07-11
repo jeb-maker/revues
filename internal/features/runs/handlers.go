@@ -64,7 +64,7 @@ type Runs struct {
 	Notifications  *notifications.Service
 }
 
-// List shows active review runs for the current user.
+// List shows draft and in-progress review runs for the current user.
 func (h *Runs) List(w http.ResponseWriter, r *http.Request) {
 	user, ok := middleware.UserFromContext(r.Context())
 	if !ok {
@@ -87,6 +87,13 @@ func (h *Runs) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	completedRuns, err := h.Store.ListRecentCompletedRunSummaries(r.Context(), user.ID, admin)
+	if err != nil {
+		slog.Error("list recent completed runs", "err", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
 	orgRole, orgMember, _ := h.Store.OrganizationMemberRole(r.Context(), 0, user.ID)
 	if org, ok := middleware.OrganizationFromContext(r.Context()); ok {
 		orgRole, orgMember, _ = h.Store.OrganizationMemberRole(r.Context(), org.ID, user.ID)
@@ -95,6 +102,7 @@ func (h *Runs) List(w http.ResponseWriter, r *http.Request) {
 	data := viewtemplates.RunsListData{
 		PageData:          h.PageDataTab(r, "Revues", "runs"),
 		ActiveRuns:        activeRuns,
+		CompletedRuns:     completedRuns,
 		HasProjects:       len(projectItems) > 0,
 		CanCreate:         projectfeature.CanCreate(user),
 		CanManageOrgUsers: projectfeature.CanManageOrgUsers(user, orgRole, orgMember),

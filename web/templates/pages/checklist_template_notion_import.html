@@ -1,8 +1,8 @@
 {{define "checklist_template_notion_import"}}
 {{template "layout_start" .}}
-<h1>Importer depuis Notion</h1>
 {{if .Error}}<p class="error">{{.Error}}</p>{{end}}
 
+<div class="card">
 {{if eq .Step "source"}}
 <form method="post" action="{{.FormAction}}" class="stack-form">
   <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
@@ -36,7 +36,7 @@
   <button type="submit">Importer v1</button>
 </form>
 {{end}}
-
-<p><a href="/modeles">← Retour aux modèles</a></p>
+</div>
 {{template "layout_end" .}}
 {{end}}
+{{define "main_class"}} site-main--wide{{end}}

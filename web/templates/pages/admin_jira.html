@@ -1,6 +1,9 @@
 {{define "admin_jira"}}
 {{template "layout_start" .}}
-<p>Connectez Revues à Jira Cloud ou Server/Data Center pour lier et créer des tickets depuis les revues.</p>
+<section class="panel">
+  <h2>Jira</h2>
+  <p class="muted">Connectez Revues à Jira Cloud ou Server/Data Center pour lier et créer des tickets depuis les revues.</p>
+</section>
 
 {{template "admin_nav" .}}
 
@@ -87,8 +90,6 @@
     <button type="submit" {{if not .Configured}}disabled{{end}}>Tester la connexion</button>
   </form>
 </section>
-
-<p><a href="/">← Retour</a></p>
 {{template "layout_end" .}}
 {{end}}
 {{define "main_class"}} site-main--wide{{end}}

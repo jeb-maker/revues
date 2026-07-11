@@ -1,6 +1,9 @@
 {{define "admin_smtp"}}
 {{template "layout_start" .}}
-<p>Configurez le relais SMTP pour les notifications email. Sans configuration, l'application fonctionne normalement mais n'envoie pas d'emails.</p>
+<section class="panel">
+  <h2>SMTP</h2>
+  <p class="muted">Configurez le relais SMTP pour les notifications email. Sans configuration, l'application fonctionne normalement mais n'envoie pas d'emails.</p>
+</section>
 
 {{template "admin_nav" .}}
 
@@ -66,8 +69,6 @@
     <button type="submit" {{if not .Configured}}disabled{{end}}>Envoyer un email de test</button>
   </form>
 </section>
-
-<p><a href="/">← Retour</a></p>
 {{template "layout_end" .}}
 {{end}}
 {{define "main_class"}} site-main--wide{{end}}

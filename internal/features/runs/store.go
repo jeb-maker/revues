@@ -10,6 +10,7 @@ type RunStore interface {
 	ProjectByID(ctx context.Context, id int64) (*store.Project, error)
 	ListProjects(ctx context.Context, userID int64, admin bool) ([]store.Project, error)
 	ListActiveRunSummaries(ctx context.Context, userID int64, admin bool) ([]store.ActiveRunSummary, error)
+	ListRecentCompletedRunSummaries(ctx context.Context, userID int64, admin bool) ([]store.CompletedRunSummary, error)
 	OrganizationMemberRole(ctx context.Context, organizationID, userID int64) (string, bool, error)
 	MemberRole(ctx context.Context, projectID, userID int64) (string, bool, error)
 	ListProjectMembers(ctx context.Context, projectID int64) ([]store.ProjectMember, error)

@@ -187,8 +187,10 @@ func (h *ChecklistTemplates) loadNotionPreview(r *http.Request, cfg notion.Confi
 }
 
 func (h *ChecklistTemplates) notionImportBaseData(r *http.Request) viewtemplates.ChecklistTemplateNotionImportData {
+	pd := h.PageDataTab(r, "Importer depuis Notion", "templates")
+	pd.Breadcrumbs = viewtemplates.BCTemplateNotionImportGlobal()
 	return viewtemplates.ChecklistTemplateNotionImportData{
-		PageData:   h.PageDataTab(r, "Importer depuis Notion", "templates"),
+		PageData:   pd,
 		CanManage:  true,
 		FormAction: "/modeles/notion-import",
 	}

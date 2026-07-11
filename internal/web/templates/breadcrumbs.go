@@ -133,6 +133,20 @@ func BCTemplatesNewWizard() []Breadcrumb {
 	return []Breadcrumb{crumb("Modèles", PathTemplates), current("Nouveau")}
 }
 
+// BCTemplateGlobalEdit is the global template edit form breadcrumb.
+func BCTemplateGlobalEdit(name string, templateID int64) []Breadcrumb {
+	return []Breadcrumb{
+		crumb("Modèles", PathTemplates),
+		crumb(name, "/modeles/"+strconv.FormatInt(templateID, 10)),
+		current("Modifier"),
+	}
+}
+
+// BCTemplateNotionImportGlobal is the global Notion import wizard breadcrumb.
+func BCTemplateNotionImportGlobal() []Breadcrumb {
+	return []Breadcrumb{crumb("Modèles", PathTemplates), current("Importer depuis Notion")}
+}
+
 // BCProjectTemplatesList is a project's template list breadcrumb.
 func BCProjectTemplatesList(projectName string, projectID int64) []Breadcrumb {
 	return []Breadcrumb{crumb("Projets", PathProjects), crumb(projectName, projectPath(projectID)), current("Modèles")}

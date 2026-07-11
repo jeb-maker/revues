@@ -3,34 +3,34 @@
 {{if .Message}}<p class="success">{{.Message}}</p>{{end}}
 {{if .Error}}<p class="error">{{.Error}}</p>{{end}}
 
-<p class="muted">Modèles compatibles avec les tags de ce projet (lecture seule). Gérez les modèles depuis l'onglet <a href="/modeles">Modèles</a>.</p>
-
-{{if .Templates}}
-<table class="data-table">
-  <thead>
-    <tr><th>Nom</th><th>Tags</th><th>Version</th><th>Points</th></tr>
-  </thead>
-  <tbody>
-    {{range .Templates}}
-    <tr>
-      <td><a href="/modeles/{{.ID}}">{{.Name}}</a></td>
-      <td>{{if .Tags}}{{range $i, $tag := .Tags}}{{if $i}}, {{end}}<span class="tag">{{$tag}}</span>{{end}}{{else}}<span class="muted">tous projets</span>{{end}}</td>
-      <td>v{{.LatestVersion}}</td>
-      <td>{{.ItemCount}}</td>
-    </tr>
-    {{end}}
-  </tbody>
-</table>
-{{else}}
-<div class="empty-state">
-  <p><strong>Aucun modèle compatible</strong></p>
+<section class="panel">
+  <h2>Modèles compatibles</h2>
+  <p class="muted">Modèles compatibles avec les tags de ce projet (lecture seule). Gérez les modèles depuis l'onglet <a href="/modeles">Modèles</a>.</p>
+  {{if .Templates}}
+  <div class="table-scroll">
+  <table class="data-table">
+    <thead>
+      <tr><th scope="col">Nom</th><th scope="col">Tags</th><th scope="col">Version</th><th scope="col">Points</th></tr>
+    </thead>
+    <tbody>
+      {{range .Templates}}
+      <tr>
+        <td><a href="/modeles/{{.ID}}">{{.Name}}</a></td>
+        <td>{{if .Tags}}{{range $i, $tag := .Tags}}{{if $i}}, {{end}}<span class="tag">{{$tag}}</span>{{end}}{{else}}<span class="muted">tous projets</span>{{end}}</td>
+        <td>v{{.LatestVersion}}</td>
+        <td>{{.ItemCount}}</td>
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+  </div>
+  {{else}}
   <p class="muted">Aucun modèle actif ne correspond aux tags de ce projet.</p>
   {{if .CanManage}}
-  <div class="empty-state-actions"><a href="/modeles/new" class="button">{{icon "plus"}} Créer un modèle</a></div>
+  <p><a href="/modeles/new" class="button">{{icon "plus"}} Créer un modèle</a></p>
   {{end}}
-</div>
-{{end}}
-
-<p><a href="/projects/{{.Project.ID}}" class="button-ghost">{{icon "arrow-left"}} Retour au projet</a></p>
+  {{end}}
+</section>
 {{template "layout_end" .}}
 {{end}}
+{{define "main_class"}} site-main--wide{{end}}

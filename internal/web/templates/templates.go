@@ -152,6 +152,7 @@ type AdminWebhooksData struct {
 type RunsListData struct {
 	PageData
 	ActiveRuns        []store.ActiveRunSummary
+	CompletedRuns     []store.CompletedRunSummary
 	HasProjects       bool
 	CanCreate         bool
 	CanManageOrgUsers bool
@@ -498,6 +499,20 @@ func Parse() (*template.Template, error) {
 				return "nok"
 			case "na":
 				return "non_applicable"
+			default:
+				return s
+			}
+		},
+		"formatRunStatus": func(s string) string {
+			switch s {
+			case store.RunStatusDraft:
+				return "brouillon"
+			case store.RunStatusInProgress:
+				return "en cours"
+			case store.RunStatusDone:
+				return "terminée"
+			case store.RunStatusArchived:
+				return "archivée"
 			default:
 				return s
 			}

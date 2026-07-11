@@ -1,6 +1,9 @@
 {{define "admin_integrations"}}
 {{template "layout_start" .}}
-<p>Vue d'ensemble des connexions externes. Configurez chaque intégration depuis sa page dédiée.</p>
+<section class="panel">
+  <h2>Vue d'ensemble</h2>
+  <p class="muted">Connexions externes. Configurez chaque intégration depuis sa page dédiée.</p>
+</section>
 
 {{template "admin_nav" .}}
 
@@ -11,13 +14,14 @@
 <section class="panel">
   <h2>Statut</h2>
   {{if .Integrations}}
+  <div class="table-scroll">
   <table class="data-table">
     <thead>
       <tr>
-        <th>Intégration</th>
-        <th>Description</th>
-        <th>Statut</th>
-        <th></th>
+        <th scope="col">Intégration</th>
+        <th scope="col">Description</th>
+        <th scope="col">Statut</th>
+        <th scope="col"></th>
       </tr>
     </thead>
     <tbody>
@@ -37,12 +41,11 @@
       {{end}}
     </tbody>
   </table>
+  </div>
   {{else}}
   <p class="muted">Aucune intégration disponible.</p>
   {{end}}
 </section>
-
-<p><a href="/">← Retour</a></p>
 {{template "layout_end" .}}
 {{end}}
 {{define "main_class"}} site-main--wide{{end}}

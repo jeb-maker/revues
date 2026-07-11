@@ -1,26 +1,26 @@
 {{define "project_form"}}
 {{template "layout_start" .}}
-<h1>{{if .Project}}Modifier le projet{{else}}Nouveau projet{{end}}</h1>
 {{if .Error}}<p class="error">{{.Error}}</p>{{end}}
 
-<form method="post" action="{{.FormAction}}" class="stack-form">
-  <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
-  <label>
-    Nom
-    <input type="text" name="name" required maxlength="200" value="{{if .Project}}{{.Project.Name}}{{end}}">
-  </label>
-  <label>
-    Description
-    <textarea name="description" rows="4">{{if .Project}}{{.Project.Description}}{{end}}</textarea>
-  </label>
-  <label>
-    Tags
-    <span class="field-hint">Séparez les tags par des virgules (ex. k8s, frontend). Les modèles tagués correspondants seront proposés pour ce projet.</span>
-    <input type="text" name="tags" maxlength="500" value="{{.Tags}}">
-  </label>
-  <button type="submit">Enregistrer</button>
-</form>
-
-<p><a href="/projects">← Retour aux projets</a></p>
+<div class="card">
+  <form method="post" action="{{.FormAction}}" class="stack-form">
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+    <label>
+      Nom
+      <input type="text" name="name" required maxlength="200" value="{{if .Project}}{{.Project.Name}}{{end}}">
+    </label>
+    <label>
+      Description
+      <textarea name="description" rows="4">{{if .Project}}{{.Project.Description}}{{end}}</textarea>
+    </label>
+    <label>
+      Tags
+      <span class="field-hint">Séparez les tags par des virgules (ex. k8s, frontend). Les modèles tagués correspondants seront proposés pour ce projet.</span>
+      <input type="text" name="tags" maxlength="500" value="{{.Tags}}">
+    </label>
+    <button type="submit">Enregistrer</button>
+  </form>
+</div>
 {{template "layout_end" .}}
 {{end}}
+{{define "main_class"}} site-main--wide{{end}}

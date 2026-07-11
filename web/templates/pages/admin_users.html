@@ -1,10 +1,13 @@
 {{define "admin_users"}}
 {{template "layout_start" .}}
-{{if .OrganizationName}}
-<p>Gérez les emails autorisés à rejoindre <strong>{{.OrganizationName}}</strong> via GitHub et leur rôle global.</p>
-{{else}}
-<p>Gérez les emails autorisés à rejoindre cette organisation via GitHub et leur rôle global.</p>
-{{end}}
+<section class="panel">
+  <h2>Emails autorisés</h2>
+  {{if .OrganizationName}}
+  <p class="muted">Gérez les emails autorisés à rejoindre <strong>{{.OrganizationName}}</strong> via GitHub et leur rôle global.</p>
+  {{else}}
+  <p class="muted">Gérez les emails autorisés à rejoindre cette organisation via GitHub et leur rôle global.</p>
+  {{end}}
+</section>
 
 {{template "admin_nav" .}}
 
@@ -16,7 +19,7 @@
 {{end}}
 
 {{if not .Emails}}
-<section class="onboarding-hint panel">
+<section class="panel onboarding-hint">
   <h2>Premier démarrage</h2>
   <p>Pour une instance migrée, définissez l'email GitHub vérifié du premier administrateur :</p>
   <pre><code>export REVUES_BOOTSTRAP_ADMIN_EMAIL=admin@example.com</code></pre>
@@ -48,13 +51,14 @@
 <section class="panel">
   <h2>Liste ({{len .Emails}})</h2>
   {{if .Emails}}
+  <div class="table-scroll">
   <table class="data-table">
     <thead>
       <tr>
-        <th>Email</th>
-        <th>Rôle</th>
-        <th>Ajouté</th>
-        <th></th>
+        <th scope="col">Email</th>
+        <th scope="col">Rôle</th>
+        <th scope="col">Ajouté</th>
+        <th scope="col"></th>
       </tr>
     </thead>
     <tbody>
@@ -74,12 +78,11 @@
       {{end}}
     </tbody>
   </table>
+  </div>
   {{else}}
   <p class="muted">Aucun email autorisé pour cette organisation.</p>
   {{end}}
 </section>
-
-<p><a href="/projects">← Retour au tableau de bord</a></p>
 {{template "layout_end" .}}
 {{end}}
 {{define "main_class"}} site-main--wide{{end}}

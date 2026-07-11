@@ -58,6 +58,48 @@ func TestDashboard_ActiveRunsAndNokItems(t *testing.T) {
 	}
 }
 
+func TestDashboard_RecentCompletedRuns(t *testing.T) {
+	ctx, st, run, itemID := setupInProgressRun(t)
+
+	if err := st.UpdateRunItemStatus(ctx, run.ID, itemID, 1, runs.StatusOK, ""); err != nil {
+		t.Fatalf("UpdateRunItemStatus(): %v", err)
+	}
+	runItems, err := st.ListRunItems(ctx, run.ID)
+	if err != nil || len(runItems) != 2 {
+		t.Fatalf("ListRunItems() = %v, %v", runItems, err)
+	}
+	for _, item := range runItems {
+		if item.ID != itemID {
+			if err = st.UpdateRunItemStatus(ctx, run.ID, item.ID, 1, runs.StatusOK, ""); err != nil {
+				t.Fatalf("UpdateRunItemStatus(): %v", err)
+			}
+			break
+		}
+	}
+	if err = st.CompleteRun(ctx, run.ID, "done"); err != nil {
+		t.Fatalf("CompleteRun(): %v", err)
+	}
+
+	completed, err := st.ListRecentCompletedRunSummaries(ctx, 1, true)
+	if err != nil {
+		t.Fatalf("ListRecentCompletedRunSummaries(): %v", err)
+	}
+	if len(completed) != 1 {
+		t.Fatalf("len(completed) = %d, want 1", len(completed))
+	}
+	if completed[0].RunID != run.ID || !completed[0].CompletedAt.Valid || completed[0].Percent != 100 {
+		t.Fatalf("ListRecentCompletedRunSummaries() = %+v", completed)
+	}
+
+	active, err := st.ListActiveRunSummaries(ctx, 1, true)
+	if err != nil {
+		t.Fatalf("ListActiveRunSummaries(): %v", err)
+	}
+	if len(active) != 0 {
+		t.Fatalf("len(active) = %d, want 0 after completion", len(active))
+	}
+}
+
 func TestDashboard_TemplateIndexListsAllTemplates(t *testing.T) {
 	ctx := context.Background()
 	db := openMemoryDB(t)

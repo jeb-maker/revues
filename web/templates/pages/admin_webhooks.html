@@ -1,6 +1,9 @@
 {{define "admin_webhooks"}}
 {{template "layout_start" .}}
-<p>Notifications JSON signées HMAC-SHA256. Voir <code>docs/WEBHOOKS.md</code>.</p>
+<section class="panel">
+  <h2>Webhooks</h2>
+  <p class="muted">Notifications JSON signées HMAC-SHA256. Voir <code>docs/WEBHOOKS.md</code>.</p>
+</section>
 {{template "admin_nav" .}}
 {{if not .CanEncrypt}}<p class="error">REVUES_ENCRYPTION_KEY requise pour enregistrer.</p>{{end}}
 {{if .Message}}<p class="success">{{.Message}}</p>{{end}}
@@ -21,7 +24,6 @@
   <h2>Test</h2>
   <form method="post" action="/admin/settings/webhooks"><input type="hidden" name="csrf_token" value="{{.CSRFToken}}"><input type="hidden" name="action" value="test"><button type="submit" {{if not .Configured}}disabled{{end}}>Envoyer un webhook de test</button></form>
 </section>
-<p><a href="/">← Retour</a></p>
 {{template "layout_end" .}}
 {{end}}
 {{define "main_class"}} site-main--wide{{end}}
