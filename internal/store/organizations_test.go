@@ -122,10 +122,10 @@ func TestOrganizationMemberships(t *testing.T) {
 		t.Fatalf("CreateOrganization(): %v", err)
 	}
 
-	if err := st.AddOrganizationMember(ctx, org.ID, owner.ID, store.OrgRoleOwner); err != nil {
+	if err = st.AddOrganizationMember(ctx, org.ID, owner.ID, store.OrgRoleOwner); err != nil {
 		t.Fatalf("AddOrganizationMember(owner): %v", err)
 	}
-	if err := st.AddOrganizationMember(ctx, org.ID, member.ID, store.OrgRoleMember); err != nil {
+	if err = st.AddOrganizationMember(ctx, org.ID, member.ID, store.OrgRoleMember); err != nil {
 		t.Fatalf("AddOrganizationMember(member): %v", err)
 	}
 
@@ -147,10 +147,10 @@ func TestOrganizationMemberships(t *testing.T) {
 		t.Fatalf("ListUserOrganizations() = %+v", memberships)
 	}
 
-	if err := st.RemoveOrganizationMember(ctx, org.ID, member.ID); err != nil {
+	if err = st.RemoveOrganizationMember(ctx, org.ID, member.ID); err != nil {
 		t.Fatalf("RemoveOrganizationMember(): %v", err)
 	}
-	if err := st.RemoveOrganizationMember(ctx, org.ID, member.ID); !errors.Is(err, sql.ErrNoRows) {
+	if err = st.RemoveOrganizationMember(ctx, org.ID, member.ID); !errors.Is(err, sql.ErrNoRows) {
 		t.Fatalf("RemoveOrganizationMember() missing error = %v", err)
 	}
 
@@ -185,14 +185,14 @@ func TestMigrationBackfillExistingUsers(t *testing.T) {
 			t.Errorf("Close(): %v", closeErr)
 		}
 	})
-	if _, err := db.ExecContext(ctx, "PRAGMA foreign_keys = ON"); err != nil {
+	if _, err = db.ExecContext(ctx, "PRAGMA foreign_keys = ON"); err != nil {
 		t.Fatalf("foreign_keys: %v", err)
 	}
 
 	migrateToVersion(t, ctx, db, 7)
 
 	now := "2026-01-01T00:00:00Z"
-	if _, err := db.ExecContext(ctx, `
+	if _, err = db.ExecContext(ctx, `
 		INSERT INTO users (github_id, login, email, display_name, avatar_url, role, created_at, last_login_at)
 		VALUES
 			(1, 'admin', 'admin@example.com', 'Admin', '', 'admin', ?, ?),
@@ -222,12 +222,12 @@ func TestMigrationBackfillExistingUsers(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.login, func(t *testing.T) {
 			var userID int64
-			if err := db.QueryRowContext(ctx, `SELECT id FROM users WHERE login = ?`, tt.login).Scan(&userID); err != nil {
+			if err = db.QueryRowContext(ctx, `SELECT id FROM users WHERE login = ?`, tt.login).Scan(&userID); err != nil {
 				t.Fatalf("load user: %v", err)
 			}
-			role, ok, err := st.OrganizationMemberRole(ctx, defaultOrg.ID, userID)
-			if err != nil || !ok {
-				t.Fatalf("OrganizationMemberRole() = %q, %v, %v", role, ok, err)
+			role, ok, memberErr := st.OrganizationMemberRole(ctx, defaultOrg.ID, userID)
+			if memberErr != nil || !ok {
+				t.Fatalf("OrganizationMemberRole() = %q, %v, %v", role, ok, memberErr)
 			}
 			if role != tt.wantRole {
 				t.Fatalf("role = %q, want %q", role, tt.wantRole)
