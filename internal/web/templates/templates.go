@@ -306,6 +306,9 @@ type RunShowData struct {
 	Run               *store.ChecklistRun
 	Items             []store.RunItem
 	NokItems          []store.RunItem
+	Sections          []string
+	FilterSection     string
+	FilterStatus      string
 	JiraLinks         map[int64]store.IntegrationLink
 	Attachments       map[int64]*store.Attachment
 	Members           []store.ProjectMember
@@ -407,6 +410,20 @@ func Parse() (*template.Template, error) {
 				return 0
 			}
 			return a / b
+		},
+		"statusLabel": func(s string) string {
+			switch s {
+			case "pending":
+				return "en_attente"
+			case "ok":
+				return "ok"
+			case "nok":
+				return "nok"
+			case "na":
+				return "non_applicable"
+			default:
+				return s
+			}
 		},
 		"formatDueDate": formatDueDate,
 		"dueDateInput":  dueDateInput,

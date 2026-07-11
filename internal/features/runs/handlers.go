@@ -486,7 +486,7 @@ func (h *Runs) Start(w http.ResponseWriter, r *http.Request) {
 
 // Complete moves a run from in_progress to done.
 func (h *Runs) Complete(w http.ResponseWriter, r *http.Request) {
-	run, project, user, memberRole, ok := h.loadRun(w, r)
+	run, _, user, memberRole, ok := h.loadRun(w, r)
 	if !ok {
 		return
 	}
@@ -500,13 +500,6 @@ func (h *Runs) Complete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	closingNote := strings.TrimSpace(r.FormValue("closing_note"))
-	if closingNote == "" {
-		h.renderRunShow(w, r, run, project, user, memberRole, viewtemplates.RunShowData{
-			ClosingNote:   r.FormValue("closing_note"),
-			CompleteError: "La note de clôture est obligatoire.",
-		})
-		return
-	}
 
 	if err := h.Store.CompleteRun(r.Context(), run.ID, closingNote); err != nil {
 		if errors.Is(err, store.ErrInvalidRunStatus) {
@@ -523,6 +516,12 @@ func (h *Runs) Complete(w http.ResponseWriter, r *http.Request) {
 
 	if h.Notifications != nil {
 		h.Notifications.NotifyRunCompleted(r.Context(), run.ID)
+	}
+
+	if h.isHTMX(r) {
+		w.Header().Set("HX-Redirect", "/runs/"+strconv.FormatInt(run.ID, 10)+"?msg=Revue+termin%C3%A9e")
+		w.WriteHeader(http.StatusOK)
+		return
 	}
 
 	http.Redirect(w, r, "/runs/"+strconv.FormatInt(run.ID, 10)+"?msg=Revue+termin%C3%A9e", http.StatusSeeOther)
@@ -613,6 +612,31 @@ func (h *Runs) renderRunShow(w http.ResponseWriter, r *http.Request, run *store.
 	jiraLinks := h.loadJiraLinksForItems(r.Context(), runItems)
 	attachmentsByItem := h.loadAttachmentsForItems(r.Context(), runItems)
 
+	filterSection := strings.TrimSpace(r.URL.Query().Get("section"))
+	filterStatus := strings.TrimSpace(r.URL.Query().Get("status"))
+
+	sections := uniqueSections(runItems)
+
+	items := runItems
+	if filterSection != "" {
+		var filtered []store.RunItem
+		for _, it := range items {
+			if it.Section == filterSection {
+				filtered = append(filtered, it)
+			}
+		}
+		items = filtered
+	}
+	if filterStatus != "" {
+		var filtered []store.RunItem
+		for _, it := range items {
+			if it.Status == filterStatus {
+				filtered = append(filtered, it)
+			}
+		}
+		items = filtered
+	}
+
 	pd := h.PageData(r, run.Title)
 	pd.Breadcrumbs = []viewtemplates.Breadcrumb{
 		{URL: "/projects", Label: "Projets"},
@@ -623,8 +647,11 @@ func (h *Runs) renderRunShow(w http.ResponseWriter, r *http.Request, run *store.
 		PageData:          pd,
 		Project:           project,
 		Run:               run,
-		Items:             runItems,
+		Items:             items,
 		NokItems:          nokItems,
+		Sections:          sections,
+		FilterSection:     filterSection,
+		FilterStatus:      filterStatus,
 		JiraLinks:         jiraLinks,
 		Attachments:       attachmentsByItem,
 		Members:           members,
@@ -839,6 +866,18 @@ func wizardStepper(current int) viewtemplates.StepperData {
 	return st
 }
 
+func uniqueSections(items []store.RunItem) []string {
+	seen := make(map[string]bool)
+	var sections []string
+	for _, it := range items {
+		if it.Section != "" && !seen[it.Section] {
+			seen[it.Section] = true
+			sections = append(sections, it.Section)
+		}
+	}
+	return sections
+}
+
 func (h *Runs) renderRunItemHTMXSuccess(w http.ResponseWriter, r *http.Request, run *store.ChecklistRun, project *store.Project, user *store.User, memberRole string, itemID int64, itemErr, assignErr string) {
 	runItems, err := h.Store.ListRunItems(r.Context(), run.ID)
 	if err != nil {
@@ -910,6 +949,9 @@ func (h *Runs) renderRunItemHTMX(w http.ResponseWriter, r *http.Request, run *st
 	progress := h.progressData(run.ID, runItems)
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	if statusCode < 400 {
+		w.Header().Set("HX-Trigger", `{"toast:success":{"message":"Point mis à jour"}}`)
+	}
 	w.WriteHeader(statusCode)
 
 	var buf bytes.Buffer

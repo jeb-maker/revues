@@ -1,101 +1,156 @@
 {{define "run_show"}}
 {{template "layout_start" .}}
-<h1>{{.Run.Title}}</h1>
-{{if .Message}}<p class="success">{{.Message}}</p>{{end}}
-{{if .ItemError}}<p class="error">{{.ItemError}}</p>{{end}}
-{{if .AssignError}}<p class="error">{{.AssignError}}</p>{{end}}
-{{if .CompleteError}}<p class="error">{{.CompleteError}}</p>{{end}}
-{{if .NotionExportError}}<p class="error">{{.NotionExportError}}</p>{{end}}
-{{if .Error}}<p class="error">{{.Error}}</p>{{end}}
+<div id="toast" class="toast" role="alert" aria-live="polite"></div>
 
-<p class="muted">
-  Projet : <a href="/projects/{{.Project.ID}}">{{.Project.Name}}</a>
-  · Modèle : {{.TemplateName}} v{{.VersionNum}}
-  · Statut : {{.Run.Status}}
-</p>
+<div class="card">
+  <h1>{{.Run.Title}}</h1>
+  <p class="muted">
+    Projet : <a href="/projects/{{.Project.ID}}">{{.Project.Name}}</a>
+    · Modèle : {{.TemplateName}} v{{.VersionNum}}
+    · Statut : <span class="status-badge status-{{.Run.Status}}">{{statusLabel .Run.Status}}</span>
+    {{if .Run.DueDate.Valid}} · Échéance : {{formatDueDate .Run.DueDate}}{{end}}
+  </p>
 
-{{if and (ne .Run.Status "draft") (gt .Progress.Total 0)}}
-{{template "run_progress_fragment" .Progress}}
-{{end}}
+  {{if .Message}}<p class="success">{{.Message}}</p>{{end}}
+  {{if .Error}}<p class="error">{{.Error}}</p>{{end}}
+  {{if .ItemError}}<p class="error">{{.ItemError}}</p>{{end}}
+  {{if .AssignError}}<p class="error">{{.AssignError}}</p>{{end}}
+  {{if .CompleteError}}<p class="error">{{.CompleteError}}</p>{{end}}
+  {{if .NotionExportError}}<p class="error">{{.NotionExportError}}</p>{{end}}
+
+  {{if and (ne .Run.Status "draft") (gt .Progress.Total 0)}}
+  {{template "run_progress_fragment" .Progress}}
+  {{end}}
+</div>
 
 {{if eq .Run.Status "done"}}
-{{if .Run.ClosingNote}}
-<section class="panel">
-  <h2>Note de clôture</h2>
-  <p>{{.Run.ClosingNote}}</p>
-</section>
-{{end}}
-<p>
-  <a href="/runs/{{.Run.ID}}/export.csv" class="button">Exporter CSV</a>
-  {{if .Run.NotionURL}}
-  <a href="{{.Run.NotionURL}}" class="button" target="_blank" rel="noopener noreferrer">Voir dans Notion</a>
-  {{else if and .NotionConfigured .CanExportNotion}}
-  <form method="post" action="/runs/{{.Run.ID}}/export/notion" class="inline-form">
-    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
-    <button type="submit" class="button">Exporter vers Notion</button>
-  </form>
+<div class="card">
+  <h2>{{icon "check"}} Revue terminée</h2>
+  {{if .Run.ClosingNote}}
+  <div class="closing-note">
+    <h3>Note de clôture</h3>
+    <p>{{.Run.ClosingNote}}</p>
+  </div>
   {{end}}
-</p>
-{{end}}
-
-{{if eq .Run.Status "draft"}}
-{{if .CanLaunch}}
-<form method="post" action="/runs/{{.Run.ID}}/start" class="inline-form">
-  <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
-  <button type="submit" class="button">Démarrer la revue</button>
-</form>
-{{end}}
-{{else if eq .Run.Status "in_progress"}}
-{{if .CanComplete}}
-<section class="panel">
-  <h2>Clôturer la revue</h2>
   {{if .NokItems}}
   <div class="warning-panel">
     <h3>Points nok ({{len .NokItems}})</h3>
     <ul class="item-list">
       {{range .NokItems}}
-      <li><strong>{{.Label}}</strong>{{if .Comment}} — {{.Comment}}{{end}}</li>
+      <li><a href="/runs/{{$.Run.ID}}/items/{{.ID}}"><strong>{{.Label}}</strong></a>{{if .Comment}} — {{.Comment}}{{end}}</li>
+      {{end}}
+    </ul>
+  </div>
+  {{end}}
+  <div class="post-closure">
+    <a href="/runs/{{.Run.ID}}/export.csv" class="button">{{icon "download"}} Exporter CSV</a>
+    {{if .Run.NotionURL}}
+    <a href="{{.Run.NotionURL}}" class="button" target="_blank" rel="noopener noreferrer">{{icon "external-link"}} Voir dans Notion</a>
+    {{else if and .NotionConfigured .CanExportNotion}}
+    <form method="post" action="/runs/{{.Run.ID}}/export/notion" class="inline-form">
+      <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+      <button type="submit" class="button">{{icon "external-link"}} Exporter vers Notion</button>
+    </form>
+    {{end}}
+    <a href="/projects/{{.Project.ID}}" class="button-ghost">{{icon "arrow-left"}} Retour au projet</a>
+  </div>
+</div>
+{{end}}
+
+{{if eq .Run.Status "draft"}}
+<div class="card">
+  {{if .CanLaunch}}
+  <form method="post" action="/runs/{{.Run.ID}}/start" class="inline-form">
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+    <button type="submit" class="button">{{icon "check"}} Démarrer la revue</button>
+  </form>
+  {{end}}
+</div>
+{{end}}
+
+{{if eq .Run.Status "in_progress"}}
+{{if .CanComplete}}
+<div class="card" id="complete-section">
+  <h2>Clôturer la revue</h2>
+  {{if .NokItems}}
+  <div class="warning-panel closing-nok">
+    <h3>{{icon "alert"}} Points nok ({{len .NokItems}})</h3>
+    <ul class="item-list">
+      {{range .NokItems}}
+      <li><a href="/runs/{{$.Run.ID}}/items/{{.ID}}"><strong>{{.Label}}</strong></a>{{if .Comment}} — {{.Comment}}{{end}}</li>
       {{end}}
     </ul>
   </div>
   {{else}}
-  <p class="muted">Aucun point nok.</p>
+  <p class="muted">Aucun point nok — tous les points sont validés.</p>
   {{end}}
-  <form method="post" action="/runs/{{.Run.ID}}/complete" class="stack-form">
+  <form method="post" action="/runs/{{.Run.ID}}/complete" class="stack-form" hx-post="/runs/{{.Run.ID}}/complete" hx-target="#complete-section" hx-swap="outerHTML" hx-confirm="Confirmer la clôture de la revue ?">
     <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
     <label>
-      Note de clôture
-      <textarea name="closing_note" rows="4" required>{{.ClosingNote}}</textarea>
+      Note de clôture (optionnelle)
+      <textarea name="closing_note" rows="4" placeholder="Note optionnelle…">{{.ClosingNote}}</textarea>
     </label>
-    <button type="submit">Terminer la revue</button>
+    <button type="submit" class="button">{{icon "check"}} Terminer la revue</button>
   </form>
-</section>
+</div>
 {{end}}
 {{end}}
 
-<section class="panel">
-  <h2>Points ({{len .Items}})</h2>
+<div class="card">
+  <h2>{{icon "list"}} Points ({{len .Items}})</h2>
   {{if .Items}}
-  <table class="data-table">
-    <thead>
-      <tr><th>Section</th><th>Point</th><th>Jira</th><th>Statut</th><th>Assigné</th><th>Commentaire</th><th>PJ</th>{{if and (eq $.Run.Status "in_progress") (or $.CanCheck $.CanAssign)}}<th></th>{{end}}</tr>
-    </thead>
-    <tbody id="run-items">
-      {{range .Items}}
-      {{template "run_item_row_fragment" (runItemRow $.Run . $.Members $.CSRFToken $.CanCheck $.CanAssign $.CanLinkJira $.JiraConfigured (index $.JiraLinks .ID) (index $.Attachments .ID) "" "")}}
+  <div class="filter-bar" id="items-filter">
+    <form method="get" action="/runs/{{.Run.ID}}" class="filter-form">
+      <label>
+        Section
+        <select name="section">
+          <option value="">Toutes</option>
+          {{range .Sections}}
+          <option value="{{.}}" {{if eq $.FilterSection .}}selected{{end}}>{{.}}</option>
+          {{end}}
+        </select>
+      </label>
+      <label>
+        Statut
+        <select name="status">
+          <option value="">Tous</option>
+          <option value="pending" {{if eq .FilterStatus "pending"}}selected{{end}}>{{statusLabel "pending"}}</option>
+          <option value="ok" {{if eq .FilterStatus "ok"}}selected{{end}}>{{statusLabel "ok"}}</option>
+          <option value="nok" {{if eq .FilterStatus "nok"}}selected{{end}}>{{statusLabel "nok"}}</option>
+          <option value="na" {{if eq .FilterStatus "na"}}selected{{end}}>{{statusLabel "na"}}</option>
+        </select>
+      </label>
+      <button type="submit" class="button-secondary">Filtrer</button>
+      {{if or .FilterSection .FilterStatus}}
+      <a href="/runs/{{.Run.ID}}" class="button-ghost">Effacer</a>
       {{end}}
-    </tbody>
-  </table>
-  {{else}}
-  <p class="muted">Aucun point dans cette revue.</p>
+    </form>
+  </div>
   {{end}}
-</section>
+  <div class="table-scroll">
+    <table class="data-table">
+      <thead class="table-sticky">
+        <tr><th>Section</th><th>Point</th><th>Jira</th><th>Statut</th><th>Assigné</th><th>Commentaire</th><th>PJ</th>{{if and (eq $.Run.Status "in_progress") (or $.CanCheck $.CanAssign)}}<th></th>{{end}}</tr>
+      </thead>
+      <tbody id="run-items">
+        {{range .Items}}
+        {{template "run_item_row_fragment" (runItemRow $.Run . $.Members $.CSRFToken $.CanCheck $.CanAssign $.CanLinkJira $.JiraConfigured (index $.JiraLinks .ID) (index $.Attachments .ID) "" "")}}
+        {{else}}
+        <tr><td colspan="8"><p class="muted">Aucun point trouvé pour ce filtre.</p></td></tr>
+        {{end}}
+      </tbody>
+    </table>
+  </div>
+</div>
 
-<p>
-  <a href="/projects/{{.Project.ID}}">← Retour au projet</a>
-  ·
-  <a href="/runs/new/projects/{{.Project.ID}}">Lancer une autre revue</a>
-</p>
+<div class="card post-closure-links">
+  <p>
+    <a href="/projects/{{.Project.ID}}" class="button-ghost">{{icon "arrow-left"}} Retour au projet</a>
+    {{if ne .Run.Status "done"}}
+    <a href="/runs/new/projects/{{.Project.ID}}" class="button-ghost">Lancer une autre revue</a>
+    {{end}}
+  </p>
+</div>
 {{template "layout_end" .}}
 {{end}}
 {{define "main_class"}} site-main--wide{{end}}

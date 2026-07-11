@@ -71,7 +71,7 @@ func TestRunItem_NokRequiresComment(t *testing.T) {
 	}
 }
 
-func TestRunComplete_RequiresClosingNote(t *testing.T) {
+func TestRunComplete_OptionalClosingNote(t *testing.T) {
 	handler, db := testRouter(t)
 	ctx := context.Background()
 	st := store.New(db)
@@ -113,11 +113,8 @@ func TestRunComplete_RequiresClosingNote(t *testing.T) {
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 
-	if rec.Code != http.StatusBadRequest {
-		t.Fatalf("status = %d, want %d", rec.Code, http.StatusBadRequest)
-	}
-	if !strings.Contains(rec.Body.String(), "note de clôture") {
-		t.Fatal("expected closing note validation message")
+	if rec.Code != http.StatusSeeOther {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusSeeOther)
 	}
 }
 
