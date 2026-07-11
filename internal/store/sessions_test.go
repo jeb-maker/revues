@@ -112,6 +112,78 @@ func TestResolveSessionOrganizationIDBootstrapsDefault(t *testing.T) {
 	}
 }
 
+func TestCreateSessionPendingOrganization(t *testing.T) {
+	ctx := context.Background()
+	db := openMemoryDB(t)
+	st := store.New(db)
+
+	user, err := st.UpsertGitHubUser(ctx, 4, "dana", "dana@example.com", "Dana", "", auth.RoleReader)
+	if err != nil {
+		t.Fatalf("UpsertGitHubUser(): %v", err)
+	}
+
+	if err := st.CreateSession(ctx, user.ID, 0, "pending-hash"); err != nil {
+		t.Fatalf("CreateSession(): %v", err)
+	}
+
+	gotUserID, gotOrgID, err := st.SessionByTokenHash(ctx, "pending-hash")
+	if err != nil {
+		t.Fatalf("SessionByTokenHash(): %v", err)
+	}
+	if gotUserID != user.ID || gotOrgID != 0 {
+		t.Fatalf("session = (%d, %d), want (%d, 0)", gotUserID, gotOrgID, user.ID)
+	}
+}
+
+func TestUpdateSessionOrganization(t *testing.T) {
+	ctx := context.Background()
+	db := openMemoryDB(t)
+	st := store.New(db)
+
+	user, err := st.UpsertGitHubUser(ctx, 5, "erin", "erin@example.com", "Erin", "", auth.RoleReader)
+	if err != nil {
+		t.Fatalf("UpsertGitHubUser(): %v", err)
+	}
+	org, err := st.CreateOrganization(ctx, "Team", "team", user.ID)
+	if err != nil {
+		t.Fatalf("CreateOrganization(): %v", err)
+	}
+
+	if err := st.CreateSession(ctx, user.ID, 0, "update-hash"); err != nil {
+		t.Fatalf("CreateSession(): %v", err)
+	}
+	if err := st.UpdateSessionOrganization(ctx, "update-hash", org.ID); err != nil {
+		t.Fatalf("UpdateSessionOrganization(): %v", err)
+	}
+
+	_, gotOrgID, err := st.SessionByTokenHash(ctx, "update-hash")
+	if err != nil {
+		t.Fatalf("SessionByTokenHash(): %v", err)
+	}
+	if gotOrgID != org.ID {
+		t.Fatalf("org id = %d, want %d", gotOrgID, org.ID)
+	}
+}
+
+func TestResolveSessionOrganizationIDPending(t *testing.T) {
+	ctx := context.Background()
+	db := openMemoryDB(t)
+	st := store.New(db)
+
+	user, err := st.UpsertGitHubUser(ctx, 6, "fran", "fran@example.com", "Fran", "", auth.RoleReader)
+	if err != nil {
+		t.Fatalf("UpsertGitHubUser(): %v", err)
+	}
+
+	got, err := st.ResolveSessionOrganizationID(ctx, user.ID, auth.SessionOrgPending)
+	if err != nil {
+		t.Fatalf("ResolveSessionOrganizationID() error = %v", err)
+	}
+	if got != 0 {
+		t.Fatalf("org id = %d, want 0", got)
+	}
+}
+
 func TestSessionByTokenHashNotFound(t *testing.T) {
 	ctx := context.Background()
 	db := openMemoryDB(t)

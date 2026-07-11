@@ -162,8 +162,8 @@ func TestOAuthCallback_SuccessVerifiedWhitelisted(t *testing.T) {
 	if rec.Code != http.StatusFound {
 		t.Fatalf("status = %d, want %d", rec.Code, http.StatusFound)
 	}
-	if loc := rec.Header().Get("Location"); loc != "/" {
-		t.Errorf("Location = %q, want %q", loc, "/")
+	if loc := rec.Header().Get("Location"); loc != "/org/new" {
+		t.Errorf("Location = %q, want %q", loc, "/org/new")
 	}
 
 	sessionCookie := sessionCookieFromResponse(t, rec)
@@ -174,6 +174,13 @@ func TestOAuthCallback_SuccessVerifiedWhitelisted(t *testing.T) {
 	userID, err := st.UserIDByTokenHash(ctx, auth.HashToken(sessionCookie.Value))
 	if err != nil {
 		t.Fatalf("UserIDByTokenHash(): %v", err)
+	}
+	_, orgID, err := st.SessionByTokenHash(ctx, auth.HashToken(sessionCookie.Value))
+	if err != nil {
+		t.Fatalf("SessionByTokenHash(): %v", err)
+	}
+	if orgID != 0 {
+		t.Errorf("session organization_id = %d, want 0 (pending onboarding)", orgID)
 	}
 
 	user, err := st.UserByID(ctx, userID)

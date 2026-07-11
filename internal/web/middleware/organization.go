@@ -23,24 +23,24 @@ func LoadActiveOrganization(st *store.Store) func(http.Handler) http.Handler {
 
 			token, err := auth.SessionTokenFromRequest(r)
 			if err != nil {
-				http.Redirect(w, r, "/org/select", http.StatusFound)
+				redirectPendingOrganization(w, r, st, user)
 				return
 			}
 
 			_, orgID, err := st.SessionByTokenHash(r.Context(), auth.HashToken(token))
 			if err != nil || orgID <= 0 {
-				http.Redirect(w, r, "/org/select", http.StatusFound)
+				redirectPendingOrganization(w, r, st, user)
 				return
 			}
 
 			org, err := st.OrganizationByID(r.Context(), orgID)
 			if err != nil {
-				http.Redirect(w, r, "/org/select", http.StatusFound)
+				redirectPendingOrganization(w, r, st, user)
 				return
 			}
 
 			if _, member, err := st.OrganizationMemberRole(r.Context(), orgID, user.ID); err != nil || !member {
-				http.Redirect(w, r, "/org/select", http.StatusFound)
+				redirectPendingOrganization(w, r, st, user)
 				return
 			}
 
@@ -69,4 +69,17 @@ func isOrganizationExemptPath(path string) bool {
 	default:
 		return false
 	}
+}
+
+func redirectPendingOrganization(w http.ResponseWriter, r *http.Request, st *store.Store, user *store.User) {
+	count, err := st.CountUserOrganizations(r.Context(), user.ID)
+	if err != nil {
+		http.Redirect(w, r, "/org/select", http.StatusFound)
+		return
+	}
+	if count == 0 {
+		http.Redirect(w, r, "/org/new", http.StatusFound)
+		return
+	}
+	http.Redirect(w, r, "/org/select", http.StatusFound)
 }

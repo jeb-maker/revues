@@ -132,6 +132,22 @@ type ProjectFormData struct {
 	Error      string
 }
 
+// OrgNewData is view data for the organization creation form.
+type OrgNewData struct {
+	PageData
+	Name  string
+	Slug  string
+	Error string
+}
+
+// OrgSelectData is view data for the organization selection screen.
+type OrgSelectData struct {
+	PageData
+	Organizations []store.OrganizationMembership
+	DefaultOrgID  int64
+	Error         string
+}
+
 // ProjectShowData is view data for project detail.
 type ProjectShowData struct {
 	PageData

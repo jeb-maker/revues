@@ -20,6 +20,7 @@ import (
 	"github.com/jeb-maker/revues/internal/features/checklisttemplates"
 	home "github.com/jeb-maker/revues/internal/features/home"
 	mytasks "github.com/jeb-maker/revues/internal/features/mytasks"
+	"github.com/jeb-maker/revues/internal/features/organizations"
 	"github.com/jeb-maker/revues/internal/features/projects"
 	runs "github.com/jeb-maker/revues/internal/features/runs"
 	"github.com/jeb-maker/revues/internal/integrations/webhooks"
@@ -154,6 +155,13 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, error) {
 		Store:         st,
 		SessionSecret: deps.Config.SessionSecret,
 	}}
+	orgsHandler := &organizations.Organizations{Deps: organizations.Deps{
+		Templates:     tpl,
+		Store:         st,
+		Sessions:      sessions,
+		SessionSecret: deps.Config.SessionSecret,
+		SecureCookies: deps.Config.SecureCookies(),
+	}}
 
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
@@ -179,7 +187,10 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, error) {
 
 	r.Group(func(r chi.Router) {
 		r.Use(appmiddleware.RequireAuth)
-		r.Get("/org/select", orgSelectStub)
+		r.Get("/org/new", orgsHandler.NewForm)
+		r.Post("/org/new", orgsHandler.Create)
+		r.Get("/org/select", orgsHandler.SelectForm)
+		r.Post("/org/select", orgsHandler.Select)
 	})
 
 	r.Group(func(r chi.Router) {
@@ -246,10 +257,4 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, error) {
 	})
 
 	return r, notificationsSvc, nil
-}
-
-func orgSelectStub(w http.ResponseWriter, _ *http.Request) {
-	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	w.WriteHeader(http.StatusOK)
-	_, _ = w.Write([]byte("Organization selection"))
 }

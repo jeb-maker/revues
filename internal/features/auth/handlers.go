@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"context"
 	"errors"
 	"html/template"
 	"log/slog"
@@ -8,6 +9,7 @@ import (
 
 	"github.com/jeb-maker/revues/internal/auth"
 	"github.com/jeb-maker/revues/internal/config"
+	"github.com/jeb-maker/revues/internal/features/organizations"
 	"github.com/jeb-maker/revues/internal/store"
 	"github.com/jeb-maker/revues/internal/web/middleware"
 	"github.com/jeb-maker/revues/internal/web/templates"
@@ -24,7 +26,11 @@ type Auth struct {
 func (h *Auth) Login(w http.ResponseWriter, r *http.Request) {
 	if user, ok := middleware.UserFromContext(r.Context()); ok {
 		slog.Debug("already authenticated", "user_id", user.ID)
-		http.Redirect(w, r, "/", http.StatusFound)
+		if dest := h.postLoginRedirect(r.Context(), user.ID); dest != "" {
+			http.Redirect(w, r, dest, http.StatusFound)
+			return
+		}
+		http.Redirect(w, r, "/projects", http.StatusFound)
 		return
 	}
 
@@ -136,7 +142,14 @@ func (h *Auth) Callback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sessionToken, _, err := h.Sessions.CreateLoginSession(r.Context(), user.ID, 0)
+	sessionOrgID, redirect, err := organizations.PostLoginRoute(r.Context(), h.Store, user.ID)
+	if err != nil {
+		slog.Error("post-login organization route", "err", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	sessionToken, _, err := h.Sessions.CreateLoginSession(r.Context(), user.ID, sessionOrgID)
 	if err != nil {
 		slog.Error("create session", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -145,7 +158,18 @@ func (h *Auth) Callback(w http.ResponseWriter, r *http.Request) {
 
 	h.Sessions.ClearOAuthCookie(w)
 	h.Sessions.SetSessionCookie(w, sessionToken)
-	http.Redirect(w, r, "/", http.StatusFound)
+	http.Redirect(w, r, redirect, http.StatusFound)
+}
+
+func (h *Auth) postLoginRedirect(ctx context.Context, userID int64) string {
+	_, redirect, err := organizations.PostLoginRoute(ctx, h.Store, userID)
+	if err != nil {
+		return ""
+	}
+	if redirect == "/projects" {
+		return ""
+	}
+	return redirect
 }
 
 func (h *Auth) Logout(w http.ResponseWriter, r *http.Request) {
