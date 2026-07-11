@@ -116,11 +116,11 @@ func newHTTPRunLoadFixture(t *testing.T) httpLoadFixture {
 	if err = st.AddOrganizationMember(ctx, defaultOrg.ID, user.ID, store.OrgRoleOwner); err != nil {
 		t.Fatalf("AddOrganizationMember(): %v", err)
 	}
-	project, err := st.CreateProject(ctx, "Load", "", user.ID)
+	project, err := st.CreateProject(ctx, "Load", "", user.ID, nil)
 	if err != nil {
 		t.Fatalf("CreateProject(): %v", err)
 	}
-	template, _, err := st.CreateChecklistTemplate(ctx, project.ID, "Modèle", user.ID, []store.TemplateItemInput{
+	template, _, err := st.CreateChecklistTemplate(ctx, "Modèle", user.ID, nil, []store.TemplateItemInput{
 		{Section: "S", Label: "Point 1", Required: true},
 		{Section: "S", Label: "Point 2", Required: true},
 	})

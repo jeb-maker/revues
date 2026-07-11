@@ -53,7 +53,7 @@ func seedLoadFixturePool(b *testing.B, maxOpen int) (context.Context, *store.Sto
 	if err = st.AddOrganizationMember(ctx, defaultOrg.ID, user.ID, store.OrgRoleOwner); err != nil {
 		b.Fatalf("AddOrganizationMember(): %v", err)
 	}
-	if _, err = st.CreateProject(ctx, "Bench", "", user.ID); err != nil {
+	if _, err = st.CreateProject(ctx, "Bench", "", user.ID, nil); err != nil {
 		b.Fatalf("CreateProject(): %v", err)
 	}
 	return ctx, st, user

@@ -260,7 +260,7 @@ func seedLoadFixture(t *testing.T) (context.Context, *store.Store, *store.User) 
 	if err = st.AddOrganizationMember(ctx, defaultOrg.ID, user.ID, store.OrgRoleOwner); err != nil {
 		t.Fatalf("AddOrganizationMember(): %v", err)
 	}
-	if _, err = st.CreateProject(ctx, "Load", "desc", user.ID); err != nil {
+	if _, err = st.CreateProject(ctx, "Load", "desc", user.ID, nil); err != nil {
 		t.Fatalf("CreateProject(): %v", err)
 	}
 	return ctx, st, user
@@ -283,11 +283,11 @@ func seedInProgressRunFileDB(t *testing.T) (context.Context, *store.Store, *stor
 	if err = st.AddOrganizationMember(ctx, defaultOrg.ID, lead.ID, store.OrgRoleOwner); err != nil {
 		t.Fatalf("AddOrganizationMember(): %v", err)
 	}
-	project, err := st.CreateProject(ctx, "P", "", lead.ID)
+	project, err := st.CreateProject(ctx, "P", "", lead.ID, nil)
 	if err != nil {
 		t.Fatalf("CreateProject(): %v", err)
 	}
-	template, _, err := st.CreateChecklistTemplate(ctx, project.ID, "Modèle", lead.ID, []store.TemplateItemInput{
+	template, _, err := st.CreateChecklistTemplate(ctx, "Modèle", lead.ID, nil, []store.TemplateItemInput{
 		{Section: "S", Label: "Point 1", Required: true},
 		{Section: "S", Label: "Point 2", Required: true},
 	})

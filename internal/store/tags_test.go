@@ -46,9 +46,9 @@ func TestTemplateMatchesProject_Intersection(t *testing.T) {
 
 	assertMatch := func(templateID int64, want bool) {
 		t.Helper()
-		ok, err := st.TemplateMatchesProject(ctx, project.ID, templateID)
-		if err != nil {
-			t.Fatalf("TemplateMatchesProject(%d): %v", templateID, err)
+		ok, matchErr := st.TemplateMatchesProject(ctx, project.ID, templateID)
+		if matchErr != nil {
+			t.Fatalf("TemplateMatchesProject(%d): %v", templateID, matchErr)
 		}
 		if ok != want {
 			t.Fatalf("TemplateMatchesProject(%d) = %v, want %v", templateID, ok, want)

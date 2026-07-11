@@ -88,7 +88,7 @@ func (s *Store) CreateChecklistTemplate(ctx context.Context, name string, create
 		return nil, nil, fmt.Errorf("template id: %w", err)
 	}
 
-	if err := setTemplateTagsTx(ctx, tx, templateID, tags); err != nil {
+	if err = setTemplateTagsTx(ctx, tx, templateID, tags); err != nil {
 		return nil, nil, err
 	}
 
