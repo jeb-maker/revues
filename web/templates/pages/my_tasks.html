@@ -28,16 +28,15 @@
 {{if .Tasks}}
 <table class="data-table">
   <thead>
-    <tr><th>Projet</th><th>Revue</th><th>Point</th><th>Statut</th><th></th></tr>
+    <tr><th>Projet</th><th>Revue</th><th>Point</th><th>Statut</th></tr>
   </thead>
   <tbody>
     {{range .Tasks}}
     <tr>
       <td>{{.ProjectName}}</td>
-      <td>{{.RunTitle}}</td>
-      <td>{{if .Section}}{{.Section}} — {{end}}{{.Label}}</td>
+      <td><a href="/runs/{{.RunID}}">{{.RunTitle}}</a></td>
+      <td><a href="/runs/{{.RunID}}/items/{{.ID}}">{{if .Section}}{{.Section}} — {{end}}{{.Label}}</a></td>
       <td>{{.Status}}</td>
-      <td><a href="/runs/{{.RunID}}">Ouvrir</a></td>
     </tr>
     {{end}}
   </tbody>
@@ -46,7 +45,7 @@
 <p class="muted">Aucune tâche assignée pour ces filtres.</p>
 {{end}}
 
-<p><a href="/projects">← Tableau de bord</a></p>
+<p><a href="/revues">← Revues</a></p>
 {{template "layout_end" .}}
 {{end}}
 {{define "main_class"}} site-main--wide{{end}}

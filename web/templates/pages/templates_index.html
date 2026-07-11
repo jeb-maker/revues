@@ -5,7 +5,7 @@
 {{if .Templates}}
 <table class="data-table">
   <thead>
-    <tr><th>Modèle</th><th>Tags</th><th>Version</th><th>Points</th><th></th></tr>
+    <tr><th>Modèle</th><th>Tags</th><th>Version</th><th>Points</th></tr>
   </thead>
   <tbody>
     {{range .Templates}}
@@ -14,7 +14,6 @@
       <td>{{if .Tags}}{{range $i, $tag := .Tags}}{{if $i}}, {{end}}<span class="tag">{{$tag}}</span>{{end}}{{else}}<span class="muted">tous projets</span>{{end}}</td>
       <td>v{{.LatestVersion}}</td>
       <td>{{.ItemCount}}</td>
-      <td><a href="/modeles/{{.ID}}">Ouvrir</a></td>
     </tr>
     {{end}}
   </tbody>

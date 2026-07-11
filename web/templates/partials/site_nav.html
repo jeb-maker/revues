@@ -2,7 +2,6 @@
 <nav class="site-nav" aria-label="Navigation principale">
   <a href="/mes-taches" class="site-nav__link{{if eq .ActiveTab "tasks"}} is-active{{end}}">Mes tâches</a>
   <span class="site-nav__sep" aria-hidden="true"></span>
-  <a href="/revues" class="site-nav__link site-nav__link--ref{{if eq .ActiveTab "runs"}} is-active{{end}}">Revues</a>
   <a href="/projects" class="site-nav__link site-nav__link--ref{{if eq .ActiveTab "projects"}} is-active{{end}}">Projets</a>
   <a href="/modeles" class="site-nav__link site-nav__link--ref{{if eq .ActiveTab "templates"}} is-active{{end}}">Modèles</a>
   {{if and .User (eq .User.Role "admin")}}

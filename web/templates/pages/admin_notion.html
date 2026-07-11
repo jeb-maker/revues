@@ -1,6 +1,5 @@
 {{define "admin_notion"}}
 {{template "layout_start" .}}
-<h1>Configuration Notion</h1>
 <p>Connectez Revues à Notion. Voir <code>docs/NOTION.md</code> pour le mapping des champs.</p>
 {{template "admin_nav" .}}
 {{if not .CanEncrypt}}<p class="error">REVUES_ENCRYPTION_KEY n'est pas configurée.</p>{{end}}

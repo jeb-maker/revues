@@ -18,12 +18,8 @@ type AdminNotion struct {
 
 // Show renders the Notion configuration form.
 func (h *AdminNotion) Show(w http.ResponseWriter, r *http.Request) {
-	data := templates.AdminNotionData{
-		PageData:   h.PageData(r, "Configuration Notion"),
-		CanEncrypt: len(h.EncryptionKey) > 0,
-		Message:    r.URL.Query().Get("msg"),
-	}
-	data.AdminSection = "notion"
+	data := h.pageData(r)
+	data.Message = r.URL.Query().Get("msg")
 	if cfg, ok, err := h.service().Load(r.Context()); err != nil {
 		data.Error = "Impossible de charger la configuration Notion."
 	} else if ok {
@@ -86,14 +82,20 @@ func (h *AdminNotion) testConnection(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *AdminNotion) renderError(w http.ResponseWriter, r *http.Request, msg string) {
-	data := templates.AdminNotionData{
-		PageData:   h.PageData(r, "Configuration Notion"),
-		CanEncrypt: len(h.EncryptionKey) > 0,
-		Error:      msg,
-	}
-	data.AdminSection = "notion"
+	data := h.pageData(r)
+	data.Error = msg
 	w.WriteHeader(http.StatusBadRequest)
 	_ = h.Templates.ExecuteTemplate(w, "admin_notion", data)
+}
+
+func (h *AdminNotion) pageData(r *http.Request) templates.AdminNotionData {
+	data := templates.AdminNotionData{
+		PageData:   templates.ApplyPageMeta(h.PageData(r, ""), templates.BCAdminNotion()),
+		CanEncrypt: len(h.EncryptionKey) > 0,
+	}
+	data.ActiveTab = "admin"
+	data.AdminSection = "notion"
+	return data
 }
 
 func (h *AdminNotion) service() *notion.Service {

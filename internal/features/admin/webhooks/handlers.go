@@ -124,9 +124,10 @@ func (h *AdminWebhooks) renderForm(w http.ResponseWriter, r *http.Request, parti
 
 func (h *AdminWebhooks) pageData(r *http.Request) templates.AdminWebhooksData {
 	data := templates.AdminWebhooksData{
-		PageData:   h.PageData(r, "Configuration webhooks"),
+		PageData:   templates.ApplyPageMeta(h.PageData(r, ""), templates.BCAdminWebhooks()),
 		CanEncrypt: len(h.EncryptionKey) > 0,
 	}
+	data.ActiveTab = "admin"
 	data.AdminSection = "webhooks"
 	return data
 }

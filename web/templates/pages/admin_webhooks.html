@@ -1,6 +1,5 @@
 {{define "admin_webhooks"}}
 {{template "layout_start" .}}
-<h1>Configuration webhooks</h1>
 <p>Notifications JSON signées HMAC-SHA256. Voir <code>docs/WEBHOOKS.md</code>.</p>
 {{template "admin_nav" .}}
 {{if not .CanEncrypt}}<p class="error">REVUES_ENCRYPTION_KEY requise pour enregistrer.</p>{{end}}

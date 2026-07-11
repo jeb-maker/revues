@@ -181,7 +181,7 @@ func BCTemplateNotionImport(projectName string, projectID int64) []Breadcrumb {
 
 // BCAdminUsers is the admin users page breadcrumb.
 func BCAdminUsers() []Breadcrumb {
-	return []Breadcrumb{crumb("Admin", PathAdmin), current("Utilisateurs")}
+	return []Breadcrumb{crumb("Admin", PathAdmin), current("Emails autorisés")}
 }
 
 // BCAdminIntegrations is the admin integrations overview breadcrumb.

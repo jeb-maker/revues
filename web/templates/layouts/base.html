@@ -17,7 +17,6 @@
         {{icon "menu"}}
       </button>
       <a class="brand{{if and .User (eq .ActiveTab "runs")}} is-active{{end}}" href="{{if .User}}/revues{{else}}/{{end}}" aria-label="Revues — accueil"{{if and .User (eq .ActiveTab "runs")}} aria-current="page"{{end}}>
-        <span class="brand__mark" aria-hidden="true">◈</span>
         <span class="brand__name">Revues</span>
       </a>
       {{if .User}}
@@ -32,8 +31,6 @@
         </select>
         <button type="submit" class="button button-ghost button-sm">Changer</button>
       </form>
-      {{else if .ActiveOrganization}}
-      <span class="org-switcher org-switcher--single">{{.ActiveOrganization.Name}}</span>
       {{end}}
       {{template "site_nav" .}}
       <div class="header-account">

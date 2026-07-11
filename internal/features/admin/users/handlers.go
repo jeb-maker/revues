@@ -46,7 +46,7 @@ func (h *AdminUsers) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data := h.adminData(r, "Emails autorisés")
+	data := h.adminData(r)
 	data.Emails = emails
 	data.Message = r.URL.Query().Get("msg")
 	if org, ok := middleware.OrganizationFromContext(r.Context()); ok {
@@ -120,10 +120,11 @@ func (h *AdminUsers) Remove(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/admin/users?msg=Email+retir%C3%A9", http.StatusSeeOther)
 }
 
-func (h *AdminUsers) adminData(r *http.Request, title string) templates.AdminUsersData {
+func (h *AdminUsers) adminData(r *http.Request) templates.AdminUsersData {
 	data := templates.AdminUsersData{
-		PageData: h.PageData(r, title),
+		PageData: templates.ApplyPageMeta(h.PageData(r, ""), templates.BCAdminUsers()),
 	}
+	data.ActiveTab = "admin"
 	data.AdminSection = "users"
 	return data
 }
@@ -136,7 +137,7 @@ func (h *AdminUsers) renderError(w http.ResponseWriter, r *http.Request, message
 		return
 	}
 
-	data := h.adminData(r, "Emails autorisés")
+	data := h.adminData(r)
 	data.Emails = emails
 	data.Error = message
 	if org, ok := middleware.OrganizationFromContext(r.Context()); ok {

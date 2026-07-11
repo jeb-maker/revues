@@ -210,10 +210,11 @@ func (h *AdminSMTP) renderForm(w http.ResponseWriter, r *http.Request, partial t
 
 func (h *AdminSMTP) pageData(r *http.Request) templates.AdminSMTPData {
 	data := templates.AdminSMTPData{
-		PageData:   h.PageData(r, "Configuration SMTP"),
+		PageData:   templates.ApplyPageMeta(h.PageData(r, ""), templates.BCAdminSMTP()),
 		Port:       587,
 		CanEncrypt: len(h.EncryptionKey) > 0,
 	}
+	data.ActiveTab = "admin"
 	data.AdminSection = "smtp"
 	if user, ok := middleware.UserFromContext(r.Context()); ok {
 		data.TestRecipient = user.Email

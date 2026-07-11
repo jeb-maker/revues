@@ -27,30 +27,24 @@
 {{else}}
 {{if .ActiveRuns}}
 <div class="table-scroll">
-<table class="data-table">
+<table class="data-table runs-table">
   <thead>
-    <tr><th scope="col">Revue</th><th scope="col">Projet</th><th scope="col">Échéance</th><th scope="col">Progression</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr>
+    <tr><th scope="col">Revue</th><th scope="col">Projet</th><th scope="col">Échéance</th><th scope="col">Progression</th></tr>
   </thead>
   <tbody>
     {{range .ActiveRuns}}
-    <tr>
+    <tr class="runs-table__data" style="--run-progress: {{.Percent}}%" aria-label="Progression {{.Done}} sur {{.Total}}, {{.Percent}} pourcent">
       <td><a href="/runs/{{.RunID}}">{{.Title}}</a></td>
       <td><a href="/projects/{{.ProjectID}}">{{.ProjectName}}</a></td>
       <td>{{if .DueDate.Valid}}{{formatDueDate .DueDate}}{{else}}<span class="muted">—</span>{{end}}</td>
-      <td>
-        <div class="run-progress-track compact">
-          <div class="run-progress-bar" style="width: {{.Percent}}%"></div>
-        </div>
-        <span class="muted">{{.Done}} / {{.Total}} ({{.Percent}}%)</span>
-      </td>
-      <td><a href="/runs/{{.RunID}}">Ouvrir</a></td>
+      <td class="runs-table__stats muted">{{.Done}}/{{.Total}} ({{.Percent}}%)</td>
     </tr>
     {{end}}
   </tbody>
 </table>
 </div>
 {{else}}
-<p class="muted">Aucune revue en cours.</p>
+<p class="muted content-inset">Aucune revue en cours.</p>
 {{end}}
 {{end}}
 {{template "layout_end" .}}

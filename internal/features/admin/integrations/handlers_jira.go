@@ -181,10 +181,11 @@ func (h *AdminJira) renderForm(w http.ResponseWriter, r *http.Request, partial t
 
 func (h *AdminJira) pageData(r *http.Request) templates.AdminJiraData {
 	data := templates.AdminJiraData{
-		PageData:     h.PageData(r, "Configuration Jira"),
+		PageData:     templates.ApplyPageMeta(h.PageData(r, ""), templates.BCAdminJira()),
 		InstanceType: jira.InstanceCloud,
 		CanEncrypt:   len(h.EncryptionKey) > 0,
 	}
+	data.ActiveTab = "admin"
 	data.AdminSection = "jira"
 	return data
 }

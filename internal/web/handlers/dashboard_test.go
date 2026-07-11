@@ -72,8 +72,8 @@ func TestDashboard_ShowsActiveRunProgress(t *testing.T) {
 	if !strings.Contains(body, "50%") {
 		t.Fatal("expected run progress percent")
 	}
-	if !strings.Contains(body, "is-active") || !strings.Contains(body, ">Revues</a>") {
-		t.Fatal("expected active revues tab")
+	if !strings.Contains(body, "brand is-active") || !strings.Contains(body, "brand__name\">Revues") {
+		t.Fatal("expected active brand link on revues home")
 	}
 }
 

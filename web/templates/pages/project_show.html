@@ -45,7 +45,7 @@
   {{if .Runs}}
   <table class="data-table">
     <thead>
-      <tr><th>Titre</th><th>Statut</th><th>Échéance</th><th>Progression</th><th></th></tr>
+      <tr><th>Titre</th><th>Statut</th><th>Échéance</th><th>Progression</th></tr>
     </thead>
     <tbody>
       {{range .Runs}}
@@ -65,7 +65,6 @@
           <span class="muted">—</span>
           {{end}}
         </td>
-        <td><a href="/runs/{{.ID}}">Ouvrir</a></td>
       </tr>
       {{end}}
     </tbody>

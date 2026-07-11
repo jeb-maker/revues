@@ -39,6 +39,10 @@
   --maxw: 44rem;
   --maxw-wide: 70rem;
   --header-h: 3.5rem;
+
+  /* Align breadcrumb text with first table column text */
+  --content-padding-x: 0.6rem;
+  --panel-padding-x: 1.25rem;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -152,7 +156,6 @@ pre {
 }
 .brand:hover { text-decoration: none; }
 .brand.is-active { color: var(--accent); }
-.brand__mark { color: var(--accent); font-size: 1.1rem; line-height: 1; }
 
 .site-nav {
   display: flex;
@@ -285,6 +288,15 @@ pre {
 .page-header .breadcrumb {
   flex: 1 1 auto;
   min-width: min(100%, 12rem);
+  padding-inline: var(--content-padding-x);
+}
+
+/* Root-level copy on wide pages: same inset as breadcrumb / table col 1 */
+.content-inset { padding-inline: var(--content-padding-x); }
+
+/* Panel/card pages: breadcrumb aligns with inner content (same as col 1 text in boxed tables) */
+.site-main:has(.panel, .card) .page-header .breadcrumb {
+  padding-inline: var(--panel-padding-x);
 }
 .page-actions {
   display: flex;
@@ -489,6 +501,18 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--accent); }
 }
 .data-table tbody tr:hover { background: var(--surface-2); }
 .data-table a { font-weight: 500; }
+
+/* Root-level tables: col 1 text inset matches breadcrumb */
+.site-main > :is(.table-scroll, .data-table) .data-table :is(th, td):first-child,
+.site-main > .data-table :is(th, td):first-child {
+  padding-left: var(--content-padding-x);
+}
+
+/* Boxed content: panel/card provides the inset; flush first column */
+.panel .data-table :is(th, td):first-child,
+.card .data-table :is(th, td):first-child {
+  padding-left: 0;
+}
 
 .item-list {
   margin: 0.5rem 0 1rem;
@@ -707,6 +731,26 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--accent); }
   transition: width 0.25s ease;
 }
 .run-progress-label { margin: 0.35rem 0 0; font-size: 0.85rem; }
+
+.runs-table tbody tr.runs-table__data {
+  --run-progress: 0%;
+  background-image:
+    linear-gradient(to right, var(--accent), var(--accent)),
+    linear-gradient(var(--border), var(--border));
+  background-size: var(--run-progress) 1px, 100% 1px;
+  background-position: left bottom, left bottom;
+  background-repeat: no-repeat;
+}
+.runs-table tbody tr.runs-table__data td {
+  border-bottom: 0;
+  background: transparent;
+}
+.runs-table tbody tr.runs-table__data:hover { background-color: var(--surface-2); }
+.runs-table__stats {
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
 
 .attachment-display { margin: 0.25rem 0; }
 .attachment-thumb-link { display: inline-block; line-height: 0; border-radius: var(--r-sm); }

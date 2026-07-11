@@ -67,8 +67,9 @@ func (h *AdminIntegrations) Show(w http.ResponseWriter, r *http.Request) {
 
 func (h *AdminIntegrations) pageData(r *http.Request) templates.AdminIntegrationsData {
 	data := templates.AdminIntegrationsData{
-		PageData: h.PageData(r, "Intégrations"),
+		PageData: templates.ApplyPageMeta(h.PageData(r, ""), templates.BCAdminIntegrations()),
 	}
+	data.ActiveTab = "admin"
 	data.AdminSection = "integrations"
 	return data
 }
