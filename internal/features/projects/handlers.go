@@ -68,22 +68,14 @@ func (h *Projects) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	activeRuns, err := h.Store.ListActiveRunSummaries(r.Context(), user.ID, admin)
-	if err != nil {
-		slog.Error("list active runs", "err", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
-	}
-
 	orgRole, orgMember, _ := h.Store.OrganizationMemberRole(r.Context(), 0, user.ID)
 	if org, ok := middleware.OrganizationFromContext(r.Context()); ok {
 		orgRole, orgMember, _ = h.Store.OrganizationMemberRole(r.Context(), org.ID, user.ID)
 	}
 
 	data := templates.ProjectsListData{
-		PageData:          h.PageDataTab(r, "Tableau de bord", "projects"),
+		PageData:          h.PageDataTab(r, "Projets", "projects"),
 		Projects:          items,
-		ActiveRuns:        activeRuns,
 		CanCreate:         CanCreate(user),
 		CanManageOrgUsers: CanManageOrgUsers(user, orgRole, orgMember),
 		Message:           r.URL.Query().Get("msg"),

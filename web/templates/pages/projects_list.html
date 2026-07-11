@@ -1,13 +1,12 @@
 {{define "projects_list"}}
 {{template "layout_start" .}}
-{{template "nav_tabs" .}}
-<h1>Tableau de bord</h1>
+<h1>Projets</h1>
 {{if .Message}}<p class="success">{{.Message}}</p>{{end}}
 {{if .Error}}<p class="error">{{.Error}}</p>{{end}}
 
-{{if and (not .Projects) (not .ActiveRuns)}}
+{{if not .Projects}}
 <section class="empty-state">
-  <h2>Bienvenue dans Revues</h2>
+  <h2>Aucun projet</h2>
   {{if .CanManageOrgUsers}}
   <p>Votre organisation est prête. Commencez par autoriser les utilisateurs, puis créez votre premier projet.</p>
   <p class="empty-state-actions">
@@ -15,7 +14,7 @@
     <a class="button" href="/projects/new">Créer un projet</a>
   </p>
   {{else if .CanCreate}}
-  <p>Aucun projet pour l'instant. Créez un projet pour y ajouter des modèles de checklist et lancer une revue.</p>
+  <p>Créez un projet pour y ajouter des modèles de checklist et lancer une revue.</p>
   <p class="empty-state-actions">
     <a class="button" href="/projects/new">Créer un projet</a>
   </p>
@@ -32,48 +31,13 @@
 {{end}}
 
 <section class="panel">
-  <h2>Revues en cours</h2>
-  {{if .ActiveRuns}}
-  <table class="data-table">
-    <thead>
-      <tr><th>Revue</th><th>Projet</th><th>Échéance</th><th>Progression</th><th></th></tr>
-    </thead>
-    <tbody>
-      {{range .ActiveRuns}}
-      <tr>
-        <td><a href="/runs/{{.RunID}}">{{.Title}}</a></td>
-        <td><a href="/projects/{{.ProjectID}}">{{.ProjectName}}</a></td>
-        <td>{{if .DueDate.Valid}}{{formatDueDate .DueDate}}{{else}}<span class="muted">—</span>{{end}}</td>
-        <td>
-          <div class="run-progress-track compact">
-            <div class="run-progress-bar" style="width: {{.Percent}}%"></div>
-          </div>
-          <span class="muted">{{.Done}} / {{.Total}} ({{.Percent}}%)</span>
-        </td>
-        <td><a href="/runs/{{.RunID}}">Ouvrir</a></td>
-      </tr>
-      {{end}}
-    </tbody>
-  </table>
-  {{else}}
-  <p class="muted">Aucune revue en cours.</p>
-  {{end}}
-</section>
-
-<section class="panel">
   <h2>Projets ({{len .Projects}})</h2>
-  {{if .Projects}}
   <ul class="item-list">
     {{range .Projects}}
     <li><a href="/projects/{{.ID}}">{{.Name}}</a>{{if .Description}} <span class="muted">— {{.Description}}</span>{{end}}</li>
     {{end}}
   </ul>
-  {{else}}
-  <p class="muted">Aucun projet actif.</p>
-  {{end}}
 </section>
-
-<p><a href="/runs/new">Lancer une revue</a></p>
 {{end}}
 {{template "layout_end" .}}
 {{end}}

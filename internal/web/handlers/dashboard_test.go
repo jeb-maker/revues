@@ -57,7 +57,7 @@ func TestDashboard_ShowsActiveRunProgress(t *testing.T) {
 		t.Fatalf("CreateLoginSession(): %v", err)
 	}
 
-	req := httptest.NewRequest(http.MethodGet, "/projects", nil)
+	req := httptest.NewRequest(http.MethodGet, "/revues", nil)
 	req.AddCookie(&http.Cookie{Name: "revues_session", Value: token})
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
@@ -66,17 +66,14 @@ func TestDashboard_ShowsActiveRunProgress(t *testing.T) {
 		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
 	}
 	body := rec.Body.String()
-	if !strings.Contains(body, "Tableau de bord") {
-		t.Fatal("expected dashboard title")
-	}
 	if !strings.Contains(body, "Sprint") {
 		t.Fatal("expected active run title")
 	}
 	if !strings.Contains(body, "50%") {
 		t.Fatal("expected run progress percent")
 	}
-	if !strings.Contains(body, "nav-tab is-active") || !strings.Contains(body, ">Projets</a>") {
-		t.Fatal("expected active projects tab")
+	if !strings.Contains(body, "is-active") || !strings.Contains(body, ">Revues</a>") {
+		t.Fatal("expected active revues tab")
 	}
 }
 
@@ -117,7 +114,7 @@ func TestDashboard_ShowsRunDueDate(t *testing.T) {
 		t.Fatalf("CreateLoginSession(): %v", err)
 	}
 
-	req := httptest.NewRequest(http.MethodGet, "/projects", nil)
+	req := httptest.NewRequest(http.MethodGet, "/revues", nil)
 	req.AddCookie(&http.Cookie{Name: "revues_session", Value: token})
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
