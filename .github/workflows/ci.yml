@@ -22,9 +22,9 @@ jobs:
           cache: true
 
       - name: Install golangci-lint
-        uses: golangci/golangci-lint-action@v6
+        uses: golangci/golangci-lint-action@v7
         with:
-          version: v1.62
+          version: v2.12
           args: --timeout=5m
 
       - name: Run check.sh
