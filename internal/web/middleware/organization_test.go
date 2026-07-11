@@ -27,7 +27,7 @@ func TestLoadActiveOrganization_InjectsOrganization(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateOrganization(): %v", err)
 	}
-	if err := st.AddOrganizationMember(ctx, org.ID, user.ID, store.OrgRoleMember); err != nil {
+	if err = st.AddOrganizationMember(ctx, org.ID, user.ID, store.OrgRoleMember); err != nil {
 		t.Fatalf("AddOrganizationMember(): %v", err)
 	}
 
@@ -42,12 +42,12 @@ func TestLoadActiveOrganization_InjectsOrganization(t *testing.T) {
 	handler.Use(appmiddleware.LoadUser(st))
 	handler.Use(appmiddleware.LoadActiveOrganization(st))
 	handler.Get("/projects", func(w http.ResponseWriter, r *http.Request) {
-		org, ok := appmiddleware.OrganizationFromContext(r.Context())
+		ctxOrg, ok := appmiddleware.OrganizationFromContext(r.Context())
 		if !ok {
 			http.Error(w, "missing organization", http.StatusInternalServerError)
 			return
 		}
-		gotOrg = org
+		gotOrg = ctxOrg
 		w.WriteHeader(http.StatusOK)
 	})
 
@@ -81,7 +81,7 @@ func TestLoadActiveOrganization_RedirectsWithoutMembership(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateOrganization(other): %v", err)
 	}
-	if err := st.AddOrganizationMember(ctx, memberOrg.ID, user.ID, store.OrgRoleMember); err != nil {
+	if err = st.AddOrganizationMember(ctx, memberOrg.ID, user.ID, store.OrgRoleMember); err != nil {
 		t.Fatalf("AddOrganizationMember(): %v", err)
 	}
 

@@ -115,10 +115,10 @@ func TestIDOR_CrossOrganization(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateOrganization(org-b): %v", err)
 	}
-	if err := st.AddOrganizationMember(ctx, orgA.ID, alice.ID, store.OrgRoleOwner); err != nil {
+	if err = st.AddOrganizationMember(ctx, orgA.ID, alice.ID, store.OrgRoleOwner); err != nil {
 		t.Fatalf("AddOrganizationMember(alice): %v", err)
 	}
-	if err := st.AddOrganizationMember(ctx, orgB.ID, bob.ID, store.OrgRoleOwner); err != nil {
+	if err = st.AddOrganizationMember(ctx, orgB.ID, bob.ID, store.OrgRoleOwner); err != nil {
 		t.Fatalf("AddOrganizationMember(bob): %v", err)
 	}
 
@@ -127,7 +127,7 @@ func TestIDOR_CrossOrganization(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateProject(): %v", err)
 	}
-	if err := st.AddProjectMember(ctxA, project.ID, bob.ID, "viewer"); err != nil {
+	if err = st.AddProjectMember(ctxA, project.ID, bob.ID, "viewer"); err != nil {
 		t.Fatalf("AddProjectMember(bob): %v", err)
 	}
 

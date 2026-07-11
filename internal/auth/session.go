@@ -33,7 +33,7 @@ func (m *SessionManager) CreateLoginSession(ctx context.Context, userID, organiz
 		return "", "", err
 	}
 
-	if err := m.Store.DeleteUserSessions(ctx, userID); err != nil {
+	if err = m.Store.DeleteUserSessions(ctx, userID); err != nil {
 		return "", "", err
 	}
 
@@ -42,7 +42,7 @@ func (m *SessionManager) CreateLoginSession(ctx context.Context, userID, organiz
 		return "", "", err
 	}
 
-	if err := m.Store.CreateSession(ctx, userID, orgID, hash); err != nil {
+	if err = m.Store.CreateSession(ctx, userID, orgID, hash); err != nil {
 		return "", "", err
 	}
 

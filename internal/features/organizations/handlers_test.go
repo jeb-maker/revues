@@ -39,7 +39,7 @@ func TestPostLoginRoute(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateOrganization(): %v", err)
 	}
-	if err := st.AddOrganizationMember(ctx, orgOne.ID, userOne.ID, store.OrgRoleOwner); err != nil {
+	if err = st.AddOrganizationMember(ctx, orgOne.ID, userOne.ID, store.OrgRoleOwner); err != nil {
 		t.Fatalf("AddOrganizationMember(): %v", err)
 	}
 
@@ -168,7 +168,7 @@ func TestSelectOrganization(t *testing.T) {
 		t.Fatalf("CreateOrganization(beta): %v", err)
 	}
 	for _, org := range []*store.Organization{orgA, orgB} {
-		if err := st.AddOrganizationMember(ctx, org.ID, user.ID, store.OrgRoleMember); err != nil {
+		if err = st.AddOrganizationMember(ctx, org.ID, user.ID, store.OrgRoleMember); err != nil {
 			t.Fatalf("AddOrganizationMember(): %v", err)
 		}
 	}

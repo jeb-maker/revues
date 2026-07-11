@@ -125,7 +125,7 @@ func (h *Organizations) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := r.ParseForm(); err != nil {
+	if err = r.ParseForm(); err != nil {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
 	}
@@ -198,7 +198,7 @@ func (h *Organizations) SelectForm(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/org/new", http.StatusFound)
 		return
 	case 1:
-		if err := h.autoSelectSingleOrg(w, r, user.ID); err != nil {
+		if err = h.autoSelectSingleOrg(w, r, user.ID); err != nil {
 			slog.Error("auto select organization", "err", err)
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return

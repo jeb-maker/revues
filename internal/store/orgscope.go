@@ -17,11 +17,3 @@ func organizationIDFromContext(ctx context.Context) (int64, error) {
 	}
 	return orgID, nil
 }
-
-func optionalOrganizationIDFromContext(ctx context.Context) int64 {
-	orgID, ok := orgctx.OrganizationID(ctx)
-	if !ok {
-		return 0
-	}
-	return orgID
-}

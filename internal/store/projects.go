@@ -276,7 +276,7 @@ func (s *Store) AddProjectMember(ctx context.Context, projectID, userID int64, r
 		return err
 	}
 
-	if _, err := s.projectByID(ctx, projectID, orgID); err != nil {
+	if _, err = s.projectByID(ctx, projectID, orgID); err != nil {
 		return err
 	}
 

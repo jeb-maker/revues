@@ -38,7 +38,6 @@ func testJiraService(t *testing.T) (*jira.Service, *store.Store) {
 
 	key := make([]byte, crypto.KeySize)
 	st := store.New(db)
-	ctx = testutil.DefaultOrgContext(ctx, st)
 	return &jira.Service{Store: st, EncryptionKey: key}, st
 }
 

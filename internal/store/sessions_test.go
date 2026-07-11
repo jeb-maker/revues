@@ -22,11 +22,11 @@ func TestCreateSessionWithOrganization(t *testing.T) {
 	if err != nil {
 		t.Fatalf("OrganizationBySlug(default): %v", err)
 	}
-	if err := st.AddOrganizationMember(ctx, defaultOrg.ID, user.ID, store.OrgRoleMember); err != nil {
+	if err = st.AddOrganizationMember(ctx, defaultOrg.ID, user.ID, store.OrgRoleMember); err != nil {
 		t.Fatalf("AddOrganizationMember(): %v", err)
 	}
 
-	if err := st.CreateSession(ctx, user.ID, defaultOrg.ID, "hash-1"); err != nil {
+	if err = st.CreateSession(ctx, user.ID, defaultOrg.ID, "hash-1"); err != nil {
 		t.Fatalf("CreateSession(): %v", err)
 	}
 
@@ -122,7 +122,7 @@ func TestCreateSessionPendingOrganization(t *testing.T) {
 		t.Fatalf("UpsertGitHubUser(): %v", err)
 	}
 
-	if err := st.CreateSession(ctx, user.ID, 0, "pending-hash"); err != nil {
+	if err = st.CreateSession(ctx, user.ID, 0, "pending-hash"); err != nil {
 		t.Fatalf("CreateSession(): %v", err)
 	}
 
@@ -149,10 +149,10 @@ func TestUpdateSessionOrganization(t *testing.T) {
 		t.Fatalf("CreateOrganization(): %v", err)
 	}
 
-	if err := st.CreateSession(ctx, user.ID, 0, "update-hash"); err != nil {
+	if err = st.CreateSession(ctx, user.ID, 0, "update-hash"); err != nil {
 		t.Fatalf("CreateSession(): %v", err)
 	}
-	if err := st.UpdateSessionOrganization(ctx, "update-hash", org.ID); err != nil {
+	if err = st.UpdateSessionOrganization(ctx, "update-hash", org.ID); err != nil {
 		t.Fatalf("UpdateSessionOrganization(): %v", err)
 	}
 
