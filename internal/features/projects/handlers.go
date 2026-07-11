@@ -311,7 +311,7 @@ func (h *Projects) AddMember(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	if err := r.ParseForm(); err != nil {
+	if err = r.ParseForm(); err != nil {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
 	}
@@ -334,7 +334,7 @@ func (h *Projects) AddMember(w http.ResponseWriter, r *http.Request) {
 			http.NotFound(w, r)
 			return
 		}
-		if err := h.Store.CreateOrganizationInvitation(r.Context(), email, project.OrganizationID, project.ID, role); err != nil {
+		if err = h.Store.CreateOrganizationInvitation(r.Context(), email, project.OrganizationID, project.ID, role); err != nil {
 			slog.Error("create organization invitation", "err", err)
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
@@ -359,7 +359,7 @@ func (h *Projects) AddMember(w http.ResponseWriter, r *http.Request) {
 			http.NotFound(w, r)
 			return
 		}
-		if err := h.Store.AddOrganizationMember(r.Context(), project.OrganizationID, member.ID, store.OrgRoleMember); err != nil {
+		if err = h.Store.AddOrganizationMember(r.Context(), project.OrganizationID, member.ID, store.OrgRoleMember); err != nil {
 			slog.Error("add organization member", "err", err)
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
@@ -368,7 +368,7 @@ func (h *Projects) AddMember(w http.ResponseWriter, r *http.Request) {
 		_ = inviteeOrgRole
 	}
 
-	if err := h.Store.AddProjectMember(r.Context(), project.ID, member.ID, role); err != nil {
+	if err = h.Store.AddProjectMember(r.Context(), project.ID, member.ID, role); err != nil {
 		slog.Error("add project member", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
@@ -397,7 +397,7 @@ func (h *Projects) RemoveMember(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
-	if err := r.ParseForm(); err != nil {
+	if err = r.ParseForm(); err != nil {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
 	}

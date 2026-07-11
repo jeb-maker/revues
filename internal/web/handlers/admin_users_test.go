@@ -27,7 +27,7 @@ func TestAdminUsers_AddAndRemove(t *testing.T) {
 	if err != nil {
 		t.Fatalf("UpsertGitHubUser(): %v", err)
 	}
-	if err := st.AddOrganizationMember(ctx, defaultOrg.ID, admin.ID, store.OrgRoleOwner); err != nil {
+	if err = st.AddOrganizationMember(ctx, defaultOrg.ID, admin.ID, store.OrgRoleOwner); err != nil {
 		t.Fatalf("AddOrganizationMember(): %v", err)
 	}
 	if insertErr := st.InsertAllowedEmail(ctx, "admin@example.com", auth.RoleAdmin); insertErr != nil {
@@ -87,7 +87,7 @@ func TestAdminUsers_ReaderForbidden(t *testing.T) {
 	if err != nil {
 		t.Fatalf("UpsertGitHubUser(): %v", err)
 	}
-	if err := st.AddOrganizationMember(ctx, defaultOrg.ID, reader.ID, store.OrgRoleMember); err != nil {
+	if err = st.AddOrganizationMember(ctx, defaultOrg.ID, reader.ID, store.OrgRoleMember); err != nil {
 		t.Fatalf("AddOrganizationMember(): %v", err)
 	}
 
@@ -121,7 +121,7 @@ func TestAdminUsers_OrgAdminAllowed(t *testing.T) {
 	if err != nil {
 		t.Fatalf("UpsertGitHubUser(): %v", err)
 	}
-	if err := st.AddOrganizationMember(ctx, defaultOrg.ID, orgAdmin.ID, store.OrgRoleAdmin); err != nil {
+	if err = st.AddOrganizationMember(ctx, defaultOrg.ID, orgAdmin.ID, store.OrgRoleAdmin); err != nil {
 		t.Fatalf("AddOrganizationMember(): %v", err)
 	}
 

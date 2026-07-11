@@ -239,7 +239,7 @@ func TestSwitchOrganization(t *testing.T) {
 		t.Fatalf("CreateOrganization(beta): %v", err)
 	}
 	for _, org := range []*store.Organization{orgA, orgB} {
-		if err := st.AddOrganizationMember(ctx, org.ID, user.ID, store.OrgRoleMember); err != nil {
+		if err = st.AddOrganizationMember(ctx, org.ID, user.ID, store.OrgRoleMember); err != nil {
 			t.Fatalf("AddOrganizationMember(): %v", err)
 		}
 	}
@@ -310,7 +310,7 @@ func TestAcceptOrganizationInvitation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateOrganization(): %v", err)
 	}
-	if err := st.AddOrganizationMember(ctx, org.ID, owner.ID, store.OrgRoleOwner); err != nil {
+	if err = st.AddOrganizationMember(ctx, org.ID, owner.ID, store.OrgRoleOwner); err != nil {
 		t.Fatalf("AddOrganizationMember(owner): %v", err)
 	}
 	orgCtx := orgctx.WithOrganizationID(ctx, org.ID)
@@ -318,7 +318,7 @@ func TestAcceptOrganizationInvitation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateProject(): %v", err)
 	}
-	if err := st.CreateOrganizationInvitation(ctx, "pending@example.com", org.ID, project.ID, "contributor"); err != nil {
+	if err = st.CreateOrganizationInvitation(ctx, "pending@example.com", org.ID, project.ID, "contributor"); err != nil {
 		t.Fatalf("CreateOrganizationInvitation(): %v", err)
 	}
 	invites, err := st.ListPendingInvitationsByEmail(ctx, "pending@example.com")

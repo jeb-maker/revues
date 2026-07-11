@@ -61,7 +61,7 @@ func TestResolveLoginRole(t *testing.T) {
 		if err != nil {
 			t.Fatalf("OrganizationBySlug(): %v", err)
 		}
-		if err := st.AddOrganizationMember(ctx, defaultOrg.ID, user.ID, store.OrgRoleMember); err != nil {
+		if err = st.AddOrganizationMember(ctx, defaultOrg.ID, user.ID, store.OrgRoleMember); err != nil {
 			t.Fatalf("AddOrganizationMember(): %v", err)
 		}
 
@@ -79,7 +79,7 @@ func TestResolveLoginRole(t *testing.T) {
 		if err != nil {
 			t.Fatalf("OrganizationBySlug(): %v", err)
 		}
-		if err := st.CreateOrganizationInvitation(ctx, "invited@example.com", defaultOrg.ID, 0, ""); err != nil {
+		if err = st.CreateOrganizationInvitation(ctx, "invited@example.com", defaultOrg.ID, 0, ""); err != nil {
 			t.Fatalf("CreateOrganizationInvitation(): %v", err)
 		}
 		role, err := st.ResolveLoginRole(ctx, "invited@example.com", "")
@@ -102,7 +102,7 @@ func TestEnsureBootstrapOrgOwner(t *testing.T) {
 		t.Fatalf("UpsertGitHubUser(): %v", err)
 	}
 
-	if err := st.EnsureBootstrapOrgOwner(ctx, user.ID, "admin@example.com", "admin@example.com"); err != nil {
+	if err = st.EnsureBootstrapOrgOwner(ctx, user.ID, "admin@example.com", "admin@example.com"); err != nil {
 		t.Fatalf("EnsureBootstrapOrgOwner(): %v", err)
 	}
 

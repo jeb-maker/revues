@@ -247,7 +247,7 @@ func TestDashboardEmptyState_ByRole(t *testing.T) {
 			if err != nil {
 				t.Fatalf("UpsertGitHubUser(): %v", err)
 			}
-			if err := st.AddOrganizationMember(ctx, defaultOrg.ID, user.ID, tt.orgRole); err != nil {
+			if err = st.AddOrganizationMember(ctx, defaultOrg.ID, user.ID, tt.orgRole); err != nil {
 				t.Fatalf("AddOrganizationMember(): %v", err)
 			}
 
@@ -298,7 +298,7 @@ func TestProjectInvite_ExternalUserAutoJoinedToOrg(t *testing.T) {
 	if err != nil {
 		t.Fatalf("OrganizationBySlug(default): %v", err)
 	}
-	if err := st.AddOrganizationMember(ctx, defaultOrg.ID, lead.ID, store.OrgRoleOwner); err != nil {
+	if err = st.AddOrganizationMember(ctx, defaultOrg.ID, lead.ID, store.OrgRoleOwner); err != nil {
 		t.Fatalf("AddOrganizationMember(lead): %v", err)
 	}
 
@@ -373,10 +373,10 @@ func TestProjectInvite_CrossOrgRejected(t *testing.T) {
 	if err != nil {
 		t.Fatalf("OrganizationBySlug(default): %v", err)
 	}
-	if err := st.AddOrganizationMember(ctx, defaultOrg.ID, lead.ID, store.OrgRoleOwner); err != nil {
+	if err = st.AddOrganizationMember(ctx, defaultOrg.ID, lead.ID, store.OrgRoleOwner); err != nil {
 		t.Fatalf("AddOrganizationMember(lead): %v", err)
 	}
-	if err := st.AddOrganizationMember(ctx, defaultOrg.ID, contributor.ID, store.OrgRoleMember); err != nil {
+	if err = st.AddOrganizationMember(ctx, defaultOrg.ID, contributor.ID, store.OrgRoleMember); err != nil {
 		t.Fatalf("AddOrganizationMember(contributor): %v", err)
 	}
 
@@ -384,7 +384,7 @@ func TestProjectInvite_CrossOrgRejected(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateProject(): %v", err)
 	}
-	if err := st.AddProjectMember(ctx, project.ID, contributor.ID, "contributor"); err != nil {
+	if err = st.AddProjectMember(ctx, project.ID, contributor.ID, "contributor"); err != nil {
 		t.Fatalf("AddProjectMember(contributor): %v", err)
 	}
 
@@ -440,10 +440,10 @@ func TestProjectInvite_OrgAdminCanInviteExternal(t *testing.T) {
 	if err != nil {
 		t.Fatalf("OrganizationBySlug(default): %v", err)
 	}
-	if err := st.AddOrganizationMember(ctx, defaultOrg.ID, lead.ID, store.OrgRoleOwner); err != nil {
+	if err = st.AddOrganizationMember(ctx, defaultOrg.ID, lead.ID, store.OrgRoleOwner); err != nil {
 		t.Fatalf("AddOrganizationMember(lead): %v", err)
 	}
-	if err := st.AddOrganizationMember(ctx, defaultOrg.ID, orgAdmin.ID, store.OrgRoleAdmin); err != nil {
+	if err = st.AddOrganizationMember(ctx, defaultOrg.ID, orgAdmin.ID, store.OrgRoleAdmin); err != nil {
 		t.Fatalf("AddOrganizationMember(orgAdmin): %v", err)
 	}
 
@@ -451,7 +451,7 @@ func TestProjectInvite_OrgAdminCanInviteExternal(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateProject(): %v", err)
 	}
-	if err := st.AddProjectMember(ctx, project.ID, orgAdmin.ID, "viewer"); err != nil {
+	if err = st.AddProjectMember(ctx, project.ID, orgAdmin.ID, "viewer"); err != nil {
 		t.Fatalf("AddProjectMember(orgAdmin): %v", err)
 	}
 

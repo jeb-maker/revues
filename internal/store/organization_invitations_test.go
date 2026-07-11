@@ -23,7 +23,7 @@ func TestOrganizationInvitations(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateOrganization(): %v", err)
 	}
-	if err := st.AddOrganizationMember(ctx, org.ID, owner.ID, store.OrgRoleOwner); err != nil {
+	if err = st.AddOrganizationMember(ctx, org.ID, owner.ID, store.OrgRoleOwner); err != nil {
 		t.Fatalf("AddOrganizationMember(): %v", err)
 	}
 	orgCtx := orgctx.WithOrganizationID(ctx, org.ID)
@@ -33,7 +33,7 @@ func TestOrganizationInvitations(t *testing.T) {
 	}
 
 	email := "invitee@example.com"
-	if err := st.CreateOrganizationInvitation(ctx, email, org.ID, project.ID, "contributor"); err != nil {
+	if err = st.CreateOrganizationInvitation(ctx, email, org.ID, project.ID, "contributor"); err != nil {
 		t.Fatalf("CreateOrganizationInvitation(): %v", err)
 	}
 
@@ -64,7 +64,7 @@ func TestOrganizationInvitations(t *testing.T) {
 		t.Fatalf("loaded email = %q", loaded.Email)
 	}
 
-	if err := st.DeleteOrganizationInvitation(ctx, loaded.ID); err != nil {
+	if err = st.DeleteOrganizationInvitation(ctx, loaded.ID); err != nil {
 		t.Fatalf("DeleteOrganizationInvitation(): %v", err)
 	}
 

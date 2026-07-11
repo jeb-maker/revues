@@ -142,7 +142,7 @@ func (h *Auth) Callback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.Store.EnsureBootstrapOrgOwner(r.Context(), user.ID, profile.Email, h.Config.BootstrapAdminEmail); err != nil {
+	if err = h.Store.EnsureBootstrapOrgOwner(r.Context(), user.ID, profile.Email, h.Config.BootstrapAdminEmail); err != nil {
 		slog.Error("bootstrap org owner", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return

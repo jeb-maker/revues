@@ -157,9 +157,9 @@ func (s *Store) ResolveLoginRole(ctx context.Context, email, bootstrapAdmin stri
 	}
 
 	if user, err := s.UserByEmail(ctx, email); err == nil {
-		count, err := s.CountUserOrganizations(ctx, user.ID)
-		if err != nil {
-			return "", fmt.Errorf("count user organizations: %w", err)
+		count, countErr := s.CountUserOrganizations(ctx, user.ID)
+		if countErr != nil {
+			return "", fmt.Errorf("count user organizations: %w", countErr)
 		}
 		if count > 0 {
 			return user.Role, nil
