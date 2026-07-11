@@ -1,13 +1,15 @@
 (function () {
   'use strict';
   var h = document.querySelector('.hamburger');
-  var n = document.querySelector('.nav-tabs');
+  var n = document.querySelector('.site-nav') || document.querySelector('.nav-tabs');
   if (h && n) {
-    n.classList.add('nav-tabs--nojs');
+    var openClass = n.classList.contains('site-nav') ? 'site-nav--open' : 'nav-tabs--open';
+    var nojsClass = n.classList.contains('site-nav') ? 'site-nav--nojs' : 'nav-tabs--nojs';
+    n.classList.add(nojsClass);
     h.addEventListener('click', function () {
       var e = h.getAttribute('aria-expanded') === 'true';
       h.setAttribute('aria-expanded', !e);
-      n.classList.toggle('nav-tabs--open');
+      n.classList.toggle(openClass);
     });
   }
 

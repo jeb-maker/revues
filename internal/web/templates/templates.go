@@ -118,11 +118,21 @@ type AdminWebhooksData struct {
 	Error           string
 }
 
+// RunsListData is view data for the runs index page.
+type RunsListData struct {
+	PageData
+	ActiveRuns        []store.ActiveRunSummary
+	HasProjects       bool
+	CanCreate         bool
+	CanManageOrgUsers bool
+	Message           string
+	Error             string
+}
+
 // ProjectsListData is view data for the project dashboard.
 type ProjectsListData struct {
 	PageData
 	Projects          []store.Project
-	ActiveRuns        []store.ActiveRunSummary
 	CanCreate         bool
 	CanManageOrgUsers bool
 	Message           string

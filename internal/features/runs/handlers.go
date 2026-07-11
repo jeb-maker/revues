@@ -14,6 +14,7 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"github.com/jeb-maker/revues/internal/auth"
+	projectfeature "github.com/jeb-maker/revues/internal/features/projects"
 	"github.com/jeb-maker/revues/internal/integrations/notion"
 	"github.com/jeb-maker/revues/internal/integrations/webhooks"
 	"github.com/jeb-maker/revues/internal/notifications"
@@ -61,6 +62,50 @@ type Runs struct {
 	NotionClient   *notion.Client
 	Webhooks       *webhooks.Dispatcher
 	Notifications  *notifications.Service
+}
+
+// List shows active review runs for the current user.
+func (h *Runs) List(w http.ResponseWriter, r *http.Request) {
+	user, ok := middleware.UserFromContext(r.Context())
+	if !ok {
+		http.Redirect(w, r, "/login", http.StatusFound)
+		return
+	}
+
+	admin := auth.HasMinRole(user.Role, auth.RoleAdmin)
+	projectItems, err := h.Store.ListProjects(r.Context(), user.ID, admin)
+	if err != nil {
+		slog.Error("list projects for runs page", "err", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	activeRuns, err := h.Store.ListActiveRunSummaries(r.Context(), user.ID, admin)
+	if err != nil {
+		slog.Error("list active runs", "err", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	orgRole, orgMember, _ := h.Store.OrganizationMemberRole(r.Context(), 0, user.ID)
+	if org, ok := middleware.OrganizationFromContext(r.Context()); ok {
+		orgRole, orgMember, _ = h.Store.OrganizationMemberRole(r.Context(), org.ID, user.ID)
+	}
+
+	data := viewtemplates.RunsListData{
+		PageData:          h.PageDataTab(r, "Revues", "runs"),
+		ActiveRuns:        activeRuns,
+		HasProjects:       len(projectItems) > 0,
+		CanCreate:         projectfeature.CanCreate(user),
+		CanManageOrgUsers: projectfeature.CanManageOrgUsers(user, orgRole, orgMember),
+		Message:           r.URL.Query().Get("msg"),
+	}
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	if err := h.Templates.ExecuteTemplate(w, "runs_list", data); err != nil {
+		slog.Error("render runs list", "err", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+	}
 }
 
 // WizardProjects is step 1: choose a project.

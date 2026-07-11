@@ -198,6 +198,7 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, error) {
 	r.Group(func(r chi.Router) {
 		r.Use(appmiddleware.RequireAuth)
 		r.Post("/org/switch", orgsHandler.Switch)
+		r.Get("/revues", runsHandler.List)
 		r.Get("/projects", projectsHandler.List)
 		r.Get("/projects/new", projectsHandler.NewForm)
 		r.Post("/projects", projectsHandler.Create)

@@ -35,6 +35,7 @@
       {{else if .ActiveOrganization}}
       <span class="org-switcher org-switcher--single">{{.ActiveOrganization.Name}}</span>
       {{end}}
+      {{template "site_nav" .}}
       <div class="header-account">
         {{if .User.AvatarURL}}<img class="header-account__avatar" src="{{.User.AvatarURL}}" alt="" width="28" height="28">{{end}}
         <span class="header-account__name">{{if .User.DisplayName}}{{.User.DisplayName}}{{else}}{{.User.Login}}{{end}}</span>

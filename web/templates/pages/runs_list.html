@@ -1,0 +1,61 @@
+{{define "runs_list"}}
+{{template "layout_start" .}}
+<h1 class="visually-hidden">Revues</h1>
+{{if .Message}}<p class="success">{{.Message}}</p>{{end}}
+{{if .Error}}<p class="error">{{.Error}}</p>{{end}}
+
+{{if not .HasProjects}}
+<section class="empty-state">
+  <h2>Bienvenue dans Revues</h2>
+  {{if .CanManageOrgUsers}}
+  <p>Votre organisation est prête. Commencez par autoriser les utilisateurs, puis créez votre premier projet.</p>
+  <p class="empty-state-actions">
+    <a class="button" href="/admin/users">Gérer les emails autorisés</a>
+    <a class="button" href="/projects/new">Créer un projet</a>
+  </p>
+  {{else if .CanCreate}}
+  <p>Aucun projet pour l'instant. Créez un projet pour y ajouter des modèles de checklist et lancer une revue.</p>
+  <p class="empty-state-actions">
+    <a class="button" href="/projects/new">Créer un projet</a>
+  </p>
+  {{else}}
+  <p>Aucun projet ne vous est encore assigné. Demandez à un administrateur ou à un lead de projet de vous ajouter comme membre.</p>
+  <p class="empty-state-actions">
+    <a class="button" href="/mes-taches">Voir mes tâches</a>
+  </p>
+  {{end}}
+</section>
+{{else}}
+<p><a class="button" href="/runs/new">Lancer une revue</a></p>
+
+{{if .ActiveRuns}}
+<div class="table-scroll">
+<table class="data-table">
+  <thead>
+    <tr><th scope="col">Revue</th><th scope="col">Projet</th><th scope="col">Échéance</th><th scope="col">Progression</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr>
+  </thead>
+  <tbody>
+    {{range .ActiveRuns}}
+    <tr>
+      <td><a href="/runs/{{.RunID}}">{{.Title}}</a></td>
+      <td><a href="/projects/{{.ProjectID}}">{{.ProjectName}}</a></td>
+      <td>{{if .DueDate.Valid}}{{formatDueDate .DueDate}}{{else}}<span class="muted">—</span>{{end}}</td>
+      <td>
+        <div class="run-progress-track compact">
+          <div class="run-progress-bar" style="width: {{.Percent}}%"></div>
+        </div>
+        <span class="muted">{{.Done}} / {{.Total}} ({{.Percent}}%)</span>
+      </td>
+      <td><a href="/runs/{{.RunID}}">Ouvrir</a></td>
+    </tr>
+    {{end}}
+  </tbody>
+</table>
+</div>
+{{else}}
+<p class="muted">Aucune revue en cours.</p>
+{{end}}
+{{end}}
+{{template "layout_end" .}}
+{{end}}
+{{define "main_class"}} site-main--wide{{end}}
