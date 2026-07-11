@@ -119,7 +119,7 @@ func testRouterWithEncryptionKey(t *testing.T, encryptionKey string) (http.Handl
 	t.Helper()
 
 	ctx := context.Background()
-	db, err := store.Open(ctx, t.TempDir()+"/test.db")
+	db, err := store.Open(ctx, t.TempDir()+"/test.db", 0)
 	if err != nil {
 		t.Fatalf("Open() error = %v", err)
 	}

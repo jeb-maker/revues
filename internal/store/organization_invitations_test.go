@@ -77,7 +77,7 @@ func TestOrganizationInvitations(t *testing.T) {
 func openInvitationsDB(t *testing.T) *sql.DB {
 	t.Helper()
 	ctx := context.Background()
-	db, err := store.Open(ctx, t.TempDir()+"/invitations.db")
+	db, err := store.Open(ctx, t.TempDir()+"/invitations.db", 0)
 	if err != nil {
 		t.Fatalf("Open(): %v", err)
 	}

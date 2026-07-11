@@ -98,7 +98,7 @@ func TestListAttachmentsByRunItemIDs(t *testing.T) {
 func openAttachmentTestDB(t *testing.T) *sql.DB {
 	t.Helper()
 	ctx := context.Background()
-	db, err := store.Open(ctx, t.TempDir()+"/test.db")
+	db, err := store.Open(ctx, t.TempDir()+"/test.db", 0)
 	if err != nil {
 		t.Fatalf("Open(): %v", err)
 	}

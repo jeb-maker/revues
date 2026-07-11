@@ -216,7 +216,7 @@ func testRouterAttachments(t *testing.T) (http.Handler, *sql.DB, string) {
 	t.Helper()
 	ctx := context.Background()
 	dir := t.TempDir() + "/attachments"
-	db, _ := store.Open(ctx, t.TempDir()+"/test.db")
+	db, _ := store.Open(ctx, t.TempDir()+"/test.db", 0)
 	t.Cleanup(func() { _ = db.Close() })
 	_ = store.Migrate(ctx, db)
 	h, _, _ := appweb.NewRouter(appweb.Deps{Config: config.Config{

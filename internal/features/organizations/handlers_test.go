@@ -384,7 +384,7 @@ func openTestDB(t *testing.T) *sql.DB {
 	t.Helper()
 
 	ctx := context.Background()
-	db, err := store.Open(ctx, t.TempDir()+"/organizations.db")
+	db, err := store.Open(ctx, t.TempDir()+"/organizations.db", 0)
 	if err != nil {
 		t.Fatalf("Open(): %v", err)
 	}

@@ -25,7 +25,7 @@ Exemple cron (02:15 UTC, tous les jours) :
 15 2 * * * cd /opt/revues && ./scripts/backup.sh >> /var/log/revues-backup.log 2>&1
 ```
 
-**Recommandation** : arrêter brièvement l'application ou s'assurer qu'aucune écriture concurrente n'a lieu pendant le dump (SQLite WAL + `MaxOpenConns(1)` côté app). En pratique, un dump nocturne avec charge faible suffit pour v1.
+**Recommandation** : arrêter brièvement l'application ou s'assurer qu'aucune écriture concurrente n'a lieu pendant le dump (SQLite WAL). En pratique, un dump nocturne avec charge faible suffit pour v1. Le `.dump` via `sqlite3` gère un snapshot cohérent sans arrêt obligatoire.
 
 ## Exécution
 

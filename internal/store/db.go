@@ -16,19 +16,34 @@ import (
 
 var gooseMu sync.Mutex
 
+// DefaultMaxOpenConns is the SQLite connection pool size when none is configured.
+const DefaultMaxOpenConns = 10
+
+// DefaultBusyTimeoutMS is how long SQLite waits on SQLITE_BUSY before failing.
+const DefaultBusyTimeoutMS = 5000
+
 // Open connects to SQLite at path and applies connection pragmas.
-func Open(ctx context.Context, path string) (*sql.DB, error) {
+// maxOpenConns <= 0 uses DefaultMaxOpenConns.
+func Open(ctx context.Context, path string, maxOpenConns int) (*sql.DB, error) {
 	if err := ensureParentDir(path); err != nil {
 		return nil, fmt.Errorf("ensure database directory: %w", err)
 	}
 
-	dsn := fmt.Sprintf("file:%s?_pragma=foreign_keys(1)&_pragma=journal_mode(WAL)", path)
+	dsn := fmt.Sprintf("file:%s?_pragma=foreign_keys(1)&_pragma=journal_mode(WAL)&_pragma=busy_timeout(%d)", path, DefaultBusyTimeoutMS)
 	db, err := sql.Open("sqlite", dsn)
 	if err != nil {
 		return nil, fmt.Errorf("open sqlite: %w", err)
 	}
 
-	db.SetMaxOpenConns(1)
+	if maxOpenConns <= 0 {
+		maxOpenConns = DefaultMaxOpenConns
+	}
+	db.SetMaxOpenConns(maxOpenConns)
+	idle := maxOpenConns / 2
+	if idle < 1 {
+		idle = 1
+	}
+	db.SetMaxIdleConns(idle)
 
 	if err := db.PingContext(ctx); err != nil {
 		_ = db.Close()
@@ -83,6 +98,7 @@ func configureSQLite(ctx context.Context, db *sql.DB) error {
 	pragmas := []string{
 		"PRAGMA foreign_keys = ON",
 		"PRAGMA journal_mode = WAL",
+		fmt.Sprintf("PRAGMA busy_timeout = %d", DefaultBusyTimeoutMS),
 	}
 
 	for _, q := range pragmas {

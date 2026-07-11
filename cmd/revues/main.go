@@ -23,7 +23,7 @@ func main() {
 
 	ctx := context.Background()
 
-	db, err := store.Open(ctx, cfg.DatabasePath)
+	db, err := store.Open(ctx, cfg.DatabasePath, cfg.DBMaxOpenConns)
 	if err != nil {
 		slog.Error("database open failed", "err", err)
 		os.Exit(1)
