@@ -6,11 +6,13 @@ import (
 	"testing"
 
 	"github.com/jeb-maker/revues/internal/store"
+	"github.com/jeb-maker/revues/internal/testutil"
 )
 
 func TestIntegrationLinkUpsertAndList(t *testing.T) {
 	ctx := context.Background()
 	st, _ := testStore(t)
+	ctx = testutil.DefaultOrgContext(ctx, st)
 
 	if err := st.UpsertIntegrationByType(ctx, store.IntegrationTypeJira, true, []byte("cfg")); err != nil {
 		t.Fatalf("UpsertIntegrationByType(): %v", err)

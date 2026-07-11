@@ -48,24 +48,28 @@ func progressPercent(done, total int) int {
 
 // ListActiveRunSummaries returns in-progress runs visible to the user with completion stats.
 func (s *Store) ListActiveRunSummaries(ctx context.Context, userID int64, admin bool) ([]ActiveRunSummary, error) {
+	orgID, err := organizationIDFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	var (
 		rows *sqlRowsWrapper
-		err  error
 	)
 
 	if admin {
 		rows, err = s.queryRows(ctx, activeRunSummariesSQL+`
-		WHERE r.status = ? AND p.archived_at IS NULL
+		WHERE r.status = ? AND p.archived_at IS NULL AND p.organization_id = ?
 		GROUP BY r.id, r.title, r.project_id, p.name, r.due_date
 		ORDER BY r.started_at DESC, r.created_at DESC
-		`, RunStatusInProgress)
+		`, RunStatusInProgress, orgID)
 	} else {
 		rows, err = s.queryRows(ctx, activeRunSummariesSQL+`
 		INNER JOIN project_members pm ON pm.project_id = p.id AND pm.user_id = ?
-		WHERE r.status = ? AND p.archived_at IS NULL
+		WHERE r.status = ? AND p.archived_at IS NULL AND p.organization_id = ?
 		GROUP BY r.id, r.title, r.project_id, p.name, r.due_date
 		ORDER BY r.started_at DESC, r.created_at DESC
-		`, userID, RunStatusInProgress)
+		`, userID, RunStatusInProgress, orgID)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("list active run summaries: %w", err)
@@ -189,6 +193,11 @@ func (s *Store) ListProjectNokItems(ctx context.Context, projectID int64) ([]Pro
 
 // ListTemplateIndex returns active templates across projects visible to the user.
 func (s *Store) ListTemplateIndex(ctx context.Context, userID int64, admin bool) ([]TemplateIndexRow, error) {
+	orgID, err := organizationIDFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	baseSQL := `
 		SELECT
 			t.id, t.project_id, t.name, t.archived_at, t.created_at,
@@ -199,19 +208,18 @@ func (s *Store) ListTemplateIndex(ctx context.Context, userID int64, admin bool)
 		INNER JOIN projects p ON p.id = t.project_id
 		INNER JOIN template_versions v ON v.template_id = t.id
 		LEFT JOIN template_items i ON i.version_id = v.id
-		WHERE t.archived_at IS NULL AND p.archived_at IS NULL
+		WHERE t.archived_at IS NULL AND p.archived_at IS NULL AND p.organization_id = ?
 		  AND v.version = (
 			SELECT MAX(v2.version) FROM template_versions v2 WHERE v2.template_id = t.id
 		  )
 	`
 
 	var rows *sqlRowsWrapper
-	var err error
 	if admin {
 		rows, err = s.queryRows(ctx, baseSQL+`
 		GROUP BY t.id, t.project_id, t.name, t.archived_at, t.created_at, v.version, p.name
 		ORDER BY p.name, t.name
-		`)
+		`, orgID)
 	} else {
 		rows, err = s.queryRows(ctx, baseSQL+`
 		  AND EXISTS (
@@ -220,7 +228,7 @@ func (s *Store) ListTemplateIndex(ctx context.Context, userID int64, admin bool)
 		  )
 		GROUP BY t.id, t.project_id, t.name, t.archived_at, t.created_at, v.version, p.name
 		ORDER BY p.name, t.name
-		`, userID)
+		`, orgID, userID)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("list template index: %w", err)

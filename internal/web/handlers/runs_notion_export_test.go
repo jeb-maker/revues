@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/base64"
+	"github.com/jeb-maker/revues/internal/testutil"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -43,10 +44,12 @@ func testNotionExportRouter(t *testing.T, encKey string, notionClient *notion.Cl
 	key, _ := base64.StdEncoding.DecodeString(encKey)
 	tpl, _ := viewtemplates.Parse()
 	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
 	deps := runs.Deps{Templates: tpl, Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
 	runsHandler := &runs.Runs{Deps: deps, EncryptionKey: key, BaseURL: "http://example.com", NotionClient: notionClient}
 	r := chi.NewRouter()
 	r.Use(appmiddleware.LoadUser(st))
+	r.Use(appmiddleware.LoadActiveOrganization(st))
 	r.Use(appmiddleware.CSRF("test-secret-at-least-thirty-two-bytes"))
 	r.Group(func(r chi.Router) {
 		r.Use(appmiddleware.RequireAuth)
@@ -66,6 +69,7 @@ func TestRuns_ExportNotion(t *testing.T) {
 	handler, db := testNotionExportRouter(t, encKey, &notion.Client{HTTPClient: srv.Client(), APIBaseURL: srv.URL + "/v1"})
 	ctx := context.Background()
 	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
 	setupNotionExport(t, st, ctx, encKey)
 	lead, _ := st.UpsertGitHubUser(ctx, 60, "lead", "lead@example.com", "Lead", "", auth.RoleEditor)
 	project, _ := st.CreateProject(ctx, "Alpha", "", lead.ID)
@@ -91,6 +95,7 @@ func TestRuns_ExportNotion_IDOR(t *testing.T) {
 	handler, db := testRouterWithEncryptionKey(t, config.TestEncryptionKey())
 	ctx := context.Background()
 	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
 	setupNotionExport(t, st, ctx, config.TestEncryptionKey())
 	alice, _ := st.UpsertGitHubUser(ctx, 61, "alice", "alice@example.com", "Alice", "", auth.RoleEditor)
 	bob, _ := st.UpsertGitHubUser(ctx, 62, "bob", "bob@example.com", "Bob", "", auth.RoleEditor)
@@ -113,6 +118,7 @@ func TestRuns_ExportNotion_ViewerForbidden(t *testing.T) {
 	handler, db := testRouterWithEncryptionKey(t, config.TestEncryptionKey())
 	ctx := context.Background()
 	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
 	setupNotionExport(t, st, ctx, config.TestEncryptionKey())
 	lead, _ := st.UpsertGitHubUser(ctx, 63, "lead", "lead@example.com", "Lead", "", auth.RoleEditor)
 	viewer, _ := st.UpsertGitHubUser(ctx, 64, "viewer", "viewer@example.com", "Viewer", "", auth.RoleEditor)
@@ -136,6 +142,7 @@ func TestRuns_ShowDoneIncludesNotionExportButton(t *testing.T) {
 	handler, db := testRouterWithEncryptionKey(t, config.TestEncryptionKey())
 	ctx := context.Background()
 	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
 	setupNotionExport(t, st, ctx, config.TestEncryptionKey())
 	lead, _ := st.UpsertGitHubUser(ctx, 65, "lead", "lead@example.com", "Lead", "", auth.RoleEditor)
 	project, _ := st.CreateProject(ctx, "Alpha", "", lead.ID)
@@ -155,6 +162,7 @@ func TestRuns_ShowDoneIncludesNotionLinkAfterExport(t *testing.T) {
 	handler, db := testRouterWithEncryptionKey(t, config.TestEncryptionKey())
 	ctx := context.Background()
 	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
 	lead, _ := st.UpsertGitHubUser(ctx, 66, "lead", "lead@example.com", "Lead", "", auth.RoleEditor)
 	project, _ := st.CreateProject(ctx, "Alpha", "", lead.ID)
 	run := setupDoneRun(t, st, ctx, lead, project)
@@ -174,6 +182,7 @@ func TestRuns_ExportNotion_NotDone(t *testing.T) {
 	handler, db := testRouterWithEncryptionKey(t, config.TestEncryptionKey())
 	ctx := context.Background()
 	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
 	setupNotionExport(t, st, ctx, config.TestEncryptionKey())
 	lead, _ := st.UpsertGitHubUser(ctx, 67, "lead", "lead@example.com", "Lead", "", auth.RoleEditor)
 	project, _ := st.CreateProject(ctx, "Alpha", "", lead.ID)

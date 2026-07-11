@@ -13,6 +13,7 @@ import (
 	"github.com/jeb-maker/revues/internal/crypto"
 	"github.com/jeb-maker/revues/internal/integrations/jira"
 	"github.com/jeb-maker/revues/internal/store"
+	"github.com/jeb-maker/revues/internal/testutil"
 )
 
 func testJiraService(t *testing.T) (*jira.Service, *store.Store) {
@@ -37,12 +38,14 @@ func testJiraService(t *testing.T) (*jira.Service, *store.Store) {
 
 	key := make([]byte, crypto.KeySize)
 	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
 	return &jira.Service{Store: st, EncryptionKey: key}, st
 }
 
 func TestServiceSaveLoadCloud(t *testing.T) {
 	ctx := context.Background()
-	svc, _ := testJiraService(t)
+	svc, st := testJiraService(t)
+	ctx = testutil.DefaultOrgContext(ctx, st)
 
 	cfg := jira.Config{
 		InstanceType: jira.InstanceCloud,
@@ -68,7 +71,8 @@ func TestServiceSaveLoadCloud(t *testing.T) {
 
 func TestServiceSaveLoadServer(t *testing.T) {
 	ctx := context.Background()
-	svc, _ := testJiraService(t)
+	svc, st := testJiraService(t)
+	ctx = testutil.DefaultOrgContext(ctx, st)
 
 	cfg := jira.Config{
 		InstanceType: jira.InstanceServer,

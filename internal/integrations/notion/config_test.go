@@ -12,6 +12,7 @@ import (
 	"github.com/jeb-maker/revues/internal/crypto"
 	"github.com/jeb-maker/revues/internal/integrations/notion"
 	"github.com/jeb-maker/revues/internal/store"
+	"github.com/jeb-maker/revues/internal/testutil"
 )
 
 func testNotionService(t *testing.T) *notion.Service {
@@ -32,6 +33,7 @@ func testNotionService(t *testing.T) *notion.Service {
 func TestServiceSaveLoad(t *testing.T) {
 	ctx := context.Background()
 	svc := testNotionService(t)
+	ctx = testutil.DefaultOrgContext(ctx, svc.Store.(*store.Store))
 	cfg := notion.Config{APIToken: "secret-token", WorkspaceName: "Acme"}
 	if err := svc.Save(ctx, cfg); err != nil {
 		t.Fatalf("Save(): %v", err)

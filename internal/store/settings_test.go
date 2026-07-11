@@ -8,6 +8,7 @@ import (
 	_ "modernc.org/sqlite"
 
 	"github.com/jeb-maker/revues/internal/store"
+	"github.com/jeb-maker/revues/internal/testutil"
 )
 
 func testStore(t *testing.T) (*store.Store, *sql.DB) {
@@ -36,6 +37,7 @@ func testStore(t *testing.T) (*store.Store, *sql.DB) {
 func TestSettingsUpsertGetDelete(t *testing.T) {
 	ctx := context.Background()
 	st, _ := testStore(t)
+	ctx = testutil.DefaultOrgContext(ctx, st)
 
 	value := []byte("encrypted-payload")
 	if err := st.UpsertSetting(ctx, "smtp", value); err != nil {

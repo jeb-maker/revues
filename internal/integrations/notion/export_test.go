@@ -11,6 +11,7 @@ import (
 	runs "github.com/jeb-maker/revues/internal/features/runs"
 	"github.com/jeb-maker/revues/internal/integrations/notion"
 	"github.com/jeb-maker/revues/internal/store"
+	"github.com/jeb-maker/revues/internal/testutil"
 )
 
 func TestCreateReviewPage(t *testing.T) {
@@ -29,6 +30,7 @@ func TestCreateReviewPage(t *testing.T) {
 func TestExportServiceExportRun(t *testing.T) {
 	ctx := context.Background()
 	svc := testNotionService(t)
+	ctx = testutil.DefaultOrgContext(ctx, svc.Store.(*store.Store))
 	_ = svc.Save(ctx, notion.Config{APIToken: "tok", DefaultDatabaseID: "abc123def4567890abc123def4567890"})
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -55,6 +57,7 @@ func TestExportServiceExportRun(t *testing.T) {
 func TestExportServiceAlreadyExported(t *testing.T) {
 	ctx := context.Background()
 	svc := testNotionService(t)
+	ctx = testutil.DefaultOrgContext(ctx, svc.Store.(*store.Store))
 	_ = svc.Save(ctx, notion.Config{APIToken: "tok", DefaultDatabaseID: "abc123def4567890abc123def4567890"})
 	st := svc.Store
 	storeSt := st.(*store.Store)

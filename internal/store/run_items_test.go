@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"github.com/jeb-maker/revues/internal/testutil"
 	"testing"
 
 	"github.com/jeb-maker/revues/internal/auth"
@@ -11,11 +12,12 @@ import (
 	"github.com/jeb-maker/revues/internal/store"
 )
 
-func setupInProgressRun(t *testing.T) (*store.Store, *store.ChecklistRun, int64) {
+func setupInProgressRun(t *testing.T) (context.Context, *store.Store, *store.ChecklistRun, int64) {
 	t.Helper()
 	ctx := context.Background()
 	db := openMemoryDB(t)
 	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
 
 	lead, err := st.UpsertGitHubUser(ctx, 1, "lead", "lead@example.com", "Lead", "", auth.RoleEditor)
 	if err != nil {
@@ -43,12 +45,11 @@ func setupInProgressRun(t *testing.T) (*store.Store, *store.ChecklistRun, int64)
 	if err != nil || len(runItems) == 0 {
 		t.Fatalf("ListRunItems() = %v, %v", runItems, err)
 	}
-	return st, run, runItems[0].ID
+	return ctx, st, run, runItems[0].ID
 }
 
 func TestUpdateRunItemStatusStoresNokWithComment(t *testing.T) {
-	ctx := context.Background()
-	st, run, itemID := setupInProgressRun(t)
+	ctx, st, run, itemID := setupInProgressRun(t)
 
 	if err := runs.ValidateUpdate(runs.StatusNOK, ""); !errors.Is(err, runs.ErrCommentRequired) {
 		t.Fatalf("ValidateUpdate() should require comment")
@@ -69,8 +70,7 @@ func TestUpdateRunItemStatusStoresNokWithComment(t *testing.T) {
 }
 
 func TestCompleteRunStoresClosingNote(t *testing.T) {
-	ctx := context.Background()
-	st, run, itemID := setupInProgressRun(t)
+	ctx, st, run, itemID := setupInProgressRun(t)
 
 	if err := st.UpdateRunItemStatus(ctx, run.ID, itemID, 1, runs.StatusNOK, "Bloqué"); err != nil {
 		t.Fatalf("UpdateRunItemStatus(): %v", err)

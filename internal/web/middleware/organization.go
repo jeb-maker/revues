@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/jeb-maker/revues/internal/auth"
+	"github.com/jeb-maker/revues/internal/orgctx"
 	"github.com/jeb-maker/revues/internal/store"
 )
 
@@ -44,7 +45,8 @@ func LoadActiveOrganization(st *store.Store) func(http.Handler) http.Handler {
 				return
 			}
 
-			ctx := context.WithValue(r.Context(), orgContextKey, org)
+			ctx := orgctx.WithOrganizationID(r.Context(), org.ID)
+			ctx = context.WithValue(ctx, orgContextKey, org)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}

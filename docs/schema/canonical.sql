@@ -38,11 +38,15 @@ CREATE INDEX idx_sessions_user ON sessions(user_id);
 CREATE INDEX idx_sessions_expires ON sessions(expires_at);
 
 CREATE TABLE allowed_emails (
-    email           TEXT PRIMARY KEY,
+    organization_id INTEGER NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    email           TEXT NOT NULL,
     role            TEXT NOT NULL DEFAULT 'reader'
                     CHECK (role IN ('admin', 'editor', 'reader')),
-    created_at      TEXT NOT NULL
+    created_at      TEXT NOT NULL,
+    PRIMARY KEY (organization_id, email)
 );
+
+CREATE INDEX idx_allowed_emails_org ON allowed_emails(organization_id);
 
 -- ---------------------------------------------------------------------------
 -- Organisations
@@ -73,12 +77,15 @@ CREATE INDEX idx_organization_members_user ON organization_members(user_id);
 
 CREATE TABLE projects (
     id              INTEGER PRIMARY KEY,
+    organization_id INTEGER NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     name            TEXT NOT NULL,
     description     TEXT NOT NULL DEFAULT '',
     archived_at     TEXT,
     created_at      TEXT NOT NULL,
     updated_at      TEXT NOT NULL
 );
+
+CREATE INDEX idx_projects_organization ON projects(organization_id);
 
 CREATE TABLE project_members (
     project_id      INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
@@ -192,14 +199,18 @@ CREATE INDEX idx_run_item_events_item ON run_item_events(run_item_id, created_at
 -- ---------------------------------------------------------------------------
 
 CREATE TABLE integrations (
-    id              INTEGER PRIMARY KEY,
-    type            TEXT NOT NULL
-                    CHECK (type IN ('jira', 'webhook', 'notion', 'smtp')),
-    enabled         INTEGER NOT NULL DEFAULT 0 CHECK (enabled IN (0, 1)),
+    id               INTEGER PRIMARY KEY,
+    organization_id  INTEGER NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    type             TEXT NOT NULL
+                     CHECK (type IN ('jira', 'webhook', 'notion', 'smtp')),
+    enabled          INTEGER NOT NULL DEFAULT 0 CHECK (enabled IN (0, 1)),
     config_encrypted BLOB NOT NULL,
-    created_at      TEXT NOT NULL,
-    updated_at      TEXT NOT NULL
+    created_at       TEXT NOT NULL,
+    updated_at       TEXT NOT NULL,
+    UNIQUE (organization_id, type)
 );
+
+CREATE INDEX idx_integrations_organization ON integrations(organization_id);
 
 CREATE TABLE integration_links (
     id              INTEGER PRIMARY KEY,
@@ -217,9 +228,11 @@ CREATE INDEX idx_integration_links_item ON integration_links(run_item_id);
 -- ---------------------------------------------------------------------------
 
 CREATE TABLE settings (
-    key             TEXT PRIMARY KEY,
+    organization_id INTEGER NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    key             TEXT NOT NULL,
     value_encrypted BLOB NOT NULL,
-    updated_at      TEXT NOT NULL
+    updated_at      TEXT NOT NULL,
+    PRIMARY KEY (organization_id, key)
 );
 
 -- ---------------------------------------------------------------------------

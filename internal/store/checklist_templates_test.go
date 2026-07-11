@@ -2,6 +2,7 @@ package store_test
 
 import (
 	"context"
+	"github.com/jeb-maker/revues/internal/testutil"
 	"testing"
 
 	"github.com/jeb-maker/revues/internal/auth"
@@ -20,6 +21,7 @@ func TestCreateChecklistTemplateCreatesVersionOne(t *testing.T) {
 	ctx := context.Background()
 	db := openMemoryDB(t)
 	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
 
 	lead, err := st.UpsertGitHubUser(ctx, 1, "lead", "lead@example.com", "Lead", "", auth.RoleEditor)
 	if err != nil {
@@ -65,6 +67,7 @@ func TestCreateTemplateVersionIncrements(t *testing.T) {
 	ctx := context.Background()
 	db := openMemoryDB(t)
 	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
 
 	lead, err := st.UpsertGitHubUser(ctx, 1, "lead", "lead@example.com", "Lead", "", auth.RoleEditor)
 	if err != nil {

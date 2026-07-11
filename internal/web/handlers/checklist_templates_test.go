@@ -2,6 +2,7 @@ package handlers_test
 
 import (
 	"context"
+	"github.com/jeb-maker/revues/internal/testutil"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -18,6 +19,7 @@ func TestIDOR_CrossProjectTemplate(t *testing.T) {
 	handler, db := testRouter(t)
 	ctx := context.Background()
 	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
 
 	alice, err := st.UpsertGitHubUser(ctx, 10, "alice", "alice@example.com", "Alice", "", auth.RoleEditor)
 	if err != nil {
@@ -64,6 +66,7 @@ func TestChecklistTemplates_ContributorCannotEdit(t *testing.T) {
 	handler, db := testRouter(t)
 	ctx := context.Background()
 	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
 
 	lead, err := st.UpsertGitHubUser(ctx, 20, "lead", "lead@example.com", "Lead", "", auth.RoleEditor)
 	if err != nil {
@@ -109,6 +112,7 @@ func TestChecklistTemplates_CreateAndVersion(t *testing.T) {
 	handler, db := testRouter(t)
 	ctx := context.Background()
 	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
 
 	lead, err := st.UpsertGitHubUser(ctx, 30, "lead2", "lead2@example.com", "Lead", "", auth.RoleEditor)
 	if err != nil {

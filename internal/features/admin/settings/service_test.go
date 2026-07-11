@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/base64"
+	"github.com/jeb-maker/revues/internal/testutil"
 	"testing"
 
 	_ "modernc.org/sqlite"
@@ -13,7 +14,7 @@ import (
 	"github.com/jeb-maker/revues/internal/store"
 )
 
-func testSettingsService(t *testing.T) (*settings.SettingsService, *store.Store) {
+func testSettingsService(t *testing.T) (*settings.SettingsService, *store.Store, context.Context) {
 	t.Helper()
 
 	ctx := context.Background()
@@ -35,12 +36,12 @@ func testSettingsService(t *testing.T) (*settings.SettingsService, *store.Store)
 
 	key := make([]byte, crypto.KeySize)
 	st := store.New(db)
-	return &settings.SettingsService{Store: st, EncryptionKey: key}, st
+	ctx = testutil.DefaultOrgContext(ctx, st)
+	return &settings.SettingsService{Store: st, EncryptionKey: key}, st, ctx
 }
 
 func TestSettingsServiceSaveLoadSMTP(t *testing.T) {
-	ctx := context.Background()
-	svc, _ := testSettingsService(t)
+	svc, _, ctx := testSettingsService(t)
 
 	cfg := settings.SMTPConfig{
 		Host:     "smtp.example.com",
@@ -67,8 +68,7 @@ func TestSettingsServiceSaveLoadSMTP(t *testing.T) {
 }
 
 func TestSettingsServiceSaveWithoutKey(t *testing.T) {
-	ctx := context.Background()
-	svc, _ := testSettingsService(t)
+	svc, _, ctx := testSettingsService(t)
 	svc.EncryptionKey = nil
 
 	err := svc.SaveSMTP(ctx, settings.SMTPConfig{Host: "smtp.example.com", Port: 587, From: "a@example.com"})

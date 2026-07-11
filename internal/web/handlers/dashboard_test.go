@@ -3,6 +3,7 @@ package handlers_test
 import (
 	"context"
 	"database/sql"
+	"github.com/jeb-maker/revues/internal/testutil"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
@@ -18,6 +19,7 @@ func TestDashboard_ShowsActiveRunProgress(t *testing.T) {
 	handler, db := testRouter(t)
 	ctx := context.Background()
 	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
 
 	lead, err := st.UpsertGitHubUser(ctx, 80, "lead", "lead@example.com", "Lead", "", auth.RoleEditor)
 	if err != nil {
@@ -82,6 +84,7 @@ func TestDashboard_ShowsRunDueDate(t *testing.T) {
 	handler, db := testRouter(t)
 	ctx := context.Background()
 	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
 
 	lead, err := st.UpsertGitHubUser(ctx, 84, "lead", "lead@example.com", "Lead", "", auth.RoleEditor)
 	if err != nil {
@@ -135,6 +138,7 @@ func TestProjectShow_ShowsRunDueDate(t *testing.T) {
 	handler, db := testRouter(t)
 	ctx := context.Background()
 	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
 
 	lead, err := st.UpsertGitHubUser(ctx, 85, "lead", "lead@example.com", "Lead", "", auth.RoleEditor)
 	if err != nil {
@@ -182,6 +186,7 @@ func TestProjectShow_ShowsNokItems(t *testing.T) {
 	handler, db := testRouter(t)
 	ctx := context.Background()
 	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
 
 	lead, err := st.UpsertGitHubUser(ctx, 81, "lead", "lead@example.com", "Lead", "", auth.RoleEditor)
 	if err != nil {
@@ -239,6 +244,7 @@ func TestTemplatesIndex_ListsVisibleTemplates(t *testing.T) {
 	handler, db := testRouter(t)
 	ctx := context.Background()
 	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
 
 	user, err := st.UpsertGitHubUser(ctx, 82, "user", "user@example.com", "User", "", auth.RoleEditor)
 	if err != nil {
@@ -279,6 +285,7 @@ func TestHome_RedirectsAuthenticatedUserToDashboard(t *testing.T) {
 	handler, db := testRouter(t)
 	ctx := context.Background()
 	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
 
 	user, err := st.UpsertGitHubUser(ctx, 83, "user", "user@example.com", "User", "", auth.RoleEditor)
 	if err != nil {

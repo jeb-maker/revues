@@ -14,6 +14,7 @@ import (
 	"github.com/jeb-maker/revues/internal/crypto"
 	"github.com/jeb-maker/revues/internal/integrations/jira"
 	"github.com/jeb-maker/revues/internal/store"
+	"github.com/jeb-maker/revues/internal/testutil"
 )
 
 func TestAdminJira_ReaderForbidden(t *testing.T) {
@@ -56,6 +57,7 @@ func TestAdminJira_SaveAndTestCloud(t *testing.T) {
 	handler, db := testRouterWithEncryptionKey(t, config.TestEncryptionKey())
 	ctx := context.Background()
 	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
 
 	adminUser, err := st.UpsertGitHubUser(ctx, 99, "admin", "admin@example.com", "Admin", "", auth.RoleAdmin)
 	if err != nil {
@@ -116,6 +118,7 @@ func TestAdminJira_SaveServer(t *testing.T) {
 	handler, db := testRouterWithEncryptionKey(t, config.TestEncryptionKey())
 	ctx := context.Background()
 	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
 
 	adminUser, err := st.UpsertGitHubUser(ctx, 100, "admin2", "admin2@example.com", "Admin", "", auth.RoleAdmin)
 	if err != nil {

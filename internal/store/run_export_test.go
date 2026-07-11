@@ -1,7 +1,6 @@
 package store_test
 
 import (
-	"context"
 	"testing"
 
 	"github.com/jeb-maker/revues/internal/auth"
@@ -10,8 +9,7 @@ import (
 )
 
 func TestListRunExportRows(t *testing.T) {
-	ctx := context.Background()
-	st, run, itemID := setupInProgressRun(t)
+	ctx, st, run, itemID := setupInProgressRun(t)
 
 	checker, err := st.UpsertGitHubUser(ctx, 2, "checker", "checker@example.com", "Checker", "", auth.RoleEditor)
 	if err != nil {

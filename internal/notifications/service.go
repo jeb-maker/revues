@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/jeb-maker/revues/internal/features/admin/settings"
+	"github.com/jeb-maker/revues/internal/orgctx"
 	"github.com/jeb-maker/revues/internal/store"
 )
 
@@ -75,7 +76,7 @@ func (s *Service) NotifyRunCompleted(ctx context.Context, runID int64) {
 		messages = append(messages, emailMessage{to: to, subject: subject, body: body})
 	}
 
-	s.dispatch(messages)
+	s.dispatch(ctx, messages)
 }
 
 // NotifyItemAssigned emails the assignee when a checklist point is assigned.
@@ -120,7 +121,7 @@ func (s *Service) NotifyItemAssigned(ctx context.Context, runID, itemID int64) {
 		"Le point « %s » de la revue « %s » (projet « %s ») vous a été assigné.\n\n%s/runs/%d/items/%d\n",
 		item.Label, run.Title, project.Name, strings.TrimRight(s.BaseURL, "/"), run.ID, item.ID,
 	)
-	s.dispatch([]emailMessage{{to: to, subject: subject, body: body}})
+	s.dispatch(ctx, []emailMessage{{to: to, subject: subject, body: body}})
 }
 
 // SendDueReminders emails run responsibles for reviews due tomorrow (J-1).
@@ -136,7 +137,13 @@ func (s *Service) SendDueReminders(ctx context.Context) error {
 	}
 
 	for _, run := range runs {
-		s.sendDueReminder(ctx, &run, tomorrow)
+		project, err := s.Store.ProjectByIDUnscoped(ctx, run.ProjectID)
+		if err != nil {
+			slog.Error("notification due reminder load project", "run_id", run.ID, "err", err)
+			continue
+		}
+		runCtx := orgctx.WithOrganizationID(ctx, project.OrganizationID)
+		s.sendDueReminder(runCtx, &run, tomorrow)
 	}
 	return nil
 }
@@ -163,7 +170,7 @@ func (s *Service) sendDueReminder(ctx context.Context, run *store.ChecklistRun, 
 		"La revue « %s » du projet « %s » arrive à échéance demain (%s).\n\n%s/runs/%d\n",
 		run.Title, project.Name, dueLabel, strings.TrimRight(s.BaseURL, "/"), run.ID,
 	)
-	s.dispatch([]emailMessage{{to: to, subject: subject, body: body}})
+	s.dispatch(ctx, []emailMessage{{to: to, subject: subject, body: body}})
 }
 
 func (s *Service) runResponsibleEmail(ctx context.Context, run *store.ChecklistRun) string {
@@ -191,13 +198,13 @@ func (s *Service) runResponsibleEmail(ctx context.Context, run *store.ChecklistR
 	return ""
 }
 
-func (s *Service) dispatch(messages []emailMessage) {
+func (s *Service) dispatch(ctx context.Context, messages []emailMessage) {
 	if len(messages) == 0 {
 		return
 	}
 
 	go func() {
-		sendCtx, cancel := context.WithTimeout(context.Background(), sendTimeout)
+		sendCtx, cancel := context.WithTimeout(ctx, sendTimeout)
 		defer cancel()
 
 		cfg, ok, err := s.Settings.LoadSMTP(sendCtx)

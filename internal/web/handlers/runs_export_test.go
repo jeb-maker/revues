@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/csv"
+	"github.com/jeb-maker/revues/internal/testutil"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
@@ -53,6 +54,7 @@ func TestRuns_ExportCSV(t *testing.T) {
 	handler, db := testRouter(t)
 	ctx := context.Background()
 	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
 
 	lead, err := st.UpsertGitHubUser(ctx, 50, "lead", "lead@example.com", "Lead", "", auth.RoleEditor)
 	if err != nil {
@@ -117,6 +119,7 @@ func TestRuns_ExportCSV_NotDone(t *testing.T) {
 	handler, db := testRouter(t)
 	ctx := context.Background()
 	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
 
 	lead, err := st.UpsertGitHubUser(ctx, 51, "lead", "lead@example.com", "Lead", "", auth.RoleEditor)
 	if err != nil {
@@ -160,6 +163,7 @@ func TestRuns_ExportCSV_IDOR(t *testing.T) {
 	handler, db := testRouter(t)
 	ctx := context.Background()
 	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
 
 	alice, err := st.UpsertGitHubUser(ctx, 52, "alice", "alice@example.com", "Alice", "", auth.RoleEditor)
 	if err != nil {
@@ -200,6 +204,7 @@ func TestRuns_ExportCSV_ViewerCanExport(t *testing.T) {
 	handler, db := testRouter(t)
 	ctx := context.Background()
 	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
 
 	lead, err := st.UpsertGitHubUser(ctx, 54, "lead", "lead@example.com", "Lead", "", auth.RoleEditor)
 	if err != nil {
@@ -238,6 +243,7 @@ func TestRuns_ShowDoneIncludesExportButton(t *testing.T) {
 	handler, db := testRouter(t)
 	ctx := context.Background()
 	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
 
 	lead, err := st.UpsertGitHubUser(ctx, 56, "lead", "lead@example.com", "Lead", "", auth.RoleEditor)
 	if err != nil {
@@ -276,6 +282,7 @@ func TestRuns_ShowInProgressOmitsExportButton(t *testing.T) {
 	handler, db := testRouter(t)
 	ctx := context.Background()
 	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
 
 	lead, err := st.UpsertGitHubUser(ctx, 57, "lead", "lead@example.com", "Lead", "", auth.RoleEditor)
 	if err != nil {

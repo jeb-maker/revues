@@ -15,19 +15,24 @@ var ErrEmailNotAllowed = errors.New("email not allowed")
 // ErrAllowedEmailNotFound is returned when a whitelist entry is missing.
 var ErrAllowedEmailNotFound = errors.New("allowed email not found")
 
-// AllowedEmail is a whitelisted login email.
+// AllowedEmail is a whitelisted login email scoped to an organization.
 type AllowedEmail struct {
 	Email     string
 	Role      string
 	CreatedAt string
 }
 
-// AllowedRole returns the role for email if whitelisted.
+// AllowedRole returns the role for email if whitelisted in the active organization.
 func (s *Store) AllowedRole(ctx context.Context, email string) (string, bool, error) {
+	orgID, err := organizationIDFromContext(ctx)
+	if err != nil {
+		return "", false, err
+	}
+
 	var role string
-	err := s.db.QueryRowContext(ctx, `
-		SELECT role FROM allowed_emails WHERE email = ?
-	`, strings.ToLower(strings.TrimSpace(email))).Scan(&role)
+	err = s.db.QueryRowContext(ctx, `
+		SELECT role FROM allowed_emails WHERE organization_id = ? AND email = ?
+	`, orgID, strings.ToLower(strings.TrimSpace(email))).Scan(&role)
 	if errors.Is(err, sql.ErrNoRows) {
 		return "", false, nil
 	}
@@ -38,15 +43,20 @@ func (s *Store) AllowedRole(ctx context.Context, email string) (string, bool, er
 	return role, true, nil
 }
 
-// InsertAllowedEmail adds an email to the whitelist.
+// InsertAllowedEmail adds an email to the whitelist for the active organization.
 func (s *Store) InsertAllowedEmail(ctx context.Context, email, role string) error {
+	orgID, err := organizationIDFromContext(ctx)
+	if err != nil {
+		return err
+	}
+
 	email = strings.ToLower(strings.TrimSpace(email))
 	now := time.Now().UTC().Format(time.RFC3339)
-	_, err := s.db.ExecContext(ctx, `
-		INSERT INTO allowed_emails (email, role, created_at)
-		VALUES (?, ?, ?)
-		ON CONFLICT(email) DO UPDATE SET role = excluded.role
-	`, email, role, now)
+	_, err = s.db.ExecContext(ctx, `
+		INSERT INTO allowed_emails (organization_id, email, role, created_at)
+		VALUES (?, ?, ?, ?)
+		ON CONFLICT(organization_id, email) DO UPDATE SET role = excluded.role
+	`, orgID, email, role, now)
 	if err != nil {
 		return fmt.Errorf("insert allowed email: %w", err)
 	}
@@ -54,10 +64,17 @@ func (s *Store) InsertAllowedEmail(ctx context.Context, email, role string) erro
 	return nil
 }
 
-// CountAllowedEmails returns whitelist size.
+// CountAllowedEmails returns whitelist size for the active organization.
 func (s *Store) CountAllowedEmails(ctx context.Context) (int, error) {
+	orgID, err := organizationIDFromContext(ctx)
+	if err != nil {
+		return 0, err
+	}
+
 	var count int
-	err := s.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM allowed_emails`).Scan(&count)
+	err = s.db.QueryRowContext(ctx, `
+		SELECT COUNT(*) FROM allowed_emails WHERE organization_id = ?
+	`, orgID).Scan(&count)
 	if err != nil {
 		return 0, fmt.Errorf("count allowed emails: %w", err)
 	}
@@ -65,11 +82,19 @@ func (s *Store) CountAllowedEmails(ctx context.Context) (int, error) {
 	return count, nil
 }
 
-// ListAllowedEmails returns all whitelist entries sorted by email.
+// ListAllowedEmails returns whitelist entries for the active organization.
 func (s *Store) ListAllowedEmails(ctx context.Context) ([]AllowedEmail, error) {
+	orgID, err := organizationIDFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	rows, err := s.db.QueryContext(ctx, `
-		SELECT email, role, created_at FROM allowed_emails ORDER BY email
-	`)
+		SELECT email, role, created_at
+		FROM allowed_emails
+		WHERE organization_id = ?
+		ORDER BY email
+	`, orgID)
 	if err != nil {
 		return nil, fmt.Errorf("list allowed emails: %w", err)
 	}
@@ -90,10 +115,17 @@ func (s *Store) ListAllowedEmails(ctx context.Context) ([]AllowedEmail, error) {
 	return emails, nil
 }
 
-// DeleteAllowedEmail removes an email from the whitelist.
+// DeleteAllowedEmail removes an email from the whitelist in the active organization.
 func (s *Store) DeleteAllowedEmail(ctx context.Context, email string) error {
+	orgID, err := organizationIDFromContext(ctx)
+	if err != nil {
+		return err
+	}
+
 	email = strings.ToLower(strings.TrimSpace(email))
-	res, err := s.db.ExecContext(ctx, `DELETE FROM allowed_emails WHERE email = ?`, email)
+	res, err := s.db.ExecContext(ctx, `
+		DELETE FROM allowed_emails WHERE organization_id = ? AND email = ?
+	`, orgID, email)
 	if err != nil {
 		return fmt.Errorf("delete allowed email: %w", err)
 	}
@@ -109,26 +141,69 @@ func (s *Store) DeleteAllowedEmail(ctx context.Context, email string) error {
 }
 
 // ResolveLoginRole determines the role for a verified GitHub email at login.
+// Login is not org-scoped yet: whitelisted emails are matched across all organizations.
 func (s *Store) ResolveLoginRole(ctx context.Context, email, bootstrapAdmin string) (string, error) {
 	email = strings.ToLower(strings.TrimSpace(email))
 	bootstrapAdmin = strings.ToLower(strings.TrimSpace(bootstrapAdmin))
-	if role, ok, err := s.AllowedRole(ctx, email); err != nil {
+
+	if role, ok, err := s.allowedRoleAnyOrg(ctx, email); err != nil {
 		return "", err
 	} else if ok {
 		return role, nil
 	}
 
-	count, err := s.CountAllowedEmails(ctx)
+	count, err := s.countAllowedEmailsAnyOrg(ctx)
 	if err != nil {
 		return "", err
 	}
 
 	if count == 0 && bootstrapAdmin != "" && email == bootstrapAdmin {
-		if err := s.InsertAllowedEmail(ctx, email, "admin"); err != nil {
+		defaultOrg, err := s.OrganizationBySlug(ctx, "default")
+		if err != nil {
+			return "", fmt.Errorf("default organization: %w", err)
+		}
+		if err := s.insertAllowedEmailForOrg(ctx, defaultOrg.ID, email, "admin"); err != nil {
 			return "", err
 		}
 		return "admin", nil
 	}
 
 	return "", ErrEmailNotAllowed
+}
+
+func (s *Store) allowedRoleAnyOrg(ctx context.Context, email string) (string, bool, error) {
+	var role string
+	err := s.db.QueryRowContext(ctx, `
+		SELECT role FROM allowed_emails WHERE email = ? LIMIT 1
+	`, email).Scan(&role)
+	if errors.Is(err, sql.ErrNoRows) {
+		return "", false, nil
+	}
+	if err != nil {
+		return "", false, fmt.Errorf("allowed role any org: %w", err)
+	}
+	return role, true, nil
+}
+
+func (s *Store) countAllowedEmailsAnyOrg(ctx context.Context) (int, error) {
+	var count int
+	err := s.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM allowed_emails`).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("count allowed emails any org: %w", err)
+	}
+	return count, nil
+}
+
+func (s *Store) insertAllowedEmailForOrg(ctx context.Context, orgID int64, email, role string) error {
+	email = strings.ToLower(strings.TrimSpace(email))
+	now := time.Now().UTC().Format(time.RFC3339)
+	_, err := s.db.ExecContext(ctx, `
+		INSERT INTO allowed_emails (organization_id, email, role, created_at)
+		VALUES (?, ?, ?, ?)
+		ON CONFLICT(organization_id, email) DO UPDATE SET role = excluded.role
+	`, orgID, email, role, now)
+	if err != nil {
+		return fmt.Errorf("insert allowed email for org: %w", err)
+	}
+	return nil
 }
