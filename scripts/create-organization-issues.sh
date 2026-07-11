@@ -12,7 +12,24 @@ if ! command -v gh >/dev/null 2>&1; then
   exit 1
 fi
 
-gh label create "vague-4" --repo "$REPO" --color "0E8A16" --description "Organisations multi-tenant" 2>/dev/null || true
+ensure_label() {
+  local name="$1" color="$2" desc="$3"
+  gh label create "$name" --repo "$REPO" --color "$color" --description "$desc" 2>/dev/null || true
+}
+
+echo "==> Labels (création si absents)..."
+ensure_label "epic" "5319E7" "Issue épique regroupant plusieurs tâches"
+ensure_label "vague-4" "0E8A16" "Organisations multi-tenant"
+ensure_label "area:data" "0075CA" "Schéma, migrations, store"
+ensure_label "area:auth" "D93F0B" "OAuth, sessions, RBAC"
+ensure_label "area:ui" "FBCA04" "Templates, HTMX, écrans"
+ensure_label "area:core" "1D76DB" "Logique métier cœur"
+ensure_label "area:admin" "B60205" "Administration"
+ensure_label "area:integrations" "006B75" "Jira, Notion, webhooks"
+ensure_label "area:notifications" "C5DEF5" "Email SMTP"
+ensure_label "area:attachments" "E99695" "Pièces jointes"
+ensure_label "area:infra" "0052CC" "Bootstrap, CI, ops"
+ensure_label "good first issue" "7057FF" "Bonne première issue"
 
 extract_issue() {
   local n="$1"
@@ -38,12 +55,17 @@ EOF
 )"
 
 echo "Création épique..."
-EPIC_URL=$(gh issue create --repo "$REPO" \
-  --title "[Epic] Organisations multi-tenant self-service" \
-  --label "epic" --label "vague-4" --label "area:data" --label "area:auth" \
-  --body "$EPIC_BODY")
-EPIC_NUM=$(echo "$EPIC_URL" | grep -oE '[0-9]+$')
-echo "Épique #$EPIC_NUM"
+if gh issue list --repo "$REPO" --search "[Epic] Organisations multi-tenant in:title" --state all --json number -q '.[0].number' 2>/dev/null | grep -qE '^[0-9]+$'; then
+  EPIC_NUM=$(gh issue list --repo "$REPO" --search "[Epic] Organisations multi-tenant in:title" --state all --json number -q '.[0].number')
+  echo "Épique déjà existante : #$EPIC_NUM — skip création"
+else
+  EPIC_URL=$(gh issue create --repo "$REPO" \
+    --title "[Epic] Organisations multi-tenant self-service" \
+    --label "epic" --label "vague-4" --label "area:data" --label "area:auth" \
+    --body "$EPIC_BODY")
+  EPIC_NUM=$(echo "$EPIC_URL" | grep -oE '[0-9]+$')
+  echo "Épique #$EPIC_NUM"
+fi
 
 declare -a ISSUE_URLS
 
@@ -97,10 +119,16 @@ Bloqué par : issue précédente (voir spec)."
     label_args+=(--label "$l")
   done
 
-  url=$(gh issue create --repo "$REPO" --title "${TITLES[$i]}" "${label_args[@]}" --body "$body")
+  if gh issue list --repo "$REPO" --search "${TITLES[$i]} in:title" --state all --json number -q '.[0].number' 2>/dev/null | grep -qE '^[0-9]+$'; then
+    num=$(gh issue list --repo "$REPO" --search "${TITLES[$i]} in:title" --state all --json number -q '.[0].number')
+    url="https://github.com/$REPO/issues/$num"
+    echo "Issue #$num déjà existante — skip : ${TITLES[$i]}"
+  else
+    url=$(gh issue create --repo "$REPO" --title "${TITLES[$i]}" "${label_args[@]}" --body "$body")
+    num=$(echo "$url" | grep -oE '[0-9]+$')
+    echo "Issue #$num : ${TITLES[$i]}"
+  fi
   ISSUE_URLS+=("$url")
-  num=$(echo "$url" | grep -oE '[0-9]+$')
-  echo "Issue #$num : ${TITLES[$i]}"
 done
 
 TASK_LIST=""
