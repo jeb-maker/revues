@@ -36,6 +36,7 @@ func (d *Deps) PageData(r *http.Request, title string) templates.PageData {
 			data.CSRFToken = auth.CSRFToken(token, d.SessionSecret)
 		}
 	}
+	templates.ApplyHeaderFromContext(r, &data)
 	return data
 }
 
@@ -74,12 +75,18 @@ func (h *Projects) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	orgRole, orgMember, _ := h.Store.OrganizationMemberRole(r.Context(), 0, user.ID)
+	if org, ok := middleware.OrganizationFromContext(r.Context()); ok {
+		orgRole, orgMember, _ = h.Store.OrganizationMemberRole(r.Context(), org.ID, user.ID)
+	}
+
 	data := templates.ProjectsListData{
-		PageData:   h.PageDataTab(r, "Tableau de bord", "projects"),
-		Projects:   items,
-		ActiveRuns: activeRuns,
-		CanCreate:  CanCreate(user),
-		Message:    r.URL.Query().Get("msg"),
+		PageData:          h.PageDataTab(r, "Tableau de bord", "projects"),
+		Projects:          items,
+		ActiveRuns:        activeRuns,
+		CanCreate:         CanCreate(user),
+		CanManageOrgUsers: CanManageOrgUsers(user, orgRole, orgMember),
+		Message:           r.URL.Query().Get("msg"),
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -304,7 +311,7 @@ func (h *Projects) AddMember(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	if err := r.ParseForm(); err != nil {
+	if err = r.ParseForm(); err != nil {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
 	}
@@ -323,7 +330,16 @@ func (h *Projects) AddMember(w http.ResponseWriter, r *http.Request) {
 
 	member, err := h.Store.UserByEmail(r.Context(), email)
 	if errors.Is(err, ErrUserNotFound) {
-		h.renderShowError(w, r, project, user, memberRole, callerOrgRole, "Utilisateur introuvable (doit s'être connecté une fois).")
+		if !CanInviteExternalToOrg(user, memberRole, callerOrgRole) {
+			http.NotFound(w, r)
+			return
+		}
+		if err = h.Store.CreateOrganizationInvitation(r.Context(), email, project.OrganizationID, project.ID, role); err != nil {
+			slog.Error("create organization invitation", "err", err)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+		http.Redirect(w, r, "/projects/"+strconv.FormatInt(project.ID, 10)+"?msg=Invitation+envoy%C3%A9e", http.StatusSeeOther)
 		return
 	}
 	if err != nil {
@@ -343,7 +359,7 @@ func (h *Projects) AddMember(w http.ResponseWriter, r *http.Request) {
 			http.NotFound(w, r)
 			return
 		}
-		if err := h.Store.AddOrganizationMember(r.Context(), project.OrganizationID, member.ID, store.OrgRoleMember); err != nil {
+		if err = h.Store.AddOrganizationMember(r.Context(), project.OrganizationID, member.ID, store.OrgRoleMember); err != nil {
 			slog.Error("add organization member", "err", err)
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
@@ -352,7 +368,7 @@ func (h *Projects) AddMember(w http.ResponseWriter, r *http.Request) {
 		_ = inviteeOrgRole
 	}
 
-	if err := h.Store.AddProjectMember(r.Context(), project.ID, member.ID, role); err != nil {
+	if err = h.Store.AddProjectMember(r.Context(), project.ID, member.ID, role); err != nil {
 		slog.Error("add project member", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
@@ -381,7 +397,7 @@ func (h *Projects) RemoveMember(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
-	if err := r.ParseForm(); err != nil {
+	if err = r.ParseForm(); err != nil {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
 	}

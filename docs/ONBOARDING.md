@@ -8,7 +8,7 @@ Copier [.env.example](../.env.example) et renseigner au minimum :
 
 - `REVUES_SESSION_SECRET` — secret aléatoire (32+ octets)
 - `REVUES_GITHUB_CLIENT_ID` et `REVUES_GITHUB_CLIENT_SECRET` — application OAuth GitHub
-- `REVUES_BOOTSTRAP_ADMIN_EMAIL` — email GitHub **vérifié** du premier administrateur
+- `REVUES_BOOTSTRAP_ADMIN_EMAIL` — email GitHub **vérifié** du premier administrateur (instances migrées)
 
 Exporter les variables avant de lancer l'application (le binaire ne charge pas `.env` automatiquement).
 
@@ -20,15 +20,17 @@ go run ./cmd/revues
 
 Ouvrir `http://localhost:8080/login`.
 
-## 3. Se connecter en administrateur
+## 3. Se connecter
 
-Cliquer sur **Se connecter avec GitHub** avec le compte correspondant à `REVUES_BOOTSTRAP_ADMIN_EMAIL`.
+**Instance migrée (organisation `default` existante)** : cliquer sur **Se connecter avec GitHub** avec le compte correspondant à `REVUES_BOOTSTRAP_ADMIN_EMAIL`. Au premier login, cet email reçoit le rôle global **admin** et devient **owner** de l'organisation `default`.
 
-Si la whitelist est vide, ce premier login reçoit automatiquement le rôle **admin**.
+**Self-service (nouvelle installation)** : tout utilisateur sans organisation peut se connecter et créer sa première organisation via `/org/new`.
 
 ## 4. Autoriser les utilisateurs
 
-Aller dans **Admin → Utilisateurs autorisés** (`/admin/users`) et ajouter les emails GitHub des personnes autorisées avec leur rôle global (`reader`, `editor`, `admin`).
+Les administrateurs d'organisation (`owner` / `admin`) gèrent la liste blanche depuis **Emails autorisés** (`/admin/users`). Ajoutez les emails GitHub des personnes autorisées à rejoindre l'organisation active, avec leur rôle global (`reader`, `editor`, `admin`).
+
+Une personne peut aussi rejoindre si elle est déjà membre d'une organisation ou si un lead l'ajoute à un projet (adhésion org induite).
 
 ## 5. Créer un projet et lancer une revue
 

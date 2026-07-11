@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"github.com/jeb-maker/revues/internal/auth"
 )
 
 // ErrEmailNotAllowed is returned when an email is not on the whitelist.
@@ -140,8 +142,10 @@ func (s *Store) DeleteAllowedEmail(ctx context.Context, email string) error {
 	return nil
 }
 
-// ResolveLoginRole determines the role for a verified GitHub email at login.
-// Login is not org-scoped yet: whitelisted emails are matched across all organizations.
+// ResolveLoginRole determines the global role for a verified GitHub email at login.
+// Login is allowed when the email is whitelisted in an org, the user belongs to
+// at least one org, matches REVUES_BOOTSTRAP_ADMIN_EMAIL, or has no org yet
+// (self-service org creation).
 func (s *Store) ResolveLoginRole(ctx context.Context, email, bootstrapAdmin string) (string, error) {
 	email = strings.ToLower(strings.TrimSpace(email))
 	bootstrapAdmin = strings.ToLower(strings.TrimSpace(bootstrapAdmin))
@@ -152,23 +156,49 @@ func (s *Store) ResolveLoginRole(ctx context.Context, email, bootstrapAdmin stri
 		return role, nil
 	}
 
-	count, err := s.countAllowedEmailsAnyOrg(ctx)
-	if err != nil {
+	if user, err := s.UserByEmail(ctx, email); err == nil {
+		count, countErr := s.CountUserOrganizations(ctx, user.ID)
+		if countErr != nil {
+			return "", fmt.Errorf("count user organizations: %w", countErr)
+		}
+		if count > 0 {
+			return user.Role, nil
+		}
+	} else if !errors.Is(err, ErrUserNotFound) {
 		return "", err
 	}
 
-	if count == 0 && bootstrapAdmin != "" && email == bootstrapAdmin {
-		defaultOrg, err := s.OrganizationBySlug(ctx, "default")
-		if err != nil {
-			return "", fmt.Errorf("default organization: %w", err)
-		}
-		if err := s.insertAllowedEmailForOrg(ctx, defaultOrg.ID, email, "admin"); err != nil {
-			return "", err
-		}
-		return "admin", nil
+	if bootstrapAdmin != "" && email == bootstrapAdmin {
+		return auth.RoleAdmin, nil
 	}
 
-	return "", ErrEmailNotAllowed
+	if ok, err := s.HasPendingInvitationByEmail(ctx, email); err != nil {
+		return "", fmt.Errorf("pending invitation lookup: %w", err)
+	} else if ok {
+		return auth.RoleEditor, nil
+	}
+
+	return auth.RoleEditor, nil
+}
+
+// EnsureBootstrapOrgOwner adds the bootstrap admin as owner of the default org.
+func (s *Store) EnsureBootstrapOrgOwner(ctx context.Context, userID int64, email, bootstrapAdmin string) error {
+	email = strings.ToLower(strings.TrimSpace(email))
+	bootstrapAdmin = strings.ToLower(strings.TrimSpace(bootstrapAdmin))
+	if bootstrapAdmin == "" || email != bootstrapAdmin {
+		return nil
+	}
+
+	defaultOrg, err := s.OrganizationBySlug(ctx, "default")
+	if err != nil {
+		return fmt.Errorf("default organization: %w", err)
+	}
+
+	if err := s.AddOrganizationMember(ctx, defaultOrg.ID, userID, OrgRoleOwner); err != nil {
+		return fmt.Errorf("bootstrap org owner: %w", err)
+	}
+
+	return nil
 }
 
 func (s *Store) allowedRoleAnyOrg(ctx context.Context, email string) (string, bool, error) {
@@ -183,27 +213,4 @@ func (s *Store) allowedRoleAnyOrg(ctx context.Context, email string) (string, bo
 		return "", false, fmt.Errorf("allowed role any org: %w", err)
 	}
 	return role, true, nil
-}
-
-func (s *Store) countAllowedEmailsAnyOrg(ctx context.Context) (int, error) {
-	var count int
-	err := s.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM allowed_emails`).Scan(&count)
-	if err != nil {
-		return 0, fmt.Errorf("count allowed emails any org: %w", err)
-	}
-	return count, nil
-}
-
-func (s *Store) insertAllowedEmailForOrg(ctx context.Context, orgID int64, email, role string) error {
-	email = strings.ToLower(strings.TrimSpace(email))
-	now := time.Now().UTC().Format(time.RFC3339)
-	_, err := s.db.ExecContext(ctx, `
-		INSERT INTO allowed_emails (organization_id, email, role, created_at)
-		VALUES (?, ?, ?, ?)
-		ON CONFLICT(organization_id, email) DO UPDATE SET role = excluded.role
-	`, orgID, email, role, now)
-	if err != nil {
-		return fmt.Errorf("insert allowed email for org: %w", err)
-	}
-	return nil
 }

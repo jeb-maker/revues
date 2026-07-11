@@ -1,7 +1,11 @@
 {{define "admin_users"}}
 {{template "layout_start" .}}
-<h1>Utilisateurs autorisés</h1>
-<p>Gérez les emails autorisés à se connecter via GitHub et leur rôle global.</p>
+<h1>Emails autorisés</h1>
+{{if .OrganizationName}}
+<p>Gérez les emails autorisés à rejoindre <strong>{{.OrganizationName}}</strong> via GitHub et leur rôle global.</p>
+{{else}}
+<p>Gérez les emails autorisés à rejoindre cette organisation via GitHub et leur rôle global.</p>
+{{end}}
 
 {{template "admin_nav" .}}
 
@@ -15,9 +19,9 @@
 {{if not .Emails}}
 <section class="onboarding-hint panel">
   <h2>Premier démarrage</h2>
-  <p>Si personne ne peut encore se connecter, définissez l'email GitHub vérifié du premier administrateur :</p>
+  <p>Pour une instance migrée, définissez l'email GitHub vérifié du premier administrateur :</p>
   <pre><code>export REVUES_BOOTSTRAP_ADMIN_EMAIL=admin@example.com</code></pre>
-  <p>Au premier login avec cet email (whitelist vide), le rôle <strong>admin</strong> est accordé automatiquement. Ensuite, ajoutez les autres utilisateurs via le formulaire ci-dessous.</p>
+  <p>Au premier login, cet email reçoit le rôle <strong>admin</strong> et devient <strong>owner</strong> de l'organisation <code>default</code>. Ensuite, ajoutez les autres utilisateurs via le formulaire ci-dessous.</p>
   <p class="muted">Voir aussi la documentation <code>docs/ONBOARDING.md</code>.</p>
 </section>
 {{end}}
@@ -72,11 +76,11 @@
     </tbody>
   </table>
   {{else}}
-  <p class="muted">Aucun email autorisé pour l'instant.</p>
+  <p class="muted">Aucun email autorisé pour cette organisation.</p>
   {{end}}
 </section>
 
-<p><a href="/">← Retour</a></p>
+<p><a href="/projects">← Retour au tableau de bord</a></p>
 {{template "layout_end" .}}
 {{end}}
 {{define "main_class"}} site-main--wide{{end}}

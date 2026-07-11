@@ -21,6 +21,20 @@
         <span class="brand__name">Revues</span>
       </a>
       {{if .User}}
+      {{if gt (len .UserOrganizations) 1}}
+      <form method="post" action="/org/switch" class="org-switcher">
+        <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+        <label class="visually-hidden" for="org-switcher-select">Organisation</label>
+        <select id="org-switcher-select" name="organization_id">
+          {{range .UserOrganizations}}
+          <option value="{{.Organization.ID}}"{{if $.ActiveOrganization}}{{if eq .Organization.ID $.ActiveOrganization.ID}} selected{{end}}{{end}}>{{.Organization.Name}}</option>
+          {{end}}
+        </select>
+        <button type="submit" class="button button-ghost button-sm">Changer</button>
+      </form>
+      {{else if .ActiveOrganization}}
+      <span class="org-switcher org-switcher--single">{{.ActiveOrganization.Name}}</span>
+      {{end}}
       <div class="header-account">
         {{if .User.AvatarURL}}<img class="header-account__avatar" src="{{.User.AvatarURL}}" alt="" width="28" height="28">{{end}}
         <span class="header-account__name">{{if .User.DisplayName}}{{.User.DisplayName}}{{else}}{{.User.Login}}{{end}}</span>
@@ -35,6 +49,19 @@
       {{end}}
     </div>
   </header>
+  {{if .PendingInvitations}}
+  <div class="invite-banner" role="region" aria-label="Invitations en attente">
+    {{range .PendingInvitations}}
+    <p class="invite-banner__item">
+      Invitation à rejoindre <strong>{{.OrganizationName}}</strong>{{if .ProjectName.Valid}} pour le projet <strong>{{.ProjectName.String}}</strong>{{end}}
+      <form method="post" action="/org/invitations/{{.ID}}/accept" class="inline-form">
+        <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
+        <button type="submit" class="button button-sm">Accepter</button>
+      </form>
+    </p>
+    {{end}}
+  </div>
+  {{end}}
   <main id="main" class="site-main{{block "main_class" .}}{{end}}">
     {{if .Breadcrumbs}}
     <nav class="breadcrumb" aria-label="Fil d'Ariane">

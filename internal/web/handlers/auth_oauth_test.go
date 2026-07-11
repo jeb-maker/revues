@@ -201,7 +201,7 @@ func TestOAuthCallback_SuccessVerifiedWhitelisted(t *testing.T) {
 	}
 }
 
-func TestOAuthCallback_RefuseUnauthorizedEmail(t *testing.T) {
+func TestOAuthCallback_SelfServiceWithoutWhitelist(t *testing.T) {
 	const (
 		state    = "oauth-state-unauth"
 		verifier = "oauth-verifier-unauth"
@@ -209,8 +209,8 @@ func TestOAuthCallback_RefuseUnauthorizedEmail(t *testing.T) {
 
 	_, github := startOAuthGitHubMock(t, oauthGitHubMock{
 		AccessToken: "gho_unauth_token",
-		Login:       "blocked-user",
-		Email:       "blocked@example.com",
+		Login:       "new-user",
+		Email:       "new@example.com",
 		Verified:    true,
 	})
 
@@ -229,11 +229,19 @@ func TestOAuthCallback_RefuseUnauthorizedEmail(t *testing.T) {
 	if rec.Code != http.StatusFound {
 		t.Fatalf("status = %d, want %d", rec.Code, http.StatusFound)
 	}
-	if loc := rec.Header().Get("Location"); !strings.Contains(loc, "error=email+non+autoris") {
-		t.Errorf("Location = %q, want unauthorized email error", loc)
+	if loc := rec.Header().Get("Location"); loc != "/org/new" {
+		t.Errorf("Location = %q, want %q", loc, "/org/new")
 	}
-	if sessionCookieFromResponse(t, rec) != nil {
-		t.Error("expected no session cookie for unauthorized email")
+	if sessionCookieFromResponse(t, rec) == nil {
+		t.Fatal("expected session cookie for self-service login")
+	}
+
+	user, err := st.UserByEmail(ctx, "new@example.com")
+	if err != nil {
+		t.Fatalf("UserByEmail(): %v", err)
+	}
+	if user.Role != auth.RoleEditor {
+		t.Errorf("role = %q, want editor", user.Role)
 	}
 }
 

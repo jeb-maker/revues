@@ -29,21 +29,25 @@ type StepperData struct {
 
 // PageData is shared view data for HTML pages.
 type PageData struct {
-	Title        string
-	User         *store.User
-	CSRFToken    string
-	LoginError   string
-	ActiveTab    string
-	AdminSection string
-	Breadcrumbs  []Breadcrumb
+	Title              string
+	User               *store.User
+	CSRFToken          string
+	LoginError         string
+	ActiveTab          string
+	AdminSection       string
+	Breadcrumbs        []Breadcrumb
+	ActiveOrganization *store.Organization
+	UserOrganizations  []store.OrganizationMembership
+	PendingInvitations []store.OrganizationInvitation
 }
 
-// AdminUsersData is view data for the whitelist admin screen.
+// AdminUsersData is view data for the org-scoped whitelist admin screen.
 type AdminUsersData struct {
 	PageData
-	Emails  []store.AllowedEmail
-	Message string
-	Error   string
+	OrganizationName string
+	Emails           []store.AllowedEmail
+	Message          string
+	Error            string
 }
 
 type AdminNotionData struct {
@@ -117,11 +121,12 @@ type AdminWebhooksData struct {
 // ProjectsListData is view data for the project dashboard.
 type ProjectsListData struct {
 	PageData
-	Projects   []store.Project
-	ActiveRuns []store.ActiveRunSummary
-	CanCreate  bool
-	Message    string
-	Error      string
+	Projects          []store.Project
+	ActiveRuns        []store.ActiveRunSummary
+	CanCreate         bool
+	CanManageOrgUsers bool
+	Message           string
+	Error             string
 }
 
 // ProjectFormData is view data for create/edit project forms.

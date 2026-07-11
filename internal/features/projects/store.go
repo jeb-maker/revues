@@ -23,6 +23,7 @@ type ProjectStore interface {
 	CountProjectLeads(ctx context.Context, projectID int64) (int, error)
 	OrganizationMemberRole(ctx context.Context, organizationID, userID int64) (string, bool, error)
 	AddOrganizationMember(ctx context.Context, organizationID, userID int64, role string) error
+	CreateOrganizationInvitation(ctx context.Context, email string, organizationID, projectID int64, projectRole string) error
 }
 
 type Project = store.Project

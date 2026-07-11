@@ -170,6 +170,7 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, error) {
 	r.Use(middleware.Recoverer)
 	r.Use(appmiddleware.LoadUser(st))
 	r.Use(appmiddleware.LoadActiveOrganization(st))
+	r.Use(appmiddleware.LoadHeaderData(st))
 	r.Use(appmiddleware.CSRF(deps.Config.SessionSecret))
 
 	r.Get("/healthz", Health)
@@ -191,10 +192,12 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, error) {
 		r.Post("/org/new", orgsHandler.Create)
 		r.Get("/org/select", orgsHandler.SelectForm)
 		r.Post("/org/select", orgsHandler.Select)
+		r.Post("/org/invitations/{id}/accept", orgsHandler.AcceptInvitation)
 	})
 
 	r.Group(func(r chi.Router) {
 		r.Use(appmiddleware.RequireAuth)
+		r.Post("/org/switch", orgsHandler.Switch)
 		r.Get("/projects", projectsHandler.List)
 		r.Get("/projects/new", projectsHandler.NewForm)
 		r.Post("/projects", projectsHandler.Create)
@@ -238,13 +241,18 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, error) {
 
 	r.Group(func(r chi.Router) {
 		r.Use(appmiddleware.RequireAuth)
+		r.Use(appmiddleware.RequireOrgAdmin(st))
+		r.Get("/admin/users", adminUsers.List)
+		r.Post("/admin/users", adminUsers.Add)
+		r.Post("/admin/users/remove", adminUsers.Remove)
+	})
+
+	r.Group(func(r chi.Router) {
+		r.Use(appmiddleware.RequireAuth)
 		r.Use(appmiddleware.RequireRole(auth.RoleAdmin))
 		r.Get("/admin", func(w http.ResponseWriter, r *http.Request) {
 			http.Redirect(w, r, "/admin/integrations", http.StatusFound)
 		})
-		r.Get("/admin/users", adminUsers.List)
-		r.Post("/admin/users", adminUsers.Add)
-		r.Post("/admin/users/remove", adminUsers.Remove)
 		r.Get("/admin/integrations", adminIntegrations.Show)
 		r.Get("/admin/settings/smtp", adminSMTP.Show)
 		r.Post("/admin/settings/smtp", adminSMTP.Save)

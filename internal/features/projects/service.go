@@ -48,6 +48,17 @@ func isOrgPrivilegedRole(orgRole string) bool {
 	return orgRole == store.OrgRoleOwner || orgRole == store.OrgRoleAdmin
 }
 
+// CanManageOrgUsers is true for global admin or org owner/admin.
+func CanManageOrgUsers(user *User, orgRole string, orgMember bool) bool {
+	if auth.HasMinRole(user.Role, auth.RoleAdmin) {
+		return true
+	}
+	if !orgMember {
+		return false
+	}
+	return orgRole == store.OrgRoleOwner || orgRole == store.OrgRoleAdmin
+}
+
 // CanAddProjectMember is true for global admin, project lead, or org owner/admin.
 func CanAddProjectMember(user *User, memberRole, orgRole string) bool {
 	if auth.HasMinRole(user.Role, auth.RoleAdmin) {

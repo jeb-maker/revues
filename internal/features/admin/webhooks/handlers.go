@@ -29,6 +29,7 @@ func (d *Deps) PageData(r *http.Request, title string) templates.PageData {
 			data.CSRFToken = auth.CSRFToken(token, d.SessionSecret)
 		}
 	}
+	templates.ApplyHeaderFromContext(r, &data)
 	return data
 }
 
