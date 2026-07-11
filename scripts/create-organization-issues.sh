@@ -12,6 +12,12 @@ if ! command -v gh >/dev/null 2>&1; then
   exit 1
 fi
 
+if [[ ! -f "$SPEC" ]]; then
+  echo "Fichier spec introuvable : $SPEC" >&2
+  echo "git pull origin main (docs/issues/organizations-epic.md requis)" >&2
+  exit 1
+fi
+
 ensure_label() {
   local name="$1" color="$2" desc="$3"
   gh label create "$name" --repo "$REPO" --color "$color" --description "$desc" 2>/dev/null || true
@@ -33,7 +39,7 @@ ensure_label "good first issue" "7057FF" "Bonne première issue"
 
 extract_issue() {
   local n="$1"
-  sed -n "/^## Issue ${n} /,/^---$/p" "$SPEC" | head -n -1 | tail -n +2
+  sed -n "/^## Issue ${n}[ —]/,/^---$/p" "$SPEC" | head -n -1 | tail -n +2
 }
 
 EPIC_BODY="$(cat <<EOF
@@ -69,17 +75,6 @@ fi
 
 declare -a ISSUE_URLS
 
-create_issue() {
-  local title="$1"
-  shift
-  local -a labels=("$@")
-  local label_args=()
-  for l in "${labels[@]}"; do
-    label_args+=(--label "$l")
-  done
-  gh issue create --repo "$REPO" --title "$title" "${label_args[@]}" --body "$body"
-}
-
 declare -a TITLES=(
   "[data] Schéma organizations + organization_members + store"
   "[auth] Organisation active en session + middleware"
@@ -102,15 +97,19 @@ declare -a LABEL_SETS=(
 
 for i in "${!TITLES[@]}"; do
   n=$((i + 1))
-  body="$(extract_issue "$n")
+  issue_body="$(extract_issue "$n")"
+  if [[ -z "$issue_body" ]]; then
+    echo "Erreur: contenu Issue ${n} introuvable dans ${SPEC}" >&2
+    exit 1
+  fi
 
-  body="$body
+  body="${issue_body}
 
 ---
-Épique parente : #$EPIC_NUM"
+Épique parente : #${EPIC_NUM}"
 
   if [[ "$n" -gt 1 ]]; then
-    body="$body
+    body="${body}
 Bloqué par : issue précédente (voir spec)."
   fi
 
