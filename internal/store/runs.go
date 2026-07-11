@@ -16,6 +16,16 @@ const (
 	RunStatusArchived   = "archived"
 )
 
+// ValidRunListStatus reports whether status is allowed for the /revues list filter.
+func ValidRunListStatus(status string) bool {
+	switch status {
+	case RunStatusDraft, RunStatusInProgress, RunStatusDone:
+		return true
+	default:
+		return false
+	}
+}
+
 // ErrRunNotFound is returned when a run id does not exist.
 var ErrRunNotFound = errors.New("run not found")
 

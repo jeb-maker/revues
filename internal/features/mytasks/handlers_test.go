@@ -113,7 +113,7 @@ func TestAssignItem_LeadCanAssign(t *testing.T) {
 		t.Fatalf("assign status = %d, want %d", rec.Code, http.StatusSeeOther)
 	}
 
-	tasks, err := st.ListAssignedRunItems(ctx, contrib.ID, 0, "")
+	tasks, err := st.ListAssignedRunItems(ctx, contrib.ID, "", "")
 	if err != nil || len(tasks) != 1 {
 		t.Fatalf("ListAssignedRunItems() = %v, %v", tasks, err)
 	}
@@ -234,5 +234,11 @@ func TestMyTasks_ListAssigned(t *testing.T) {
 	}
 	if !strings.Contains(rec.Body.String(), "Ma tâche") {
 		t.Fatal("expected assigned task in my tasks page")
+	}
+	if !strings.Contains(rec.Body.String(), "list-toolbar") {
+		t.Fatal("expected list toolbar on my tasks page")
+	}
+	if !strings.Contains(rec.Body.String(), "segmented-tabs") {
+		t.Fatal("expected status tabs on my tasks page")
 	}
 }

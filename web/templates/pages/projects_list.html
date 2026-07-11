@@ -3,7 +3,7 @@
 {{if .Message}}<p class="success">{{.Message}}</p>{{end}}
 {{if .Error}}<p class="error">{{.Error}}</p>{{end}}
 
-{{if not .Projects}}
+{{if and (not .Projects) (not .HasActiveFilters)}}
 <section class="empty-state">
   <h2>Aucun projet</h2>
   {{if .CanManageOrgUsers}}
@@ -26,16 +26,30 @@
 </section>
 {{else}}
 <section class="panel">
+  <div class="list-toolbar">
+    <form method="get" action="/projects" class="list-toolbar__form filter-form filter-form--inline">
+      <input class="list-toolbar__search toolbar-control" type="search" id="filter-query" name="q" value="{{.FilterQuery}}" placeholder="Rechercher un projet…" aria-label="Rechercher un projet">
+      <button type="submit" class="button-secondary toolbar-control">Filtrer</button>
+      {{if .HasActiveFilters}}<a href="/projects" class="button-ghost toolbar-control">Effacer</a>{{end}}
+    </form>
+    {{if .CanCreate}}<a class="button list-toolbar__action toolbar-control" href="/projects/new" title="Nouveau projet">Créer</a>{{end}}
+  </div>
   <div class="table-scroll">
-  <table class="data-table">
+  <table class="data-table table-sticky">
     <thead>
       <tr><th scope="col">Projet</th><th scope="col">Description</th></tr>
     </thead>
     <tbody>
+      {{if .Projects}}
       {{range .Projects}}
       <tr>
         <td><a href="/projects/{{.ID}}">{{.Name}}</a></td>
         <td>{{if .Description}}{{.Description}}{{else}}<span class="muted">—</span>{{end}}</td>
+      </tr>
+      {{end}}
+      {{else}}
+      <tr>
+        <td colspan="2" class="muted">Aucun projet pour cette recherche. <a href="/projects">Effacer</a></td>
       </tr>
       {{end}}
     </tbody>

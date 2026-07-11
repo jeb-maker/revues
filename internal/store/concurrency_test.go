@@ -34,7 +34,7 @@ func TestConcurrentReadsNoLock(t *testing.T) {
 		go func() {
 			defer wg.Done()
 			for range loadIterations {
-				if _, err := st.ListProjects(ctx, user.ID, true); err != nil {
+				if _, err := st.ListProjects(ctx, user.ID, true, ""); err != nil {
 					if isSQLiteLockErr(err) {
 						lockErrors.Add(1)
 					}

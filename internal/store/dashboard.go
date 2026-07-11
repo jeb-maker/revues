@@ -6,7 +6,10 @@ import (
 	"fmt"
 )
 
-const recentCompletedRunsLimit = 10
+const (
+	recentCompletedRunsLimit = 10
+	filteredRunsLimit        = 100
+)
 
 // ActiveRunSummary is a draft or in-progress run with completion stats for the dashboard.
 type ActiveRunSummary struct {
@@ -19,6 +22,23 @@ type ActiveRunSummary struct {
 	Done        int
 	Total       int
 	Percent     int
+}
+
+// RunListSummary is a non-archived run row for the unified /revues table.
+type RunListSummary struct {
+	RunID          int64
+	Title          string
+	ProjectID      int64
+	ProjectName    string
+	Status         string
+	DueDate        sql.NullString
+	CreatedAt      string
+	StartedAt      sql.NullString
+	CompletedAt    sql.NullString
+	CreatedByLogin sql.NullString
+	Done           int
+	Total          int
+	Percent        int
 }
 
 // CompletedRunSummary is a recently closed run for the dashboard.
@@ -93,6 +113,61 @@ func (s *Store) ListActiveRunSummaries(ctx context.Context, userID int64, admin 
 	return scanActiveRunSummaries(rows)
 }
 
+// ListFilteredRunSummaries returns non-archived runs visible to the user with optional filters.
+func (s *Store) ListFilteredRunSummaries(ctx context.Context, userID int64, admin bool, status, query string) ([]RunListSummary, error) {
+	orgID, err := organizationIDFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	sqlQuery := runListSummariesSQL
+	var args []any
+
+	if admin {
+		sqlQuery += `
+		WHERE r.status != ? AND p.archived_at IS NULL AND p.organization_id = ?`
+		args = append(args, RunStatusArchived, orgID)
+	} else {
+		sqlQuery += `
+		INNER JOIN project_members pm ON pm.project_id = p.id AND pm.user_id = ?
+		WHERE r.status != ? AND p.archived_at IS NULL AND p.organization_id = ?`
+		args = append(args, userID, RunStatusArchived, orgID)
+	}
+
+	if status != "" {
+		sqlQuery += ` AND r.status = ?`
+		args = append(args, status)
+	} else {
+		sqlQuery += ` AND r.status IN (?, ?, ?)`
+		args = append(args, RunStatusDraft, RunStatusInProgress, RunStatusDone)
+	}
+
+	for _, term := range searchTerms(query) {
+		pattern := likeContainsPattern(term)
+		sqlQuery += ` AND (
+			r.title LIKE ? ESCAPE '\'
+			OR p.name LIKE ? ESCAPE '\'
+			OR COALESCE(u.login, '') LIKE ? ESCAPE '\'
+		)`
+		args = append(args, pattern, pattern, pattern)
+	}
+
+	sqlQuery += `
+		GROUP BY r.id, r.title, r.project_id, p.name, r.status, r.due_date,
+		         r.created_at, r.started_at, r.completed_at, u.login
+		ORDER BY COALESCE(r.completed_at, r.started_at, r.created_at) DESC, r.id DESC
+		LIMIT ?`
+	args = append(args, filteredRunsLimit)
+
+	rows, err := s.queryRows(ctx, sqlQuery, args...)
+	if err != nil {
+		return nil, fmt.Errorf("list filtered run summaries: %w", err)
+	}
+	defer rows.Close()
+
+	return scanRunListSummaries(rows)
+}
+
 // ListRecentCompletedRunSummaries returns the most recently closed runs visible to the user.
 func (s *Store) ListRecentCompletedRunSummaries(ctx context.Context, userID int64, admin bool) ([]CompletedRunSummary, error) {
 	orgID, err := organizationIDFromContext(ctx)
@@ -134,6 +209,17 @@ const activeRunSummariesSQL = `
 	INNER JOIN run_items ri ON ri.run_id = r.id
 `
 
+const runListSummariesSQL = `
+	SELECT r.id, r.title, r.project_id, p.name, r.status, r.due_date,
+	       r.created_at, r.started_at, r.completed_at, u.login,
+	       COUNT(ri.id) AS total,
+	       SUM(CASE WHEN ri.status IN ('ok', 'na') THEN 1 ELSE 0 END) AS done
+	FROM checklist_runs r
+	INNER JOIN projects p ON p.id = r.project_id
+	LEFT JOIN users u ON u.id = r.created_by
+	LEFT JOIN run_items ri ON ri.run_id = r.id
+`
+
 const completedRunSummariesSQL = `
 	SELECT r.id, r.title, r.project_id, p.name, r.completed_at,
 	       COUNT(ri.id) AS total,
@@ -142,6 +228,30 @@ const completedRunSummariesSQL = `
 	INNER JOIN projects p ON p.id = r.project_id
 	LEFT JOIN run_items ri ON ri.run_id = r.id
 `
+
+func scanRunListSummaries(rows interface {
+	Next() bool
+	Scan(dest ...any) error
+	Err() error
+}) ([]RunListSummary, error) {
+	var summaries []RunListSummary
+	for rows.Next() {
+		var summary RunListSummary
+		if err := rows.Scan(
+			&summary.RunID, &summary.Title, &summary.ProjectID, &summary.ProjectName, &summary.Status, &summary.DueDate,
+			&summary.CreatedAt, &summary.StartedAt, &summary.CompletedAt, &summary.CreatedByLogin,
+			&summary.Total, &summary.Done,
+		); err != nil {
+			return nil, fmt.Errorf("scan run list summary: %w", err)
+		}
+		summary.Percent = progressPercent(summary.Done, summary.Total)
+		summaries = append(summaries, summary)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate run list summaries: %w", err)
+	}
+	return summaries, nil
+}
 
 func scanActiveRunSummaries(rows interface {
 	Next() bool
@@ -270,7 +380,7 @@ func (s *Store) ListProjectNokItems(ctx context.Context, projectID int64) ([]Pro
 }
 
 // ListTemplateIndex returns all active templates for the global catalog.
-func (s *Store) ListTemplateIndex(ctx context.Context, userID int64, admin bool) ([]TemplateIndexRow, error) {
+func (s *Store) ListTemplateIndex(ctx context.Context, userID int64, admin bool, query string) ([]TemplateIndexRow, error) {
 	_ = userID
 	_ = admin
 
@@ -279,7 +389,7 @@ func (s *Store) ListTemplateIndex(ctx context.Context, userID int64, admin bool)
 		return nil, err
 	}
 
-	rows, err := s.queryRows(ctx, `
+	sqlQuery := `
 		SELECT
 			t.id, t.organization_id, t.project_id, t.name, t.archived_at, t.created_at,
 			v.version,
@@ -290,10 +400,26 @@ func (s *Store) ListTemplateIndex(ctx context.Context, userID int64, admin bool)
 		WHERE t.archived_at IS NULL AND t.organization_id = ?
 		  AND v.version = (
 			SELECT MAX(v2.version) FROM template_versions v2 WHERE v2.template_id = t.id
-		  )
+		  )`
+	args := []any{orgID}
+
+	for _, term := range searchTerms(query) {
+		pattern := likeContainsPattern(term)
+		sqlQuery += ` AND (
+			t.name LIKE ? ESCAPE '\'
+			OR EXISTS (
+				SELECT 1 FROM template_tags tt
+				WHERE tt.template_id = t.id AND tt.tag LIKE ? ESCAPE '\'
+			)
+		)`
+		args = append(args, pattern, pattern)
+	}
+
+	sqlQuery += `
 		GROUP BY t.id, t.organization_id, t.project_id, t.name, t.archived_at, t.created_at, v.version
-		ORDER BY t.name
-	`, orgID)
+		ORDER BY t.name`
+
+	rows, err := s.queryRows(ctx, sqlQuery, args...)
 	if err != nil {
 		return nil, fmt.Errorf("list template index: %w", err)
 	}

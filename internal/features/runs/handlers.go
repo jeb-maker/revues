@@ -73,23 +73,17 @@ func (h *Runs) List(w http.ResponseWriter, r *http.Request) {
 	}
 
 	admin := auth.HasMinRole(user.Role, auth.RoleAdmin)
-	projectItems, err := h.Store.ListProjects(r.Context(), user.ID, admin)
+	projectItems, err := h.Store.ListProjects(r.Context(), user.ID, admin, "")
 	if err != nil {
 		slog.Error("list projects for runs page", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
-	activeRuns, err := h.Store.ListActiveRunSummaries(r.Context(), user.ID, admin)
+	filterStatus, filterQuery := parseRunListFilters(r)
+	runs, err := h.Store.ListFilteredRunSummaries(r.Context(), user.ID, admin, filterStatus, filterQuery)
 	if err != nil {
-		slog.Error("list active runs", "err", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
-	}
-
-	completedRuns, err := h.Store.ListRecentCompletedRunSummaries(r.Context(), user.ID, admin)
-	if err != nil {
-		slog.Error("list recent completed runs", "err", err)
+		slog.Error("list filtered runs", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
@@ -99,19 +93,20 @@ func (h *Runs) List(w http.ResponseWriter, r *http.Request) {
 		orgRole, orgMember, _ = h.Store.OrganizationMemberRole(r.Context(), org.ID, user.ID)
 	}
 
+	hasProjects := len(projectItems) > 0
 	data := viewtemplates.RunsListData{
 		PageData:          h.PageDataTab(r, "Revues", "runs"),
-		ActiveRuns:        activeRuns,
-		CompletedRuns:     completedRuns,
-		HasProjects:       len(projectItems) > 0,
+		Runs:              runs,
+		FilterQuery:       filterQuery,
+		FilterStatus:      filterStatus,
+		HasActiveFilters:  filterQuery != "" || filterStatus != "",
+		HasProjects:       hasProjects,
+		CanLaunch:         hasProjects,
 		CanCreate:         projectfeature.CanCreate(user),
 		CanManageOrgUsers: projectfeature.CanManageOrgUsers(user, orgRole, orgMember),
 		Message:           r.URL.Query().Get("msg"),
 	}
 	data.Breadcrumbs = viewtemplates.BCRevues()
-	if len(projectItems) > 0 {
-		data.PageActions = []viewtemplates.PageAction{viewtemplates.LaunchAction("/runs/new")}
-	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	if err := h.Templates.ExecuteTemplate(w, "runs_list", data); err != nil {
@@ -129,7 +124,7 @@ func (h *Runs) WizardProjects(w http.ResponseWriter, r *http.Request) {
 	}
 
 	admin := auth.HasMinRole(user.Role, auth.RoleAdmin)
-	allProjects, err := h.Store.ListProjects(r.Context(), user.ID, admin)
+	allProjects, err := h.Store.ListProjects(r.Context(), user.ID, admin, "")
 	if err != nil {
 		slog.Error("list projects for run wizard", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -1043,4 +1038,14 @@ func findRunItem(runItems []store.RunItem, itemID int64) (store.RunItem, bool) {
 		}
 	}
 	return store.RunItem{}, false
+}
+
+func parseRunListFilters(r *http.Request) (status, query string) {
+	q := r.URL.Query()
+	rawStatus := strings.TrimSpace(q.Get("status"))
+	if store.ValidRunListStatus(rawStatus) {
+		status = rawStatus
+	}
+	query = strings.TrimSpace(q.Get("q"))
+	return status, query
 }

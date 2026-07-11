@@ -188,6 +188,12 @@ func TestProjects_CreateAndList(t *testing.T) {
 	if !strings.Contains(listRec.Body.String(), "Projet test") {
 		t.Fatal("expected project name in list")
 	}
+	if !strings.Contains(listRec.Body.String(), "list-toolbar") {
+		t.Fatal("expected list toolbar on projects page")
+	}
+	if !strings.Contains(listRec.Body.String(), `href="/projects/new"`) {
+		t.Fatal("expected create button in toolbar")
+	}
 }
 
 func TestProjects_ReaderCannotCreate(t *testing.T) {

@@ -27,7 +27,7 @@ func benchmarkConcurrentListProjects(b *testing.B, maxOpen int) {
 	b.ResetTimer()
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			if _, err := st.ListProjects(ctx, user.ID, true); err != nil {
+			if _, err := st.ListProjects(ctx, user.ID, true, ""); err != nil {
 				b.Fatal(err)
 			}
 			if _, err := st.ListActiveRunSummaries(ctx, user.ID, true); err != nil {

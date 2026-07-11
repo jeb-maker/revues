@@ -61,7 +61,8 @@ func (h *Projects) List(w http.ResponseWriter, r *http.Request) {
 	}
 
 	admin := auth.HasMinRole(user.Role, auth.RoleAdmin)
-	items, err := h.Store.ListProjects(r.Context(), user.ID, admin)
+	filterQuery := strings.TrimSpace(r.URL.Query().Get("q"))
+	items, err := h.Store.ListProjects(r.Context(), user.ID, admin, filterQuery)
 	if err != nil {
 		slog.Error("list projects", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -73,17 +74,17 @@ func (h *Projects) List(w http.ResponseWriter, r *http.Request) {
 		orgRole, orgMember, _ = h.Store.OrganizationMemberRole(r.Context(), org.ID, user.ID)
 	}
 
+	canCreate := CanCreate(user)
 	data := templates.ProjectsListData{
 		PageData:          h.PageDataTab(r, "Projets", "projects"),
 		Projects:          items,
-		CanCreate:         CanCreate(user),
+		FilterQuery:       filterQuery,
+		HasActiveFilters:  filterQuery != "",
+		CanCreate:         canCreate,
 		CanManageOrgUsers: CanManageOrgUsers(user, orgRole, orgMember),
 		Message:           r.URL.Query().Get("msg"),
 	}
 	data.Breadcrumbs = templates.BCProjects()
-	if CanCreate(user) {
-		data.PageActions = []templates.PageAction{templates.CreateAction("Nouveau projet", "/projects/new")}
-	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	if err := h.Templates.ExecuteTemplate(w, "projects_list", data); err != nil {

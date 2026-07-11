@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"html/template"
 	"io/fs"
+	"net/url"
+	"strings"
 	"time"
 
 	"github.com/jeb-maker/revues/internal/attachments"
@@ -151,9 +153,12 @@ type AdminWebhooksData struct {
 // RunsListData is view data for the runs index page.
 type RunsListData struct {
 	PageData
-	ActiveRuns        []store.ActiveRunSummary
-	CompletedRuns     []store.CompletedRunSummary
+	Runs              []store.RunListSummary
+	FilterQuery       string
+	FilterStatus      string
+	HasActiveFilters  bool
 	HasProjects       bool
+	CanLaunch         bool
 	CanCreate         bool
 	CanManageOrgUsers bool
 	Message           string
@@ -164,6 +169,8 @@ type RunsListData struct {
 type ProjectsListData struct {
 	PageData
 	Projects          []store.Project
+	FilterQuery       string
+	HasActiveFilters  bool
 	CanCreate         bool
 	CanManageOrgUsers bool
 	Message           string
@@ -214,8 +221,10 @@ type ProjectShowData struct {
 // TemplatesIndexData is view data for the global templates tab.
 type TemplatesIndexData struct {
 	PageData
-	Templates []store.TemplateIndexRow
-	CanManage bool
+	Templates        []store.TemplateIndexRow
+	FilterQuery      string
+	HasActiveFilters bool
+	CanManage        bool
 }
 
 // TemplateEditorRow is one editable checklist point in the form.
@@ -411,10 +420,10 @@ type RunShowData struct {
 // MyTasksData is view data for assigned tasks list.
 type MyTasksData struct {
 	PageData
-	Tasks           []store.AssignedRunItemSummary
-	Projects        []store.Project
-	FilterProjectID int64
-	FilterStatus    string
+	Tasks            []store.AssignedRunItemSummary
+	FilterQuery      string
+	FilterStatus     string
+	HasActiveFilters bool
 }
 
 // RunItemShowData is view data for run item detail with audit history.
@@ -524,8 +533,24 @@ func Parse(assetVersion string) (*template.Template, error) {
 				return s
 			}
 		},
-		"formatDueDate": formatDueDate,
-		"dueDateInput":  dueDateInput,
+		"formatDueDate":  formatDueDate,
+		"formatDateTime": formatDateTime,
+		"dueDateInput":   dueDateInput,
+		"runsListURL": func(status, q string) string {
+			return listURL("/revues", url.Values{
+				"status": {status},
+				"q":      {strings.TrimSpace(q)},
+			})
+		},
+		"listURL": func(path, q string) string {
+			return listURL(path, url.Values{"q": {strings.TrimSpace(q)}})
+		},
+		"myTasksListURL": func(status, q string) string {
+			return listURL("/mes-taches", url.Values{
+				"status": {status},
+				"q":      {strings.TrimSpace(q)},
+			})
+		},
 		"attachmentIsImage": func(att *store.Attachment) bool {
 			if att == nil {
 				return false
@@ -567,11 +592,18 @@ func formatDueDate(due sql.NullString) string {
 	if !due.Valid || due.String == "" {
 		return ""
 	}
-	t, err := time.Parse(time.RFC3339, due.String)
+	return formatDateTime(due.String)
+}
+
+func formatDateTime(value string) string {
+	if value == "" {
+		return ""
+	}
+	t, err := time.Parse(time.RFC3339, value)
 	if err != nil {
-		t, err = time.Parse("2006-01-02", due.String)
+		t, err = time.Parse("2006-01-02", value)
 		if err != nil {
-			return due.String
+			return value
 		}
 	}
 	return t.UTC().Format("02/01/2006")
@@ -589,4 +621,20 @@ func dueDateInput(due sql.NullString) string {
 		}
 	}
 	return t.UTC().Format("2006-01-02")
+}
+
+func listURL(path string, values url.Values) string {
+	clean := url.Values{}
+	for key, vals := range values {
+		for _, val := range vals {
+			val = strings.TrimSpace(val)
+			if val != "" {
+				clean.Add(key, val)
+			}
+		}
+	}
+	if enc := clean.Encode(); enc != "" {
+		return path + "?" + enc
+	}
+	return path
 }

@@ -123,29 +123,37 @@ func (s *Store) ProjectByIDUnscoped(ctx context.Context, id int64) (*Project, er
 }
 
 // ListProjects returns active projects visible to the user in the active organization.
-func (s *Store) ListProjects(ctx context.Context, userID int64, admin bool) ([]Project, error) {
+func (s *Store) ListProjects(ctx context.Context, userID int64, admin bool, query string) ([]Project, error) {
 	orgID, err := organizationIDFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	var rows *sql.Rows
+	sqlQuery := `
+		SELECT p.id, p.organization_id, p.name, p.description, p.archived_at, p.created_at, p.updated_at
+		FROM projects p`
+	var args []any
+
 	if admin {
-		rows, err = s.db.QueryContext(ctx, `
-			SELECT id, organization_id, name, description, archived_at, created_at, updated_at
-			FROM projects
-			WHERE organization_id = ? AND archived_at IS NULL
-			ORDER BY name
-		`, orgID)
+		sqlQuery += `
+		WHERE p.organization_id = ? AND p.archived_at IS NULL`
+		args = append(args, orgID)
 	} else {
-		rows, err = s.db.QueryContext(ctx, `
-			SELECT p.id, p.organization_id, p.name, p.description, p.archived_at, p.created_at, p.updated_at
-			FROM projects p
-			INNER JOIN project_members pm ON pm.project_id = p.id
-			WHERE p.organization_id = ? AND pm.user_id = ? AND p.archived_at IS NULL
-			ORDER BY p.name
-		`, orgID, userID)
+		sqlQuery += `
+		INNER JOIN project_members pm ON pm.project_id = p.id
+		WHERE p.organization_id = ? AND pm.user_id = ? AND p.archived_at IS NULL`
+		args = append(args, orgID, userID)
 	}
+
+	for _, term := range searchTerms(query) {
+		pattern := likeContainsPattern(term)
+		sqlQuery += ` AND (p.name LIKE ? ESCAPE '\' OR p.description LIKE ? ESCAPE '\')`
+		args = append(args, pattern, pattern)
+	}
+
+	sqlQuery += ` ORDER BY p.name`
+
+	rows, err := s.db.QueryContext(ctx, sqlQuery, args...)
 	if err != nil {
 		return nil, fmt.Errorf("list projects: %w", err)
 	}

@@ -98,6 +98,49 @@ func TestDashboard_RecentCompletedRuns(t *testing.T) {
 	if len(active) != 0 {
 		t.Fatalf("len(active) = %d, want 0 after completion", len(active))
 	}
+
+	filtered, err := st.ListFilteredRunSummaries(ctx, 1, true, "", "")
+	if err != nil {
+		t.Fatalf("ListFilteredRunSummaries(): %v", err)
+	}
+	if len(filtered) != 1 || filtered[0].RunID != run.ID || filtered[0].Status != store.RunStatusDone {
+		t.Fatalf("ListFilteredRunSummaries() = %+v", filtered)
+	}
+	if !filtered[0].CreatedByLogin.Valid {
+		t.Fatal("expected created_by login on filtered summary")
+	}
+
+	doneOnly, err := st.ListFilteredRunSummaries(ctx, 1, true, store.RunStatusDone, "")
+	if err != nil {
+		t.Fatalf("ListFilteredRunSummaries(done): %v", err)
+	}
+	if len(doneOnly) != 1 {
+		t.Fatalf("len(doneOnly) = %d, want 1", len(doneOnly))
+	}
+
+	draftOnly, err := st.ListFilteredRunSummaries(ctx, 1, true, store.RunStatusDraft, "")
+	if err != nil {
+		t.Fatalf("ListFilteredRunSummaries(draft): %v", err)
+	}
+	if len(draftOnly) != 0 {
+		t.Fatalf("len(draftOnly) = %d, want 0", len(draftOnly))
+	}
+
+	byTitle, err := st.ListFilteredRunSummaries(ctx, 1, true, "", run.Title)
+	if err != nil {
+		t.Fatalf("ListFilteredRunSummaries(title): %v", err)
+	}
+	if len(byTitle) != 1 {
+		t.Fatalf("len(byTitle) = %d, want 1", len(byTitle))
+	}
+
+	missing, err := st.ListFilteredRunSummaries(ctx, 1, true, "", "revue-inexistante-xyz")
+	if err != nil {
+		t.Fatalf("ListFilteredRunSummaries(missing): %v", err)
+	}
+	if len(missing) != 0 {
+		t.Fatalf("len(missing) = %d, want 0", len(missing))
+	}
 }
 
 func TestDashboard_TemplateIndexListsAllTemplates(t *testing.T) {
@@ -123,14 +166,14 @@ func TestDashboard_TemplateIndexListsAllTemplates(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateProject(bob): %v", err)
 	}
-	if _, _, err = st.CreateChecklistTemplate(ctx, "Modèle A", alice.ID, nil, nil); err != nil {
+	if _, _, err = st.CreateChecklistTemplate(ctx, "Modèle A", alice.ID, []string{"infra"}, nil); err != nil {
 		t.Fatalf("CreateChecklistTemplate(A): %v", err)
 	}
 	if _, _, err = st.CreateChecklistTemplate(ctx, "Modèle B", bob.ID, nil, nil); err != nil {
 		t.Fatalf("CreateChecklistTemplate(B): %v", err)
 	}
 
-	aliceRows, err := st.ListTemplateIndex(ctx, alice.ID, false)
+	aliceRows, err := st.ListTemplateIndex(ctx, alice.ID, false, "")
 	if err != nil {
 		t.Fatalf("ListTemplateIndex(alice): %v", err)
 	}
@@ -138,11 +181,19 @@ func TestDashboard_TemplateIndexListsAllTemplates(t *testing.T) {
 		t.Fatalf("ListTemplateIndex(alice) len = %d, want 2", len(aliceRows))
 	}
 
-	adminRows, err := st.ListTemplateIndex(ctx, alice.ID, true)
+	adminRows, err := st.ListTemplateIndex(ctx, alice.ID, true, "")
 	if err != nil {
 		t.Fatalf("ListTemplateIndex(admin): %v", err)
 	}
 	if len(adminRows) != 2 {
 		t.Fatalf("ListTemplateIndex(admin) len = %d, want 2", len(adminRows))
+	}
+
+	qaRows, err := st.ListTemplateIndex(ctx, alice.ID, true, "infra")
+	if err != nil {
+		t.Fatalf("ListTemplateIndex(infra): %v", err)
+	}
+	if len(qaRows) != 1 || qaRows[0].Name != "Modèle A" {
+		t.Fatalf("ListTemplateIndex(infra) = %+v", qaRows)
 	}
 }

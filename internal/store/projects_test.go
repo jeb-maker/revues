@@ -30,7 +30,7 @@ func TestCreateProjectAddsLead(t *testing.T) {
 		t.Fatalf("MemberRole() = %q, %v, %v", role, ok, err)
 	}
 
-	projects, err := st.ListProjects(ctx, creator.ID, false)
+	projects, err := st.ListProjects(ctx, creator.ID, false, "")
 	if err != nil || len(projects) != 1 {
 		t.Fatalf("ListProjects() = %v, %v", projects, err)
 	}
@@ -60,7 +60,7 @@ func TestListProjectsAdminSeesAll(t *testing.T) {
 		t.Fatalf("CreateProject(p2): %v", err)
 	}
 
-	items, err := st.ListProjects(ctx, 0, true)
+	items, err := st.ListProjects(ctx, 0, true, "")
 	if err != nil {
 		t.Fatalf("ListProjects(admin): %v", err)
 	}
@@ -68,11 +68,53 @@ func TestListProjectsAdminSeesAll(t *testing.T) {
 		t.Fatalf("admin list len = %d, want 2", len(items))
 	}
 
-	items, err = st.ListProjects(ctx, a.ID, false)
+	items, err = st.ListProjects(ctx, a.ID, false, "")
 	if err != nil {
 		t.Fatalf("ListProjects(a): %v", err)
 	}
 	if len(items) != 1 {
 		t.Fatalf("member list len = %d, want 1", len(items))
+	}
+}
+
+func TestListProjectsSearch(t *testing.T) {
+	ctx := context.Background()
+	db := openMemoryDB(t)
+	st := store.New(db)
+	ctx = defaultOrgCtx(ctx, st)
+
+	user, err := st.UpsertGitHubUser(ctx, 3, "lead", "lead@example.com", "Lead", "", auth.RoleEditor)
+	if err != nil {
+		t.Fatalf("UpsertGitHubUser(): %v", err)
+	}
+	if _, err = st.CreateProject(ctx, "Alpha Platform", "Core services", user.ID, nil); err != nil {
+		t.Fatalf("CreateProject(alpha): %v", err)
+	}
+	if _, err = st.CreateProject(ctx, "Beta", "", user.ID, nil); err != nil {
+		t.Fatalf("CreateProject(beta): %v", err)
+	}
+
+	byName, err := st.ListProjects(ctx, user.ID, true, "alpha")
+	if err != nil {
+		t.Fatalf("ListProjects(alpha): %v", err)
+	}
+	if len(byName) != 1 || byName[0].Name != "Alpha Platform" {
+		t.Fatalf("ListProjects(alpha) = %+v", byName)
+	}
+
+	byDesc, err := st.ListProjects(ctx, user.ID, true, "services")
+	if err != nil {
+		t.Fatalf("ListProjects(services): %v", err)
+	}
+	if len(byDesc) != 1 {
+		t.Fatalf("len(byDesc) = %d, want 1", len(byDesc))
+	}
+
+	missing, err := st.ListProjects(ctx, user.ID, true, "gamma")
+	if err != nil {
+		t.Fatalf("ListProjects(gamma): %v", err)
+	}
+	if len(missing) != 0 {
+		t.Fatalf("len(missing) = %d, want 0", len(missing))
 	}
 }

@@ -205,8 +205,8 @@ func (s *Store) ListNokRunItems(ctx context.Context, runID int64) ([]RunItem, er
 }
 
 // ListAssignedRunItems returns tasks assigned to a user with optional filters.
-func (s *Store) ListAssignedRunItems(ctx context.Context, userID, projectID int64, status string) ([]AssignedRunItemSummary, error) {
-	query := `
+func (s *Store) ListAssignedRunItems(ctx context.Context, userID int64, status, query string) ([]AssignedRunItemSummary, error) {
+	sqlQuery := `
 		SELECT ri.id, ri.run_id, ri.source_item_id, ri.section, ri.position, ri.label, ri.help_text, ri.required,
 		       ri.status, ri.comment, ri.assigned_to, u.login, ri.updated_at,
 		       cr.title, cr.project_id, p.name
@@ -218,17 +218,23 @@ func (s *Store) ListAssignedRunItems(ctx context.Context, userID, projectID int6
 	`
 	args := []any{userID, RunStatusArchived}
 
-	if projectID > 0 {
-		query += " AND cr.project_id = ?"
-		args = append(args, projectID)
-	}
 	if status != "" {
-		query += " AND ri.status = ?"
+		sqlQuery += " AND ri.status = ?"
 		args = append(args, status)
 	}
-	query += " ORDER BY p.name, cr.title, ri.position"
+	for _, term := range searchTerms(query) {
+		pattern := likeContainsPattern(term)
+		sqlQuery += ` AND (
+			p.name LIKE ? ESCAPE '\'
+			OR cr.title LIKE ? ESCAPE '\'
+			OR ri.label LIKE ? ESCAPE '\'
+			OR ri.section LIKE ? ESCAPE '\'
+		)`
+		args = append(args, pattern, pattern, pattern, pattern)
+	}
+	sqlQuery += " ORDER BY p.name, cr.title, ri.position"
 
-	rows, err := s.db.QueryContext(ctx, query, args...)
+	rows, err := s.db.QueryContext(ctx, sqlQuery, args...)
 	if err != nil {
 		return nil, fmt.Errorf("list assigned run items: %w", err)
 	}

@@ -130,8 +130,8 @@ func TestDashboard_ShowsRecentCompletedRuns(t *testing.T) {
 		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
 	}
 	body := rec.Body.String()
-	if !strings.Contains(body, "Terminées récemment") {
-		t.Fatal("expected completed runs section")
+	if strings.Contains(body, "Terminées récemment") {
+		t.Fatal("unexpected legacy completed runs section")
 	}
 	if !strings.Contains(body, "Revue clôturée") {
 		t.Fatal("expected completed run title")
@@ -139,11 +139,20 @@ func TestDashboard_ShowsRecentCompletedRuns(t *testing.T) {
 	if !strings.Contains(body, "100%") {
 		t.Fatal("expected completed run progress")
 	}
-	if !strings.Contains(body, "Aucune revue active") {
-		t.Fatal("expected empty active runs message")
+	if strings.Contains(body, "Aucune revue active") {
+		t.Fatal("unexpected legacy empty active runs message")
 	}
-	if strings.Contains(body, "50%") {
-		t.Fatal("completed run should not appear in active progress table")
+	if !strings.Contains(body, `id="filter-query"`) {
+		t.Fatal("expected search input on revues page")
+	}
+	if !strings.Contains(body, "segmented-tabs") {
+		t.Fatal("expected status tabs on revues page")
+	}
+	if !strings.Contains(body, ">Filtrer<") {
+		t.Fatal("expected filter submit button")
+	}
+	if !strings.Contains(body, `href="/runs/new"`) || !strings.Contains(body, ">Lancer<") {
+		t.Fatal("expected launch button in toolbar")
 	}
 }
 
@@ -392,6 +401,9 @@ func TestTemplatesIndex_ListsVisibleTemplates(t *testing.T) {
 	}
 	if !strings.Contains(body, "tous projets") {
 		t.Fatal("expected global template marker in index")
+	}
+	if !strings.Contains(body, "list-toolbar") {
+		t.Fatal("expected list toolbar on templates page")
 	}
 }
 

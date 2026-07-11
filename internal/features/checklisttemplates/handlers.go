@@ -62,7 +62,8 @@ func (h *ChecklistTemplates) IndexAll(w http.ResponseWriter, r *http.Request) {
 	}
 
 	admin := auth.HasMinRole(user.Role, auth.RoleAdmin)
-	rows, err := h.Store.ListTemplateIndex(r.Context(), user.ID, admin)
+	filterQuery := strings.TrimSpace(r.URL.Query().Get("q"))
+	rows, err := h.Store.ListTemplateIndex(r.Context(), user.ID, admin, filterQuery)
 	if err != nil {
 		slog.Error("list template index", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -71,16 +72,12 @@ func (h *ChecklistTemplates) IndexAll(w http.ResponseWriter, r *http.Request) {
 
 	pd := h.PageDataTab(r, "Modèles", "templates")
 	pd.Breadcrumbs = viewtemplates.BCTemplatesIndex()
-	if CanManageGlobal(user) {
-		pd.PageActions = []viewtemplates.PageAction{
-			viewtemplates.CreateAction("Nouveau modèle", "/modeles/new"),
-			viewtemplates.SecondaryAction("Importer depuis Notion", "/modeles/notion-import"),
-		}
-	}
 	data := viewtemplates.TemplatesIndexData{
-		PageData:  pd,
-		Templates: rows,
-		CanManage: CanManageGlobal(user),
+		PageData:         pd,
+		Templates:        rows,
+		FilterQuery:      filterQuery,
+		HasActiveFilters: filterQuery != "",
+		CanManage:        CanManageGlobal(user),
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")

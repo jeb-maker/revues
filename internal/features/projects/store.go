@@ -8,7 +8,7 @@ import (
 
 type ProjectStore interface {
 	ProjectByID(ctx context.Context, id int64) (*Project, error)
-	ListProjects(ctx context.Context, userID int64, admin bool) ([]Project, error)
+	ListProjects(ctx context.Context, userID int64, admin bool, query string) ([]Project, error)
 	CreateProject(ctx context.Context, name, description string, creatorID int64, tags []string) (*Project, error)
 	UpdateProject(ctx context.Context, id int64, name, description string, tags []string) error
 	ListProjectTags(ctx context.Context, projectID int64) ([]string, error)

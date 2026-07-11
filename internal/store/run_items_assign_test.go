@@ -33,17 +33,22 @@ func TestAssignRunItem(t *testing.T) {
 		t.Fatalf("assigned_to = %+v, want %d", item.AssignedTo, contrib.ID)
 	}
 
-	tasks, err := st.ListAssignedRunItems(ctx, contrib.ID, 0, "")
+	tasks, err := st.ListAssignedRunItems(ctx, contrib.ID, "", "")
 	if err != nil || len(tasks) != 1 {
 		t.Fatalf("ListAssignedRunItems() = %v, %v", tasks, err)
 	}
 
-	filtered, err := st.ListAssignedRunItems(ctx, contrib.ID, run.ProjectID, runs.StatusPending)
+	filtered, err := st.ListAssignedRunItems(ctx, contrib.ID, runs.StatusPending, "")
 	if err != nil || len(filtered) != 1 {
 		t.Fatalf("ListAssignedRunItems(filter) = %v, %v", filtered, err)
 	}
 
-	empty, err := st.ListAssignedRunItems(ctx, contrib.ID, run.ProjectID, runs.StatusOK)
+	byLabel, err := st.ListAssignedRunItems(ctx, contrib.ID, "", "Point")
+	if err != nil || len(byLabel) != 1 {
+		t.Fatalf("ListAssignedRunItems(search) = %v, %v", byLabel, err)
+	}
+
+	empty, err := st.ListAssignedRunItems(ctx, contrib.ID, runs.StatusOK, "")
 	if err != nil || len(empty) != 0 {
 		t.Fatalf("ListAssignedRunItems(ok filter) = %v, %v", empty, err)
 	}

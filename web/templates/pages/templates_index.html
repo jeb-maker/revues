@@ -1,14 +1,27 @@
 {{define "templates_index"}}
 {{template "layout_start" .}}
-{{if .Templates}}
+{{if and (not .Templates) (not .HasActiveFilters)}}
+<p class="muted">Aucun modèle actif.</p>
+{{else}}
 <section class="panel">
-  <p class="muted">Modèles globaux de check-list. Les tags filtrent les modèles proposés par projet.</p>
+  <div class="list-toolbar">
+    <form method="get" action="/modeles" class="list-toolbar__form filter-form filter-form--inline">
+      <input class="list-toolbar__search toolbar-control" type="search" id="filter-query" name="q" value="{{.FilterQuery}}" placeholder="Rechercher un modèle ou un tag…" aria-label="Rechercher un modèle ou un tag">
+      <button type="submit" class="button-secondary toolbar-control">Filtrer</button>
+      {{if .HasActiveFilters}}<a href="/modeles" class="button-ghost toolbar-control">Effacer</a>{{end}}
+    </form>
+    <div class="list-toolbar__actions">
+      {{if .CanManage}}<a class="button-secondary list-toolbar__action toolbar-control" href="/modeles/notion-import" title="Importer depuis Notion">Importer</a>{{end}}
+      {{if .CanManage}}<a class="button list-toolbar__action toolbar-control" href="/modeles/new" title="Nouveau modèle">Créer</a>{{end}}
+    </div>
+  </div>
   <div class="table-scroll">
-  <table class="data-table">
+  <table class="data-table table-sticky">
     <thead>
       <tr><th scope="col">Modèle</th><th scope="col">Tags</th><th scope="col">Version</th><th scope="col">Points</th></tr>
     </thead>
     <tbody>
+      {{if .Templates}}
       {{range .Templates}}
       <tr>
         <td><a href="/modeles/{{.ID}}">{{.Name}}</a></td>
@@ -17,12 +30,15 @@
         <td>{{.ItemCount}}</td>
       </tr>
       {{end}}
+      {{else}}
+      <tr>
+        <td colspan="4" class="muted">Aucun modèle pour cette recherche. <a href="/modeles">Effacer</a></td>
+      </tr>
+      {{end}}
     </tbody>
   </table>
   </div>
 </section>
-{{else}}
-<p class="muted">Aucun modèle actif.</p>
 {{end}}
 {{template "layout_end" .}}
 {{end}}

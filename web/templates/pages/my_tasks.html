@@ -1,55 +1,49 @@
 {{define "my_tasks"}}
 {{template "layout_start" .}}
 <section class="panel">
-  <h2>Filtres</h2>
-  <p class="muted">Points qui vous sont assignés sur les revues en cours.</p>
-  <form method="get" action="/mes-taches" class="stack-form filter-form">
-    <label>
-      Projet
-      <select name="project">
-        <option value="">Tous les projets</option>
-        {{range .Projects}}
-        <option value="{{.ID}}" {{if eq $.FilterProjectID .ID}}selected{{end}}>{{.Name}}</option>
-        {{end}}
-      </select>
-    </label>
-    <label>
-      Statut
-      <select name="status">
-        <option value="">Tous les statuts</option>
-        <option value="pending" {{if eq .FilterStatus "pending"}}selected{{end}}>pending</option>
-        <option value="ok" {{if eq .FilterStatus "ok"}}selected{{end}}>ok</option>
-        <option value="nok" {{if eq .FilterStatus "nok"}}selected{{end}}>nok</option>
-        <option value="na" {{if eq .FilterStatus "na"}}selected{{end}}>na</option>
-      </select>
-    </label>
-    <button type="submit">Filtrer</button>
-  </form>
-</section>
-
-{{if .Tasks}}
-<section class="panel">
+  <div class="list-toolbar">
+    <form method="get" action="/mes-taches" class="list-toolbar__form filter-form filter-form--inline">
+      <input class="list-toolbar__search toolbar-control" type="search" id="filter-query" name="q" value="{{.FilterQuery}}" placeholder="Rechercher un projet, une revue, un point…" aria-label="Rechercher un projet, une revue ou un point">
+      {{if .FilterStatus}}<input type="hidden" name="status" value="{{.FilterStatus}}">{{end}}
+      <button type="submit" class="button-secondary toolbar-control">Filtrer</button>
+      {{if .HasActiveFilters}}<a href="/mes-taches" class="button-ghost toolbar-control">Effacer</a>{{end}}
+    </form>
+    <nav class="segmented-tabs" aria-label="Filtrer par statut">
+      <a href="{{myTasksListURL "" .FilterQuery}}" class="segmented-tabs__item{{if not .FilterStatus}} is-active{{end}}"{{if not .FilterStatus}} aria-current="true"{{end}}>Tous</a>
+      <a href="{{myTasksListURL "pending" .FilterQuery}}" class="segmented-tabs__item{{if eq .FilterStatus "pending"}} is-active{{end}}"{{if eq .FilterStatus "pending"}} aria-current="true"{{end}}>En attente</a>
+      <a href="{{myTasksListURL "ok" .FilterQuery}}" class="segmented-tabs__item{{if eq .FilterStatus "ok"}} is-active{{end}}"{{if eq .FilterStatus "ok"}} aria-current="true"{{end}}>OK</a>
+      <a href="{{myTasksListURL "nok" .FilterQuery}}" class="segmented-tabs__item{{if eq .FilterStatus "nok"}} is-active{{end}}"{{if eq .FilterStatus "nok"}} aria-current="true"{{end}}>Nok</a>
+      <a href="{{myTasksListURL "na" .FilterQuery}}" class="segmented-tabs__item{{if eq .FilterStatus "na"}} is-active{{end}}"{{if eq .FilterStatus "na"}} aria-current="true"{{end}}>N/A</a>
+    </nav>
+  </div>
   <div class="table-scroll">
-  <table class="data-table">
+  <table class="data-table table-sticky">
     <thead>
       <tr><th scope="col">Projet</th><th scope="col">Revue</th><th scope="col">Point</th><th scope="col">Statut</th></tr>
     </thead>
     <tbody>
+      {{if .Tasks}}
       {{range .Tasks}}
       <tr>
         <td>{{.ProjectName}}</td>
         <td><a href="/runs/{{.RunID}}">{{.RunTitle}}</a></td>
         <td><a href="/runs/{{.RunID}}/items/{{.ID}}">{{if .Section}}{{.Section}} — {{end}}{{.Label}}</a></td>
-        <td>{{.Status}}</td>
+        <td>{{statusLabel .Status}}</td>
+      </tr>
+      {{end}}
+      {{else if .HasActiveFilters}}
+      <tr>
+        <td colspan="4" class="muted">Aucune tâche pour cette recherche. <a href="/mes-taches">Effacer</a></td>
+      </tr>
+      {{else}}
+      <tr>
+        <td colspan="4" class="muted">Aucune tâche assignée.</td>
       </tr>
       {{end}}
     </tbody>
   </table>
   </div>
 </section>
-{{else}}
-<p class="muted">Aucune tâche assignée pour ces filtres.</p>
-{{end}}
 {{template "layout_end" .}}
 {{end}}
 {{define "main_class"}} site-main--wide{{end}}
