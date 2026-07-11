@@ -1,7 +1,6 @@
 {{define "run_item_show"}}
 {{template "layout_start" .}}
 <div class="card">
-  <h1>{{.Item.Label}}</h1>
   <p class="muted">
     Projet : <a href="/projects/{{.Project.ID}}">{{.Project.Name}}</a>
     · Revue : <a href="/runs/{{.Run.ID}}">{{.Run.Title}}</a>

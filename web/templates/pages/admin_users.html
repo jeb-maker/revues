@@ -1,7 +1,6 @@
 {{define "admin_users"}}
 {{template "layout_start" .}}
 <section class="panel">
-  <h2>Emails autorisés</h2>
   {{if .OrganizationName}}
   <p class="muted">Gérez les emails autorisés à rejoindre <strong>{{.OrganizationName}}</strong> via GitHub et leur rôle global.</p>
   {{else}}

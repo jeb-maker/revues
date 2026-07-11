@@ -442,13 +442,20 @@ type RunItemShowData struct {
 }
 
 // Parse loads layout and page templates from the embedded filesystem.
-func Parse() (*template.Template, error) {
+// assetVersion is appended to static URLs for cache busting (may be empty in tests).
+func Parse(assetVersion string) (*template.Template, error) {
 	root, err := fs.Sub(webassets.Templates, "templates")
 	if err != nil {
 		return nil, fmt.Errorf("templates root: %w", err)
 	}
 
 	tpl := template.New("").Funcs(template.FuncMap{
+		"assetURL": func(path string) string {
+			if assetVersion == "" {
+				return path
+			}
+			return path + "?v=" + assetVersion
+		},
 		"icon": func(name string) template.HTML {
 			switch name {
 			case "plus":

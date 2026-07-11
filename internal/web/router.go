@@ -39,14 +39,19 @@ type Deps struct {
 
 // NewRouter builds the HTTP handler tree for the application.
 func NewRouter(deps Deps) (http.Handler, *notifications.Service, error) {
-	tpl, err := templates.Parse()
-	if err != nil {
-		return nil, nil, fmt.Errorf("load templates: %w", err)
-	}
-
 	staticFS, err := fs.Sub(webassets.Static, "static")
 	if err != nil {
 		return nil, nil, fmt.Errorf("static assets: %w", err)
+	}
+
+	assetVersion, err := StaticAssetVersion(staticFS)
+	if err != nil {
+		return nil, nil, fmt.Errorf("static asset version: %w", err)
+	}
+
+	tpl, err := templates.Parse(assetVersion)
+	if err != nil {
+		return nil, nil, fmt.Errorf("load templates: %w", err)
 	}
 
 	st := store.New(deps.DB)
@@ -168,6 +173,7 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, error) {
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
+	r.Use(DevNoCache(deps.Config.Env))
 	r.Use(appmiddleware.LoadUser(st))
 	r.Use(appmiddleware.LoadActiveOrganization(st))
 	r.Use(appmiddleware.LoadHeaderData(st))
@@ -179,7 +185,8 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, error) {
 		Store:         st,
 		SessionSecret: deps.Config.SessionSecret,
 	}}).ServeHTTP)
-	r.Handle("/static/*", http.StripPrefix("/static/", http.FileServer(http.FS(staticFS))))
+	r.Get("/sw.js", ServeServiceWorkerKill(staticFS))
+	r.Handle("/static/*", http.StripPrefix("/static/", StaticHandler(http.FileServer(http.FS(staticFS)), deps.Config.Env)))
 
 	r.Get("/login", authHandler.Login)
 	r.Get("/auth/github/start", authHandler.StartGitHub)

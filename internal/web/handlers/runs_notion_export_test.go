@@ -42,7 +42,7 @@ func testNotionExportRouter(t *testing.T, encKey string, notionClient *notion.Cl
 	t.Cleanup(func() { _ = db.Close() })
 	_ = store.Migrate(ctx, db)
 	key, _ := base64.StdEncoding.DecodeString(encKey)
-	tpl, _ := viewtemplates.Parse()
+	tpl, _ := viewtemplates.Parse("")
 	st := store.New(db)
 	deps := runs.Deps{Templates: tpl, Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
 	runsHandler := &runs.Runs{Deps: deps, EncryptionKey: key, BaseURL: "http://example.com", NotionClient: notionClient}

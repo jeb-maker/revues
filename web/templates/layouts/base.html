@@ -7,7 +7,20 @@
   <meta name="color-scheme" content="light dark">
   {{if .CSRFToken}}<meta name="csrf-token" content="{{.CSRFToken}}">{{end}}
   <title>{{if .Title}}{{.Title}} — {{end}}Revues</title>
-  <link rel="stylesheet" href="/static/css/app.css">
+  <script>
+  (function () {
+    if (!("serviceWorker" in navigator)) return;
+    navigator.serviceWorker.getRegistrations().then(function (regs) {
+      regs.forEach(function (reg) { reg.unregister(); });
+    });
+    if ("caches" in window) {
+      caches.keys().then(function (keys) {
+        keys.forEach(function (key) { caches.delete(key); });
+      });
+    }
+  })();
+  </script>
+  <link rel="stylesheet" href="{{assetURL `/static/css/app.css`}}">
 </head>
 <body>
   <a class="skip-link" href="#main">Aller au contenu</a>
@@ -86,10 +99,12 @@
     </div>
   </main>
   <footer class="site-footer">
-    <p>Revues — gestion de check-lists pour revues de projets.</p>
+    <div class="site-footer__inner">
+      <p>Revues — gestion de check-lists pour revues de projets.</p>
+    </div>
   </footer>
-  <script src="/static/js/htmx.js" defer></script>
-  <script src="/static/js/app.js" defer></script>
+  <script src="{{assetURL `/static/js/htmx.js`}}" defer></script>
+  <script src="{{assetURL `/static/js/app.js`}}" defer></script>
   {{block "page_scripts" .}}{{end}}
 </body>
 </html>

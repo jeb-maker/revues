@@ -91,7 +91,7 @@ func newOAuthAuthHandler(t *testing.T, github *auth.GitHubOAuth) (*authhandler.A
 	st := store.New(db)
 	sessions := &auth.SessionManager{Store: st, SessionSecret: oauthTestSecret}
 
-	tpl, err := templates.Parse()
+	tpl, err := templates.Parse("")
 	if err != nil {
 		t.Fatalf("Parse templates: %v", err)
 	}

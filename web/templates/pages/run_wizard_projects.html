@@ -1,7 +1,6 @@
 {{define "run_wizard_projects"}}
 {{template "layout_start" .}}
 <div class="card">
-  <h1>Nouvelle revue</h1>
   {{template "stepper" .Stepper}}
   <p class="muted">Choisissez un projet pour lancer la revue.</p>
   {{if .Message}}<p class="success">{{.Message}}</p>{{end}}

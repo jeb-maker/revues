@@ -1,5 +1,17 @@
 (function () {
   'use strict';
+
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then(function (regs) {
+      regs.forEach(function (reg) { reg.unregister(); });
+    });
+  }
+  if ('caches' in window) {
+    caches.keys().then(function (keys) {
+      keys.forEach(function (key) { caches.delete(key); });
+    });
+  }
+
   var h = document.querySelector('.hamburger');
   var n = document.querySelector('.site-nav') || document.querySelector('.nav-tabs');
   if (h && n) {

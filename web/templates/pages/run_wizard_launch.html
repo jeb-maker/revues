@@ -1,7 +1,6 @@
 {{define "run_wizard_launch"}}
 {{template "layout_start" .}}
 <div class="card">
-  <h1>Lancer la revue</h1>
   {{template "stepper" .Stepper}}
   {{if .Error}}<p class="error">{{.Error}}</p>{{end}}
 

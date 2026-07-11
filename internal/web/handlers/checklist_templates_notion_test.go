@@ -46,7 +46,7 @@ func TestNotionImport_CreateTemplateV1(t *testing.T) {
 	ctx = testutil.DefaultOrgContext(ctx, st)
 	key, _ := crypto.DecodeKey(config.TestEncryptionKey())
 	_ = (&notion.Service{Store: st, EncryptionKey: key}).Save(ctx, notion.Config{APIToken: "secret"})
-	tpl, _ := viewtemplates.Parse()
+	tpl, _ := viewtemplates.Parse("")
 	secret := "test-secret-at-least-thirty-two-bytes"
 	h := &checklisttemplates.ChecklistTemplates{
 		Deps:          checklisttemplates.Deps{Templates: tpl, Store: st, SessionSecret: secret},

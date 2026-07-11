@@ -98,7 +98,7 @@ func TestCreateOrganizationSelfService(t *testing.T) {
 		t.Fatalf("CreateLoginSession(): %v", err)
 	}
 
-	tpl, err := templates.Parse()
+	tpl, err := templates.Parse("")
 	if err != nil {
 		t.Fatalf("Parse templates: %v", err)
 	}
@@ -179,7 +179,7 @@ func TestSelectOrganization(t *testing.T) {
 		t.Fatalf("CreateLoginSession(): %v", err)
 	}
 
-	tpl, err := templates.Parse()
+	tpl, err := templates.Parse("")
 	if err != nil {
 		t.Fatalf("Parse templates: %v", err)
 	}
@@ -249,7 +249,7 @@ func TestSwitchOrganization(t *testing.T) {
 		t.Fatalf("CreateLoginSession(): %v", err)
 	}
 
-	tpl, err := templates.Parse()
+	tpl, err := templates.Parse("")
 	if err != nil {
 		t.Fatalf("Parse templates: %v", err)
 	}
@@ -331,7 +331,7 @@ func TestAcceptOrganizationInvitation(t *testing.T) {
 		t.Fatalf("CreateLoginSession(): %v", err)
 	}
 
-	tpl, err := templates.Parse()
+	tpl, err := templates.Parse("")
 	if err != nil {
 		t.Fatalf("Parse templates: %v", err)
 	}
