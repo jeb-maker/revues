@@ -13,6 +13,11 @@
     Description
     <textarea name="description" rows="4">{{if .Project}}{{.Project.Description}}{{end}}</textarea>
   </label>
+  <label>
+    Tags
+    <span class="field-hint">Séparez les tags par des virgules (ex. k8s, frontend). Les modèles tagués correspondants seront proposés pour ce projet.</span>
+    <input type="text" name="tags" maxlength="500" value="{{.Tags}}">
+  </label>
   <button type="submit">Enregistrer</button>
 </form>
 

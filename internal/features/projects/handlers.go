@@ -140,7 +140,7 @@ func (h *Projects) Create(w http.ResponseWriter, r *http.Request) {
 	}
 	description := strings.TrimSpace(r.FormValue("description"))
 
-	project, err := h.Store.CreateProject(r.Context(), name, description, user.ID)
+	project, err := h.Store.CreateProject(r.Context(), name, description, user.ID, store.ParseTagsCSV(r.FormValue("tags")))
 	if err != nil {
 		slog.Error("create project", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -178,6 +178,13 @@ func (h *Projects) Show(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	tags, err := h.Store.ListProjectTags(r.Context(), project.ID)
+	if err != nil {
+		slog.Error("list project tags", "err", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
 	pd := h.PageDataTab(r, project.Name, "")
 	pd.Breadcrumbs = []templates.Breadcrumb{
 		{URL: "/projects", Label: "Projets"},
@@ -188,6 +195,7 @@ func (h *Projects) Show(w http.ResponseWriter, r *http.Request) {
 	data := templates.ProjectShowData{
 		PageData:         pd,
 		Project:          project,
+		Tags:             tags,
 		Members:          members,
 		Runs:             projectRuns,
 		NokItems:         nokItems,
@@ -227,6 +235,13 @@ func (h *Projects) EditForm(w http.ResponseWriter, r *http.Request) {
 		Project:    project,
 		FormAction: "/projects/" + strconv.FormatInt(project.ID, 10),
 	}
+	if tags, err := h.Store.ListProjectTags(r.Context(), project.ID); err != nil {
+		slog.Error("list project tags", "err", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	} else {
+		data.Tags = store.FormatTagsCSV(tags)
+	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	if err := h.Templates.ExecuteTemplate(w, "project_form", data); err != nil {
@@ -257,7 +272,7 @@ func (h *Projects) Update(w http.ResponseWriter, r *http.Request) {
 	}
 	description := strings.TrimSpace(r.FormValue("description"))
 
-	if err := h.Store.UpdateProject(r.Context(), project.ID, name, description); err != nil {
+	if err := h.Store.UpdateProject(r.Context(), project.ID, name, description, store.ParseTagsCSV(r.FormValue("tags"))); err != nil {
 		slog.Error("update project", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return

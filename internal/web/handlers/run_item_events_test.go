@@ -25,11 +25,11 @@ func TestRunItemShow_DisplaysAuditHistory(t *testing.T) {
 	if err != nil {
 		t.Fatalf("UpsertGitHubUser(): %v", err)
 	}
-	project, err := st.CreateProject(ctx, "P", "", lead.ID)
+	project, err := st.CreateProject(ctx, "P", "", lead.ID, nil)
 	if err != nil {
 		t.Fatalf("CreateProject(): %v", err)
 	}
-	template, _, err := st.CreateChecklistTemplate(ctx, project.ID, "Modèle", lead.ID, []store.TemplateItemInput{
+	template, _, err := st.CreateChecklistTemplate(ctx, "Modèle", lead.ID, nil, []store.TemplateItemInput{
 		{Label: "Point audit", Required: true},
 	})
 	if err != nil {
@@ -84,15 +84,15 @@ func TestIDOR_CrossProjectRunItemShow(t *testing.T) {
 	if err != nil {
 		t.Fatalf("UpsertGitHubUser(bob): %v", err)
 	}
-	projectA, err := st.CreateProject(ctx, "Secret", "", alice.ID)
+	projectA, err := st.CreateProject(ctx, "Secret", "", alice.ID, nil)
 	if err != nil {
 		t.Fatalf("CreateProject(): %v", err)
 	}
-	_, err = st.CreateProject(ctx, "Other", "", bob.ID)
+	_, err = st.CreateProject(ctx, "Other", "", bob.ID, nil)
 	if err != nil {
 		t.Fatalf("CreateProject(bob): %v", err)
 	}
-	template, _, err := st.CreateChecklistTemplate(ctx, projectA.ID, "Modèle", alice.ID, []store.TemplateItemInput{
+	template, _, err := st.CreateChecklistTemplate(ctx, "Modèle", alice.ID, nil, []store.TemplateItemInput{
 		{Label: "Secret point", Required: true},
 	})
 	if err != nil {

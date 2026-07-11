@@ -27,7 +27,7 @@ func TestOrganizationInvitations(t *testing.T) {
 		t.Fatalf("AddOrganizationMember(): %v", err)
 	}
 	orgCtx := orgctx.WithOrganizationID(ctx, org.ID)
-	project, err := st.CreateProject(orgCtx, "Portal", "desc", owner.ID)
+	project, err := st.CreateProject(orgCtx, "Portal", "desc", owner.ID, nil)
 	if err != nil {
 		t.Fatalf("CreateProject(): %v", err)
 	}

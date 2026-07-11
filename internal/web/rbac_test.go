@@ -90,7 +90,7 @@ func newRBACFixture(t *testing.T) *rbacFixture {
 		t.Fatalf("UpsertGitHubUser(outsider): %v", err)
 	}
 
-	project, err := st.CreateProject(ctx, "Alpha", "fixture project", lead.ID)
+	project, err := st.CreateProject(ctx, "Alpha", "fixture project", lead.ID, nil)
 	if err != nil {
 		t.Fatalf("CreateProject(): %v", err)
 	}
@@ -104,7 +104,7 @@ func newRBACFixture(t *testing.T) *rbacFixture {
 		t.Fatalf("AddProjectMember(reader): %v", err)
 	}
 
-	template, _, err := st.CreateChecklistTemplate(ctx, project.ID, "Modèle", lead.ID, []store.TemplateItemInput{
+	template, _, err := st.CreateChecklistTemplate(ctx, "Modèle", lead.ID, nil, []store.TemplateItemInput{
 		{Label: "Point", Required: true},
 	})
 	if err != nil {
@@ -285,11 +285,11 @@ func TestRBAC_Matrix(t *testing.T) {
 func TestIDOR_CrossProject(t *testing.T) {
 	f := newRBACFixture(t)
 
-	aliceProject, err := f.st.CreateProject(f.ctx, "Secret", "hidden", f.lead.ID)
+	aliceProject, err := f.st.CreateProject(f.ctx, "Secret", "hidden", f.lead.ID, nil)
 	if err != nil {
 		t.Fatalf("CreateProject(alice): %v", err)
 	}
-	template, _, err := f.st.CreateChecklistTemplate(f.ctx, aliceProject.ID, "Modèle", f.lead.ID, []store.TemplateItemInput{
+	template, _, err := f.st.CreateChecklistTemplate(f.ctx, "Modèle", f.lead.ID, nil, []store.TemplateItemInput{
 		{Label: "Point", Required: true},
 	})
 	if err != nil {

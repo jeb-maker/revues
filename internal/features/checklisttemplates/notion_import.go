@@ -4,12 +4,12 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
-	"strconv"
 	"strings"
 
 	"github.com/jeb-maker/revues/internal/crypto"
 	"github.com/jeb-maker/revues/internal/integrations/notion"
 	"github.com/jeb-maker/revues/internal/store"
+	"github.com/jeb-maker/revues/internal/web/middleware"
 	viewtemplates "github.com/jeb-maker/revues/internal/web/templates"
 )
 
@@ -20,14 +20,16 @@ const (
 )
 
 func (h *ChecklistTemplates) NotionImportForm(w http.ResponseWriter, r *http.Request) {
-	project, user, memberRole, ok := h.loadProject(w, r)
-	if !ok || !CanManage(user, memberRole) {
-		if ok {
-			http.NotFound(w, r)
-		}
+	user, ok := middleware.UserFromContext(r.Context())
+	if !ok {
+		http.Redirect(w, r, "/login", http.StatusFound)
 		return
 	}
-	data := h.notionImportBaseData(r, project, memberRole)
+	if !CanManageGlobal(user) {
+		http.NotFound(w, r)
+		return
+	}
+	data := h.notionImportBaseData(r)
 	data.Step = notionImportStepSource
 	if cfg, configured, err := h.notionConfigured(r); err != nil {
 		data.Error = "Impossible de charger la configuration Notion."
@@ -41,21 +43,24 @@ func (h *ChecklistTemplates) NotionImportForm(w http.ResponseWriter, r *http.Req
 }
 
 func (h *ChecklistTemplates) NotionImport(w http.ResponseWriter, r *http.Request) {
-	project, user, memberRole, ok := h.loadProject(w, r)
-	if !ok || !CanManage(user, memberRole) {
-		if ok {
-			http.NotFound(w, r)
-		}
+	user, ok := middleware.UserFromContext(r.Context())
+	if !ok {
+		http.Redirect(w, r, "/login", http.StatusFound)
+		return
+	}
+	if !CanManageGlobal(user) {
+		http.NotFound(w, r)
 		return
 	}
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
 	}
-	data := h.notionImportBaseData(r, project, memberRole)
+	data := h.notionImportBaseData(r)
 	data.DatabaseRef = strings.TrimSpace(r.FormValue("database_ref"))
 	data.DatabaseID = strings.TrimSpace(r.FormValue("database_id"))
 	data.TemplateName = strings.TrimSpace(r.FormValue("template_name"))
+	data.Tags = strings.TrimSpace(r.FormValue("tags"))
 	data.Mapping = notion.ColumnMapping{
 		Label: strings.TrimSpace(r.FormValue("map_label")), Section: strings.TrimSpace(r.FormValue("map_section")),
 		HelpText: strings.TrimSpace(r.FormValue("map_help")), Required: strings.TrimSpace(r.FormValue("map_required")),
@@ -78,7 +83,7 @@ func (h *ChecklistTemplates) NotionImport(w http.ResponseWriter, r *http.Request
 	case "preview":
 		h.notionImportPreview(w, r, cfg, data)
 	case "import":
-		h.notionImportCreate(w, r, project, user, cfg, data)
+		h.notionImportCreate(w, r, user, cfg, data)
 	default:
 		data.Error = "Action invalide."
 		data.Step = notionImportStepSource
@@ -136,7 +141,7 @@ func (h *ChecklistTemplates) notionImportPreview(w http.ResponseWriter, r *http.
 	h.renderNotionImport(w, data)
 }
 
-func (h *ChecklistTemplates) notionImportCreate(w http.ResponseWriter, r *http.Request, project *store.Project, user *store.User, cfg notion.Config, data viewtemplates.ChecklistTemplateNotionImportData) {
+func (h *ChecklistTemplates) notionImportCreate(w http.ResponseWriter, r *http.Request, user *store.User, cfg notion.Config, data viewtemplates.ChecklistTemplateNotionImportData) {
 	preview, db, err := h.loadNotionPreview(r, cfg, data)
 	if err != nil {
 		data.Error, data.Step = err.Error(), notionImportStepMapping
@@ -146,13 +151,14 @@ func (h *ChecklistTemplates) notionImportCreate(w http.ResponseWriter, r *http.R
 		h.renderNotionImport(w, data)
 		return
 	}
-	template, _, err := h.Store.CreateChecklistTemplate(r.Context(), project.ID, preview.TemplateName, user.ID, preview.Items)
+	tags := store.ParseTagsCSV(data.Tags)
+	template, _, err := h.Store.CreateChecklistTemplate(r.Context(), preview.TemplateName, user.ID, tags, preview.Items)
 	if err != nil {
 		slog.Error("create checklist template from notion", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
-	http.Redirect(w, r, templateShowURL(project.ID, template.ID)+"?msg=Mod%C3%A8le+import%C3%A9+depuis+Notion", http.StatusSeeOther)
+	http.Redirect(w, r, templateShowURL(template.ID)+"?msg=Mod%C3%A8le+import%C3%A9+depuis+Notion", http.StatusSeeOther)
 }
 
 func (h *ChecklistTemplates) loadNotionPreview(r *http.Request, cfg notion.Config, data viewtemplates.ChecklistTemplateNotionImportData) (notion.ImportPreview, notion.DatabaseInfo, error) {
@@ -180,11 +186,11 @@ func (h *ChecklistTemplates) loadNotionPreview(r *http.Request, cfg notion.Confi
 	return preview, db, nil
 }
 
-func (h *ChecklistTemplates) notionImportBaseData(r *http.Request, project *store.Project, memberRole string) viewtemplates.ChecklistTemplateNotionImportData {
+func (h *ChecklistTemplates) notionImportBaseData(r *http.Request) viewtemplates.ChecklistTemplateNotionImportData {
 	return viewtemplates.ChecklistTemplateNotionImportData{
-		PageData: h.PageDataTab(r, "Importer depuis Notion", "templates"), Project: project,
-		MemberRole: memberRole, CanManage: true,
-		FormAction: "/projects/" + strconv.FormatInt(project.ID, 10) + "/templates/notion-import",
+		PageData:   h.PageDataTab(r, "Importer depuis Notion", "templates"),
+		CanManage:  true,
+		FormAction: "/modeles/notion-import",
 	}
 }
 
@@ -220,7 +226,7 @@ func (h *ChecklistTemplates) notionClient() *notion.Client {
 func templateItemsToRows(items []store.TemplateItemInput) []viewtemplates.TemplateEditorRow {
 	rows := make([]viewtemplates.TemplateEditorRow, len(items))
 	for i, item := range items {
-		rows[i] = viewtemplates.TemplateEditorRow{Section: item.Section, Label: item.Label, HelpText: item.HelpText, Required: item.Required}
+		rows[i] = viewtemplates.TemplateEditorRow{Label: item.Label, HelpText: item.HelpText, Required: item.Required}
 	}
 	return rows
 }

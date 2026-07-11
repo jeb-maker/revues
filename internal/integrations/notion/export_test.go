@@ -40,8 +40,8 @@ func TestExportServiceExportRun(t *testing.T) {
 	st := svc.Store
 	storeSt := st.(*store.Store)
 	lead, _ := storeSt.UpsertGitHubUser(ctx, 1, "lead", "lead@example.com", "Lead", "", "editor")
-	project, _ := storeSt.CreateProject(ctx, "Alpha", "", lead.ID)
-	template, _, _ := storeSt.CreateChecklistTemplate(ctx, project.ID, "Modèle", lead.ID, []store.TemplateItemInput{{Label: "Backup", Required: true}})
+	project, _ := storeSt.CreateProject(ctx, "Alpha", "", lead.ID, nil)
+	template, _, _ := storeSt.CreateChecklistTemplate(ctx, "Modèle", lead.ID, nil, []store.TemplateItemInput{{Label: "Backup", Required: true}})
 	run, _ := storeSt.CreateChecklistRun(ctx, project.ID, template.ID, "Revue Q1", lead.ID, sql.NullString{})
 	_ = storeSt.StartRun(ctx, run.ID)
 	runItems, _ := storeSt.ListRunItems(ctx, run.ID)
@@ -62,8 +62,8 @@ func TestExportServiceAlreadyExported(t *testing.T) {
 	st := svc.Store
 	storeSt := st.(*store.Store)
 	lead, _ := storeSt.UpsertGitHubUser(ctx, 2, "lead", "lead@example.com", "Lead", "", "editor")
-	project, _ := storeSt.CreateProject(ctx, "Alpha", "", lead.ID)
-	template, _, _ := storeSt.CreateChecklistTemplate(ctx, project.ID, "Modèle", lead.ID, []store.TemplateItemInput{{Label: "P", Required: true}})
+	project, _ := storeSt.CreateProject(ctx, "Alpha", "", lead.ID, nil)
+	template, _, _ := storeSt.CreateChecklistTemplate(ctx, "Modèle", lead.ID, nil, []store.TemplateItemInput{{Label: "P", Required: true}})
 	run, _ := storeSt.CreateChecklistRun(ctx, project.ID, template.ID, "Revue", lead.ID, sql.NullString{})
 	_ = storeSt.StartRun(ctx, run.ID)
 	_ = storeSt.CompleteRun(ctx, run.ID, "Note")

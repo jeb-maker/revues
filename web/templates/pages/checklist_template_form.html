@@ -1,85 +1,120 @@
 {{define "checklist_template_form"}}
 {{template "layout_start" .}}
 <h1>{{if .Template}}Modifier le modèle{{else}}Nouveau modèle{{end}}</h1>
-<p class="muted">Projet : {{.Project.Name}}{{if .Version}} · version actuelle v{{.Version.Version}}{{end}}</p>
-{{if .Error}}<p class="error">{{.Error}}</p>{{end}}
+<p class="muted">{{if .Version}}Version actuelle v{{.Version.Version}} · {{end}}Les sections sont optionnelles. <a href="/modeles/notion-import">Importer depuis Notion</a></p>
 
-<form method="post" action="{{.FormAction}}" class="stack-form" id="template-form">
+{{if and .Template .Version}}
+<section class="panel">
+  <p class="muted">L'enregistrement publie une <strong>nouvelle version</strong> ; les revues déjà lancées conservent la version figée au démarrage.</p>
+</section>
+{{end}}
+
+<form method="post" action="{{.FormAction}}" class="stack-form" id="template-form"{{if or .NameError .ItemsError}} data-server-state="error"{{end}}>
   <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
-  <label>
-    Nom du modèle
-    <input type="text" name="name" required maxlength="200" value="{{if .Name}}{{.Name}}{{else if .Template}}{{.Template.Name}}{{end}}">
-  </label>
 
-  <section class="card">
+  <section class="panel">
+    <h2>Identité du modèle</h2>
+    <label>
+      Nom du modèle
+      <input type="text" name="name" required maxlength="200" value="{{if .Name}}{{.Name}}{{else if .Template}}{{.Template.Name}}{{end}}"{{if .NameError}} aria-invalid="true"{{end}}>
+      {{if .NameError}}<span class="field-error">{{.NameError}}</span>{{end}}
+    </label>
+    <label>
+      Tags
+      <span class="field-hint">Séparez par des virgules. Laissez vide pour proposer ce modèle à tous les projets.</span>
+      <input type="text" name="tags" maxlength="500" value="{{if .Tags}}{{.Tags}}{{else if .TagsList}}{{range $i, $tag := .TagsList}}{{if $i}}, {{end}}{{$tag}}{{end}}{{end}}">
+    </label>
+  </section>
+
+  <section class="panel">
     <h2>Points du modèle</h2>
-    <p class="muted">Sections et points ordonnés. Laissez le libellé vide pour ignorer une ligne.</p>
-    <div id="template-rows-container">
-    {{range $i, $row := .Rows}}
-    <fieldset class="template-row" id="template-row-{{$i}}">
-      <legend>Point {{add $i 1}}</legend>
-      <input type="hidden" name="item_row_idx" value="{{$i}}">
-      <label>
-        Section
-        <input type="text" name="item_section" maxlength="200" value="{{$row.Section}}" placeholder="ex: Architecture">
-      </label>
-      <label>
-        Libellé
-        <input type="text" name="item_label" maxlength="500" value="{{$row.Label}}" placeholder="ex: Le schéma DNS est à jour">
-      </label>
-      <label>
-        Texte d'aide
-        <input type="text" name="item_help" maxlength="500" value="{{$row.HelpText}}" placeholder="Texte indicatif optionnel">
-      </label>
-      <label class="checkbox-row">
-        <input type="checkbox" name="item_required" value="{{$i}}" {{if $row.Required}}checked{{end}}>
-        Point requis
-      </label>
-      <div class="template-row-actions">
-        <button type="button" class="button-ghost button-sm" hx-post="/projects/{{$.Project.ID}}/templates/new/row" hx-vals='{"idx":"{{$i}}","csrf_token":"{{$.CSRFToken}}"}'
-                hx-target="#template-row-{{$i}}" hx-swap="afterend">{{icon "plus"}}</button>
-        <button type="button" class="button-ghost button-sm" hx-delete="/projects/{{$.Project.ID}}/templates/new/row/{{$i}}"
-                hx-headers='{"X-CSRF-Token":"{{$.CSRFToken}}"}'
-                hx-target="#template-row-{{$i}}" hx-swap="outerHTML">{{icon "x"}}</button>
+    <p class="field-hint">Au moins un point avec un libellé est requis. Laissez le libellé vide pour ignorer une ligne.</p>
+    {{if .ItemsError}}<p class="field-error" id="template-items-error" role="alert">{{.ItemsError}}</p>{{end}}
+
+    <div id="template-sections" class="template-editor-sections{{if .SectionsEnabled}} is-sectioned{{end}}">
+    {{range $sec := .Sections}}
+      <div class="template-editor-section" data-section-idx="{{$sec.SectionIndex}}">
+        <input type="hidden" name="section_idx" value="{{$sec.SectionIndex}}">
+        <div class="template-editor-section-head">
+          <label>
+            Section
+            <span class="field-hint">Optionnel — laissez vide pour des points sans section.</span>
+            <input type="text" name="section_title" maxlength="200" value="{{$sec.Title}}" class="template-editor-section-title">
+          </label>
+          <div class="template-editor-section-actions">
+            <button type="button" class="button button-ghost button-sm" data-action="section-up" aria-label="Monter cette section">↑</button>
+            <button type="button" class="button button-ghost button-sm" data-action="section-down" aria-label="Descendre cette section">↓</button>
+            <button type="button" class="button button-ghost button-sm" data-action="section-remove" aria-label="Supprimer cette section">Supprimer la section</button>
+          </div>
+        </div>
+        <div class="table-scroll">
+          <table class="data-table template-editor-table">
+            <thead>
+              <tr>
+                <th scope="col">Libellé</th>
+                <th scope="col">Texte d'aide</th>
+                <th scope="col">Requis</th>
+                <th scope="col"><span class="visually-hidden">Actions</span></th>
+              </tr>
+            </thead>
+            <tbody class="template-section-rows">
+            {{range $i, $row := $sec.Items}}
+              <tr class="template-editor-row">
+                <td>
+                  <input type="hidden" name="item_row_idx" value="{{if $row.RowIndex}}{{$row.RowIndex}}{{else}}{{$i}}{{end}}">
+                  <input type="hidden" name="item_section_idx" value="{{$sec.SectionIndex}}">
+                  <label class="visually-hidden" for="item_label_{{$sec.SectionIndex}}_{{$i}}">Libellé</label>
+                  <input type="text" id="item_label_{{$sec.SectionIndex}}_{{$i}}" name="item_label" maxlength="500" value="{{$row.Label}}" class="template-editor-input"{{if $.ItemsError}} aria-describedby="template-items-error"{{end}}>
+                </td>
+                <td>
+                  <label class="visually-hidden" for="item_help_{{$sec.SectionIndex}}_{{$i}}">Texte d'aide</label>
+                  <input type="text" id="item_help_{{$sec.SectionIndex}}_{{$i}}" name="item_help" maxlength="500" value="{{$row.HelpText}}" class="template-editor-input">
+                </td>
+                <td>
+                  <label class="checkbox-row">
+                    <input type="checkbox" name="item_required" value="{{if $row.RowIndex}}{{$row.RowIndex}}{{else}}{{$i}}{{end}}"{{if $row.Required}} checked{{end}}>
+                    <span class="visually-hidden">Point requis</span>
+                    <span aria-hidden="true">oui</span>
+                  </label>
+                </td>
+                <td class="template-editor-actions">
+                  <button type="button" class="button button-ghost button-sm" data-action="move-up" aria-label="Monter ce point">↑</button>
+                  <button type="button" class="button button-ghost button-sm" data-action="move-down" aria-label="Descendre ce point">↓</button>
+                  <button type="button" class="button button-ghost button-sm" data-action="remove" aria-label="Supprimer ce point">Supprimer</button>
+                </td>
+              </tr>
+            {{end}}
+            </tbody>
+          </table>
+        </div>
+        <p class="template-editor-add">
+          <button type="button" class="button button-ghost button-sm" data-action="add-point">Ajouter un point</button>
+        </p>
       </div>
-    </fieldset>
     {{end}}
     </div>
-    <p>
-      {{if .Template}}
-      <a href="/projects/{{.Project.ID}}/templates/{{.Template.ID}}/edit?rows={{add (len .Rows) 2}}" class="button-ghost button-sm">{{icon "plus"}} Ajouter des lignes</a>
-      {{else}}
-      <a href="/projects/{{.Project.ID}}/templates/new?rows={{add (len .Rows) 2}}" class="button-ghost button-sm">{{icon "plus"}} Ajouter des lignes</a>
-      {{end}}
+    <p id="template-section-tools" class="template-editor-add"{{if not .SectionsEnabled}} hidden{{end}}>
+      <button type="button" class="button button-ghost button-sm" id="template-add-section">Ajouter une section</button>
+    </p>
+    <p id="template-enable-sections" class="template-editor-add"{{if .SectionsEnabled}} hidden{{end}}>
+      <button type="button" class="button button-ghost button-sm" id="template-enable-sections-btn">Ajouter des sections</button>
     </p>
   </section>
 
-  <button type="submit" class="button">{{icon "check"}} Enregistrer</button>
+  <div class="inline-actions">
+    <button type="submit" class="button">{{icon "check"}} Enregistrer</button>
+    {{if .Template}}
+    <a class="button button-ghost" href="/modeles/{{.Template.ID}}">Annuler</a>
+    {{else}}
+    <a class="button button-ghost" href="/modeles">Annuler</a>
+    {{end}}
+  </div>
 </form>
 
-<div class="card" id="template-preview">
-  <h2>Aperçu</h2>
-  {{if .Rows}}
-  <table class="data-table">
-    <thead>
-      <tr><th>Section</th><th>Point</th><th>Aide</th><th>Requis</th></tr>
-    </thead>
-    <tbody>
-      {{range .Rows}}
-      <tr>
-        <td>{{if .Section}}{{.Section}}{{else}}<span class="muted">—</span>{{end}}</td>
-        <td>{{if .Label}}{{.Label}}{{else}}<span class="muted">—</span>{{end}}</td>
-        <td>{{if .HelpText}}{{.HelpText}}{{else}}<span class="muted">—</span>{{end}}</td>
-        <td>{{if .Required}}{{icon "check"}}{{else}}<span class="muted">—</span>{{end}}</td>
-      </tr>
-      {{end}}
-    </tbody>
-  </table>
-  {{else}}
-  <p class="muted">Ajoutez des points au modèle pour voir un aperçu.</p>
-  {{end}}
-</div>
-
-<p><a href="/projects/{{.Project.ID}}/templates" class="button-ghost">{{icon "arrow-left"}} Retour aux modèles</a></p>
+<p class="muted"><a href="/modeles">← Retour aux modèles</a></p>
 {{template "layout_end" .}}
+{{end}}
+{{define "main_class"}} site-main--wide{{end}}
+{{define "page_scripts"}}
+<script src="/static/js/template-editor.js" defer></script>
 {{end}}

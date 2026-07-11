@@ -71,7 +71,7 @@ func TestRuns_ExportNotion(t *testing.T) {
 	ctx = testutil.DefaultOrgContext(ctx, st)
 	setupNotionExport(t, st, ctx, encKey)
 	lead, _ := st.UpsertGitHubUser(ctx, 60, "lead", "lead@example.com", "Lead", "", auth.RoleEditor)
-	project, _ := st.CreateProject(ctx, "Alpha", "", lead.ID)
+	project, _ := st.CreateProject(ctx, "Alpha", "", lead.ID, nil)
 	run := setupDoneRun(t, st, ctx, lead, project)
 	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
 	token, _, _ := sessions.CreateLoginSession(ctx, lead.ID, 0)
@@ -98,7 +98,7 @@ func TestRuns_ExportNotion_IDOR(t *testing.T) {
 	setupNotionExport(t, st, ctx, config.TestEncryptionKey())
 	alice, _ := st.UpsertGitHubUser(ctx, 61, "alice", "alice@example.com", "Alice", "", auth.RoleEditor)
 	bob, _ := st.UpsertGitHubUser(ctx, 62, "bob", "bob@example.com", "Bob", "", auth.RoleEditor)
-	projectA, _ := st.CreateProject(ctx, "Secret", "", alice.ID)
+	projectA, _ := st.CreateProject(ctx, "Secret", "", alice.ID, nil)
 	run := setupDoneRun(t, st, ctx, alice, projectA)
 	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
 	bobToken, _, _ := sessions.CreateLoginSession(ctx, bob.ID, 0)
@@ -121,7 +121,7 @@ func TestRuns_ExportNotion_ViewerForbidden(t *testing.T) {
 	setupNotionExport(t, st, ctx, config.TestEncryptionKey())
 	lead, _ := st.UpsertGitHubUser(ctx, 63, "lead", "lead@example.com", "Lead", "", auth.RoleEditor)
 	viewer, _ := st.UpsertGitHubUser(ctx, 64, "viewer", "viewer@example.com", "Viewer", "", auth.RoleEditor)
-	project, _ := st.CreateProject(ctx, "Team", "", lead.ID)
+	project, _ := st.CreateProject(ctx, "Team", "", lead.ID, nil)
 	_ = st.AddProjectMember(ctx, project.ID, viewer.ID, projects.LocalRoleViewer)
 	run := setupDoneRun(t, st, ctx, lead, project)
 	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
@@ -144,7 +144,7 @@ func TestRuns_ShowDoneIncludesNotionExportButton(t *testing.T) {
 	ctx = testutil.DefaultOrgContext(ctx, st)
 	setupNotionExport(t, st, ctx, config.TestEncryptionKey())
 	lead, _ := st.UpsertGitHubUser(ctx, 65, "lead", "lead@example.com", "Lead", "", auth.RoleEditor)
-	project, _ := st.CreateProject(ctx, "Alpha", "", lead.ID)
+	project, _ := st.CreateProject(ctx, "Alpha", "", lead.ID, nil)
 	run := setupDoneRun(t, st, ctx, lead, project)
 	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
 	token, _, _ := sessions.CreateLoginSession(ctx, lead.ID, 0)
@@ -163,7 +163,7 @@ func TestRuns_ShowDoneIncludesNotionLinkAfterExport(t *testing.T) {
 	st := store.New(db)
 	ctx = testutil.DefaultOrgContext(ctx, st)
 	lead, _ := st.UpsertGitHubUser(ctx, 66, "lead", "lead@example.com", "Lead", "", auth.RoleEditor)
-	project, _ := st.CreateProject(ctx, "Alpha", "", lead.ID)
+	project, _ := st.CreateProject(ctx, "Alpha", "", lead.ID, nil)
 	run := setupDoneRun(t, st, ctx, lead, project)
 	_ = st.SetRunNotionURL(ctx, run.ID, "https://notion.so/revue-done")
 	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
@@ -184,8 +184,8 @@ func TestRuns_ExportNotion_NotDone(t *testing.T) {
 	ctx = testutil.DefaultOrgContext(ctx, st)
 	setupNotionExport(t, st, ctx, config.TestEncryptionKey())
 	lead, _ := st.UpsertGitHubUser(ctx, 67, "lead", "lead@example.com", "Lead", "", auth.RoleEditor)
-	project, _ := st.CreateProject(ctx, "Alpha", "", lead.ID)
-	template, _, _ := st.CreateChecklistTemplate(ctx, project.ID, "Modèle", lead.ID, []store.TemplateItemInput{{Label: "Point", Required: true}})
+	project, _ := st.CreateProject(ctx, "Alpha", "", lead.ID, nil)
+	template, _, _ := st.CreateChecklistTemplate(ctx, "Modèle", lead.ID, nil, []store.TemplateItemInput{{Label: "Point", Required: true}})
 	run, _ := st.CreateChecklistRun(ctx, project.ID, template.ID, "Revue", lead.ID, sql.NullString{})
 	_ = st.StartRun(ctx, run.ID)
 	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}

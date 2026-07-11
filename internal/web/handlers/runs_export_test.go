@@ -20,7 +20,7 @@ import (
 func setupDoneRun(t *testing.T, st *store.Store, ctx context.Context, lead *store.User, project *store.Project) *store.ChecklistRun {
 	t.Helper()
 
-	template, _, err := st.CreateChecklistTemplate(ctx, project.ID, "Modèle", lead.ID, []store.TemplateItemInput{
+	template, _, err := st.CreateChecklistTemplate(ctx, "Modèle", lead.ID, nil, []store.TemplateItemInput{
 		{Section: "S", Label: "Backup", Required: true},
 		{Label: "Logs", Required: true},
 	})
@@ -60,7 +60,7 @@ func TestRuns_ExportCSV(t *testing.T) {
 	if err != nil {
 		t.Fatalf("UpsertGitHubUser(): %v", err)
 	}
-	project, err := st.CreateProject(ctx, "Alpha", "", lead.ID)
+	project, err := st.CreateProject(ctx, "Alpha", "", lead.ID, nil)
 	if err != nil {
 		t.Fatalf("CreateProject(): %v", err)
 	}
@@ -125,11 +125,11 @@ func TestRuns_ExportCSV_NotDone(t *testing.T) {
 	if err != nil {
 		t.Fatalf("UpsertGitHubUser(): %v", err)
 	}
-	project, err := st.CreateProject(ctx, "Alpha", "", lead.ID)
+	project, err := st.CreateProject(ctx, "Alpha", "", lead.ID, nil)
 	if err != nil {
 		t.Fatalf("CreateProject(): %v", err)
 	}
-	template, _, err := st.CreateChecklistTemplate(ctx, project.ID, "Modèle", lead.ID, []store.TemplateItemInput{
+	template, _, err := st.CreateChecklistTemplate(ctx, "Modèle", lead.ID, nil, []store.TemplateItemInput{
 		{Label: "Point", Required: true},
 	})
 	if err != nil {
@@ -174,11 +174,11 @@ func TestRuns_ExportCSV_IDOR(t *testing.T) {
 		t.Fatalf("UpsertGitHubUser(bob): %v", err)
 	}
 
-	projectA, err := st.CreateProject(ctx, "Secret", "", alice.ID)
+	projectA, err := st.CreateProject(ctx, "Secret", "", alice.ID, nil)
 	if err != nil {
 		t.Fatalf("CreateProject(): %v", err)
 	}
-	_, err = st.CreateProject(ctx, "Other", "", bob.ID)
+	_, err = st.CreateProject(ctx, "Other", "", bob.ID, nil)
 	if err != nil {
 		t.Fatalf("CreateProject(bob): %v", err)
 	}
@@ -214,7 +214,7 @@ func TestRuns_ExportCSV_ViewerCanExport(t *testing.T) {
 	if err != nil {
 		t.Fatalf("UpsertGitHubUser(viewer): %v", err)
 	}
-	project, err := st.CreateProject(ctx, "Team", "", lead.ID)
+	project, err := st.CreateProject(ctx, "Team", "", lead.ID, nil)
 	if err != nil {
 		t.Fatalf("CreateProject(): %v", err)
 	}
@@ -249,7 +249,7 @@ func TestRuns_ShowDoneIncludesExportButton(t *testing.T) {
 	if err != nil {
 		t.Fatalf("UpsertGitHubUser(): %v", err)
 	}
-	project, err := st.CreateProject(ctx, "Alpha", "", lead.ID)
+	project, err := st.CreateProject(ctx, "Alpha", "", lead.ID, nil)
 	if err != nil {
 		t.Fatalf("CreateProject(): %v", err)
 	}
@@ -288,11 +288,11 @@ func TestRuns_ShowInProgressOmitsExportButton(t *testing.T) {
 	if err != nil {
 		t.Fatalf("UpsertGitHubUser(): %v", err)
 	}
-	project, err := st.CreateProject(ctx, "Alpha", "", lead.ID)
+	project, err := st.CreateProject(ctx, "Alpha", "", lead.ID, nil)
 	if err != nil {
 		t.Fatalf("CreateProject(): %v", err)
 	}
-	template, _, err := st.CreateChecklistTemplate(ctx, project.ID, "Modèle", lead.ID, []store.TemplateItemInput{
+	template, _, err := st.CreateChecklistTemplate(ctx, "Modèle", lead.ID, nil, []store.TemplateItemInput{
 		{Label: "Point", Required: true},
 	})
 	if err != nil {

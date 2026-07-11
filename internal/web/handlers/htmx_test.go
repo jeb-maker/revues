@@ -26,11 +26,11 @@ func TestUpdateItem_HTMXReturnsFragment(t *testing.T) {
 	if err != nil {
 		t.Fatalf("UpsertGitHubUser(): %v", err)
 	}
-	project, err := st.CreateProject(ctx, "P", "", lead.ID)
+	project, err := st.CreateProject(ctx, "P", "", lead.ID, nil)
 	if err != nil {
 		t.Fatalf("CreateProject(): %v", err)
 	}
-	template, _, err := st.CreateChecklistTemplate(ctx, project.ID, "Modèle", lead.ID, []store.TemplateItemInput{
+	template, _, err := st.CreateChecklistTemplate(ctx, "Modèle", lead.ID, nil, []store.TemplateItemInput{
 		{Label: "Point A", Required: true},
 		{Label: "Point B", Required: true},
 	})
@@ -95,11 +95,11 @@ func TestUpdateItem_HTMXValidationError(t *testing.T) {
 	if err != nil {
 		t.Fatalf("UpsertGitHubUser(): %v", err)
 	}
-	project, err := st.CreateProject(ctx, "P", "", lead.ID)
+	project, err := st.CreateProject(ctx, "P", "", lead.ID, nil)
 	if err != nil {
 		t.Fatalf("CreateProject(): %v", err)
 	}
-	template, _, err := st.CreateChecklistTemplate(ctx, project.ID, "Modèle", lead.ID, []store.TemplateItemInput{
+	template, _, err := st.CreateChecklistTemplate(ctx, "Modèle", lead.ID, nil, []store.TemplateItemInput{
 		{Label: "Point", Required: true},
 	})
 	if err != nil {

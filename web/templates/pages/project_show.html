@@ -7,6 +7,11 @@
 {{if .Error}}<p class="error">{{.Error}}</p>{{end}}
 
 <p class="muted">Votre rôle sur ce projet : {{.MemberRole}}</p>
+{{if .Tags}}
+<p class="muted">Tags : {{range $i, $tag := .Tags}}{{if $i}}, {{end}}<span class="tag">{{$tag}}</span>{{end}}</p>
+{{else}}
+<p class="muted">Tags : <span class="muted">aucun (seuls les modèles sans tag seront proposés)</span></p>
+{{end}}
 
 <p><a href="/projects/{{.Project.ID}}/templates">Modèles de check-list</a>{{if .CanLaunch}} · <a href="/runs/new/projects/{{.Project.ID}}">Lancer une revue</a>{{end}}</p>
 

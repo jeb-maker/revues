@@ -69,7 +69,14 @@ func (s *Store) CreateChecklistRun(ctx context.Context, projectID, templateID in
 	if err != nil {
 		return nil, err
 	}
-	if template.ProjectID != projectID || template.ArchivedAt.Valid {
+	if template.ArchivedAt.Valid {
+		return nil, ErrChecklistTemplateNotFound
+	}
+	matches, err := s.TemplateMatchesProject(ctx, projectID, templateID)
+	if err != nil {
+		return nil, fmt.Errorf("template matches project: %w", err)
+	}
+	if !matches {
 		return nil, ErrChecklistTemplateNotFound
 	}
 

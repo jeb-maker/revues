@@ -71,7 +71,7 @@ func TestIDOR_CrossProject(t *testing.T) {
 		t.Fatalf("UpsertGitHubUser(bob): %v", err)
 	}
 
-	project, err := st.CreateProject(ctx, "Secret", "hidden", userA.ID)
+	project, err := st.CreateProject(ctx, "Secret", "hidden", userA.ID, nil)
 	if err != nil {
 		t.Fatalf("CreateProject(): %v", err)
 	}
@@ -123,7 +123,7 @@ func TestIDOR_CrossOrganization(t *testing.T) {
 	}
 
 	ctxA := orgctx.WithOrganizationID(ctx, orgA.ID)
-	project, err := st.CreateProject(ctxA, "Secret", "hidden", alice.ID)
+	project, err := st.CreateProject(ctxA, "Secret", "hidden", alice.ID, nil)
 	if err != nil {
 		t.Fatalf("CreateProject(): %v", err)
 	}
@@ -302,7 +302,7 @@ func TestProjectInvite_ExternalUserAutoJoinedToOrg(t *testing.T) {
 		t.Fatalf("AddOrganizationMember(lead): %v", err)
 	}
 
-	project, err := st.CreateProject(ctx, "Invite test", "", lead.ID)
+	project, err := st.CreateProject(ctx, "Invite test", "", lead.ID, nil)
 	if err != nil {
 		t.Fatalf("CreateProject(): %v", err)
 	}
@@ -380,7 +380,7 @@ func TestProjectInvite_CrossOrgRejected(t *testing.T) {
 		t.Fatalf("AddOrganizationMember(contributor): %v", err)
 	}
 
-	project, err := st.CreateProject(ctx, "RBAC invite", "", lead.ID)
+	project, err := st.CreateProject(ctx, "RBAC invite", "", lead.ID, nil)
 	if err != nil {
 		t.Fatalf("CreateProject(): %v", err)
 	}
@@ -447,7 +447,7 @@ func TestProjectInvite_OrgAdminCanInviteExternal(t *testing.T) {
 		t.Fatalf("AddOrganizationMember(orgAdmin): %v", err)
 	}
 
-	project, err := st.CreateProject(ctx, "Org admin invite", "", lead.ID)
+	project, err := st.CreateProject(ctx, "Org admin invite", "", lead.ID, nil)
 	if err != nil {
 		t.Fatalf("CreateProject(): %v", err)
 	}

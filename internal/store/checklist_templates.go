@@ -13,11 +13,12 @@ var ErrChecklistTemplateNotFound = errors.New("checklist template not found")
 
 // ChecklistTemplate is a versioned checklist model container.
 type ChecklistTemplate struct {
-	ID         int64
-	ProjectID  int64
-	Name       string
-	ArchivedAt sql.NullString
-	CreatedAt  string
+	ID             int64
+	OrganizationID int64
+	ProjectID      sql.NullInt64
+	Name           string
+	ArchivedAt     sql.NullString
+	CreatedAt      string
 }
 
 // ChecklistTemplateSummary includes latest version metadata for listings.
@@ -25,6 +26,7 @@ type ChecklistTemplateSummary struct {
 	ChecklistTemplate
 	LatestVersion int
 	ItemCount     int
+	Tags          []string
 }
 
 // TemplateVersion is an immutable snapshot of template content.
@@ -55,9 +57,15 @@ type TemplateItemInput struct {
 	Required bool
 }
 
-// CreateChecklistTemplate inserts a template with version 1 and its items.
-func (s *Store) CreateChecklistTemplate(ctx context.Context, projectID int64, name string, createdBy int64, items []TemplateItemInput) (*ChecklistTemplate, *TemplateVersion, error) {
+// CreateChecklistTemplate inserts a global template with version 1, items and tags.
+func (s *Store) CreateChecklistTemplate(ctx context.Context, name string, createdBy int64, tags []string, items []TemplateItemInput) (*ChecklistTemplate, *TemplateVersion, error) {
+	orgID, err := organizationIDFromContext(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	now := time.Now().UTC().Format(time.RFC3339)
+	tags = NormalizeTags(tags)
 
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -68,9 +76,9 @@ func (s *Store) CreateChecklistTemplate(ctx context.Context, projectID int64, na
 	}()
 
 	res, err := tx.ExecContext(ctx, `
-		INSERT INTO checklist_templates (project_id, name, created_at)
-		VALUES (?, ?, ?)
-	`, projectID, name, now)
+		INSERT INTO checklist_templates (project_id, organization_id, name, created_at)
+		VALUES (NULL, ?, ?, ?)
+	`, orgID, name, now)
 	if err != nil {
 		return nil, nil, fmt.Errorf("insert checklist template: %w", err)
 	}
@@ -78,6 +86,10 @@ func (s *Store) CreateChecklistTemplate(ctx context.Context, projectID int64, na
 	templateID, err := res.LastInsertId()
 	if err != nil {
 		return nil, nil, fmt.Errorf("template id: %w", err)
+	}
+
+	if err := setTemplateTagsTx(ctx, tx, templateID, tags); err != nil {
+		return nil, nil, err
 	}
 
 	version, err := insertTemplateVersionTx(ctx, tx, templateID, 1, now, createdBy, items)
@@ -106,11 +118,10 @@ func (s *Store) ChecklistTemplateByID(ctx context.Context, id int64) (*Checklist
 
 	var t ChecklistTemplate
 	err = s.db.QueryRowContext(ctx, `
-		SELECT t.id, t.project_id, t.name, t.archived_at, t.created_at
+		SELECT t.id, t.organization_id, t.project_id, t.name, t.archived_at, t.created_at
 		FROM checklist_templates t
-		INNER JOIN projects p ON p.id = t.project_id
-		WHERE t.id = ? AND p.organization_id = ?
-	`, id, orgID).Scan(&t.ID, &t.ProjectID, &t.Name, &t.ArchivedAt, &t.CreatedAt)
+		WHERE t.id = ? AND t.organization_id = ?
+	`, id, orgID).Scan(&t.ID, &t.OrganizationID, &t.ProjectID, &t.Name, &t.ArchivedAt, &t.CreatedAt)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrChecklistTemplateNotFound
 	}
@@ -120,7 +131,7 @@ func (s *Store) ChecklistTemplateByID(ctx context.Context, id int64) (*Checklist
 	return &t, nil
 }
 
-// ListChecklistTemplates returns active templates for a project with latest version info.
+// ListChecklistTemplates returns active templates matching a project's tags.
 func (s *Store) ListChecklistTemplates(ctx context.Context, projectID int64) ([]ChecklistTemplateSummary, error) {
 	orgID, err := organizationIDFromContext(ctx)
 	if err != nil {
@@ -129,20 +140,27 @@ func (s *Store) ListChecklistTemplates(ctx context.Context, projectID int64) ([]
 
 	rows, err := s.db.QueryContext(ctx, `
 		SELECT
-			t.id, t.project_id, t.name, t.archived_at, t.created_at,
+			t.id, t.organization_id, t.project_id, t.name, t.archived_at, t.created_at,
 			v.version,
 			COUNT(i.id) AS item_count
 		FROM checklist_templates t
-		INNER JOIN projects p ON p.id = t.project_id
 		INNER JOIN template_versions v ON v.template_id = t.id
 		LEFT JOIN template_items i ON i.version_id = v.id
-		WHERE t.project_id = ? AND p.organization_id = ? AND t.archived_at IS NULL
+		WHERE t.archived_at IS NULL AND t.organization_id = ?
 		  AND v.version = (
 			SELECT MAX(v2.version) FROM template_versions v2 WHERE v2.template_id = t.id
 		  )
-		GROUP BY t.id, t.project_id, t.name, t.archived_at, t.created_at, v.version
+		  AND (
+			NOT EXISTS (SELECT 1 FROM template_tags tt WHERE tt.template_id = t.id)
+			OR EXISTS (
+				SELECT 1 FROM template_tags tt
+				INNER JOIN project_tags pt ON pt.tag = tt.tag AND pt.project_id = ?
+				WHERE tt.template_id = t.id
+			)
+		  )
+		GROUP BY t.id, t.organization_id, t.project_id, t.name, t.archived_at, t.created_at, v.version
 		ORDER BY t.name
-	`, projectID, orgID)
+	`, orgID, projectID)
 	if err != nil {
 		return nil, fmt.Errorf("list checklist templates: %w", err)
 	}
@@ -152,7 +170,7 @@ func (s *Store) ListChecklistTemplates(ctx context.Context, projectID int64) ([]
 	for rows.Next() {
 		var summary ChecklistTemplateSummary
 		if err := rows.Scan(
-			&summary.ID, &summary.ProjectID, &summary.Name, &summary.ArchivedAt, &summary.CreatedAt,
+			&summary.ID, &summary.OrganizationID, &summary.ProjectID, &summary.Name, &summary.ArchivedAt, &summary.CreatedAt,
 			&summary.LatestVersion, &summary.ItemCount,
 		); err != nil {
 			return nil, fmt.Errorf("scan checklist template: %w", err)
@@ -161,6 +179,14 @@ func (s *Store) ListChecklistTemplates(ctx context.Context, projectID int64) ([]
 	}
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("iterate checklist templates: %w", err)
+	}
+
+	for i := range templates {
+		tags, err := s.ListTemplateTags(ctx, templates[i].ID)
+		if err != nil {
+			return nil, err
+		}
+		templates[i].Tags = tags
 	}
 
 	return templates, nil
@@ -176,8 +202,7 @@ func (s *Store) UpdateChecklistTemplateName(ctx context.Context, id int64, name 
 	res, err := s.db.ExecContext(ctx, `
 		UPDATE checklist_templates
 		SET name = ?
-		WHERE id = ? AND archived_at IS NULL
-		  AND project_id IN (SELECT id FROM projects WHERE organization_id = ?)
+		WHERE id = ? AND archived_at IS NULL AND organization_id = ?
 	`, name, id, orgID)
 	if err != nil {
 		return fmt.Errorf("update checklist template name: %w", err)
@@ -203,8 +228,7 @@ func (s *Store) ArchiveChecklistTemplate(ctx context.Context, id int64) error {
 	res, err := s.db.ExecContext(ctx, `
 		UPDATE checklist_templates
 		SET archived_at = ?
-		WHERE id = ? AND archived_at IS NULL
-		  AND project_id IN (SELECT id FROM projects WHERE organization_id = ?)
+		WHERE id = ? AND archived_at IS NULL AND organization_id = ?
 	`, now, id, orgID)
 	if err != nil {
 		return fmt.Errorf("archive checklist template: %w", err)
@@ -319,8 +343,7 @@ func (s *Store) TemplateVersionInfo(ctx context.Context, versionID int64) (*Temp
 		SELECT t.id, t.name, v.version
 		FROM template_versions v
 		INNER JOIN checklist_templates t ON t.id = v.template_id
-		INNER JOIN projects p ON p.id = t.project_id
-		WHERE v.id = ? AND p.organization_id = ?
+		WHERE v.id = ? AND t.organization_id = ?
 	`, versionID, orgID).Scan(&info.TemplateID, &info.Name, &info.Version)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, sql.ErrNoRows

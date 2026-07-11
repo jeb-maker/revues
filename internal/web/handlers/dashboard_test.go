@@ -25,11 +25,11 @@ func TestDashboard_ShowsActiveRunProgress(t *testing.T) {
 	if err != nil {
 		t.Fatalf("UpsertGitHubUser(): %v", err)
 	}
-	project, err := st.CreateProject(ctx, "Alpha", "desc", lead.ID)
+	project, err := st.CreateProject(ctx, "Alpha", "desc", lead.ID, nil)
 	if err != nil {
 		t.Fatalf("CreateProject(): %v", err)
 	}
-	template, _, err := st.CreateChecklistTemplate(ctx, project.ID, "Modèle", lead.ID, []store.TemplateItemInput{
+	template, _, err := st.CreateChecklistTemplate(ctx, "Modèle", lead.ID, nil, []store.TemplateItemInput{
 		{Label: "A", Required: true},
 		{Label: "B", Required: true},
 	})
@@ -87,11 +87,11 @@ func TestDashboard_ShowsRunDueDate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("UpsertGitHubUser(): %v", err)
 	}
-	project, err := st.CreateProject(ctx, "Delta", "desc", lead.ID)
+	project, err := st.CreateProject(ctx, "Delta", "desc", lead.ID, nil)
 	if err != nil {
 		t.Fatalf("CreateProject(): %v", err)
 	}
-	template, _, err := st.CreateChecklistTemplate(ctx, project.ID, "Modèle", lead.ID, []store.TemplateItemInput{
+	template, _, err := st.CreateChecklistTemplate(ctx, "Modèle", lead.ID, nil, []store.TemplateItemInput{
 		{Label: "A", Required: true},
 	})
 	if err != nil {
@@ -141,11 +141,11 @@ func TestProjectShow_ShowsRunDueDate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("UpsertGitHubUser(): %v", err)
 	}
-	project, err := st.CreateProject(ctx, "Epsilon", "", lead.ID)
+	project, err := st.CreateProject(ctx, "Epsilon", "", lead.ID, nil)
 	if err != nil {
 		t.Fatalf("CreateProject(): %v", err)
 	}
-	template, _, err := st.CreateChecklistTemplate(ctx, project.ID, "Modèle", lead.ID, nil)
+	template, _, err := st.CreateChecklistTemplate(ctx, "Modèle", lead.ID, nil, nil)
 	if err != nil {
 		t.Fatalf("CreateChecklistTemplate(): %v", err)
 	}
@@ -189,11 +189,11 @@ func TestProjectShow_ShowsNokItems(t *testing.T) {
 	if err != nil {
 		t.Fatalf("UpsertGitHubUser(): %v", err)
 	}
-	project, err := st.CreateProject(ctx, "Beta", "", lead.ID)
+	project, err := st.CreateProject(ctx, "Beta", "", lead.ID, nil)
 	if err != nil {
 		t.Fatalf("CreateProject(): %v", err)
 	}
-	template, _, err := st.CreateChecklistTemplate(ctx, project.ID, "Modèle", lead.ID, []store.TemplateItemInput{
+	template, _, err := st.CreateChecklistTemplate(ctx, "Modèle", lead.ID, nil, []store.TemplateItemInput{
 		{Label: "Blocage", Required: true},
 	})
 	if err != nil {
@@ -247,11 +247,11 @@ func TestTemplatesIndex_ListsVisibleTemplates(t *testing.T) {
 	if err != nil {
 		t.Fatalf("UpsertGitHubUser(): %v", err)
 	}
-	project, err := st.CreateProject(ctx, "Gamma", "", user.ID)
+	_, err = st.CreateProject(ctx, "Gamma", "", user.ID, nil)
 	if err != nil {
 		t.Fatalf("CreateProject(): %v", err)
 	}
-	if _, _, err = st.CreateChecklistTemplate(ctx, project.ID, "Checklist QA", user.ID, nil); err != nil {
+	if _, _, err = st.CreateChecklistTemplate(ctx, "Checklist QA", user.ID, nil, nil); err != nil {
 		t.Fatalf("CreateChecklistTemplate(): %v", err)
 	}
 
@@ -273,8 +273,8 @@ func TestTemplatesIndex_ListsVisibleTemplates(t *testing.T) {
 	if !strings.Contains(body, "Checklist QA") {
 		t.Fatal("expected template in index")
 	}
-	if !strings.Contains(body, "Gamma") {
-		t.Fatal("expected project name in index")
+	if !strings.Contains(body, "tous projets") {
+		t.Fatal("expected global template marker in index")
 	}
 }
 
