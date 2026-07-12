@@ -1,9 +1,8 @@
 {{define "projects_list"}}
 {{template "layout_start" .}}
+{{if and (not .Projects) (not .HasActiveFilters)}}
 {{if .Message}}<p class="success" role="status">{{.Message}}</p>{{end}}
 {{if .Error}}<p class="error" role="alert">{{.Error}}</p>{{end}}
-
-{{if and (not .Projects) (not .HasActiveFilters)}}
 <section class="empty-state">
   <h2>Aucun projet</h2>
   {{if .CanManageOrgUsers}}
@@ -25,7 +24,9 @@
   {{end}}
 </section>
 {{else}}
-<section class="panel">
+<section class="card">
+  {{if .Message}}<p class="success" role="status">{{.Message}}</p>{{end}}
+  {{if .Error}}<p class="error" role="alert">{{.Error}}</p>{{end}}
   <div class="list-toolbar">
     <form method="get" action="/projects" class="list-toolbar__form filter-form filter-form--inline">
       <input class="list-toolbar__search toolbar-control" type="search" id="filter-query" name="q" value="{{.FilterQuery}}" placeholder="Rechercher un projet…" aria-label="Rechercher un projet">

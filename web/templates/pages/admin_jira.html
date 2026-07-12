@@ -1,23 +1,23 @@
 {{define "admin_jira"}}
 {{template "layout_start" .}}
-<section class="panel">
+<section class="card">
   <p class="muted">Connectez Revues à Jira Cloud ou Server/Data Center pour lier et créer des tickets depuis les revues.</p>
 </section>
 
 {{template "admin_nav" .}}
 
 {{if not .CanEncrypt}}
-<p class="error" role="alert">REVUES_ENCRYPTION_KEY n'est pas configurée : vous pouvez consulter ce formulaire mais l'enregistrement est désactivé.</p>
+<p class="error content-inset" role="alert">REVUES_ENCRYPTION_KEY n'est pas configurée : vous pouvez consulter ce formulaire mais l'enregistrement est désactivé.</p>
 {{end}}
 
 {{if .Message}}
-<p class="success" role="status">{{.Message}}</p>
+<p class="success content-inset" role="status">{{.Message}}</p>
 {{end}}
 {{if .Error}}
-<p class="error" role="alert">{{.Error}}</p>
+<p class="error content-inset" role="alert">{{.Error}}</p>
 {{end}}
 
-<section class="panel">
+<section class="card">
   <h2>Instance Jira</h2>
   {{if .Configured}}
   <p class="muted">Jira configuré ({{.InstanceType}}){{if .HasAPIToken}} avec jeton API enregistré{{end}}{{if .HasPAT}} avec PAT enregistré{{end}}.</p>
@@ -80,7 +80,7 @@
   </form>
 </section>
 
-<section class="panel">
+<section class="card">
   <h2>Test de connexion</h2>
   <form method="post" action="/admin/integrations/jira" class="stack-form">
     <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">

@@ -1,9 +1,9 @@
 {{define "project_show"}}
 {{template "layout_start" .}}
-{{if .Message}}<p class="success" role="status">{{.Message}}</p>{{end}}
-{{if .Error}}<p class="error" role="alert">{{.Error}}</p>{{end}}
 
-<section class="panel project-meta">
+<section class="card project-meta">
+  {{if .Message}}<p class="success" role="status">{{.Message}}</p>{{end}}
+  {{if .Error}}<p class="error" role="alert">{{.Error}}</p>{{end}}
   {{if .Project.Description}}
   <p class="project-meta__description">{{.Project.Description}}</p>
   {{end}}
@@ -19,7 +19,7 @@
 </section>
 
 {{if .NokItems}}
-<section class="panel">
+<section class="card">
   <h2>Points non validés ({{len .NokItems}})</h2>
   <ul class="item-list">
     {{range .NokItems}}
@@ -33,7 +33,7 @@
 </section>
 {{end}}
 
-<section class="panel">
+<section class="card">
   <h2>Revues ({{len .Runs}})</h2>
   {{if .Runs}}
   <div class="table-scroll">
@@ -66,7 +66,7 @@
   {{end}}
 </section>
 
-<section class="panel">
+<section class="card">
   <h2>Membres ({{len .Members}})</h2>
   {{if .CanManageMembers}}
   <form id="project-member-add" method="post" action="/projects/{{.Project.ID}}/members" hidden>

@@ -26,7 +26,7 @@ Décisions produit actées : [decisions.md](decisions.md)
 Statuts, rôles, vocabulaire métier, messages d'erreur, placeholders vs charte (`.field-hint`).
 
 ### Passe 2 — Composants
-`.button*`, `.panel`/`.card`, `empty-state`, toolbars, messages succès/erreur, cohérence listes ↔ détails.
+`.button*`, `.card`, `empty-state`, toolbars, messages succès/erreur, cohérence listes ↔ détails.
 
 ### Passe 3 — Parcours
 Navigation, breadcrumbs, CTA, wizard lancer revue, onboarding / états vides.

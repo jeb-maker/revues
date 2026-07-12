@@ -1,9 +1,9 @@
 {{define "checklist_template_form"}}
 {{template "layout_start" .}}
-<p class="muted">{{if .Version}}Version actuelle v{{.Version.Version}} · {{end}}Les sections sont optionnelles. <a href="/modeles/notion-import">Importer depuis Notion</a></p>
+<p class="muted content-inset">{{if .Version}}Version actuelle v{{.Version.Version}} · {{end}}Les sections sont optionnelles. <a href="/modeles/notion-import">Importer depuis Notion</a></p>
 
 {{if and .Template .Version}}
-<section class="panel">
+<section class="card">
   <p class="muted">L'enregistrement publie une <strong>nouvelle version</strong> ; les revues déjà lancées conservent la version figée au démarrage.</p>
 </section>
 {{end}}
@@ -11,7 +11,7 @@
 <form method="post" action="{{.FormAction}}" class="stack-form" id="template-form"{{if or .NameError .ItemsError}} data-server-state="error"{{end}}>
   <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
 
-  <section class="panel">
+  <section class="card">
     <h2>Identité du modèle</h2>
     <label>
       Nom du modèle
@@ -25,7 +25,7 @@
     </label>
   </section>
 
-  <section class="panel">
+  <section class="card">
     <h2>Points du modèle</h2>
     <p class="field-hint">Au moins un point avec un libellé est requis. Laissez le libellé vide pour ignorer une ligne.</p>
     {{if .ItemsError}}<p class="field-error" id="template-items-error" role="alert">{{.ItemsError}}</p>{{end}}

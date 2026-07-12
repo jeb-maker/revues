@@ -1,13 +1,13 @@
 {{define "admin_notion"}}
 {{template "layout_start" .}}
-<section class="panel">
+<section class="card">
   <p class="muted">Connectez Revues à Notion. Voir <code>docs/NOTION.md</code> pour le mapping des champs.</p>
 </section>
 {{template "admin_nav" .}}
-{{if not .CanEncrypt}}<p class="error" role="alert">REVUES_ENCRYPTION_KEY n'est pas configurée.</p>{{end}}
-{{if .Message}}<p class="success" role="status">{{.Message}}</p>{{end}}
-{{if .Error}}<p class="error" role="alert">{{.Error}}</p>{{end}}
-<section class="panel">
+{{if not .CanEncrypt}}<p class="error content-inset" role="alert">REVUES_ENCRYPTION_KEY n'est pas configurée.</p>{{end}}
+{{if .Message}}<p class="success content-inset" role="status">{{.Message}}</p>{{end}}
+{{if .Error}}<p class="error content-inset" role="alert">{{.Error}}</p>{{end}}
+<section class="card">
   <h2>Intégration Notion</h2>
   <form method="post" action="/admin/integrations/notion" class="stack-form">
     <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
@@ -18,7 +18,7 @@
     <button type="submit" {{if not .CanEncrypt}}disabled{{end}}>Enregistrer</button>
   </form>
 </section>
-<section class="panel">
+<section class="card">
   <h2>Test de connexion</h2>
   <form method="post" action="/admin/integrations/notion" class="stack-form">
     <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">

@@ -1,6 +1,6 @@
 {{define "admin_users"}}
 {{template "layout_start" .}}
-<section class="panel">
+<section class="card">
   {{if .OrganizationName}}
   <p class="muted">Gérez les emails autorisés à rejoindre <strong>{{.OrganizationName}}</strong> via GitHub et leur rôle global.</p>
   {{else}}
@@ -11,14 +11,14 @@
 {{template "admin_nav" .}}
 
 {{if .Message}}
-<p class="success" role="status">{{.Message}}</p>
+<p class="success content-inset" role="status">{{.Message}}</p>
 {{end}}
 {{if .Error}}
-<p class="error" role="alert">{{.Error}}</p>
+<p class="error content-inset" role="alert">{{.Error}}</p>
 {{end}}
 
 {{if not .Emails}}
-<section class="panel onboarding-hint">
+<section class="card onboarding-hint">
   <h2>Premier démarrage</h2>
   <p>Pour une instance migrée, définissez l'email GitHub vérifié du premier administrateur :</p>
   <pre><code>export REVUES_BOOTSTRAP_ADMIN_EMAIL=admin@example.com</code></pre>
@@ -27,7 +27,7 @@
 </section>
 {{end}}
 
-<section class="panel">
+<section class="card">
   <h2>Ajouter ou mettre à jour</h2>
   <form method="post" action="/admin/users" class="stack-form">
     <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
@@ -49,7 +49,7 @@
   </form>
 </section>
 
-<section class="panel">
+<section class="card">
   <h2>Liste ({{len .Emails}})</h2>
   {{if .Emails}}
   <div class="table-scroll">

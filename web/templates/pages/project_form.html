@@ -1,8 +1,8 @@
 {{define "project_form"}}
 {{template "layout_start" .}}
-{{if .Error}}<p class="error" role="alert">{{.Error}}</p>{{end}}
 
 <div class="card">
+  {{if .Error}}<p class="error" role="alert">{{.Error}}</p>{{end}}
   <form method="post" action="{{.FormAction}}" class="stack-form">
     <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
     <label>
@@ -25,7 +25,7 @@
 </div>
 
 {{if .Project}}
-<section class="panel form-danger-zone">
+<section class="card form-danger-zone">
   <p class="form-danger-zone__text">Archiver retire le projet de la liste active. Cette action est irréversible.</p>
   <form method="post" action="/projects/{{.Project.ID}}/archive" onsubmit="return confirm('Archiver ce projet ?');">
     <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">

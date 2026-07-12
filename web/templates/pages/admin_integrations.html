@@ -1,6 +1,6 @@
 {{define "admin_integrations"}}
 {{template "layout_start" .}}
-<section class="panel">
+<section class="card">
   <h2>Vue d'ensemble</h2>
   <p class="muted">Connexions externes. Configurez chaque intégration depuis sa page dédiée.</p>
 </section>
@@ -8,10 +8,10 @@
 {{template "admin_nav" .}}
 
 {{if .Error}}
-<p class="error" role="alert">{{.Error}}</p>
+<p class="error content-inset" role="alert">{{.Error}}</p>
 {{end}}
 
-<section class="panel">
+<section class="card">
   <h2>Statut</h2>
   {{if .Integrations}}
   <div class="table-scroll">
