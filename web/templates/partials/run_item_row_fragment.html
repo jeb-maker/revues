@@ -2,7 +2,7 @@
 <tr id="run-item-{{.Item.ID}}">
   <td>{{if .Item.Section}}{{.Item.Section}}{{else}}<span class="muted">—</span>{{end}}</td>
   <td><a href="/runs/{{.RunID}}/items/{{.Item.ID}}">{{.Item.Label}}</a></td>
-  <td>
+  <td class="data-table__col--center">
     {{if .JiraLink.ExternalKey}}
     <a href="{{.JiraLink.ExternalURL}}" target="_blank" rel="noopener noreferrer">{{.JiraLink.ExternalKey}}</a>
     {{else if and (eq .Item.Status "nok") .CanLinkJira .JiraConfigured}}
@@ -12,7 +12,7 @@
     </form>
     {{else}}<span class="muted">—</span>{{end}}
   </td>
-  <td>
+  <td class="data-table__col--center">
     {{if and (eq .RunStatus "in_progress") .CanCheck}}
     <select name="status" form="item-form-{{.Item.ID}}" required class="status-select" aria-label="Statut" hx-confirm="Confirmer le changement de statut ?">
       <option value="pending" {{if eq .Item.Status "pending"}}selected{{end}}>{{statusLabel "pending"}}</option>
@@ -39,7 +39,7 @@
     <input type="text" name="comment" form="item-form-{{.Item.ID}}" placeholder="Commentaire (requis si nok)" value="{{.Item.Comment}}" class="comment-inline" aria-label="Commentaire" hx-indicator="#spinner-{{.Item.ID}}">
     {{else if .Item.Comment}}{{.Item.Comment}}{{else}}<span class="muted">—</span>{{end}}
   </td>
-  <td>
+  <td class="data-table__col--center">
     {{if .Attachment}}
     <div class="attachment-display attachment-display-compact">
       {{if attachmentIsImage .Attachment}}
@@ -53,7 +53,7 @@
     {{else}}<span class="muted">—</span>{{end}}
   </td>
   {{if and (eq .RunStatus "in_progress") (or .CanCheck .CanAssign)}}
-  <td class="item-actions">
+  <td class="data-table__col--end item-actions">
     <span id="spinner-{{.Item.ID}}" class="htmx-indicator spinner"></span>
     {{if .ItemError}}<p class="error item-inline-error">{{.ItemError}}</p>{{end}}
     {{if .AssignError}}<p class="error item-inline-error">{{.AssignError}}</p>{{end}}

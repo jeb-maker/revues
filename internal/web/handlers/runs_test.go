@@ -242,3 +242,73 @@ func TestRuns_CreateWithDueDate(t *testing.T) {
 		t.Fatalf("due_date = %+v", runs[0].DueDate)
 	}
 }
+
+func TestRuns_WizardProjectsRedirectsWhenSingleProject(t *testing.T) {
+	handler, db := testRouter(t)
+	ctx := context.Background()
+	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
+
+	lead, err := st.UpsertGitHubUser(ctx, 30, "lead", "lead@example.com", "Lead", "", auth.RoleEditor)
+	if err != nil {
+		t.Fatalf("UpsertGitHubUser(): %v", err)
+	}
+	project, err := st.CreateProject(ctx, "Solo", "", lead.ID, nil)
+	if err != nil {
+		t.Fatalf("CreateProject(): %v", err)
+	}
+
+	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
+	token, _, err := sessions.CreateLoginSession(ctx, lead.ID, 0)
+	if err != nil {
+		t.Fatalf("CreateLoginSession(): %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/runs/new", nil)
+	req.AddCookie(&http.Cookie{Name: "revues_session", Value: token})
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusSeeOther {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusSeeOther)
+	}
+	want := "/projects/" + strconv.FormatInt(project.ID, 10) + "/templates?for_run=1"
+	if loc := rec.Header().Get("Location"); loc != want {
+		t.Fatalf("Location = %q, want %q", loc, want)
+	}
+}
+
+func TestRuns_WizardTemplatesRedirectsToProjectTemplateList(t *testing.T) {
+	handler, db := testRouter(t)
+	ctx := context.Background()
+	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
+
+	lead, err := st.UpsertGitHubUser(ctx, 31, "lead", "lead@example.com", "Lead", "", auth.RoleEditor)
+	if err != nil {
+		t.Fatalf("UpsertGitHubUser(): %v", err)
+	}
+	project, err := st.CreateProject(ctx, "Team", "", lead.ID, nil)
+	if err != nil {
+		t.Fatalf("CreateProject(): %v", err)
+	}
+
+	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
+	token, _, err := sessions.CreateLoginSession(ctx, lead.ID, 0)
+	if err != nil {
+		t.Fatalf("CreateLoginSession(): %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/runs/new/projects/"+strconv.FormatInt(project.ID, 10), nil)
+	req.AddCookie(&http.Cookie{Name: "revues_session", Value: token})
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusSeeOther {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusSeeOther)
+	}
+	want := "/projects/" + strconv.FormatInt(project.ID, 10) + "/templates?for_run=1"
+	if loc := rec.Header().Get("Location"); loc != want {
+		t.Fatalf("Location = %q, want %q", loc, want)
+	}
+}

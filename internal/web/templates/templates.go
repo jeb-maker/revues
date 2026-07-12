@@ -41,21 +41,12 @@ func CreateAction(title, url string) PageAction {
 
 // LaunchAction returns the standard launch-revue header button.
 func LaunchAction(url string) PageAction {
-	return PageAction{Label: "Lancer", Title: "Lancer une revue", URL: url, Primary: true}
+	return PageAction{Label: "Lancer une revue", Title: "Lancer une revue sur ce projet", URL: url, Primary: true}
 }
 
 // SecondaryAction returns a secondary header action.
 func SecondaryAction(label, url string) PageAction {
 	return PageAction{Label: label, Title: label, URL: url, Primary: false}
-}
-
-type StepperStep struct {
-	Label  string
-	Status string
-}
-
-type StepperData struct {
-	Steps []StepperStep
 }
 
 // PageData is shared view data for HTML pages.
@@ -214,6 +205,8 @@ type ProjectShowData struct {
 	CanManage        bool
 	CanManageMembers bool
 	CanLaunch        bool
+	AddMemberEmail   string
+	AddMemberRole    string
 	Message          string
 	Error            string
 }
@@ -270,12 +263,15 @@ type NotionPropertyOption struct{ Name, Type string }
 // ChecklistTemplatesListData is view data for template index on a project.
 type ChecklistTemplatesListData struct {
 	PageData
-	Project    *store.Project
-	Templates  []store.ChecklistTemplateSummary
-	MemberRole string
-	CanManage  bool
-	Message    string
-	Error      string
+	Project          *store.Project
+	Templates        []store.ChecklistTemplateSummary
+	MemberRole       string
+	CanManage        bool
+	ForRun           bool
+	FilterQuery      string
+	HasActiveFilters bool
+	Message          string
+	Error            string
 }
 
 // ChecklistTemplateFormData is view data for create/edit template forms.
@@ -322,23 +318,8 @@ type ChecklistTemplateShowData struct {
 type RunWizardProjectsData struct {
 	PageData
 	Projects []store.Project
-	Step     int
-	Stepper  StepperData
 	Message  string
 	Error    string
-}
-
-// RunWizardTemplatesData is view data for run wizard step 2.
-type RunWizardTemplatesData struct {
-	PageData
-	Project    *store.Project
-	Templates  []store.ChecklistTemplateSummary
-	Step       int
-	Stepper    StepperData
-	MemberRole string
-	CanLaunch  bool
-	Message    string
-	Error      string
 }
 
 // RunWizardLaunchData is view data for run wizard step 3.
@@ -351,8 +332,6 @@ type RunWizardLaunchData struct {
 	Title      string
 	DueDate    string
 	FormAction string
-	Step       int
-	Stepper    StepperData
 	MemberRole string
 	CanLaunch  bool
 	Error      string

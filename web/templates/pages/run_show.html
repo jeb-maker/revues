@@ -129,7 +129,7 @@
   <div class="table-scroll">
     <table class="data-table">
       <thead class="table-sticky">
-        <tr><th>Section</th><th>Point</th><th>Jira</th><th>Statut</th><th>Assigné</th><th>Commentaire</th><th>PJ</th>{{if and (eq $.Run.Status "in_progress") (or $.CanCheck $.CanAssign)}}<th></th>{{end}}</tr>
+        <tr><th>Section</th><th>Point</th><th class="data-table__col--center">Jira</th><th class="data-table__col--center">Statut</th><th>Assigné</th><th>Commentaire</th><th class="data-table__col--center">PJ</th>{{if and (eq $.Run.Status "in_progress") (or $.CanCheck $.CanAssign)}}<th class="data-table__col--end"></th>{{end}}</tr>
       </thead>
       <tbody id="run-items">
         {{range .Items}}
@@ -146,7 +146,7 @@
   <p>
     <a href="/projects/{{.Project.ID}}" class="button-ghost">{{icon "arrow-left"}} Retour au projet</a>
     {{if ne .Run.Status "done"}}
-    <a href="/runs/new/projects/{{.Project.ID}}" class="button-ghost">Lancer une autre revue</a>
+    <a href="/projects/{{.Project.ID}}/templates?for_run=1" class="button-ghost">Lancer une autre revue</a>
     {{end}}
   </p>
 </div>

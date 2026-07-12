@@ -19,7 +19,7 @@
   <div class="table-scroll">
   <table class="data-table table-sticky">
     <thead>
-      <tr><th scope="col">Projet</th><th scope="col">Revue</th><th scope="col">Point</th><th scope="col">Statut</th></tr>
+      <tr><th scope="col">Projet</th><th scope="col">Revue</th><th scope="col">Point</th><th scope="col" class="data-table__col--center">Statut</th></tr>
     </thead>
     <tbody>
       {{if .Tasks}}
@@ -28,7 +28,7 @@
         <td>{{.ProjectName}}</td>
         <td><a href="/runs/{{.RunID}}">{{.RunTitle}}</a></td>
         <td><a href="/runs/{{.RunID}}/items/{{.ID}}">{{if .Section}}{{.Section}} — {{end}}{{.Label}}</a></td>
-        <td>{{statusLabel .Status}}</td>
+        <td class="data-table__col--center">{{statusLabel .Status}}</td>
       </tr>
       {{end}}
       {{else if .HasActiveFilters}}

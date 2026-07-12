@@ -1,14 +1,7 @@
 {{define "run_wizard_launch"}}
 {{template "layout_start" .}}
 <div class="card">
-  {{template "stepper" .Stepper}}
   {{if .Error}}<p class="error">{{.Error}}</p>{{end}}
-
-  <table class="data-table">
-    <tr><th>Projet</th><td>{{.Project.Name}}</td></tr>
-    <tr><th>Modèle</th><td>{{.Template.Name}} (v{{.Version.Version}})</td></tr>
-    <tr><th>Points</th><td>{{.ItemCount}}</td></tr>
-  </table>
 
   <form method="post" action="{{.FormAction}}" class="stack-form">
     <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
@@ -21,13 +14,10 @@
       Échéance (optionnel)
       <input type="date" name="due_date" value="{{.DueDate}}">
     </label>
-    <button type="submit" class="button">{{icon "check"}} Lancer la revue</button>
+    <div class="form-actions">
+      <button type="submit" class="button">{{icon "check"}} Lancer la revue</button>
+    </div>
   </form>
-
-  <p style="margin-top:1.5rem">
-    <a href="/runs/new/projects/{{.Project.ID}}" class="button-ghost">{{icon "arrow-left"}} Choisir un autre modèle</a>
-    <a href="/runs/new" class="button-ghost">Changer de projet</a>
-  </p>
 </div>
 {{template "layout_end" .}}
 {{end}}

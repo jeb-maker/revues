@@ -30,14 +30,14 @@
   <div class="table-scroll">
   <table class="data-table">
     <thead>
-      <tr><th scope="col">Point</th><th scope="col">Aide</th><th scope="col">Requis</th></tr>
+      <tr><th scope="col">Point</th><th scope="col">Aide</th><th scope="col" class="data-table__col--center">Requis</th></tr>
     </thead>
     <tbody>
       {{range $sec.Items}}
       <tr>
         <td>{{.Label}}</td>
         <td>{{if .HelpText}}{{.HelpText}}{{else}}<span class="muted">—</span>{{end}}</td>
-        <td>{{if .Required}}{{icon "check"}}{{else}}<span class="muted">—</span>{{end}}</td>
+        <td class="data-table__col--center">{{if .Required}}{{icon "check"}}{{else}}<span class="muted">—</span>{{end}}</td>
       </tr>
       {{end}}
     </tbody>

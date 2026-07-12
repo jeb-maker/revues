@@ -17,15 +17,35 @@ func TestApplyPageMeta_SetsTitleFromLastCrumb(t *testing.T) {
 }
 
 func TestBCRunWizardLaunch_Links(t *testing.T) {
-	crumbs := templates.BCRunWizardLaunch("Alpha", 3, "Checklist QA")
+	crumbs := templates.BCRunWizardLaunch("Alpha", 3, "Checklist QA", 1, 4)
 	if len(crumbs) != 4 {
 		t.Fatalf("len = %d, want 4", len(crumbs))
 	}
 	if crumbs[0].URL != templates.PathRevues {
 		t.Fatalf("root URL = %q", crumbs[0].URL)
 	}
-	if crumbs[3].Label != "Checklist QA" || crumbs[3].URL != "" {
-		t.Fatalf("last crumb = %+v", crumbs[3])
+	if crumbs[1].URL != "/projects/3" || crumbs[1].Label != "Alpha" {
+		t.Fatalf("project crumb = %+v", crumbs[1])
+	}
+	if crumbs[2].URL != "/projects/3/templates?for_run=1" || crumbs[2].Label != "Lancer" {
+		t.Fatalf("launch crumb = %+v", crumbs[2])
+	}
+	wantLabel := "Checklist QA · v1 · 4 points de contrôle"
+	if crumbs[3].Label != wantLabel || crumbs[3].URL != "" {
+		t.Fatalf("last crumb = %+v, want label %q", crumbs[3], wantLabel)
+	}
+}
+
+func TestBCRunWizardTemplates_Links(t *testing.T) {
+	crumbs := templates.BCRunWizardTemplates("Alpha", 3)
+	if len(crumbs) != 3 {
+		t.Fatalf("len = %d, want 3", len(crumbs))
+	}
+	if crumbs[1].URL != "/projects/3" {
+		t.Fatalf("project URL = %q", crumbs[1].URL)
+	}
+	if crumbs[2].Label != "Lancer" || crumbs[2].URL != "" {
+		t.Fatalf("last crumb = %+v", crumbs[2])
 	}
 }
 

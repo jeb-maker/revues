@@ -44,8 +44,9 @@ func runPath(id int64) string {
 	return "/runs/" + strconv.FormatInt(id, 10)
 }
 
-func runWizardTemplatesPath(projectID int64) string {
-	return "/runs/new/projects/" + strconv.FormatInt(projectID, 10)
+// ProjectTemplatesForRunPath is the project template picker when launching a review.
+func ProjectTemplatesForRunPath(projectID int64) string {
+	return projectTemplatesPath(projectID) + "?for_run=1"
 }
 
 // BCRevues is the active runs index breadcrumb.
@@ -123,19 +124,31 @@ func BCRunWizardProjects() []Breadcrumb {
 	return []Breadcrumb{crumb("Revues", PathRevues), current("Lancer une revue")}
 }
 
-// BCRunWizardTemplates is run wizard step 2.
-func BCRunWizardTemplates(projectName string) []Breadcrumb {
-	return []Breadcrumb{crumb("Revues", PathRevues), crumb("Lancer une revue", PathRunsNew), current(projectName)}
-}
-
-// BCRunWizardLaunch is run wizard step 3.
-func BCRunWizardLaunch(projectName string, projectID int64, templateName string) []Breadcrumb {
+// BCRunWizardTemplates is run wizard step 2 (project already chosen).
+func BCRunWizardTemplates(projectName string, projectID int64) []Breadcrumb {
 	return []Breadcrumb{
 		crumb("Revues", PathRevues),
-		crumb("Lancer une revue", PathRunsNew),
-		crumb(projectName, runWizardTemplatesPath(projectID)),
-		current(templateName),
+		crumb(projectName, projectPath(projectID)),
+		current("Lancer"),
 	}
+}
+
+// BCRunWizardLaunch is run wizard step 3 (confirm title and launch).
+func BCRunWizardLaunch(projectName string, projectID int64, templateName string, version, itemCount int) []Breadcrumb {
+	return []Breadcrumb{
+		crumb("Revues", PathRevues),
+		crumb(projectName, projectPath(projectID)),
+		crumb("Lancer", ProjectTemplatesForRunPath(projectID)),
+		current(runLaunchTemplateLabel(templateName, version, itemCount)),
+	}
+}
+
+func runLaunchTemplateLabel(name string, version, itemCount int) string {
+	suffix := " points de contrôle"
+	if itemCount == 1 {
+		suffix = " point de contrôle"
+	}
+	return name + " · v" + strconv.Itoa(version) + " · " + strconv.Itoa(itemCount) + suffix
 }
 
 // BCTemplatesNewWizard is the global new template wizard breadcrumb.

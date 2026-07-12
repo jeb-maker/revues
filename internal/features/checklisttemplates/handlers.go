@@ -11,6 +11,7 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"github.com/jeb-maker/revues/internal/auth"
+	"github.com/jeb-maker/revues/internal/features/projects"
 	"github.com/jeb-maker/revues/internal/integrations/notion"
 	"github.com/jeb-maker/revues/internal/store"
 	"github.com/jeb-maker/revues/internal/web/middleware"
@@ -45,6 +46,8 @@ func (d *Deps) PageDataTab(r *http.Request, title, activeTab string) viewtemplat
 }
 
 const defaultTemplateEditorRows = 1
+
+const queryForRun = "for_run"
 
 // ChecklistTemplates handles versioned checklist model CRUD.
 type ChecklistTemplates struct {
@@ -88,10 +91,25 @@ func (h *ChecklistTemplates) IndexAll(w http.ResponseWriter, r *http.Request) {
 }
 
 // List shows compatible checklist templates for a project (read-only).
+// With ?for_run=1, lists templates as step 1 of the run launch wizard.
 func (h *ChecklistTemplates) List(w http.ResponseWriter, r *http.Request) {
 	project, user, memberRole, ok := h.loadProject(w, r)
 	if !ok {
 		return
+	}
+
+	forRun := r.URL.Query().Get(queryForRun) == "1"
+	if forRun {
+		_, isMember, err := h.Store.MemberRole(r.Context(), project.ID, user.ID)
+		if err != nil {
+			slog.Error("member role", "err", err)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+		if !projects.CanLaunch(user, memberRoleForLaunch(isMember, memberRole)) {
+			http.NotFound(w, r)
+			return
+		}
 	}
 
 	items, err := h.Store.ListChecklistTemplates(r.Context(), project.ID)
@@ -101,19 +119,34 @@ func (h *ChecklistTemplates) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pd := h.PageDataTab(r, "Modèles — "+project.Name, "templates")
-	pd.Breadcrumbs = []viewtemplates.Breadcrumb{
-		{URL: "/projects", Label: "Projets"},
-		{URL: "/projects/" + strconv.FormatInt(project.ID, 10), Label: project.Name},
-		{Label: "Modèles"},
+	filterQuery := strings.TrimSpace(r.URL.Query().Get("q"))
+	if filterQuery != "" {
+		items = filterChecklistTemplates(items, filterQuery)
+	}
+
+	var pd viewtemplates.PageData
+	if forRun {
+		pd = h.PageData(r, "Lancer")
+		pd.Breadcrumbs = viewtemplates.BCRunWizardTemplates(project.Name, project.ID)
+		pd.ActiveTab = "runs"
+	} else {
+		pd = h.PageDataTab(r, "Modèles — "+project.Name, "templates")
+		pd.Breadcrumbs = []viewtemplates.Breadcrumb{
+			{URL: "/projects", Label: "Projets"},
+			{URL: "/projects/" + strconv.FormatInt(project.ID, 10), Label: project.Name},
+			{Label: "Modèles"},
+		}
 	}
 	data := viewtemplates.ChecklistTemplatesListData{
-		PageData:   pd,
-		Project:    project,
-		Templates:  items,
-		MemberRole: memberRole,
-		CanManage:  CanManageGlobal(user),
-		Message:    r.URL.Query().Get("msg"),
+		PageData:         pd,
+		Project:          project,
+		Templates:        items,
+		MemberRole:       memberRole,
+		CanManage:        CanManageGlobal(user),
+		ForRun:           forRun,
+		FilterQuery:      filterQuery,
+		HasActiveFilters: filterQuery != "",
+		Message:          r.URL.Query().Get("msg"),
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -437,6 +470,40 @@ func (h *ChecklistTemplates) loadProject(w http.ResponseWriter, r *http.Request)
 	}
 
 	return project, user, memberRole, true
+}
+
+func memberRoleForLaunch(isMember bool, memberRole string) string {
+	if !isMember {
+		return ""
+	}
+	return memberRole
+}
+
+func filterChecklistTemplates(items []store.ChecklistTemplateSummary, query string) []store.ChecklistTemplateSummary {
+	terms := strings.Fields(strings.TrimSpace(query))
+	if len(terms) == 0 {
+		return items
+	}
+	var filtered []store.ChecklistTemplateSummary
+	for _, item := range items {
+		if checklistTemplateMatches(item, terms) {
+			filtered = append(filtered, item)
+		}
+	}
+	return filtered
+}
+
+func checklistTemplateMatches(item store.ChecklistTemplateSummary, terms []string) bool {
+	haystack := strings.ToLower(item.Name)
+	for _, tag := range item.Tags {
+		haystack += " " + strings.ToLower(tag)
+	}
+	for _, term := range terms {
+		if !strings.Contains(haystack, strings.ToLower(term)) {
+			return false
+		}
+	}
+	return true
 }
 
 func (h *ChecklistTemplates) loadGlobalTemplate(w http.ResponseWriter, r *http.Request) (*store.ChecklistTemplate, *store.TemplateVersion, []store.TemplateItem, []string, bool) {

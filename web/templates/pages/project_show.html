@@ -3,28 +3,19 @@
 {{if .Message}}<p class="success">{{.Message}}</p>{{end}}
 {{if .Error}}<p class="error">{{.Error}}</p>{{end}}
 
-<section class="panel">
-  <h2>Informations</h2>
+<section class="panel project-meta">
   {{if .Project.Description}}
-  <p>{{.Project.Description}}</p>
+  <p class="project-meta__description">{{.Project.Description}}</p>
   {{end}}
-  <p class="muted">Votre rôle sur ce projet : {{.MemberRole}}</p>
-  {{if .Tags}}
-  <p class="muted">Tags : {{range $i, $tag := .Tags}}{{if $i}}, {{end}}<span class="tag">{{$tag}}</span>{{end}}</p>
-  {{else}}
-  <p class="muted">Tags : aucun (seuls les modèles sans tag seront proposés)</p>
-  {{end}}
-  <p><a href="/projects/{{.Project.ID}}/templates">Modèles de check-list</a></p>
-  {{if .CanManage}}
-  <p>
-    <a href="/projects/{{.Project.ID}}/edit">Modifier</a>
-    ·
-    <form method="post" action="/projects/{{.Project.ID}}/archive" class="inline-form">
-      <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
-      <button type="submit">Archiver</button>
-    </form>
+  <p class="muted project-meta__line">Votre rôle : {{.MemberRole}}</p>
+  <p class="muted project-meta__line">
+    {{if .Tags}}
+    Tags : {{range $i, $tag := .Tags}}{{if $i}}, {{end}}<span class="tag">{{$tag}}</span>{{end}}
+    {{else}}
+    Tags : aucun (seuls les modèles sans tag seront proposés)
+    {{end}}
+    {{if .CanManage}} · <a href="/projects/{{.Project.ID}}/templates">Modèles compatibles</a>{{end}}
   </p>
-  {{end}}
 </section>
 
 {{if .NokItems}}
@@ -48,15 +39,15 @@
   <div class="table-scroll">
   <table class="data-table">
     <thead>
-      <tr><th scope="col">Titre</th><th scope="col">Statut</th><th scope="col">Échéance</th><th scope="col">Progression</th></tr>
+      <tr><th scope="col">Titre</th><th scope="col" class="data-table__col--center">Statut</th><th scope="col" class="data-table__col--center">Échéance</th><th scope="col" class="data-table__col--end">Progression</th></tr>
     </thead>
     <tbody>
       {{range .Runs}}
-      <tr style="--run-progress: {{if eq .Status "in_progress"}}{{.Percent}}{{else}}0{{end}}%">
+      <tr>
         <td><a href="/runs/{{.ID}}">{{.Title}}</a></td>
-        <td><span class="status-badge status-{{.Status}}">{{formatRunStatus .Status}}</span></td>
-        <td>{{if .DueDate.Valid}}{{formatDueDate .DueDate}}{{else}}<span class="muted">—</span>{{end}}</td>
-        <td class="data-table__stats muted">
+        <td class="data-table__col--center"><span class="status-badge status-{{.Status}}">{{formatRunStatus .Status}}</span></td>
+        <td class="data-table__col--center">{{if .DueDate.Valid}}{{formatDueDate .DueDate}}{{else}}<span class="muted">—</span>{{end}}</td>
+        <td class="data-table__stats data-table__progress muted" style="--run-progress: {{if eq .Status "in_progress"}}{{.Percent}}{{else}}0{{end}}%">
           {{if eq .Status "in_progress"}}
           {{.Done}} / {{.Total}} ({{.Percent}}%)
           {{else if gt .Total 0}}
@@ -77,52 +68,59 @@
 
 <section class="panel">
   <h2>Membres ({{len .Members}})</h2>
+  {{if .CanManageMembers}}
+  <form id="project-member-add" method="post" action="/projects/{{.Project.ID}}/members" hidden>
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+  </form>
+  {{end}}
   <div class="table-scroll">
   <table class="data-table">
     <thead>
-      <tr><th scope="col">Login</th><th scope="col">Email</th><th scope="col">Rôle</th><th scope="col"></th></tr>
+      <tr><th scope="col">Login</th><th scope="col">Email</th><th scope="col" class="data-table__col--center">Rôle</th><th scope="col" class="data-table__col--end"></th></tr>
     </thead>
     <tbody>
       {{range .Members}}
       <tr>
         <td>{{.Login}}</td>
         <td>{{.Email}}</td>
-        <td>{{.Role}}</td>
-        <td>
+        <td class="data-table__col--center">{{.Role}}</td>
+        <td class="data-table__col--end">
           {{if $.CanManageMembers}}
           <form method="post" action="/projects/{{$.Project.ID}}/members/remove" class="inline-form">
             <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
             <input type="hidden" name="user_id" value="{{.UserID}}">
-            <button type="submit">Retirer</button>
+            <button type="submit" class="button-ghost button-sm">Retirer</button>
           </form>
           {{end}}
         </td>
       </tr>
       {{end}}
+      {{if .CanManageMembers}}
+      <tr class="data-table__add-row">
+        <td><span class="muted">—</span></td>
+        <td>
+          <label class="visually-hidden" for="member-email">Email utilisateur</label>
+          <input class="data-table__field" type="email" id="member-email" name="email" form="project-member-add" value="{{.AddMemberEmail}}" placeholder="email@exemple.org" required>
+        </td>
+        <td>
+          <label class="visually-hidden" for="member-role">Rôle local</label>
+          <select class="data-table__field" id="member-role" name="role" form="project-member-add" required>
+            <option value="lead"{{if eq .AddMemberRole "lead"}} selected{{end}}>lead</option>
+            <option value="contributor"{{if eq .AddMemberRole "contributor"}} selected{{end}}>contributor</option>
+            <option value="viewer"{{if eq .AddMemberRole "viewer"}} selected{{end}}>viewer</option>
+          </select>
+        </td>
+        <td class="data-table__col--end">
+          <button type="submit" form="project-member-add" class="button-secondary button-sm">Ajouter</button>
+        </td>
+      </tr>
+      <tr class="data-table__hint-row">
+        <td colspan="4" class="muted member-add-form__hint">Ajout à l'organisation si la personne n'en fait pas encore partie.</td>
+      </tr>
+      {{end}}
     </tbody>
   </table>
   </div>
-
-  {{if .CanManageMembers}}
-  <h3>Ajouter un membre</h3>
-  <p class="muted">Cette personne sera ajoutée à l'organisation si elle n'en fait pas déjà partie.</p>
-  <form method="post" action="/projects/{{.Project.ID}}/members" class="stack-form">
-    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
-    <label>
-      Email utilisateur
-      <input type="email" name="email" required>
-    </label>
-    <label>
-      Rôle local
-      <select name="role" required>
-        <option value="lead">lead</option>
-        <option value="contributor">contributor</option>
-        <option value="viewer">viewer</option>
-      </select>
-    </label>
-    <button type="submit">Ajouter</button>
-  </form>
-  {{end}}
 </section>
 {{template "layout_end" .}}
 {{end}}

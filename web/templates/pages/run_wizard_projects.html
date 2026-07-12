@@ -1,7 +1,6 @@
 {{define "run_wizard_projects"}}
 {{template "layout_start" .}}
 <div class="card">
-  {{template "stepper" .Stepper}}
   <p class="muted">Choisissez un projet pour lancer la revue.</p>
   {{if .Message}}<p class="success">{{.Message}}</p>{{end}}
   {{if .Error}}<p class="error">{{.Error}}</p>{{end}}
@@ -9,7 +8,7 @@
   {{if .Projects}}
   <ul class="item-list">
     {{range .Projects}}
-    <li><a href="/runs/new/projects/{{.ID}}">{{.Name}}</a></li>
+    <li><a href="/projects/{{.ID}}/templates?for_run=1">{{.Name}}</a></li>
     {{end}}
   </ul>
   {{else}}

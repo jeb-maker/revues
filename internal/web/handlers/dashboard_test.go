@@ -151,8 +151,8 @@ func TestDashboard_ShowsRecentCompletedRuns(t *testing.T) {
 	if !strings.Contains(body, ">Filtrer<") {
 		t.Fatal("expected filter submit button")
 	}
-	if !strings.Contains(body, `href="/runs/new"`) || !strings.Contains(body, ">Lancer<") {
-		t.Fatal("expected launch button in toolbar")
+	if strings.Contains(body, `href="/runs/new"`) {
+		t.Fatal("unexpected launch link on revues page")
 	}
 }
 

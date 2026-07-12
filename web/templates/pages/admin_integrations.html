@@ -20,8 +20,8 @@
       <tr>
         <th scope="col">Intégration</th>
         <th scope="col">Description</th>
-        <th scope="col">Statut</th>
-        <th scope="col"></th>
+        <th scope="col" class="data-table__col--center">Statut</th>
+        <th scope="col" class="data-table__col--end"></th>
       </tr>
     </thead>
     <tbody>
@@ -29,14 +29,14 @@
       <tr>
         <td>{{.Name}}</td>
         <td class="muted">{{.Description}}</td>
-        <td>
+        <td class="data-table__col--center">
           {{if .Enabled}}
           <span class="status-badge status-enabled">Activé</span>
           {{else}}
           <span class="status-badge status-disabled">Désactivé</span>
           {{end}}
         </td>
-        <td><a href="{{.ConfigPath}}">Configurer</a></td>
+        <td class="data-table__col--end"><a href="{{.ConfigPath}}">Configurer</a></td>
       </tr>
       {{end}}
     </tbody>

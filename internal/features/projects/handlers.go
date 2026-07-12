@@ -190,27 +190,14 @@ func (h *Projects) Show(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pd := h.PageDataTab(r, project.Name, "")
-	pd.Breadcrumbs = templates.BCProjectShow(project.Name)
-	if CanLaunch(user, memberRole) {
-		pd.PageActions = []templates.PageAction{
-			templates.LaunchAction("/runs/new/projects/" + strconv.FormatInt(project.ID, 10)),
-		}
-	}
 	callerOrgRole, _, _ := h.Store.OrganizationMemberRole(r.Context(), project.OrganizationID, user.ID)
-
-	data := templates.ProjectShowData{
-		PageData:         pd,
-		Project:          project,
-		Tags:             tags,
-		Members:          members,
-		Runs:             projectRuns,
-		NokItems:         nokItems,
-		MemberRole:       memberRole,
-		CanManage:        CanManage(user, memberRole),
-		CanManageMembers: CanAddProjectMember(user, memberRole, callerOrgRole),
-		CanLaunch:        CanLaunch(user, memberRole),
-		Message:          r.URL.Query().Get("msg"),
+	data, err := h.buildProjectShowData(r, project, user, memberRole, callerOrgRole, tags, members, projectRuns, nokItems, projectShowExtras{
+		message: r.URL.Query().Get("msg"),
+	})
+	if err != nil {
+		slog.Error("build project show data", "err", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -540,27 +527,89 @@ func (h *Projects) renderShowError(w http.ResponseWriter, r *http.Request, proje
 		return
 	}
 
-	pd := h.PageDataTab(r, project.Name, "")
-	pd.Breadcrumbs = []templates.Breadcrumb{
-		{URL: "/projects", Label: "Projets"},
-		{Label: project.Name},
+	tags, err := h.Store.ListProjectTags(r.Context(), project.ID)
+	if err != nil {
+		slog.Error("list project tags", "err", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
 	}
-	data := templates.ProjectShowData{
-		PageData:         pd,
-		Project:          project,
-		Members:          members,
-		Runs:             projectRuns,
-		NokItems:         nokItems,
-		MemberRole:       memberRole,
-		CanManage:        CanManage(user, memberRole),
-		CanManageMembers: CanAddProjectMember(user, memberRole, callerOrgRole),
-		Error:            message,
+
+	addRole := strings.TrimSpace(r.FormValue("role"))
+	if addRole == "" {
+		addRole = LocalRoleContributor
 	}
+	data, err := h.buildProjectShowData(r, project, user, memberRole, callerOrgRole, tags, members, projectRuns, nokItems, projectShowExtras{
+		errorMsg:       message,
+		addMemberEmail: strings.TrimSpace(r.FormValue("email")),
+		addMemberRole:  addRole,
+	})
+	if err != nil {
+		slog.Error("build project show data", "err", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(http.StatusBadRequest)
 	if err := h.Templates.ExecuteTemplate(w, "project_show", data); err != nil {
 		slog.Error("render project show error", "err", err)
 	}
+}
+
+type projectShowExtras struct {
+	message        string
+	errorMsg       string
+	addMemberEmail string
+	addMemberRole  string
+}
+
+func (h *Projects) buildProjectShowData(
+	r *http.Request,
+	project *Project,
+	user *User,
+	memberRole, callerOrgRole string,
+	tags []string,
+	members []ProjectMember,
+	projectRuns []RunWithProgress,
+	nokItems []ProjectNokItemSummary,
+	extras projectShowExtras,
+) (templates.ProjectShowData, error) {
+	canManage := CanManage(user, memberRole)
+	canLaunch := CanLaunch(user, memberRole)
+	canManageMembers := CanAddProjectMember(user, memberRole, callerOrgRole)
+
+	pd := h.PageDataTab(r, project.Name, "")
+	pd.Breadcrumbs = templates.BCProjectShow(project.Name)
+	var pageActions []templates.PageAction
+	if canLaunch {
+		pageActions = append(pageActions, templates.LaunchAction(templates.ProjectTemplatesForRunPath(project.ID)))
+	}
+	if canManage {
+		pageActions = append(pageActions, templates.SecondaryAction("Modifier", "/projects/"+strconv.FormatInt(project.ID, 10)+"/edit"))
+	}
+	pd.PageActions = pageActions
+
+	addRole := extras.addMemberRole
+	if addRole == "" {
+		addRole = LocalRoleContributor
+	}
+
+	return templates.ProjectShowData{
+		PageData:         pd,
+		Project:          project,
+		Tags:             tags,
+		Members:          members,
+		Runs:             projectRuns,
+		NokItems:         nokItems,
+		MemberRole:       memberRole,
+		CanManage:        canManage,
+		CanManageMembers: canManageMembers,
+		CanLaunch:        canLaunch,
+		AddMemberEmail:   extras.addMemberEmail,
+		AddMemberRole:    addRole,
+		Message:          extras.message,
+		Error:            extras.errorMsg,
+	}, nil
 }
 
 func normalizeMemberEmail(raw string) (string, error) {

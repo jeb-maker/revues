@@ -40,9 +40,9 @@
   --maxw-wide: 70rem;
   --header-h: 3.5rem;
 
-  /* Horizontal rhythm: site-main padding (1.25rem) + content-padding-x (0.6rem) on page-body. */
-  --content-padding-x: 0.6rem;
+  /* Horizontal rhythm: site-main padding + content inset (aligned with .card inner padding). */
   --panel-padding-x: 1.25rem;
+  --content-padding-x: var(--panel-padding-x);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -313,7 +313,7 @@ pre {
   padding-inline: var(--content-padding-x);
 }
 
-/* Card pages: inset comes from .card padding, not .page-body */
+/* Card pages: body inset comes from .card padding, not .page-body */
 .site-main:has(.card) .page-body {
   padding-inline: 0;
 }
@@ -327,10 +327,6 @@ pre {
 /* Root-level copy: same inset as page-body (prefer .page-body wrapper) */
 .content-inset { padding-inline: var(--content-padding-x); }
 
-/* Card pages: breadcrumb aligns with inner card content */
-.site-main:has(.card) .page-header {
-  padding-inline: var(--panel-padding-x);
-}
 .page-actions {
   display: flex;
   flex-wrap: wrap;
@@ -350,55 +346,6 @@ pre {
 .breadcrumb a:hover { color: var(--accent); }
 .breadcrumb [aria-current="page"] { color: var(--text); font-weight: 500; }
 .breadcrumb__sep { color: var(--border-strong); user-select: none; }
-
-.stepper {
-  display: flex;
-  align-items: center;
-  gap: 0;
-  margin: 0 0 1.25rem;
-  padding: 0.75rem 0;
-  border-bottom: 1px solid var(--border);
-}
-.stepper__step {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-size: 0.85rem;
-  color: var(--muted);
-}
-.stepper__num {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 1.6rem;
-  height: 1.6rem;
-  border-radius: 50%;
-  font-size: 0.78rem;
-  font-weight: 600;
-  background: var(--surface-2);
-  color: var(--muted);
-  flex-shrink: 0;
-}
-.stepper__step--done .stepper__num {
-  background: var(--success-soft);
-  color: var(--success);
-}
-.stepper__step--active .stepper__num {
-  background: var(--accent-soft);
-  color: var(--accent);
-}
-.stepper__step--active .stepper__label {
-  color: var(--text);
-  font-weight: 600;
-}
-.stepper__sep {
-  display: inline-block;
-  width: 1.5rem;
-  height: 1px;
-  background: var(--border);
-  margin: 0 0.5rem;
-  flex-shrink: 0;
-}
 
 .button {
   display: inline-block;
@@ -435,8 +382,21 @@ pre {
   text-decoration: none;
 }
 .button-secondary:hover { background: var(--border); text-decoration: none; }
+.button-danger {
+  display: inline-block;
+  padding: 0.45rem 0.9rem;
+  font: inherit;
+  font-weight: 500;
+  color: #fff;
+  background: var(--danger);
+  border: 1px solid var(--danger);
+  border-radius: var(--r-md);
+  cursor: pointer;
+  text-decoration: none;
+}
+.button-danger:hover { filter: brightness(0.92); text-decoration: none; }
 
-button:not(.button):not(.button-secondary):not(.button-ghost) {
+button:not(.button):not(.button-secondary):not(.button-ghost):not(.button-danger) {
   padding: 0.45rem 0.9rem;
   font-size: 0.9rem;
   font-weight: 600;
@@ -447,7 +407,7 @@ button:not(.button):not(.button-secondary):not(.button-ghost) {
   cursor: pointer;
   transition: background-color 0.12s ease;
 }
-button:not(.button):not(.button-secondary):not(.button-ghost):hover { background: var(--surface-2); }
+button:not(.button):not(.button-secondary):not(.button-ghost):not(.button-danger):hover { background: var(--surface-2); }
 
 input, select, textarea {
   font-family: inherit;
@@ -483,6 +443,10 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--accent); }
   font-weight: 400;
 }
 .stack-form textarea { min-height: 6rem; resize: vertical; }
+.form-actions {
+  margin-top: 0.25rem;
+  padding-top: 0.25rem;
+}
 
 .checkbox-label, .radio-label, .checkbox-row {
   display: flex;
@@ -517,6 +481,52 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--accent); }
 }
 .panel > h2:first-child { margin-top: 0; }
 
+.project-meta__description {
+  margin-top: 0;
+  font-size: 1.05rem;
+}
+.project-meta__line {
+  margin: 0.35rem 0 0;
+}
+.project-meta__line:first-of-type {
+  margin-top: 0;
+}
+
+.form-danger-zone {
+  border: 1px solid color-mix(in srgb, var(--danger) 40%, var(--border));
+  background: var(--danger-soft);
+  border-radius: var(--r-lg);
+  padding: 1rem 1.25rem;
+}
+.form-danger-zone__text {
+  margin: 0 0 0.75rem;
+  font-size: 0.9rem;
+}
+
+.data-table__add-row td {
+  background: var(--surface-2);
+  border-top: 1px dashed var(--border-strong);
+}
+.data-table__hint-row td {
+  padding-top: 0.35rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.85rem;
+}
+.data-table__field {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  font: inherit;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+}
+.member-add-form__hint {
+  margin: 0;
+}
+
 .data-table {
   width: 100%;
   border-collapse: collapse;
@@ -537,7 +547,10 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--accent); }
   letter-spacing: 0.04em;
   border-bottom: 1px solid var(--border-strong);
 }
-.data-table tbody tr {
+.data-table tbody tr:hover td {
+  background-color: var(--surface-2);
+}
+.data-table__progress {
   --run-progress: 0%;
   background-image:
     linear-gradient(to right, var(--accent), var(--accent)),
@@ -546,18 +559,20 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--accent); }
   background-position: left bottom, left bottom;
   background-repeat: no-repeat;
 }
-.data-table tbody tr td {
-  border-bottom: 0;
-  background-color: transparent;
-}
-.data-table tbody tr:hover td {
-  background-color: var(--surface-2);
-}
 .data-table a { font-weight: 500; }
-.data-table__stats {
+.data-table th.data-table__stats,
+.data-table td.data-table__stats {
   text-align: right;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
+}
+.data-table th.data-table__col--center,
+.data-table td.data-table__col--center {
+  text-align: center;
+}
+.data-table th.data-table__col--end,
+.data-table td.data-table__col--end {
+  text-align: right;
 }
 
 .item-list {

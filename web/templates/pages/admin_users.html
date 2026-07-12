@@ -55,18 +55,18 @@
     <thead>
       <tr>
         <th scope="col">Email</th>
-        <th scope="col">Rôle</th>
-        <th scope="col">Ajouté</th>
-        <th scope="col"></th>
+        <th scope="col" class="data-table__col--center">Rôle</th>
+        <th scope="col" class="data-table__col--center">Ajouté</th>
+        <th scope="col" class="data-table__col--end"></th>
       </tr>
     </thead>
     <tbody>
       {{range .Emails}}
       <tr>
         <td>{{.Email}}</td>
-        <td>{{.Role}}</td>
-        <td>{{.CreatedAt}}</td>
-        <td>
+        <td class="data-table__col--center">{{.Role}}</td>
+        <td class="data-table__col--center">{{.CreatedAt}}</td>
+        <td class="data-table__col--end">
           <form method="post" action="/admin/users/remove" class="inline-form">
             <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
             <input type="hidden" name="email" value="{{.Email}}">

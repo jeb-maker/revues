@@ -39,7 +39,6 @@
       <a href="{{runsListURL "in_progress" .FilterQuery}}" class="segmented-tabs__item{{if eq .FilterStatus "in_progress"}} is-active{{end}}"{{if eq .FilterStatus "in_progress"}} aria-current="true"{{end}}>En cours</a>
       <a href="{{runsListURL "done" .FilterQuery}}" class="segmented-tabs__item{{if eq .FilterStatus "done"}} is-active{{end}}"{{if eq .FilterStatus "done"}} aria-current="true"{{end}}>Terminée</a>
     </nav>
-    {{if .CanLaunch}}<a class="button list-toolbar__action toolbar-control" href="/runs/new" title="Lancer une revue">Lancer</a>{{end}}
   </div>
   <div class="table-scroll">
   <table class="data-table table-sticky">
@@ -47,20 +46,20 @@
       <tr>
         <th scope="col">Revue</th>
         <th scope="col">Projet</th>
-        <th scope="col">Statut</th>
-        <th scope="col">Progression</th>
-        <th scope="col">Échéance</th>
+        <th scope="col" class="data-table__col--center">Statut</th>
+        <th scope="col" class="data-table__col--end">Progression</th>
+        <th scope="col" class="data-table__col--center">Échéance</th>
       </tr>
     </thead>
     <tbody>
       {{if .Runs}}
       {{range .Runs}}
-      <tr style="--run-progress: {{.Percent}}%" aria-label="Progression {{.Done}} sur {{.Total}}, {{.Percent}} pourcent">
+      <tr>
         <td><a href="/runs/{{.RunID}}">{{.Title}}</a></td>
         <td><a href="/projects/{{.ProjectID}}">{{.ProjectName}}</a></td>
-        <td><span class="status-badge status-{{.Status}}">{{formatRunStatus .Status}}</span></td>
-        <td class="data-table__stats muted">{{.Done}}/{{.Total}} ({{.Percent}}%)</td>
-        <td>{{if .DueDate.Valid}}{{formatDueDate .DueDate}}{{else}}<span class="muted">—</span>{{end}}</td>
+        <td class="data-table__col--center"><span class="status-badge status-{{.Status}}">{{formatRunStatus .Status}}</span></td>
+        <td class="data-table__stats data-table__progress muted" style="--run-progress: {{.Percent}}%" aria-label="Progression {{.Done}} sur {{.Total}}, {{.Percent}} pourcent">{{.Done}}/{{.Total}} ({{.Percent}}%)</td>
+        <td class="data-table__col--center">{{if .DueDate.Valid}}{{formatDueDate .DueDate}}{{else}}<span class="muted">—</span>{{end}}</td>
       </tr>
       {{end}}
       {{else if .HasActiveFilters}}
@@ -69,7 +68,7 @@
       </tr>
       {{else}}
       <tr>
-        <td colspan="5" class="muted">Aucune revue pour l'instant.</td>
+        <td colspan="5" class="muted">Aucune revue pour l'instant. <a href="/projects">Ouvrir un projet</a> pour en lancer une.</td>
       </tr>
       {{end}}
     </tbody>

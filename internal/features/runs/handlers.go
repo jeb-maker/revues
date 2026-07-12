@@ -144,14 +144,17 @@ func (h *Runs) WizardProjects(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	if len(launchProjects) == 1 {
+		http.Redirect(w, r, viewtemplates.ProjectTemplatesForRunPath(launchProjects[0].ID), http.StatusSeeOther)
+		return
+	}
+
 	pd := h.PageData(r, "Lancer une revue")
 	pd.Breadcrumbs = viewtemplates.BCRunWizardProjects()
 	pd.ActiveTab = "runs"
 	data := viewtemplates.RunWizardProjectsData{
 		PageData: pd,
 		Projects: launchProjects,
-		Step:     1,
-		Stepper:  wizardStepper(1),
 		Message:  r.URL.Query().Get("msg"),
 	}
 
@@ -162,38 +165,14 @@ func (h *Runs) WizardProjects(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// WizardTemplates is step 2: choose a template for the project.
+// WizardTemplates redirects to the project template list in launch mode.
 func (h *Runs) WizardTemplates(w http.ResponseWriter, r *http.Request) {
-	project, user, memberRole, ok := h.loadProjectForLaunch(w, r)
-	if !ok {
-		return
-	}
-
-	templates, err := h.Store.ListChecklistTemplates(r.Context(), project.ID)
+	projectID, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
 	if err != nil {
-		slog.Error("list templates for run wizard", "err", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		http.NotFound(w, r)
 		return
 	}
-
-	pd := h.PageData(r, "Choisir un modèle")
-	pd.Breadcrumbs = viewtemplates.BCRunWizardTemplates(project.Name)
-	pd.ActiveTab = "runs"
-	data := viewtemplates.RunWizardTemplatesData{
-		PageData:   pd,
-		Project:    project,
-		Templates:  templates,
-		Step:       2,
-		Stepper:    wizardStepper(2),
-		MemberRole: memberRole,
-		CanLaunch:  CanLaunch(user, memberRole),
-	}
-
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	if err := h.Templates.ExecuteTemplate(w, "run_wizard_templates", data); err != nil {
-		slog.Error("render run wizard step 2", "err", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-	}
+	http.Redirect(w, r, viewtemplates.ProjectTemplatesForRunPath(projectID), http.StatusSeeOther)
 }
 
 // WizardLaunch is step 3: confirm title and launch.
@@ -250,7 +229,7 @@ func (h *Runs) WizardLaunch(w http.ResponseWriter, r *http.Request) {
 	}
 
 	pd := h.PageData(r, "Lancer la revue")
-	pd.Breadcrumbs = viewtemplates.BCRunWizardLaunch(project.Name, project.ID, template.Name)
+	pd.Breadcrumbs = viewtemplates.BCRunWizardLaunch(project.Name, project.ID, template.Name, version.Version, len(items))
 	pd.ActiveTab = "runs"
 	data := viewtemplates.RunWizardLaunchData{
 		PageData:   pd,
@@ -258,9 +237,8 @@ func (h *Runs) WizardLaunch(w http.ResponseWriter, r *http.Request) {
 		Template:   template,
 		Version:    version,
 		ItemCount:  len(items),
+		Title:      template.Name,
 		FormAction: "/projects/" + strconv.FormatInt(project.ID, 10) + "/runs",
-		Step:       3,
-		Stepper:    wizardStepper(3),
 		MemberRole: memberRole,
 		CanLaunch:  CanLaunch(user, memberRole),
 	}
@@ -865,20 +843,31 @@ func (h *Runs) renderLaunchError(w http.ResponseWriter, r *http.Request, project
 		}
 	}
 
+	versionNum := 0
+	if version != nil {
+		versionNum = version.Version
+	}
+	templateName := ""
+	if template != nil {
+		templateName = template.Name
+	}
+
 	pd := h.PageData(r, "Lancer la revue")
-	pd.Breadcrumbs = viewtemplates.BCRunWizardLaunch(project.Name, project.ID, template.Name)
+	pd.Breadcrumbs = viewtemplates.BCRunWizardLaunch(project.Name, project.ID, templateName, versionNum, itemCount)
 	pd.ActiveTab = "runs"
+	title := strings.TrimSpace(r.FormValue("title"))
+	if title == "" && template != nil {
+		title = template.Name
+	}
 	data := viewtemplates.RunWizardLaunchData{
 		PageData:   pd,
 		Project:    project,
 		Template:   template,
 		Version:    version,
 		ItemCount:  itemCount,
-		Title:      strings.TrimSpace(r.FormValue("title")),
+		Title:      title,
 		DueDate:    strings.TrimSpace(r.FormValue("due_date")),
 		FormAction: "/projects/" + strconv.FormatInt(project.ID, 10) + "/runs",
-		Step:       3,
-		Stepper:    wizardStepper(3),
 		Error:      message,
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -911,22 +900,6 @@ func (h *Runs) progressData(runID int64, runItems []store.RunItem) viewtemplates
 		Total:   total,
 		Percent: percent,
 	}
-}
-
-func wizardStepper(current int) viewtemplates.StepperData {
-	labels := []string{"Projet", "Modèle", "Confirmation"}
-	var st viewtemplates.StepperData
-	for i, label := range labels {
-		status := ""
-		switch {
-		case i+1 < current:
-			status = "done"
-		case i+1 == current:
-			status = "active"
-		}
-		st.Steps = append(st.Steps, viewtemplates.StepperStep{Label: label, Status: status})
-	}
-	return st
 }
 
 func uniqueSections(items []store.RunItem) []string {
