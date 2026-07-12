@@ -49,6 +49,70 @@ func SecondaryAction(label, url string) PageAction {
 	return PageAction{Label: label, Title: label, URL: url, Primary: false}
 }
 
+// FormatItemStatus returns a French label for a checklist item status.
+func FormatItemStatus(s string) string {
+	switch s {
+	case store.RunItemStatusPending:
+		return "En attente"
+	case store.RunItemStatusOK:
+		return "OK"
+	case store.RunItemStatusNOK:
+		return "Non validé"
+	case store.RunItemStatusNA:
+		return "N/A"
+	default:
+		return s
+	}
+}
+
+// FormatRunStatus returns a French label for a review run status.
+func FormatRunStatus(s string) string {
+	switch s {
+	case store.RunStatusDraft:
+		return "Brouillon"
+	case store.RunStatusInProgress:
+		return "En cours"
+	case store.RunStatusDone:
+		return "Terminée"
+	case store.RunStatusArchived:
+		return "Archivée"
+	default:
+		return s
+	}
+}
+
+// FormatRole returns a French label for organization or project roles.
+func FormatRole(s string) string {
+	switch s {
+	case "reader":
+		return "Lecteur"
+	case "editor":
+		return "Éditeur"
+	case "admin":
+		return "Administrateur"
+	case "lead":
+		return "Responsable"
+	case "contributor":
+		return "Contributeur"
+	case "viewer":
+		return "Observateur"
+	case "owner":
+		return "Propriétaire"
+	case "member":
+		return "Membre"
+	default:
+		return s
+	}
+}
+
+// RunItemTableColspan returns the column count for the run items table empty row.
+func RunItemTableColspan(runStatus string, canCheck, canAssign bool) int {
+	if runStatus == store.RunStatusInProgress && (canCheck || canAssign) {
+		return 8
+	}
+	return 7
+}
+
 // PageData is shared view data for HTML pages.
 type PageData struct {
 	Title              string
@@ -149,7 +213,6 @@ type RunsListData struct {
 	FilterStatus      string
 	HasActiveFilters  bool
 	HasProjects       bool
-	CanLaunch         bool
 	CanCreate         bool
 	CanManageOrgUsers bool
 	Message           string
@@ -476,7 +539,6 @@ func Parse(assetVersion string) (*template.Template, error) {
 		"breadcrumbCurrent": func(crumbs []Breadcrumb) string {
 			return BreadcrumbCurrent(crumbs)
 		},
-		"sub": func(a, b int) int { return a - b },
 		"mul": func(a, b int) int { return a * b },
 		"div": func(a, b int) int {
 			if b == 0 {
@@ -484,37 +546,13 @@ func Parse(assetVersion string) (*template.Template, error) {
 			}
 			return a / b
 		},
-		"statusLabel": func(s string) string {
-			switch s {
-			case "pending":
-				return "en_attente"
-			case "ok":
-				return "ok"
-			case "nok":
-				return "nok"
-			case "na":
-				return "non_applicable"
-			default:
-				return s
-			}
-		},
-		"formatRunStatus": func(s string) string {
-			switch s {
-			case store.RunStatusDraft:
-				return "brouillon"
-			case store.RunStatusInProgress:
-				return "en cours"
-			case store.RunStatusDone:
-				return "terminée"
-			case store.RunStatusArchived:
-				return "archivée"
-			default:
-				return s
-			}
-		},
-		"formatDueDate":  formatDueDate,
-		"formatDateTime": formatDateTime,
-		"dueDateInput":   dueDateInput,
+		"formatItemStatus":    FormatItemStatus,
+		"formatRunStatus":     FormatRunStatus,
+		"formatRole":          FormatRole,
+		"runItemTableColspan": RunItemTableColspan,
+		"formatDueDate":       formatDueDate,
+		"formatDateTime":      formatDateTime,
+		"dueDateInput":        dueDateInput,
 		"runsListURL": func(status, q string) string {
 			return listURL("/revues", url.Values{
 				"status": {status},

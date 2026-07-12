@@ -4,7 +4,7 @@
   <p class="muted">
     Projet : <a href="/projects/{{.Project.ID}}">{{.Project.Name}}</a>
     · Revue : <a href="/runs/{{.Run.ID}}">{{.Run.Title}}</a>
-    · Statut : <span class="status-badge status-{{.Item.Status}}">{{statusLabel .Item.Status}}</span>
+    · Statut : <span class="status-badge status-{{.Item.Status}}">{{formatItemStatus .Item.Status}}</span>
   </p>
 
   {{if .Item.Section}}<p><strong>Section :</strong> {{.Item.Section}}</p>{{end}}
@@ -32,7 +32,7 @@
       Clé ou URL Jira
       <input type="text" name="jira_issue" value="{{.JiraIssueInput}}" placeholder="PROJ-123 ou https://…/browse/PROJ-123" required>
     </label>
-    <button type="submit">{{if .JiraLink}}Mettre à jour le lien{{else}}Lier l'issue{{end}}</button>
+    <button type="submit" class="button-secondary">{{if .JiraLink}}Mettre à jour le lien{{else}}Lier l'issue{{end}}</button>
   </form>
   {{else if and .CanLinkJira (not .JiraConfigured)}}
   <p class="muted">Jira n'est pas configuré — contactez un administrateur.</p>
@@ -49,7 +49,7 @@
       Description
       <textarea name="jira_description" rows="6" required>{{.JiraCreateDesc}}</textarea>
     </label>
-    <button type="submit">Créer ticket Jira</button>
+    <button type="submit" class="button-secondary">Créer ticket Jira</button>
   </form>
   {{end}}
 </div>
@@ -83,8 +83,8 @@
       <div class="event-marker event-marker--{{.NewStatus}}"></div>
       <div class="event-body">
         <p class="event-header">
-          <span class="status-badge status-{{.NewStatus}}">{{statusLabel .NewStatus}}</span>
-          {{if .OldStatus.Valid}}<span class="muted">(était {{statusLabel .OldStatus.String}})</span>{{end}}
+          <span class="status-badge status-{{.NewStatus}}">{{formatItemStatus .NewStatus}}</span>
+          {{if .OldStatus.Valid}}<span class="muted">(était {{formatItemStatus .OldStatus.String}})</span>{{end}}
         </p>
         <p class="event-meta muted">
           {{.CreatedAt}} — {{if .UserLogin}}{{.UserLogin}}{{else}}<span class="muted">système</span>{{end}}

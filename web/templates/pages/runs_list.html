@@ -1,7 +1,7 @@
 {{define "runs_list"}}
 {{template "layout_start" .}}
-{{if .Message}}<p class="success">{{.Message}}</p>{{end}}
-{{if .Error}}<p class="error">{{.Error}}</p>{{end}}
+{{if .Message}}<p class="success" role="status">{{.Message}}</p>{{end}}
+{{if .Error}}<p class="error" role="alert">{{.Error}}</p>{{end}}
 
 {{if not .HasProjects}}
 <section class="empty-state">
@@ -18,7 +18,7 @@
     <a class="button" href="/projects/new">Créer un projet</a>
   </p>
   {{else}}
-  <p>Aucun projet ne vous est encore assigné. Demandez à un administrateur ou à un lead de projet de vous ajouter comme membre.</p>
+  <p>Aucun projet ne vous est encore assigné. Demandez à un administrateur ou à un responsable de projet de vous ajouter comme membre.</p>
   <p class="empty-state-actions">
     <a class="button" href="/mes-taches">Voir mes tâches</a>
   </p>
@@ -28,16 +28,16 @@
 <section class="panel">
   <div class="list-toolbar">
     <form method="get" action="/revues" class="list-toolbar__form filter-form filter-form--inline">
-      <input class="list-toolbar__search toolbar-control" type="search" id="filter-query" name="q" value="{{.FilterQuery}}" placeholder="Rechercher une revue, un projet, un auteur…" aria-label="Rechercher une revue, un projet ou un auteur">
+      <input class="list-toolbar__search toolbar-control" type="search" id="filter-query" name="q" value="{{.FilterQuery}}" placeholder="Rechercher une revue ou un projet…" aria-label="Rechercher une revue ou un projet">
       {{if .FilterStatus}}<input type="hidden" name="status" value="{{.FilterStatus}}">{{end}}
       <button type="submit" class="button-secondary toolbar-control">Filtrer</button>
       {{if .HasActiveFilters}}<a href="/revues" class="button-ghost toolbar-control">Effacer</a>{{end}}
     </form>
     <nav class="segmented-tabs" aria-label="Filtrer par statut">
-      <a href="{{runsListURL "" .FilterQuery}}" class="segmented-tabs__item{{if not .FilterStatus}} is-active{{end}}"{{if not .FilterStatus}} aria-current="true"{{end}}>Toutes</a>
-      <a href="{{runsListURL "draft" .FilterQuery}}" class="segmented-tabs__item{{if eq .FilterStatus "draft"}} is-active{{end}}"{{if eq .FilterStatus "draft"}} aria-current="true"{{end}}>Brouillon</a>
-      <a href="{{runsListURL "in_progress" .FilterQuery}}" class="segmented-tabs__item{{if eq .FilterStatus "in_progress"}} is-active{{end}}"{{if eq .FilterStatus "in_progress"}} aria-current="true"{{end}}>En cours</a>
-      <a href="{{runsListURL "done" .FilterQuery}}" class="segmented-tabs__item{{if eq .FilterStatus "done"}} is-active{{end}}"{{if eq .FilterStatus "done"}} aria-current="true"{{end}}>Terminée</a>
+      <a href="{{runsListURL "" .FilterQuery}}" class="segmented-tabs__item{{if not .FilterStatus}} is-active{{end}}"{{if not .FilterStatus}} aria-current="page"{{end}}>Toutes</a>
+      <a href="{{runsListURL "draft" .FilterQuery}}" class="segmented-tabs__item{{if eq .FilterStatus "draft"}} is-active{{end}}"{{if eq .FilterStatus "draft"}} aria-current="page"{{end}}>Brouillon</a>
+      <a href="{{runsListURL "in_progress" .FilterQuery}}" class="segmented-tabs__item{{if eq .FilterStatus "in_progress"}} is-active{{end}}"{{if eq .FilterStatus "in_progress"}} aria-current="page"{{end}}>En cours</a>
+      <a href="{{runsListURL "done" .FilterQuery}}" class="segmented-tabs__item{{if eq .FilterStatus "done"}} is-active{{end}}"{{if eq .FilterStatus "done"}} aria-current="page"{{end}}>Terminées</a>
     </nav>
   </div>
   <div class="table-scroll">
@@ -47,8 +47,8 @@
         <th scope="col">Revue</th>
         <th scope="col">Projet</th>
         <th scope="col" class="data-table__col--center">Statut</th>
-        <th scope="col" class="data-table__col--end">Progression</th>
         <th scope="col" class="data-table__col--center">Échéance</th>
+        <th scope="col" class="data-table__col--end">Progression</th>
       </tr>
     </thead>
     <tbody>
@@ -58,8 +58,8 @@
         <td><a href="/runs/{{.RunID}}">{{.Title}}</a></td>
         <td><a href="/projects/{{.ProjectID}}">{{.ProjectName}}</a></td>
         <td class="data-table__col--center"><span class="status-badge status-{{.Status}}">{{formatRunStatus .Status}}</span></td>
-        <td class="data-table__stats data-table__progress muted" style="--run-progress: {{.Percent}}%" aria-label="Progression {{.Done}} sur {{.Total}}, {{.Percent}} pourcent">{{.Done}}/{{.Total}} ({{.Percent}}%)</td>
         <td class="data-table__col--center">{{if .DueDate.Valid}}{{formatDueDate .DueDate}}{{else}}<span class="muted">—</span>{{end}}</td>
+        <td class="data-table__stats data-table__progress muted" style="--run-progress: {{.Percent}}%" aria-label="Progression {{.Done}} sur {{.Total}}, {{.Percent}} pourcent">{{.Done}}/{{.Total}} ({{.Percent}}%)</td>
       </tr>
       {{end}}
       {{else if .HasActiveFilters}}

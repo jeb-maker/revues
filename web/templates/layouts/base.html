@@ -49,7 +49,7 @@
       <div class="header-account">
         {{if .User.AvatarURL}}<img class="header-account__avatar" src="{{.User.AvatarURL}}" alt="" width="28" height="28">{{end}}
         <span class="header-account__name">{{if .User.DisplayName}}{{.User.DisplayName}}{{else}}{{.User.Login}}{{end}}</span>
-        <span class="status-badge status-{{.User.Role}} role-badge">{{.User.Role}}</span>
+        <span class="status-badge status-{{.User.Role}} role-badge">{{formatRole .User.Role}}</span>
         <form method="post" action="/logout" class="inline-form">
           <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
           <button type="submit" class="button button-ghost button-sm">Déconnexion</button>

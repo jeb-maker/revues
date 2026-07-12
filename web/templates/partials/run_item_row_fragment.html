@@ -15,13 +15,13 @@
   <td class="data-table__col--center">
     {{if and (eq .RunStatus "in_progress") .CanCheck}}
     <select name="status" form="item-form-{{.Item.ID}}" required class="status-select" aria-label="Statut" hx-confirm="Confirmer le changement de statut ?">
-      <option value="pending" {{if eq .Item.Status "pending"}}selected{{end}}>{{statusLabel "pending"}}</option>
-      <option value="ok" {{if eq .Item.Status "ok"}}selected{{end}}>{{statusLabel "ok"}}</option>
-      <option value="nok" {{if eq .Item.Status "nok"}}selected{{end}}>{{statusLabel "nok"}}</option>
-      <option value="na" {{if eq .Item.Status "na"}}selected{{end}}>{{statusLabel "na"}}</option>
+      <option value="pending" {{if eq .Item.Status "pending"}}selected{{end}}>{{formatItemStatus "pending"}}</option>
+      <option value="ok" {{if eq .Item.Status "ok"}}selected{{end}}>{{formatItemStatus "ok"}}</option>
+      <option value="nok" {{if eq .Item.Status "nok"}}selected{{end}}>{{formatItemStatus "nok"}}</option>
+      <option value="na" {{if eq .Item.Status "na"}}selected{{end}}>{{formatItemStatus "na"}}</option>
     </select>
     {{else}}
-    <span class="status-badge status-{{.Item.Status}}">{{statusLabel .Item.Status}}</span>
+    <span class="status-badge status-{{.Item.Status}}">{{formatItemStatus .Item.Status}}</span>
     {{end}}
   </td>
   <td>
@@ -36,7 +36,8 @@
   </td>
   <td>
     {{if and (eq .RunStatus "in_progress") .CanCheck}}
-    <input type="text" name="comment" form="item-form-{{.Item.ID}}" placeholder="Commentaire (requis si nok)" value="{{.Item.Comment}}" class="comment-inline" aria-label="Commentaire" hx-indicator="#spinner-{{.Item.ID}}">
+    <span class="visually-hidden" id="comment-hint-{{.Item.ID}}">Commentaire obligatoire si Non validé</span>
+    <input type="text" name="comment" form="item-form-{{.Item.ID}}" value="{{.Item.Comment}}" class="comment-inline" aria-label="Commentaire" aria-describedby="comment-hint-{{.Item.ID}}" hx-indicator="#spinner-{{.Item.ID}}">
     {{else if .Item.Comment}}{{.Item.Comment}}{{else}}<span class="muted">—</span>{{end}}
   </td>
   <td class="data-table__col--center">

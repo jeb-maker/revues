@@ -11,10 +11,10 @@
 {{template "admin_nav" .}}
 
 {{if .Message}}
-<p class="success">{{.Message}}</p>
+<p class="success" role="status">{{.Message}}</p>
 {{end}}
 {{if .Error}}
-<p class="error">{{.Error}}</p>
+<p class="error" role="alert">{{.Error}}</p>
 {{end}}
 
 {{if not .Emails}}
@@ -38,12 +38,14 @@
     <label>
       Rôle
       <select name="role" required>
-        <option value="reader">reader</option>
-        <option value="editor">editor</option>
-        <option value="admin">admin</option>
+        <option value="reader">{{formatRole "reader"}}</option>
+        <option value="editor">{{formatRole "editor"}}</option>
+        <option value="admin">{{formatRole "admin"}}</option>
       </select>
     </label>
-    <button type="submit">Enregistrer</button>
+    <div class="form-actions">
+      <button type="submit" class="button">Enregistrer</button>
+    </div>
   </form>
 </section>
 
@@ -64,13 +66,13 @@
       {{range .Emails}}
       <tr>
         <td>{{.Email}}</td>
-        <td class="data-table__col--center">{{.Role}}</td>
+        <td class="data-table__col--center">{{formatRole .Role}}</td>
         <td class="data-table__col--center">{{.CreatedAt}}</td>
         <td class="data-table__col--end">
           <form method="post" action="/admin/users/remove" class="inline-form">
             <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
             <input type="hidden" name="email" value="{{.Email}}">
-            <button type="submit">Retirer</button>
+            <button type="submit" class="button-ghost button-sm">Retirer</button>
           </form>
         </td>
       </tr>

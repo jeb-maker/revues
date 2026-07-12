@@ -308,7 +308,7 @@ func TestJiraCreate_NotNOK(t *testing.T) {
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("status = %d, want %d", rec.Code, http.StatusBadRequest)
 	}
-	if !strings.Contains(rec.Body.String(), "Seuls les points nok") {
+	if !strings.Contains(rec.Body.String(), "Seuls les points non validés") {
 		t.Fatalf("body = %q", rec.Body.String())
 	}
 }

@@ -113,7 +113,7 @@ func createErrorMessage(err error) string {
 	case errors.Is(err, jira.ErrProjectKeyMissing):
 		return "Clé projet Jira manquante dans la configuration admin."
 	case errors.Is(err, jira.ErrNotNOK):
-		return "Seuls les points nok peuvent générer un ticket Jira."
+		return "Seuls les points non validés peuvent générer un ticket Jira."
 	case errors.Is(err, jira.ErrAlreadyLinked):
 		return "Une issue Jira est déjà liée à ce point."
 	case errors.Is(err, jira.ErrConnectionFailed):

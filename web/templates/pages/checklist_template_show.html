@@ -14,9 +14,9 @@
   {{if .CanManage}}
   <p>
     <a href="/modeles/{{.Template.ID}}/edit" class="button">{{icon "settings"}} Modifier</a>
-    <form method="post" action="/modeles/{{.Template.ID}}/archive" class="inline-form">
+    <form method="post" action="/modeles/{{.Template.ID}}/archive" class="inline-form" onsubmit="return confirm('Archiver ce modèle ?');">
       <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
-      <button type="submit" class="button-ghost">Archiver</button>
+      <button type="submit" class="button-danger">Archiver</button>
     </form>
   </p>
   {{end}}

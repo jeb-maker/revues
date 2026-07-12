@@ -1,11 +1,11 @@
 {{define "site_nav"}}
 <nav class="site-nav" aria-label="Navigation principale">
-  <a href="/mes-taches" class="site-nav__link{{if eq .ActiveTab "tasks"}} is-active{{end}}">Mes tâches</a>
+  <a href="/mes-taches" class="site-nav__link{{if eq .ActiveTab "tasks"}} is-active{{end}}"{{if eq .ActiveTab "tasks"}} aria-current="page"{{end}}>Mes tâches</a>
   <span class="site-nav__sep" aria-hidden="true"></span>
-  <a href="/projects" class="site-nav__link site-nav__link--ref{{if eq .ActiveTab "projects"}} is-active{{end}}">Projets</a>
-  <a href="/modeles" class="site-nav__link site-nav__link--ref{{if eq .ActiveTab "templates"}} is-active{{end}}">Modèles</a>
+  <a href="/projects" class="site-nav__link site-nav__link--ref{{if eq .ActiveTab "projects"}} is-active{{end}}"{{if eq .ActiveTab "projects"}} aria-current="page"{{end}}>Projets</a>
+  <a href="/modeles" class="site-nav__link site-nav__link--ref{{if eq .ActiveTab "templates"}} is-active{{end}}"{{if eq .ActiveTab "templates"}} aria-current="page"{{end}}>Modèles</a>
   {{if and .User (eq .User.Role "admin")}}
-  <a href="/admin/integrations" class="site-nav__link{{if eq .ActiveTab "admin"}} is-active{{end}}">Admin</a>
+  <a href="/admin/integrations" class="site-nav__link{{if eq .ActiveTab "admin"}} is-active{{end}}"{{if eq .ActiveTab "admin"}} aria-current="page"{{end}}>Admin</a>
   {{end}}
 </nav>
 {{end}}

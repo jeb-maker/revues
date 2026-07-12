@@ -582,6 +582,21 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--accent); }
 .item-list li { margin-bottom: 0.35rem; }
 
 .muted { color: var(--muted); font-size: 0.9rem; }
+.field-hint {
+  display: block;
+  margin: 0.25rem 0 0.35rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-weight: 400;
+  line-height: 1.45;
+}
+.field-error {
+  display: block;
+  margin-top: 0.35rem;
+  color: var(--danger);
+  font-size: 0.85rem;
+  font-weight: 500;
+}
 .success { color: var(--success); font-weight: 500; }
 .error { color: var(--danger); font-weight: 500; }
 

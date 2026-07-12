@@ -1,7 +1,15 @@
 {{define "templates_index"}}
 {{template "layout_start" .}}
 {{if and (not .Templates) (not .HasActiveFilters)}}
-<p class="muted">Aucun modèle actif.</p>
+<section class="empty-state">
+  <h2>Aucun modèle</h2>
+  <p class="muted">Aucun modèle actif pour l'instant.</p>
+  {{if .CanManage}}
+  <div class="empty-state-actions">
+    <a class="button" href="/modeles/new">Créer un modèle</a>
+  </div>
+  {{end}}
+</section>
 {{else}}
 <section class="panel">
   <div class="list-toolbar">

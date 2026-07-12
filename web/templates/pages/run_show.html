@@ -6,16 +6,16 @@
   <p class="muted">
     Projet : <a href="/projects/{{.Project.ID}}">{{.Project.Name}}</a>
     · Modèle : {{.TemplateName}} v{{.VersionNum}}
-    · Statut : <span class="status-badge status-{{.Run.Status}}">{{statusLabel .Run.Status}}</span>
+    · Statut : <span class="status-badge status-{{.Run.Status}}">{{formatRunStatus .Run.Status}}</span>
     {{if .Run.DueDate.Valid}} · Échéance : {{formatDueDate .Run.DueDate}}{{end}}
   </p>
 
-  {{if .Message}}<p class="success">{{.Message}}</p>{{end}}
-  {{if .Error}}<p class="error">{{.Error}}</p>{{end}}
-  {{if .ItemError}}<p class="error">{{.ItemError}}</p>{{end}}
-  {{if .AssignError}}<p class="error">{{.AssignError}}</p>{{end}}
-  {{if .CompleteError}}<p class="error">{{.CompleteError}}</p>{{end}}
-  {{if .NotionExportError}}<p class="error">{{.NotionExportError}}</p>{{end}}
+  {{if .Message}}<p class="success" role="status">{{.Message}}</p>{{end}}
+  {{if .Error}}<p class="error" role="alert">{{.Error}}</p>{{end}}
+  {{if .ItemError}}<p class="error" role="alert">{{.ItemError}}</p>{{end}}
+  {{if .AssignError}}<p class="error" role="alert">{{.AssignError}}</p>{{end}}
+  {{if .CompleteError}}<p class="error" role="alert">{{.CompleteError}}</p>{{end}}
+  {{if .NotionExportError}}<p class="error" role="alert">{{.NotionExportError}}</p>{{end}}
 
   {{if and (ne .Run.Status "draft") (gt .Progress.Total 0)}}
   {{template "run_progress_fragment" .Progress}}
@@ -33,7 +33,7 @@
   {{end}}
   {{if .NokItems}}
   <div class="warning-panel">
-    <h3>Points nok ({{len .NokItems}})</h3>
+    <h3>Points non validés ({{len .NokItems}})</h3>
     <ul class="item-list">
       {{range .NokItems}}
       <li><a href="/runs/{{$.Run.ID}}/items/{{.ID}}"><strong>{{.Label}}</strong></a>{{if .Comment}} — {{.Comment}}{{end}}</li>
@@ -44,11 +44,11 @@
   <div class="post-closure">
     <a href="/runs/{{.Run.ID}}/export.csv" class="button">{{icon "download"}} Exporter CSV</a>
     {{if .Run.NotionURL}}
-    <a href="{{.Run.NotionURL}}" class="button" target="_blank" rel="noopener noreferrer">{{icon "external-link"}} Voir dans Notion</a>
+    <a href="{{.Run.NotionURL}}" class="button-secondary" target="_blank" rel="noopener noreferrer">{{icon "external-link"}} Voir dans Notion</a>
     {{else if and .NotionConfigured .CanExportNotion}}
     <form method="post" action="/runs/{{.Run.ID}}/export/notion" class="inline-form">
       <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
-      <button type="submit" class="button">{{icon "external-link"}} Exporter vers Notion</button>
+      <button type="submit" class="button-secondary">{{icon "external-link"}} Exporter vers Notion</button>
     </form>
     {{end}}
     <a href="/projects/{{.Project.ID}}" class="button-ghost">{{icon "arrow-left"}} Retour au projet</a>
@@ -73,7 +73,7 @@
   <h2>Clôturer la revue</h2>
   {{if .NokItems}}
   <div class="warning-panel closing-nok">
-    <h3>{{icon "alert"}} Points nok ({{len .NokItems}})</h3>
+    <h3>{{icon "alert"}} Points non validés ({{len .NokItems}})</h3>
     <ul class="item-list">
       {{range .NokItems}}
       <li><a href="/runs/{{$.Run.ID}}/items/{{.ID}}"><strong>{{.Label}}</strong></a>{{if .Comment}} — {{.Comment}}{{end}}</li>
@@ -81,7 +81,7 @@
     </ul>
   </div>
   {{else}}
-  <p class="muted">Aucun point nok — tous les points sont validés.</p>
+  <p class="muted">Aucun point non validé — tous les points sont validés.</p>
   {{end}}
   <form method="post" action="/runs/{{.Run.ID}}/complete" class="stack-form" hx-post="/runs/{{.Run.ID}}/complete" hx-target="#complete-section" hx-swap="outerHTML" hx-confirm="Confirmer la clôture de la revue ?">
     <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
@@ -113,10 +113,10 @@
         Statut
         <select name="status">
           <option value="">Tous</option>
-          <option value="pending" {{if eq .FilterStatus "pending"}}selected{{end}}>{{statusLabel "pending"}}</option>
-          <option value="ok" {{if eq .FilterStatus "ok"}}selected{{end}}>{{statusLabel "ok"}}</option>
-          <option value="nok" {{if eq .FilterStatus "nok"}}selected{{end}}>{{statusLabel "nok"}}</option>
-          <option value="na" {{if eq .FilterStatus "na"}}selected{{end}}>{{statusLabel "na"}}</option>
+          <option value="pending" {{if eq .FilterStatus "pending"}}selected{{end}}>{{formatItemStatus "pending"}}</option>
+          <option value="ok" {{if eq .FilterStatus "ok"}}selected{{end}}>{{formatItemStatus "ok"}}</option>
+          <option value="nok" {{if eq .FilterStatus "nok"}}selected{{end}}>{{formatItemStatus "nok"}}</option>
+          <option value="na" {{if eq .FilterStatus "na"}}selected{{end}}>{{formatItemStatus "na"}}</option>
         </select>
       </label>
       <button type="submit" class="button-secondary">Filtrer</button>
@@ -129,27 +129,27 @@
   <div class="table-scroll">
     <table class="data-table">
       <thead class="table-sticky">
-        <tr><th>Section</th><th>Point</th><th class="data-table__col--center">Jira</th><th class="data-table__col--center">Statut</th><th>Assigné</th><th>Commentaire</th><th class="data-table__col--center">PJ</th>{{if and (eq $.Run.Status "in_progress") (or $.CanCheck $.CanAssign)}}<th class="data-table__col--end"></th>{{end}}</tr>
+        <tr><th scope="col">Section</th><th scope="col">Point</th><th scope="col" class="data-table__col--center">Jira</th><th scope="col" class="data-table__col--center">Statut</th><th scope="col">Assigné</th><th scope="col">Commentaire</th><th scope="col" class="data-table__col--center">PJ</th>{{if and (eq $.Run.Status "in_progress") (or $.CanCheck $.CanAssign)}}<th scope="col" class="data-table__col--end"><span class="visually-hidden">Actions</span></th>{{end}}</tr>
       </thead>
       <tbody id="run-items">
         {{range .Items}}
         {{template "run_item_row_fragment" (runItemRow $.Run . $.Members $.CSRFToken $.CanCheck $.CanAssign $.CanLinkJira $.JiraConfigured (index $.JiraLinks .ID) (index $.Attachments .ID) "" "")}}
         {{else}}
-        <tr><td colspan="8"><p class="muted">Aucun point trouvé pour ce filtre.</p></td></tr>
+        <tr><td colspan="{{runItemTableColspan $.Run.Status $.CanCheck $.CanAssign}}"><p class="muted">Aucun point trouvé pour ce filtre.</p></td></tr>
         {{end}}
       </tbody>
     </table>
   </div>
 </div>
 
+{{if ne .Run.Status "done"}}
 <div class="card post-closure-links">
   <p>
     <a href="/projects/{{.Project.ID}}" class="button-ghost">{{icon "arrow-left"}} Retour au projet</a>
-    {{if ne .Run.Status "done"}}
     <a href="/projects/{{.Project.ID}}/templates?for_run=1" class="button-ghost">Lancer une autre revue</a>
-    {{end}}
   </p>
 </div>
+{{end}}
 {{template "layout_end" .}}
 {{end}}
 {{define "main_class"}} site-main--wide{{end}}

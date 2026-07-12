@@ -101,7 +101,6 @@ func (h *Runs) List(w http.ResponseWriter, r *http.Request) {
 		FilterStatus:      filterStatus,
 		HasActiveFilters:  filterQuery != "" || filterStatus != "",
 		HasProjects:       hasProjects,
-		CanLaunch:         hasProjects,
 		CanCreate:         projectfeature.CanCreate(user),
 		CanManageOrgUsers: projectfeature.CanManageOrgUsers(user, orgRole, orgMember),
 		Message:           r.URL.Query().Get("msg"),
@@ -377,11 +376,11 @@ func (h *Runs) UpdateItem(w http.ResponseWriter, r *http.Request) {
 		switch {
 		case errors.Is(err, ErrCommentRequired):
 			if h.isHTMX(r) {
-				h.renderRunItemHTMXError(w, r, run, project, user, memberRole, itemID, "Un commentaire est obligatoire pour le statut nok.", "")
+				h.renderRunItemHTMXError(w, r, run, project, user, memberRole, itemID, "Un commentaire est obligatoire pour le statut Non validé.", "")
 				return
 			}
 			h.renderRunShow(w, r, run, project, user, memberRole, viewtemplates.RunShowData{
-				ItemError: "Un commentaire est obligatoire pour le statut nok.",
+				ItemError: "Un commentaire est obligatoire pour le statut Non validé.",
 			})
 		case errors.Is(err, ErrInvalidStatus):
 			if h.isHTMX(r) {

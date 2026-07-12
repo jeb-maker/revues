@@ -9,11 +9,11 @@
       {{if .HasActiveFilters}}<a href="/mes-taches" class="button-ghost toolbar-control">Effacer</a>{{end}}
     </form>
     <nav class="segmented-tabs" aria-label="Filtrer par statut">
-      <a href="{{myTasksListURL "" .FilterQuery}}" class="segmented-tabs__item{{if not .FilterStatus}} is-active{{end}}"{{if not .FilterStatus}} aria-current="true"{{end}}>Tous</a>
-      <a href="{{myTasksListURL "pending" .FilterQuery}}" class="segmented-tabs__item{{if eq .FilterStatus "pending"}} is-active{{end}}"{{if eq .FilterStatus "pending"}} aria-current="true"{{end}}>En attente</a>
-      <a href="{{myTasksListURL "ok" .FilterQuery}}" class="segmented-tabs__item{{if eq .FilterStatus "ok"}} is-active{{end}}"{{if eq .FilterStatus "ok"}} aria-current="true"{{end}}>OK</a>
-      <a href="{{myTasksListURL "nok" .FilterQuery}}" class="segmented-tabs__item{{if eq .FilterStatus "nok"}} is-active{{end}}"{{if eq .FilterStatus "nok"}} aria-current="true"{{end}}>Nok</a>
-      <a href="{{myTasksListURL "na" .FilterQuery}}" class="segmented-tabs__item{{if eq .FilterStatus "na"}} is-active{{end}}"{{if eq .FilterStatus "na"}} aria-current="true"{{end}}>N/A</a>
+      <a href="{{myTasksListURL "" .FilterQuery}}" class="segmented-tabs__item{{if not .FilterStatus}} is-active{{end}}"{{if not .FilterStatus}} aria-current="page"{{end}}>Tous</a>
+      <a href="{{myTasksListURL "pending" .FilterQuery}}" class="segmented-tabs__item{{if eq .FilterStatus "pending"}} is-active{{end}}"{{if eq .FilterStatus "pending"}} aria-current="page"{{end}}>En attente</a>
+      <a href="{{myTasksListURL "ok" .FilterQuery}}" class="segmented-tabs__item{{if eq .FilterStatus "ok"}} is-active{{end}}"{{if eq .FilterStatus "ok"}} aria-current="page"{{end}}>OK</a>
+      <a href="{{myTasksListURL "nok" .FilterQuery}}" class="segmented-tabs__item{{if eq .FilterStatus "nok"}} is-active{{end}}"{{if eq .FilterStatus "nok"}} aria-current="page"{{end}}>Non validé</a>
+      <a href="{{myTasksListURL "na" .FilterQuery}}" class="segmented-tabs__item{{if eq .FilterStatus "na"}} is-active{{end}}"{{if eq .FilterStatus "na"}} aria-current="page"{{end}}>N/A</a>
     </nav>
   </div>
   <div class="table-scroll">
@@ -28,7 +28,7 @@
         <td>{{.ProjectName}}</td>
         <td><a href="/runs/{{.RunID}}">{{.RunTitle}}</a></td>
         <td><a href="/runs/{{.RunID}}/items/{{.ID}}">{{if .Section}}{{.Section}} — {{end}}{{.Label}}</a></td>
-        <td class="data-table__col--center">{{statusLabel .Status}}</td>
+        <td class="data-table__col--center"><span class="status-badge status-{{.Status}}">{{formatItemStatus .Status}}</span></td>
       </tr>
       {{end}}
       {{else if .HasActiveFilters}}

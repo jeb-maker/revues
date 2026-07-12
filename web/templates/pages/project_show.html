@@ -7,7 +7,7 @@
   {{if .Project.Description}}
   <p class="project-meta__description">{{.Project.Description}}</p>
   {{end}}
-  <p class="muted project-meta__line">Votre rôle : {{.MemberRole}}</p>
+  <p class="muted project-meta__line">Votre rôle : {{formatRole .MemberRole}}</p>
   <p class="muted project-meta__line">
     {{if .Tags}}
     Tags : {{range $i, $tag := .Tags}}{{if $i}}, {{end}}<span class="tag">{{$tag}}</span>{{end}}
@@ -20,7 +20,7 @@
 
 {{if .NokItems}}
 <section class="panel">
-  <h2>Points bloquants ({{len .NokItems}})</h2>
+  <h2>Points non validés ({{len .NokItems}})</h2>
   <ul class="item-list">
     {{range .NokItems}}
     <li>
@@ -83,7 +83,7 @@
       <tr>
         <td>{{.Login}}</td>
         <td>{{.Email}}</td>
-        <td class="data-table__col--center">{{.Role}}</td>
+        <td class="data-table__col--center">{{formatRole .Role}}</td>
         <td class="data-table__col--end">
           {{if $.CanManageMembers}}
           <form method="post" action="/projects/{{$.Project.ID}}/members/remove" class="inline-form">
@@ -105,9 +105,9 @@
         <td>
           <label class="visually-hidden" for="member-role">Rôle local</label>
           <select class="data-table__field" id="member-role" name="role" form="project-member-add" required>
-            <option value="lead"{{if eq .AddMemberRole "lead"}} selected{{end}}>lead</option>
-            <option value="contributor"{{if eq .AddMemberRole "contributor"}} selected{{end}}>contributor</option>
-            <option value="viewer"{{if eq .AddMemberRole "viewer"}} selected{{end}}>viewer</option>
+            <option value="lead"{{if eq .AddMemberRole "lead"}} selected{{end}}>{{formatRole "lead"}}</option>
+            <option value="contributor"{{if eq .AddMemberRole "contributor"}} selected{{end}}>{{formatRole "contributor"}}</option>
+            <option value="viewer"{{if eq .AddMemberRole "viewer"}} selected{{end}}>{{formatRole "viewer"}}</option>
           </select>
         </td>
         <td class="data-table__col--end">

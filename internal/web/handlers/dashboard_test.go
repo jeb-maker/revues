@@ -355,7 +355,7 @@ func TestProjectShow_ShowsNokItems(t *testing.T) {
 		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
 	}
 	body := rec.Body.String()
-	if !strings.Contains(body, "Points bloquants") {
+	if !strings.Contains(body, "Points non validés") {
 		t.Fatal("expected nok section")
 	}
 	if !strings.Contains(body, "Blocage") || !strings.Contains(body, "à corriger") {

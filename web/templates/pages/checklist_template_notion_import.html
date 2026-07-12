@@ -9,7 +9,7 @@
   <input type="hidden" name="action" value="fetch">
   <label>Base Notion<input name="database_ref" required value="{{.DatabaseRef}}"></label>
   <label>Tags (optionnel)<input name="tags" maxlength="500" value="{{.Tags}}"></label>
-  <button type="submit">Charger</button>
+  <button type="submit" class="button">Charger</button>
 </form>
 {{end}}
 
@@ -21,7 +21,7 @@
   <input type="hidden" name="tags" value="{{.Tags}}">
   <p class="muted">Base : {{.DatabaseTitle}}</p>
   <label>Libellé<select name="map_label" required>{{range .Properties}}{{if eq .Type "title"}}<option value="{{.Name}}"{{if eq $.Mapping.Label .Name}} selected{{end}}>{{.Name}}</option>{{end}}{{end}}</select></label>
-  <button type="submit">Prévisualiser</button>
+  <button type="submit" class="button-secondary">Prévisualiser</button>
 </form>
 {{end}}
 
@@ -33,7 +33,7 @@
   <input type="hidden" name="map_label" value="{{.Mapping.Label}}">
   <input type="hidden" name="tags" value="{{.Tags}}">
   <p class="muted">{{.PreviewCount}} point(s) seront importés dans « {{.TemplateName}} ».</p>
-  <button type="submit">Importer v1</button>
+  <button type="submit" class="button">Importer v1</button>
 </form>
 {{end}}
 </div>

@@ -11,11 +11,11 @@
     <label>
       <input type="radio" name="organization_id" value="{{.Organization.ID}}" required
         {{if eq .Organization.ID $.DefaultOrgID}}checked{{end}}>
-      {{.Organization.Name}} <span class="form-hint">({{.Organization.Slug}})</span>
+      {{.Organization.Name}} <span class="field-hint">({{.Organization.Slug}})</span>
     </label>
     {{end}}
   </fieldset>
-  <button type="submit">Continuer</button>
+  <button type="submit" class="button">Continuer</button>
 </form>
 {{template "layout_end" .}}
 {{end}}
