@@ -1,7 +1,7 @@
 {{define "checklist_templates_list"}}
 {{template "layout_start" .}}
-{{if .Message}}<p class="success">{{.Message}}</p>{{end}}
-{{if .Error}}<p class="error">{{.Error}}</p>{{end}}
+{{if .Message}}<p class="success" role="status">{{.Message}}</p>{{end}}
+{{if .Error}}<p class="error" role="alert">{{.Error}}</p>{{end}}
 
 <section class="panel">
   {{if .ForRun}}

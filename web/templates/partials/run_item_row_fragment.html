@@ -56,8 +56,8 @@
   {{if and (eq .RunStatus "in_progress") (or .CanCheck .CanAssign)}}
   <td class="data-table__col--end item-actions">
     <span id="spinner-{{.Item.ID}}" class="htmx-indicator spinner"></span>
-    {{if .ItemError}}<p class="error item-inline-error">{{.ItemError}}</p>{{end}}
-    {{if .AssignError}}<p class="error item-inline-error">{{.AssignError}}</p>{{end}}
+    {{if .ItemError}}<p class="error item-inline-error" role="alert">{{.ItemError}}</p>{{end}}
+    {{if .AssignError}}<p class="error item-inline-error" role="alert">{{.AssignError}}</p>{{end}}
     {{if .CanCheck}}
     <form id="item-form-{{.Item.ID}}" class="visually-hidden" hx-post="/runs/{{.RunID}}/items/{{.Item.ID}}" hx-target="#run-item-{{.Item.ID}}" hx-swap="outerHTML" hx-trigger="change from:select[name=status], blur from:input[name=comment], keydown[key=='Enter'] from:input[name=comment]">
       <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">

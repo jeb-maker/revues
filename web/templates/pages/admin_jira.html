@@ -7,14 +7,14 @@
 {{template "admin_nav" .}}
 
 {{if not .CanEncrypt}}
-<p class="error">REVUES_ENCRYPTION_KEY n'est pas configurée : vous pouvez consulter ce formulaire mais l'enregistrement est désactivé.</p>
+<p class="error" role="alert">REVUES_ENCRYPTION_KEY n'est pas configurée : vous pouvez consulter ce formulaire mais l'enregistrement est désactivé.</p>
 {{end}}
 
 {{if .Message}}
-<p class="success">{{.Message}}</p>
+<p class="success" role="status">{{.Message}}</p>
 {{end}}
 {{if .Error}}
-<p class="error">{{.Error}}</p>
+<p class="error" role="alert">{{.Error}}</p>
 {{end}}
 
 <section class="panel">

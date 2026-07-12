@@ -34,10 +34,10 @@
       {{if .HasActiveFilters}}<a href="/revues" class="button-ghost toolbar-control">Effacer</a>{{end}}
     </form>
     <nav class="segmented-tabs" aria-label="Filtrer par statut">
-      <a href="{{runsListURL "" .FilterQuery}}" class="segmented-tabs__item{{if not .FilterStatus}} is-active{{end}}"{{if not .FilterStatus}} aria-current="page"{{end}}>Toutes</a>
-      <a href="{{runsListURL "draft" .FilterQuery}}" class="segmented-tabs__item{{if eq .FilterStatus "draft"}} is-active{{end}}"{{if eq .FilterStatus "draft"}} aria-current="page"{{end}}>Brouillon</a>
-      <a href="{{runsListURL "in_progress" .FilterQuery}}" class="segmented-tabs__item{{if eq .FilterStatus "in_progress"}} is-active{{end}}"{{if eq .FilterStatus "in_progress"}} aria-current="page"{{end}}>En cours</a>
-      <a href="{{runsListURL "done" .FilterQuery}}" class="segmented-tabs__item{{if eq .FilterStatus "done"}} is-active{{end}}"{{if eq .FilterStatus "done"}} aria-current="page"{{end}}>Terminées</a>
+      <a href="{{runsListURL "" .FilterQuery}}" class="segmented-tabs__item{{if not .FilterStatus}} is-active{{end}}">Toutes</a>
+      <a href="{{runsListURL "draft" .FilterQuery}}" class="segmented-tabs__item{{if eq .FilterStatus "draft"}} is-active{{end}}">Brouillon</a>
+      <a href="{{runsListURL "in_progress" .FilterQuery}}" class="segmented-tabs__item{{if eq .FilterStatus "in_progress"}} is-active{{end}}">En cours</a>
+      <a href="{{runsListURL "done" .FilterQuery}}" class="segmented-tabs__item{{if eq .FilterStatus "done"}} is-active{{end}}">Terminées</a>
     </nav>
   </div>
   <div class="table-scroll">

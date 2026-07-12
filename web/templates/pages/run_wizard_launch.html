@@ -1,7 +1,7 @@
 {{define "run_wizard_launch"}}
 {{template "layout_start" .}}
 <div class="card">
-  {{if .Error}}<p class="error">{{.Error}}</p>{{end}}
+  {{if .Error}}<p class="error" role="alert">{{.Error}}</p>{{end}}
 
   <form method="post" action="{{.FormAction}}" class="stack-form">
     <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">

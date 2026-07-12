@@ -1,8 +1,8 @@
 {{define "checklist_template_show"}}
 {{template "layout_start" .}}
 <div class="card">
-  {{if .Message}}<p class="success">{{.Message}}</p>{{end}}
-  {{if .Error}}<p class="error">{{.Error}}</p>{{end}}
+  {{if .Message}}<p class="success" role="status">{{.Message}}</p>{{end}}
+  {{if .Error}}<p class="error" role="alert">{{.Error}}</p>{{end}}
 
   <p class="muted">Version {{.Version.Version}} · publiée le {{.Version.PublishedAt}}</p>
   {{if .Tags}}

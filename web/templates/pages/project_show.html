@@ -1,7 +1,7 @@
 {{define "project_show"}}
 {{template "layout_start" .}}
-{{if .Message}}<p class="success">{{.Message}}</p>{{end}}
-{{if .Error}}<p class="error">{{.Error}}</p>{{end}}
+{{if .Message}}<p class="success" role="status">{{.Message}}</p>{{end}}
+{{if .Error}}<p class="error" role="alert">{{.Error}}</p>{{end}}
 
 <section class="panel project-meta">
   {{if .Project.Description}}
@@ -47,7 +47,7 @@
         <td><a href="/runs/{{.ID}}">{{.Title}}</a></td>
         <td class="data-table__col--center"><span class="status-badge status-{{.Status}}">{{formatRunStatus .Status}}</span></td>
         <td class="data-table__col--center">{{if .DueDate.Valid}}{{formatDueDate .DueDate}}{{else}}<span class="muted">—</span>{{end}}</td>
-        <td class="data-table__stats data-table__progress muted" style="--run-progress: {{if eq .Status "in_progress"}}{{.Percent}}{{else}}0{{end}}%">
+        <td class="data-table__stats data-table__progress muted" style="--run-progress: {{if eq .Status "in_progress"}}{{.Percent}}{{else}}0{{end}}%"{{if eq .Status "in_progress"}} aria-label="Progression {{.Done}} sur {{.Total}}, {{.Percent}} pourcent"{{else if gt .Total 0}} aria-label="Progression {{.Done}} sur {{.Total}}"{{end}}>
           {{if eq .Status "in_progress"}}
           {{.Done}} / {{.Total}} ({{.Percent}}%)
           {{else if gt .Total 0}}
@@ -76,7 +76,7 @@
   <div class="table-scroll">
   <table class="data-table">
     <thead>
-      <tr><th scope="col">Login</th><th scope="col">Email</th><th scope="col" class="data-table__col--center">Rôle</th><th scope="col" class="data-table__col--end"></th></tr>
+      <tr><th scope="col">Compte</th><th scope="col">Email</th><th scope="col" class="data-table__col--center">Rôle</th><th scope="col" class="data-table__col--end"></th></tr>
     </thead>
     <tbody>
       {{range .Members}}
@@ -86,7 +86,7 @@
         <td class="data-table__col--center">{{formatRole .Role}}</td>
         <td class="data-table__col--end">
           {{if $.CanManageMembers}}
-          <form method="post" action="/projects/{{$.Project.ID}}/members/remove" class="inline-form">
+          <form method="post" action="/projects/{{$.Project.ID}}/members/remove" class="inline-form" onsubmit="return confirm('Retirer ce membre du projet ?');">
             <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
             <input type="hidden" name="user_id" value="{{.UserID}}">
             <button type="submit" class="button-ghost button-sm">Retirer</button>

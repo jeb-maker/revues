@@ -24,13 +24,17 @@
             hx-target="#template-row-{{.Index}}" hx-swap="afterend">+</button>
     <button type="button" class="button-ghost button-sm" hx-delete="/modeles/{{.TemplateID}}/edit/row/{{.Index}}"
             hx-headers='{"X-CSRF-Token":"{{.CSRFToken}}"}'
-            hx-target="#template-row-{{.Index}}" hx-swap="outerHTML">−</button>
+            hx-target="#template-row-{{.Index}}" hx-swap="outerHTML"
+            hx-confirm="Supprimer ce point ?"
+            aria-label="Supprimer ce point">−</button>
     {{else}}
     <button type="button" class="button-ghost button-sm" hx-post="/modeles/new/row" hx-vals='{"idx":"{{.Index}}","csrf_token":"{{.CSRFToken}}"}'
             hx-target="#template-row-{{.Index}}" hx-swap="afterend">+</button>
     <button type="button" class="button-ghost button-sm" hx-delete="/modeles/new/row/{{.Index}}"
             hx-headers='{"X-CSRF-Token":"{{.CSRFToken}}"}'
-            hx-target="#template-row-{{.Index}}" hx-swap="outerHTML">−</button>
+            hx-target="#template-row-{{.Index}}" hx-swap="outerHTML"
+            hx-confirm="Supprimer ce point ?"
+            aria-label="Supprimer ce point">−</button>
     {{end}}
   </div>
 </fieldset>

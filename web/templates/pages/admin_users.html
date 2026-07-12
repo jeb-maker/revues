@@ -69,7 +69,7 @@
         <td class="data-table__col--center">{{formatRole .Role}}</td>
         <td class="data-table__col--center">{{.CreatedAt}}</td>
         <td class="data-table__col--end">
-          <form method="post" action="/admin/users/remove" class="inline-form">
+          <form method="post" action="/admin/users/remove" class="inline-form" onsubmit="return confirm('Retirer cet email de la liste autorisée ?');">
             <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
             <input type="hidden" name="email" value="{{.Email}}">
             <button type="submit" class="button-ghost button-sm">Retirer</button>

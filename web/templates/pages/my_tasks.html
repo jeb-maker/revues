@@ -1,5 +1,14 @@
 {{define "my_tasks"}}
 {{template "layout_start" .}}
+{{if and (not .Tasks) (not .HasActiveFilters)}}
+<section class="empty-state">
+  <h2>Aucune tâche assignée</h2>
+  <p class="muted">Les points qui vous sont assignés dans les revues en cours apparaîtront ici.</p>
+  <p class="empty-state-actions">
+    <a class="button" href="/revues">Voir les revues</a>
+  </p>
+</section>
+{{else}}
 <section class="panel">
   <div class="list-toolbar">
     <form method="get" action="/mes-taches" class="list-toolbar__form filter-form filter-form--inline">
@@ -9,11 +18,11 @@
       {{if .HasActiveFilters}}<a href="/mes-taches" class="button-ghost toolbar-control">Effacer</a>{{end}}
     </form>
     <nav class="segmented-tabs" aria-label="Filtrer par statut">
-      <a href="{{myTasksListURL "" .FilterQuery}}" class="segmented-tabs__item{{if not .FilterStatus}} is-active{{end}}"{{if not .FilterStatus}} aria-current="page"{{end}}>Tous</a>
-      <a href="{{myTasksListURL "pending" .FilterQuery}}" class="segmented-tabs__item{{if eq .FilterStatus "pending"}} is-active{{end}}"{{if eq .FilterStatus "pending"}} aria-current="page"{{end}}>En attente</a>
-      <a href="{{myTasksListURL "ok" .FilterQuery}}" class="segmented-tabs__item{{if eq .FilterStatus "ok"}} is-active{{end}}"{{if eq .FilterStatus "ok"}} aria-current="page"{{end}}>OK</a>
-      <a href="{{myTasksListURL "nok" .FilterQuery}}" class="segmented-tabs__item{{if eq .FilterStatus "nok"}} is-active{{end}}"{{if eq .FilterStatus "nok"}} aria-current="page"{{end}}>Non validé</a>
-      <a href="{{myTasksListURL "na" .FilterQuery}}" class="segmented-tabs__item{{if eq .FilterStatus "na"}} is-active{{end}}"{{if eq .FilterStatus "na"}} aria-current="page"{{end}}>N/A</a>
+      <a href="{{myTasksListURL "" .FilterQuery}}" class="segmented-tabs__item{{if not .FilterStatus}} is-active{{end}}">Tous</a>
+      <a href="{{myTasksListURL "pending" .FilterQuery}}" class="segmented-tabs__item{{if eq .FilterStatus "pending"}} is-active{{end}}">En attente</a>
+      <a href="{{myTasksListURL "ok" .FilterQuery}}" class="segmented-tabs__item{{if eq .FilterStatus "ok"}} is-active{{end}}">OK</a>
+      <a href="{{myTasksListURL "nok" .FilterQuery}}" class="segmented-tabs__item{{if eq .FilterStatus "nok"}} is-active{{end}}">Non validé</a>
+      <a href="{{myTasksListURL "na" .FilterQuery}}" class="segmented-tabs__item{{if eq .FilterStatus "na"}} is-active{{end}}">N/A</a>
     </nav>
   </div>
   <div class="table-scroll">
@@ -31,19 +40,16 @@
         <td class="data-table__col--center"><span class="status-badge status-{{.Status}}">{{formatItemStatus .Status}}</span></td>
       </tr>
       {{end}}
-      {{else if .HasActiveFilters}}
-      <tr>
-        <td colspan="4" class="muted">Aucune tâche pour cette recherche. <a href="/mes-taches">Effacer</a></td>
-      </tr>
       {{else}}
       <tr>
-        <td colspan="4" class="muted">Aucune tâche assignée.</td>
+        <td colspan="4" class="muted">Aucune tâche pour cette recherche. <a href="/mes-taches">Effacer</a></td>
       </tr>
       {{end}}
     </tbody>
   </table>
   </div>
 </section>
+{{end}}
 {{template "layout_end" .}}
 {{end}}
 {{define "main_class"}} site-main--wide{{end}}

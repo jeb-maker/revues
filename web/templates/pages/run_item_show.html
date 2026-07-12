@@ -13,10 +13,10 @@
   {{if .Item.AssignedLogin}}<p class="muted">Assigné à : {{.Item.AssignedLogin}}</p>{{end}}
 </div>
 
-{{if .Message}}<p class="success">{{.Message}}</p>{{end}}
-{{if .LinkError}}<p class="error">{{.LinkError}}</p>{{end}}
-{{if .CreateError}}<p class="error">{{.CreateError}}</p>{{end}}
-{{if .UploadError}}<p class="error">{{.UploadError}}</p>{{end}}
+{{if .Message}}<p class="success" role="status">{{.Message}}</p>{{end}}
+{{if .LinkError}}<p class="error" role="alert">{{.LinkError}}</p>{{end}}
+{{if .CreateError}}<p class="error" role="alert">{{.CreateError}}</p>{{end}}
+{{if .UploadError}}<p class="error" role="alert">{{.UploadError}}</p>{{end}}
 
 <div class="card">
   <h2>{{icon "external-link"}} Issue Jira</h2>
@@ -30,7 +30,8 @@
     <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
     <label>
       Clé ou URL Jira
-      <input type="text" name="jira_issue" value="{{.JiraIssueInput}}" placeholder="PROJ-123 ou https://…/browse/PROJ-123" required>
+      <span class="field-hint">Ex. PROJ-123 ou l'URL complète du ticket dans Jira.</span>
+      <input type="text" name="jira_issue" value="{{.JiraIssueInput}}" placeholder="PROJ-123" required>
     </label>
     <button type="submit" class="button-secondary">{{if .JiraLink}}Mettre à jour le lien{{else}}Lier l'issue{{end}}</button>
   </form>

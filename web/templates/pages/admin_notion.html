@@ -4,9 +4,9 @@
   <p class="muted">Connectez Revues à Notion. Voir <code>docs/NOTION.md</code> pour le mapping des champs.</p>
 </section>
 {{template "admin_nav" .}}
-{{if not .CanEncrypt}}<p class="error">REVUES_ENCRYPTION_KEY n'est pas configurée.</p>{{end}}
-{{if .Message}}<p class="success">{{.Message}}</p>{{end}}
-{{if .Error}}<p class="error">{{.Error}}</p>{{end}}
+{{if not .CanEncrypt}}<p class="error" role="alert">REVUES_ENCRYPTION_KEY n'est pas configurée.</p>{{end}}
+{{if .Message}}<p class="success" role="status">{{.Message}}</p>{{end}}
+{{if .Error}}<p class="error" role="alert">{{.Error}}</p>{{end}}
 <section class="panel">
   <h2>Intégration Notion</h2>
   <form method="post" action="/admin/integrations/notion" class="stack-form">

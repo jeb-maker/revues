@@ -2,8 +2,8 @@
 {{template "layout_start" .}}
 <div class="card">
   <p class="muted">Choisissez un projet pour lancer la revue.</p>
-  {{if .Message}}<p class="success">{{.Message}}</p>{{end}}
-  {{if .Error}}<p class="error">{{.Error}}</p>{{end}}
+  {{if .Message}}<p class="success" role="status">{{.Message}}</p>{{end}}
+  {{if .Error}}<p class="error" role="alert">{{.Error}}</p>{{end}}
 
   {{if .Projects}}
   <ul class="item-list">

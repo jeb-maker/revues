@@ -4,9 +4,9 @@
   <p class="muted">Notifications JSON signées HMAC-SHA256. Voir <code>docs/WEBHOOKS.md</code>.</p>
 </section>
 {{template "admin_nav" .}}
-{{if not .CanEncrypt}}<p class="error">REVUES_ENCRYPTION_KEY requise pour enregistrer.</p>{{end}}
-{{if .Message}}<p class="success">{{.Message}}</p>{{end}}
-{{if .Error}}<p class="error">{{.Error}}</p>{{end}}
+{{if not .CanEncrypt}}<p class="error" role="alert">REVUES_ENCRYPTION_KEY requise pour enregistrer.</p>{{end}}
+{{if .Message}}<p class="success" role="status">{{.Message}}</p>{{end}}
+{{if .Error}}<p class="error" role="alert">{{.Error}}</p>{{end}}
 <section class="panel">
   <h2>Destinataires</h2>
   <form method="post" action="/admin/settings/webhooks" class="stack-form">
