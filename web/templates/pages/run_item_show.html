@@ -80,8 +80,7 @@
   {{if .Events}}
   <div class="event-timeline">
     {{range .Events}}
-    <div class="event-item">
-      <div class="event-marker event-marker--{{.NewStatus}}"></div>
+    <div class="event-item event-item--{{.NewStatus}}">
       <div class="event-body">
         <p class="event-header">
           <span class="status-badge status-{{.NewStatus}}">{{formatItemStatus .NewStatus}}</span>

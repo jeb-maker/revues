@@ -11,18 +11,18 @@
 {{else}}
 <section class="card">
   <div class="list-toolbar">
-    <form method="get" action="/mes-taches" class="list-toolbar__form filter-form filter-form--inline">
-      <input class="list-toolbar__search toolbar-control" type="search" id="filter-query" name="q" value="{{.FilterQuery}}" placeholder="Rechercher un projet, une revue, un point…" aria-label="Rechercher un projet, une revue ou un point">
+    <form method="get" action="/mes-taches" class="filter-form filter-form--inline">
+      <input class="toolbar-control" type="search" id="filter-query" name="q" value="{{.FilterQuery}}" placeholder="Rechercher un projet, une revue, un point…" aria-label="Rechercher un projet, une revue ou un point">
       {{if .FilterStatus}}<input type="hidden" name="status" value="{{.FilterStatus}}">{{end}}
       <button type="submit" class="button-secondary toolbar-control">Filtrer</button>
       {{if .HasActiveFilters}}<a href="/mes-taches" class="button-ghost toolbar-control">Effacer</a>{{end}}
     </form>
-    <nav class="segmented-tabs" aria-label="Filtrer par statut">
-      <a href="{{myTasksListURL "" .FilterQuery}}" class="segmented-tabs__item{{if not .FilterStatus}} is-active{{end}}">Tous</a>
-      <a href="{{myTasksListURL "pending" .FilterQuery}}" class="segmented-tabs__item{{if eq .FilterStatus "pending"}} is-active{{end}}">En attente</a>
-      <a href="{{myTasksListURL "ok" .FilterQuery}}" class="segmented-tabs__item{{if eq .FilterStatus "ok"}} is-active{{end}}">OK</a>
-      <a href="{{myTasksListURL "nok" .FilterQuery}}" class="segmented-tabs__item{{if eq .FilterStatus "nok"}} is-active{{end}}">Non validé</a>
-      <a href="{{myTasksListURL "na" .FilterQuery}}" class="segmented-tabs__item{{if eq .FilterStatus "na"}} is-active{{end}}">N/A</a>
+    <nav class="filter-form filter-form--inline" aria-label="Filtrer par statut">
+      <a href="{{myTasksListURL "" .FilterQuery}}" class="{{if not .FilterStatus}}button-secondary{{else}}button-ghost{{end}} toolbar-control">Tous</a>
+      <a href="{{myTasksListURL "pending" .FilterQuery}}" class="{{if eq .FilterStatus "pending"}}button-secondary{{else}}button-ghost{{end}} toolbar-control">En attente</a>
+      <a href="{{myTasksListURL "ok" .FilterQuery}}" class="{{if eq .FilterStatus "ok"}}button-secondary{{else}}button-ghost{{end}} toolbar-control">OK</a>
+      <a href="{{myTasksListURL "nok" .FilterQuery}}" class="{{if eq .FilterStatus "nok"}}button-secondary{{else}}button-ghost{{end}} toolbar-control">Non validé</a>
+      <a href="{{myTasksListURL "na" .FilterQuery}}" class="{{if eq .FilterStatus "na"}}button-secondary{{else}}button-ghost{{end}} toolbar-control">N/A</a>
     </nav>
   </div>
   <div class="table-scroll">

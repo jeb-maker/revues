@@ -98,8 +98,7 @@
 <div class="card">
   <h2>{{icon "list"}} Points ({{len .Items}})</h2>
   {{if .Items}}
-  <div class="filter-bar" id="items-filter">
-    <form method="get" action="/runs/{{.Run.ID}}" class="filter-form">
+  <form method="get" action="/runs/{{.Run.ID}}" class="filter-form filter-form--fields">
       <label>
         Section
         <select name="section">
@@ -124,7 +123,6 @@
       <a href="/runs/{{.Run.ID}}" class="button-ghost">Effacer</a>
       {{end}}
     </form>
-  </div>
   {{end}}
   <div class="table-scroll">
     <table class="data-table">

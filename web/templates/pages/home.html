@@ -7,7 +7,7 @@
   <p><a href="/projects">Projets</a> · <a href="/mes-taches">Mes tâches</a>{{if eq .User.Role "admin"}} · <a href="/admin/users">Admin</a>{{end}}</p>
   <form method="post" action="/logout">
     <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
-    <button type="submit">Se déconnecter</button>
+    <button type="submit" class="button-secondary">Se déconnecter</button>
   </form>
 </div>
 {{else}}

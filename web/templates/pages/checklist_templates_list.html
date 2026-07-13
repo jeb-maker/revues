@@ -12,9 +12,9 @@
   {{end}}
 
   <div class="list-toolbar">
-    <form method="get" action="/projects/{{.Project.ID}}/templates" class="list-toolbar__form filter-form filter-form--inline">
+    <form method="get" action="/projects/{{.Project.ID}}/templates" class="filter-form filter-form--inline">
       {{if .ForRun}}<input type="hidden" name="for_run" value="1">{{end}}
-      <input class="list-toolbar__search toolbar-control" type="search" id="filter-query" name="q" value="{{.FilterQuery}}" placeholder="Rechercher un modèle ou un tag…" aria-label="Rechercher un modèle ou un tag">
+      <input class="toolbar-control" type="search" id="filter-query" name="q" value="{{.FilterQuery}}" placeholder="Rechercher un modèle ou un tag…" aria-label="Rechercher un modèle ou un tag">
       <button type="submit" class="button-secondary toolbar-control">Filtrer</button>
       {{if .HasActiveFilters}}<a href="/projects/{{.Project.ID}}/templates{{if .ForRun}}?for_run=1{{end}}" class="button-ghost toolbar-control">Effacer</a>{{end}}
     </form>

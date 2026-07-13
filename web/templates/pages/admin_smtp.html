@@ -52,7 +52,7 @@
       Expéditeur (From)
       <input type="email" name="from" value="{{.From}}" required autocomplete="email">
     </label>
-    <button type="submit" {{if not .CanEncrypt}}disabled{{end}}>Enregistrer</button>
+    <button type="submit" class="button-secondary" {{if not .CanEncrypt}}disabled{{end}}>Enregistrer</button>
   </form>
 </section>
 
@@ -65,7 +65,7 @@
       Destinataire
       <input type="email" name="test_recipient" value="{{.TestRecipient}}" required autocomplete="email">
     </label>
-    <button type="submit" {{if not .Configured}}disabled{{end}}>Envoyer un email de test</button>
+    <button type="submit" class="button-secondary" {{if not .Configured}}disabled{{end}}>Envoyer un email de test</button>
   </form>
 </section>
 {{template "layout_end" .}}

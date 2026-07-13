@@ -28,12 +28,12 @@
   {{if .Message}}<p class="success" role="status">{{.Message}}</p>{{end}}
   {{if .Error}}<p class="error" role="alert">{{.Error}}</p>{{end}}
   <div class="list-toolbar">
-    <form method="get" action="/projects" class="list-toolbar__form filter-form filter-form--inline">
-      <input class="list-toolbar__search toolbar-control" type="search" id="filter-query" name="q" value="{{.FilterQuery}}" placeholder="Rechercher un projet…" aria-label="Rechercher un projet">
+    <form method="get" action="/projects" class="filter-form filter-form--inline">
+      <input class="toolbar-control" type="search" id="filter-query" name="q" value="{{.FilterQuery}}" placeholder="Rechercher un projet…" aria-label="Rechercher un projet">
       <button type="submit" class="button-secondary toolbar-control">Filtrer</button>
       {{if .HasActiveFilters}}<a href="/projects" class="button-ghost toolbar-control">Effacer</a>{{end}}
     </form>
-    {{if .CanCreate}}<a class="button list-toolbar__action toolbar-control" href="/projects/new" title="Nouveau projet">Créer</a>{{end}}
+    {{if .CanCreate}}<a class="button toolbar-control" href="/projects/new" title="Nouveau projet">Créer</a>{{end}}
   </div>
   <div class="table-scroll">
   <table class="data-table table-sticky">

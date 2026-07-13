@@ -15,7 +15,7 @@
     <label>Nom du workspace<input type="text" name="workspace_name" value="{{.WorkspaceName}}"></label>
     <label>Jeton d'intégration<input type="password" name="api_token" placeholder="{{if .HasAPIToken}}Laisser vide pour conserver{{end}}"></label>
     <label>ID base par défaut<input type="text" name="default_database_id" value="{{.DefaultDatabaseID}}"></label>
-    <button type="submit" {{if not .CanEncrypt}}disabled{{end}}>Enregistrer</button>
+    <button type="submit" class="button-secondary" {{if not .CanEncrypt}}disabled{{end}}>Enregistrer</button>
   </form>
 </section>
 <section class="card">
@@ -24,7 +24,7 @@
     <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
     <input type="hidden" name="action" value="test">
     <p class="muted">Vérifie le jeton via <code>GET /v1/users/me</code>.</p>
-    <button type="submit" {{if not .Configured}}disabled{{end}}>Tester la connexion</button>
+    <button type="submit" class="button-secondary" {{if not .Configured}}disabled{{end}}>Tester la connexion</button>
   </form>
 </section>
 {{template "layout_end" .}}

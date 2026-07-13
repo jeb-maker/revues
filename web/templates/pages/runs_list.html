@@ -29,17 +29,17 @@
   {{if .Message}}<p class="success" role="status">{{.Message}}</p>{{end}}
   {{if .Error}}<p class="error" role="alert">{{.Error}}</p>{{end}}
   <div class="list-toolbar">
-    <form method="get" action="/revues" class="list-toolbar__form filter-form filter-form--inline">
-      <input class="list-toolbar__search toolbar-control" type="search" id="filter-query" name="q" value="{{.FilterQuery}}" placeholder="Rechercher une revue ou un projet…" aria-label="Rechercher une revue ou un projet">
+    <form method="get" action="/revues" class="filter-form filter-form--inline">
+      <input class="toolbar-control" type="search" id="filter-query" name="q" value="{{.FilterQuery}}" placeholder="Rechercher une revue ou un projet…" aria-label="Rechercher une revue ou un projet">
       {{if .FilterStatus}}<input type="hidden" name="status" value="{{.FilterStatus}}">{{end}}
       <button type="submit" class="button-secondary toolbar-control">Filtrer</button>
       {{if .HasActiveFilters}}<a href="/revues" class="button-ghost toolbar-control">Effacer</a>{{end}}
     </form>
-    <nav class="segmented-tabs" aria-label="Filtrer par statut">
-      <a href="{{runsListURL "" .FilterQuery}}" class="segmented-tabs__item{{if not .FilterStatus}} is-active{{end}}">Toutes</a>
-      <a href="{{runsListURL "draft" .FilterQuery}}" class="segmented-tabs__item{{if eq .FilterStatus "draft"}} is-active{{end}}">Brouillon</a>
-      <a href="{{runsListURL "in_progress" .FilterQuery}}" class="segmented-tabs__item{{if eq .FilterStatus "in_progress"}} is-active{{end}}">En cours</a>
-      <a href="{{runsListURL "done" .FilterQuery}}" class="segmented-tabs__item{{if eq .FilterStatus "done"}} is-active{{end}}">Terminées</a>
+    <nav class="filter-form filter-form--inline" aria-label="Filtrer par statut">
+      <a href="{{runsListURL "" .FilterQuery}}" class="{{if not .FilterStatus}}button-secondary{{else}}button-ghost{{end}} toolbar-control">Toutes</a>
+      <a href="{{runsListURL "draft" .FilterQuery}}" class="{{if eq .FilterStatus "draft"}}button-secondary{{else}}button-ghost{{end}} toolbar-control">Brouillon</a>
+      <a href="{{runsListURL "in_progress" .FilterQuery}}" class="{{if eq .FilterStatus "in_progress"}}button-secondary{{else}}button-ghost{{end}} toolbar-control">En cours</a>
+      <a href="{{runsListURL "done" .FilterQuery}}" class="{{if eq .FilterStatus "done"}}button-secondary{{else}}button-ghost{{end}} toolbar-control">Terminées</a>
     </nav>
   </div>
   <div class="table-scroll">

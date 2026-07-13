@@ -1,14 +1,14 @@
 {{define "project_show"}}
 {{template "layout_start" .}}
 
-<section class="card project-meta">
+<section class="card">
   {{if .Message}}<p class="success" role="status">{{.Message}}</p>{{end}}
   {{if .Error}}<p class="error" role="alert">{{.Error}}</p>{{end}}
   {{if .Project.Description}}
-  <p class="project-meta__description">{{.Project.Description}}</p>
+  <p>{{.Project.Description}}</p>
   {{end}}
-  <p class="muted project-meta__line">Votre rôle : {{formatRole .MemberRole}}</p>
-  <p class="muted project-meta__line">
+  <p class="muted">Votre rôle : {{formatRole .MemberRole}}</p>
+  <p class="muted">
     {{if .Tags}}
     Tags : {{range $i, $tag := .Tags}}{{if $i}}, {{end}}<span class="tag">{{$tag}}</span>{{end}}
     {{else}}
@@ -115,7 +115,7 @@
         </td>
       </tr>
       <tr class="data-table__hint-row">
-        <td colspan="4" class="muted member-add-form__hint">Ajout à l'organisation si la personne n'en fait pas encore partie.</td>
+        <td colspan="4" class="muted">Ajout à l'organisation si la personne n'en fait pas encore partie.</td>
       </tr>
       {{end}}
     </tbody>

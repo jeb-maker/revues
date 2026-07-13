@@ -13,14 +13,14 @@
 {{else}}
 <section class="card">
   <div class="list-toolbar">
-    <form method="get" action="/modeles" class="list-toolbar__form filter-form filter-form--inline">
-      <input class="list-toolbar__search toolbar-control" type="search" id="filter-query" name="q" value="{{.FilterQuery}}" placeholder="Rechercher un modèle ou un tag…" aria-label="Rechercher un modèle ou un tag">
+    <form method="get" action="/modeles" class="filter-form filter-form--inline">
+      <input class="toolbar-control" type="search" id="filter-query" name="q" value="{{.FilterQuery}}" placeholder="Rechercher un modèle ou un tag…" aria-label="Rechercher un modèle ou un tag">
       <button type="submit" class="button-secondary toolbar-control">Filtrer</button>
       {{if .HasActiveFilters}}<a href="/modeles" class="button-ghost toolbar-control">Effacer</a>{{end}}
     </form>
     <div class="list-toolbar__actions">
-      {{if .CanManage}}<a class="button-secondary list-toolbar__action toolbar-control" href="/modeles/notion-import" title="Importer depuis Notion">Importer</a>{{end}}
-      {{if .CanManage}}<a class="button list-toolbar__action toolbar-control" href="/modeles/new" title="Nouveau modèle">Créer</a>{{end}}
+      {{if .CanManage}}<a class="button-secondary toolbar-control" href="/modeles/notion-import" title="Importer depuis Notion">Importer</a>{{end}}
+      {{if .CanManage}}<a class="button toolbar-control" href="/modeles/new" title="Nouveau modèle">Créer</a>{{end}}
     </div>
   </div>
   <div class="table-scroll">

@@ -145,7 +145,7 @@ func TestDashboard_ShowsRecentCompletedRuns(t *testing.T) {
 	if !strings.Contains(body, `id="filter-query"`) {
 		t.Fatal("expected search input on revues page")
 	}
-	if !strings.Contains(body, "segmented-tabs") {
+	if !strings.Contains(body, "Filtrer par statut") {
 		t.Fatal("expected status tabs on revues page")
 	}
 	if !strings.Contains(body, ">Filtrer<") {
