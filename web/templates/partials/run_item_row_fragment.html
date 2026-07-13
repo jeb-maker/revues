@@ -48,7 +48,7 @@
         <img src="/attachments/{{.Attachment.ID}}?inline=1" alt="" class="attachment-thumb attachment-thumb-sm" width="48" height="36" loading="lazy">
       </a>
       {{else}}
-      <a href="/attachments/{{.Attachment.ID}}" class="attachment-download" title="Télécharger {{.Attachment.Filename}}">PDF</a>
+      <a href="/attachments/{{.Attachment.ID}}" class="attachment-download attachment-download-sm" title="Télécharger {{.Attachment.Filename}}">PDF</a>
       {{end}}
     </div>
     {{else}}<span class="muted">—</span>{{end}}

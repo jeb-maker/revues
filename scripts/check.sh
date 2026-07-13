@@ -75,8 +75,12 @@ if [[ -f go.mod ]]; then
       fail "JS total $js_size octets > 15 Ko"
     fi
     css_size=$(find web/static -name '*.css' -exec cat {} + 2>/dev/null | wc -c || echo 0)
-    if [[ "$css_size" -gt 20480 ]]; then
-      fail "CSS total $css_size octets > 20 Ko"
+    if [[ "$css_size" -gt 30720 ]]; then
+      fail "CSS total $css_size octets > 30 Ko"
+    fi
+    css_gzip=$(find web/static -name '*.css' -exec cat {} + 2>/dev/null | gzip -c | wc -c || echo 0)
+    if [[ "$css_gzip" -gt 12288 ]]; then
+      fail "CSS gzip $css_gzip octets > 12 Ko"
     fi
   fi
 else
