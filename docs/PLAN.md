@@ -27,7 +27,7 @@ Remplace Excel, fils de mails et check-lists éparpillées, sans devenir une usi
 | Métrique | Cible |
 |----------|-------|
 | HTML par page | < 50 Ko |
-| CSS | < 20 Ko |
+| CSS | < 30 Ko brut, < 12 Ko gzip |
 | JS / HTMX | < 15 Ko |
 | Requêtes par page | ≤ 8 |
 | RAM serveur | < 128 Mo en charge normale |

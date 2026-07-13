@@ -82,6 +82,8 @@ func FormatRunStatus(s string) string {
 }
 
 // FormatRole returns a French label for organization or project roles.
+//
+//nolint:misspell // French UI labels
 func FormatRole(s string) string {
 	switch s {
 	case "reader":
