@@ -9,10 +9,10 @@
     maxRow = 0, maxSec = 0, forceSec = false;
 
   function n(v, d) { var x = parseInt(v, 10); return isNaN(x) ? d : x; }
-  function secs() { return box.querySelectorAll('.template-editor-section'); }
+  function secs() { return box.querySelectorAll('.template-editor__section'); }
   function sectioned() {
     if (secs().length > 1 || forceSec) return true;
-    var t = box.querySelector('.template-editor-section-title');
+    var t = box.querySelector('.template-editor__section-title');
     return !!(t && t.value.trim());
   }
   function syncMode() {
@@ -39,19 +39,18 @@
     row.querySelector('input[name="item_row_idx"]').value = ri;
     row.querySelector('input[name="item_section_idx"]').value = si;
     row.querySelector('input[name="item_required"]').value = ri;
-    var lab = row.querySelector('input[name="item_label"]'), hlp = row.querySelector('input[name="item_help"]');
+    var lab = row.querySelector('input[name="item_label"]'), hlp = row.querySelector('[name="item_help"]');
     lab.id = 'item_label_' + si + '_' + ri;
     hlp.id = 'item_help_' + si + '_' + ri;
-    row.querySelector('label[for^="item_label_"]').htmlFor = lab.id;
-    row.querySelector('label[for^="item_help_"]').htmlFor = hlp.id;
   }
   function clearRow(row) {
     row.querySelector('input[name="item_label"]').value = '';
-    row.querySelector('input[name="item_help"]').value = '';
+    var help = row.querySelector('[name="item_help"]');
+    if (help) help.value = '';
     row.querySelector('input[name="item_required"]').checked = false;
   }
-  function rowBtns(tb) {
-    var rows = tb.querySelectorAll('.template-editor-row');
+  function rowBtns(container) {
+    var rows = container.querySelectorAll('.template-editor__point');
     rows.forEach(function (row, i) {
       row.querySelector('[data-action="move-up"]').disabled = i === 0;
       row.querySelector('[data-action="move-down"]').disabled = i === rows.length - 1;
@@ -66,41 +65,41 @@
     });
   }
   function addPoint(sec) {
-    var tb = sec.querySelector('.template-section-rows'), tpl = tb.querySelector('.template-editor-row'),
+    var container = sec.querySelector('.template-editor__points'), tpl = container.querySelector('.template-editor__point'),
       si = sec.getAttribute('data-section-idx'), row = tpl.cloneNode(true);
     clearRow(row);
     syncRow(row, ++maxRow, si);
-    tb.appendChild(row);
-    rowBtns(tb);
+    container.appendChild(row);
+    rowBtns(container);
     row.querySelector('input[name="item_label"]').focus();
   }
   function addSec() {
-    var tpl = box.querySelector('.template-editor-section'), sec = tpl.cloneNode(true), si = String(++maxSec);
-    sec.querySelector('.template-editor-section-title').value = '';
-    var tb = sec.querySelector('.template-section-rows');
-    tb.innerHTML = '';
-    var row = tpl.querySelector('.template-editor-row').cloneNode(true);
+    var tpl = box.querySelector('.template-editor__section'), sec = tpl.cloneNode(true), si = String(++maxSec);
+    sec.querySelector('.template-editor__section-title').value = '';
+    var container = sec.querySelector('.template-editor__points');
+    container.innerHTML = '';
+    var row = tpl.querySelector('.template-editor__point').cloneNode(true);
     clearRow(row);
     syncSec(sec, si);
     syncRow(row, ++maxRow, si);
-    tb.appendChild(row);
+    container.appendChild(row);
     box.appendChild(sec);
     secBtns();
-    rowBtns(tb);
+    rowBtns(container);
     syncMode();
-    sec.querySelector('.template-editor-section-title').focus();
+    sec.querySelector('.template-editor__section-title').focus();
   }
   scan();
   box.addEventListener('click', function (e) {
     var b = e.target.closest('[data-action]');
     if (!b || b.type !== 'button') return;
-    var a = b.getAttribute('data-action'), sec = b.closest('.template-editor-section'), row = b.closest('.template-editor-row');
+    var a = b.getAttribute('data-action'), sec = b.closest('.template-editor__section'), row = b.closest('.template-editor__point');
     if (a === 'add-point') return addPoint(sec);
     if (a === 'section-remove') {
       if (secs().length > 1) {
         sec.remove();
         secBtns();
-        box.querySelectorAll('.template-section-rows').forEach(rowBtns);
+        box.querySelectorAll('.template-editor__points').forEach(rowBtns);
         if (secs().length === 1) forceSec = false;
         syncMode();
       }
@@ -113,25 +112,25 @@
       box.insertBefore(sec.nextElementSibling, sec); secBtns(); return;
     }
     if (!row) return;
-    var tb = row.closest('.template-section-rows');
-    if (a === 'remove' && tb.querySelectorAll('.template-editor-row').length > 1) {
-      row.remove(); rowBtns(tb);
+    var container = row.closest('.template-editor__points');
+    if (a === 'remove' && container.querySelectorAll('.template-editor__point').length > 1) {
+      row.remove(); rowBtns(container);
     } else if (a === 'move-up' && row.previousElementSibling) {
-      tb.insertBefore(row, row.previousElementSibling); rowBtns(tb);
+      container.insertBefore(row, row.previousElementSibling); rowBtns(container);
     } else if (a === 'move-down' && row.nextElementSibling) {
-      tb.insertBefore(row.nextElementSibling, row); rowBtns(tb);
+      container.insertBefore(row.nextElementSibling, row); rowBtns(container);
     }
   });
   box.addEventListener('input', function (e) {
-    if (e.target.classList.contains('template-editor-section-title')) syncMode();
+    if (e.target.classList.contains('template-editor__section-title')) syncMode();
   });
   if (addSecBtn) addSecBtn.addEventListener('click', addSec);
   if (enableSecBtn) enableSecBtn.addEventListener('click', function () {
     forceSec = true;
     syncMode();
-    box.querySelector('.template-editor-section-title').focus();
+    box.querySelector('.template-editor__section-title').focus();
   });
   secBtns();
-  box.querySelectorAll('.template-section-rows').forEach(rowBtns);
+  box.querySelectorAll('.template-editor__points').forEach(rowBtns);
   syncMode();
 })();

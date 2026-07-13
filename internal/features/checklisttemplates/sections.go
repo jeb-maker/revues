@@ -147,6 +147,10 @@ func parseTemplateItems(r *http.Request) ([]store.TemplateItemInput, string) {
 		})
 	}
 
+	if msg := validateTemplateItems(items); msg != "" {
+		return nil, msg
+	}
+
 	return items, ""
 }
 

@@ -1,59 +1,80 @@
 {{define "checklist_template_show"}}
 {{template "layout_start" .}}
-<div class="card">
+
+<section class="card template-meta">
   {{if .Message}}<p class="success" role="status">{{.Message}}</p>{{end}}
   {{if .Error}}<p class="error" role="alert">{{.Error}}</p>{{end}}
-
-  <p class="muted">Version {{.Version.Version}} · publiée le {{.Version.PublishedAt}}</p>
-  {{if .Tags}}
-  <p class="muted">Tags : {{range $i, $tag := .Tags}}{{if $i}}, {{end}}<span class="tag">{{$tag}}</span>{{end}}</p>
-  {{else}}
-  <p class="muted">Tags : <span class="muted">aucun (compatible avec tous les projets)</span></p>
-  {{end}}
-
-  {{if .CanManage}}
-  <p>
-    <a href="/modeles/{{.Template.ID}}/edit" class="button">{{icon "settings"}} Modifier</a>
-    <form method="post" action="/modeles/{{.Template.ID}}/archive" class="inline-form" onsubmit="return confirm('Archiver ce modèle ?');">
-      <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
-      <button type="submit" class="button-danger">Archiver</button>
-    </form>
-  </p>
-  {{end}}
-
-  <h2>Points ({{.ItemCount}})</h2>
-  {{if .ItemSections}}
-  {{range $sec := .ItemSections}}
-  {{if or $sec.Title (gt (len $.ItemSections) 1)}}
-  <h3>{{if $sec.Title}}{{$sec.Title}}{{else}}<span class="muted">Sans section</span>{{end}}</h3>
-  {{end}}
-  <div class="table-scroll">
-  <table class="data-table">
-    <thead>
-      <tr><th scope="col">Point</th><th scope="col">Aide</th><th scope="col" class="data-table__col--center">Requis</th></tr>
-    </thead>
-    <tbody>
-      {{range $sec.Items}}
-      <tr>
-        <td>{{.Label}}</td>
-        <td>{{if .HelpText}}{{.HelpText}}{{else}}<span class="muted">—</span>{{end}}</td>
-        <td class="data-table__col--center">{{if .Required}}{{icon "check"}}{{else}}<span class="muted">—</span>{{end}}</td>
-      </tr>
-      {{end}}
-    </tbody>
-  </table>
+  <div class="template-meta__head">
+    <h1 class="template-meta__title">{{.Template.Name}}</h1>
+    {{if .CanManage}}
+    <div class="template-meta__actions">
+      <a class="button-secondary" href="/modeles/{{.Template.ID}}/edit">Modifier</a>
+    </div>
+    {{end}}
   </div>
+  <p class="muted template-meta__line">
+    <span class="status-badge status-enabled">v{{.Version.Version}}</span>
+    · Publiée le {{formatDateTime .Version.PublishedAt}}
+    · {{.ItemCount}} point{{if ne .ItemCount 1}}s{{end}}
+  </p>
+  <p class="template-meta__line">
+    {{if .Tags}}
+    Tags : {{range $i, $tag := .Tags}}{{if $i}}, {{end}}<span class="tag">{{$tag}}</span>{{end}}
+    {{else}}
+    Tags : aucun (compatible avec tous les projets)
+    {{end}}
+  </p>
+</section>
+
+<section class="card">
+  <h2>Points</h2>
+  {{if .ItemSections}}
+  {{range $i, $sec := .ItemSections}}
+  {{if or $sec.Title (gt (len $.ItemSections) 1)}}
+  <section class="template-section-block" aria-labelledby="template-sec-{{$i}}">
+    <h3 id="template-sec-{{$i}}" class="template-section-block__title">
+      {{if $sec.Title}}{{$sec.Title}}{{else}}Sans section{{end}}
+      <span class="template-section-block__count muted">({{len $sec.Items}} point{{if ne (len $sec.Items) 1}}s{{end}})</span>
+    </h3>
+    <ol class="template-point-list">
+      {{range $sec.Items}}
+      <li class="template-point-list__item">
+        <div class="template-point-list__head">
+          <span class="template-point-list__label">{{.Label}}</span>
+          {{if .Required}}<span class="status-badge status-enabled">requis</span>{{end}}
+        </div>
+        {{if .HelpText}}<blockquote class="help-text template-point-list__help">{{.HelpText}}</blockquote>{{end}}
+      </li>
+      {{end}}
+    </ol>
+  </section>
+  {{else}}
+  <ol class="template-point-list template-point-list--flat">
+    {{range $sec.Items}}
+    <li class="template-point-list__item">
+      <div class="template-point-list__head">
+        <span class="template-point-list__label">{{.Label}}</span>
+        {{if .Required}}<span class="status-badge status-enabled">requis</span>{{end}}
+      </div>
+      {{if .HelpText}}<blockquote class="help-text template-point-list__help">{{.HelpText}}</blockquote>{{end}}
+    </li>
+    {{end}}
+  </ol>
+  {{end}}
   {{end}}
   {{else}}
   <div class="empty-state">
     <p><strong>Aucun point dans cette version</strong></p>
-    <p class="muted">Ce modèle n'a pas encore de points de check-list.</p>
+    <p class="muted">Ajoutez des points de check-list pour utiliser ce modèle dans une revue.</p>
     {{if .CanManage}}
-    <div class="empty-state-actions"><a href="/modeles/{{.Template.ID}}/edit" class="button">Ajouter des points</a></div>
+    <div class="empty-state-actions">
+      <a href="/modeles/{{.Template.ID}}/edit" class="button-secondary">Ajouter des points</a>
+    </div>
     {{end}}
   </div>
   {{end}}
+</section>
 
-</div>
 {{template "layout_end" .}}
 {{end}}
+{{define "main_class"}} site-main--wide{{end}}

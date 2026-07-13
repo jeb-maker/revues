@@ -4,6 +4,15 @@
 <section class="card project-meta">
   {{if .Message}}<p class="success" role="status">{{.Message}}</p>{{end}}
   {{if .Error}}<p class="error" role="alert">{{.Error}}</p>{{end}}
+  <div class="project-meta__head">
+    <h1 class="project-meta__title">{{.Project.Name}}</h1>
+    {{if or .CanLaunch .CanManage}}
+    <div class="project-meta__actions">
+      {{if .CanLaunch}}<a class="button" href="/projects/{{.Project.ID}}/templates?for_run=1" title="Lancer une revue sur ce projet">Lancer une revue</a>{{end}}
+      {{if .CanManage}}<a class="button-secondary" href="/projects/{{.Project.ID}}/edit">Modifier</a>{{end}}
+    </div>
+    {{end}}
+  </div>
   {{if .Project.Description}}
   <p class="project-meta__description">{{.Project.Description}}</p>
   {{end}}
@@ -124,4 +133,5 @@
 </section>
 {{template "layout_end" .}}
 {{end}}
+{{define "page_heading"}}{{end}}
 {{define "main_class"}} site-main--wide{{end}}

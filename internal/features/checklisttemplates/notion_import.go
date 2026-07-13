@@ -151,6 +151,15 @@ func (h *ChecklistTemplates) notionImportCreate(w http.ResponseWriter, r *http.R
 		h.renderNotionImport(w, data)
 		return
 	}
+	if msg := validateTemplateItems(preview.Items); msg != "" {
+		data.Error = msg
+		data.Step = notionImportStepPreview
+		data.TemplateName = preview.TemplateName
+		data.PreviewItems = templateItemsToRows(preview.Items)
+		data.PreviewCount = len(preview.Items)
+		h.renderNotionImport(w, data)
+		return
+	}
 	tags := store.ParseTagsCSV(data.Tags)
 	template, _, err := h.Store.CreateChecklistTemplate(r.Context(), preview.TemplateName, user.ID, tags, preview.Items)
 	if err != nil {

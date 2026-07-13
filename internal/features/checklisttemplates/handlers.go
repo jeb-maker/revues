@@ -45,7 +45,7 @@ func (d *Deps) PageDataTab(r *http.Request, title, activeTab string) viewtemplat
 	return data
 }
 
-const defaultTemplateEditorRows = 1
+const defaultTemplateEditorRows = 3
 
 const queryForRun = "for_run"
 
@@ -81,6 +81,7 @@ func (h *ChecklistTemplates) IndexAll(w http.ResponseWriter, r *http.Request) {
 		FilterQuery:      filterQuery,
 		HasActiveFilters: filterQuery != "",
 		CanManage:        CanManageGlobal(user),
+		Message:          r.URL.Query().Get("msg"),
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -177,6 +178,7 @@ func (h *ChecklistTemplates) NewForm(w http.ResponseWriter, r *http.Request) {
 		SectionsEnabled: sectionsEnabled(sections),
 		FormAction:      "/modeles",
 	}
+	applyTemplateFormLimits(&data)
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	if err := h.Templates.ExecuteTemplate(w, "checklist_template_form", data); err != nil {
@@ -234,10 +236,7 @@ func (h *ChecklistTemplates) Show(w http.ResponseWriter, r *http.Request) {
 	}
 
 	pd := h.PageDataTab(r, template.Name, "templates")
-	pd.Breadcrumbs = []viewtemplates.Breadcrumb{
-		{URL: "/modeles", Label: "Modèles"},
-		{Label: template.Name},
-	}
+	pd.Breadcrumbs = viewtemplates.BCTemplateGlobalShow(template.Name, template.ID)
 	data := viewtemplates.ChecklistTemplateShowData{
 		PageData:     pd,
 		Template:     template,
@@ -287,6 +286,7 @@ func (h *ChecklistTemplates) EditForm(w http.ResponseWriter, r *http.Request) {
 		SectionsEnabled: sectionsEnabled(sections),
 		FormAction:      "/modeles/" + strconv.FormatInt(template.ID, 10),
 	}
+	applyTemplateFormLimits(&data)
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	if err := h.Templates.ExecuteTemplate(w, "checklist_template_form", data); err != nil {
@@ -372,65 +372,6 @@ func (h *ChecklistTemplates) Archive(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(w, r, "/modeles?msg=Mod%C3%A8le+archiv%C3%A9", http.StatusSeeOther)
-}
-
-// AddRow returns an empty template editor row fragment for HTMX insertion.
-func (h *ChecklistTemplates) AddRow(w http.ResponseWriter, r *http.Request) {
-	user, ok := middleware.UserFromContext(r.Context())
-	if !ok {
-		http.Redirect(w, r, "/login", http.StatusFound)
-		return
-	}
-	if !CanManageGlobal(user) {
-		http.NotFound(w, r)
-		return
-	}
-
-	idx := 0
-	if raw := strings.TrimSpace(r.FormValue("idx")); raw != "" {
-		if n, err := strconv.Atoi(raw); err == nil {
-			idx = n + 1
-		}
-	}
-
-	csrf := ""
-	if token := middleware.SessionTokenFromContext(r); token != "" {
-		csrf = auth.CSRFToken(token, h.SessionSecret)
-	}
-
-	templateID := int64(0)
-	if tid := chi.URLParam(r, "tid"); tid != "" {
-		if n, err := strconv.ParseInt(tid, 10, 64); err == nil {
-			templateID = n
-		}
-	}
-
-	data := viewtemplates.TemplateRowFragmentData{
-		TemplateID: templateID,
-		Index:      idx,
-		CSRFToken:  csrf,
-	}
-
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	if err := h.Templates.ExecuteTemplate(w, "template_row_fragment", data); err != nil {
-		slog.Error("render template row fragment", "err", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-	}
-}
-
-// DeleteRow removes a template editor row via HTMX (returns empty).
-func (h *ChecklistTemplates) DeleteRow(w http.ResponseWriter, r *http.Request) {
-	user, ok := middleware.UserFromContext(r.Context())
-	if !ok {
-		http.Redirect(w, r, "/login", http.StatusFound)
-		return
-	}
-	if !CanManageGlobal(user) {
-		http.NotFound(w, r)
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
 }
 
 func (h *ChecklistTemplates) loadProject(w http.ResponseWriter, r *http.Request) (*store.Project, *store.User, string, bool) {
@@ -582,6 +523,7 @@ func (h *ChecklistTemplates) renderFormError(w http.ResponseWriter, r *http.Requ
 		NameError:       nameErr,
 		ItemsError:      itemsErr,
 	}
+	applyTemplateFormLimits(&data)
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(http.StatusBadRequest)
 	if err := h.Templates.ExecuteTemplate(w, "checklist_template_form", data); err != nil {

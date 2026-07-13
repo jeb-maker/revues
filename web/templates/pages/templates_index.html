@@ -12,6 +12,7 @@
 </section>
 {{else}}
 <section class="card">
+  {{if .Message}}<p class="success" role="status">{{.Message}}</p>{{end}}
   <div class="list-toolbar">
     <form method="get" action="/modeles" class="list-toolbar__form filter-form filter-form--inline">
       <input class="list-toolbar__search toolbar-control" type="search" id="filter-query" name="q" value="{{.FilterQuery}}" placeholder="Rechercher un modèle ou un tag…" aria-label="Rechercher un modèle ou un tag">

@@ -1,18 +1,16 @@
 {{define "checklist_template_form"}}
 {{template "layout_start" .}}
-<p class="muted content-inset">{{if .Version}}Version actuelle v{{.Version.Version}} · {{end}}Les sections sont optionnelles. <a href="/modeles/notion-import">Importer depuis Notion</a></p>
-
-{{if and .Template .Version}}
-<section class="card">
-  <p class="muted">L'enregistrement publie une <strong>nouvelle version</strong> ; les revues déjà lancées conservent la version figée au démarrage.</p>
-</section>
-{{end}}
 
 <form method="post" action="{{.FormAction}}" class="stack-form" id="template-form"{{if or .NameError .ItemsError}} data-server-state="error"{{end}}>
   <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
 
   <section class="card">
-    <h2>Identité du modèle</h2>
+    <h2>Identité</h2>
+    {{if and .Template .Version}}
+    <p class="field-hint">Version actuelle v{{.Version.Version}}. L'enregistrement publie une <strong>nouvelle version</strong> ; les revues déjà lancées conservent la version figée.</p>
+    {{else}}
+    <p class="field-hint">Définissez le nom et les tags de compatibilité projet. <a href="/modeles/notion-import">Importer depuis Notion</a></p>
+    {{end}}
     <label>
       Nom du modèle
       <input type="text" name="name" required maxlength="200" value="{{if .Name}}{{.Name}}{{else if .Template}}{{.Template.Name}}{{end}}"{{if .NameError}} aria-invalid="true"{{end}}>
@@ -26,82 +24,71 @@
   </section>
 
   <section class="card">
-    <h2>Points du modèle</h2>
-    <p class="field-hint">Au moins un point avec un libellé est requis. Laissez le libellé vide pour ignorer une ligne.</p>
+    <h2>Points</h2>
+    <p class="field-hint">Au moins un point avec un libellé est requis. Les sections sont optionnelles.</p>
     {{if .ItemsError}}<p class="field-error" id="template-items-error" role="alert">{{.ItemsError}}</p>{{end}}
 
-    <div id="template-sections" class="template-editor-sections{{if .SectionsEnabled}} is-sectioned{{end}}">
+    <div id="template-sections" class="template-editor{{if .SectionsEnabled}} is-sectioned{{end}}">
     {{range $sec := .Sections}}
-      <div class="template-editor-section" data-section-idx="{{$sec.SectionIndex}}">
+      <div class="template-editor__section" data-section-idx="{{$sec.SectionIndex}}">
         <input type="hidden" name="section_idx" value="{{$sec.SectionIndex}}">
-        <div class="template-editor-section-head">
+        <div class="template-editor__section-head">
           <label>
             Section
             <span class="field-hint">Optionnel — laissez vide pour des points sans section.</span>
-            <input type="text" name="section_title" maxlength="200" value="{{$sec.Title}}" class="template-editor-section-title">
+            <input type="text" name="section_title" maxlength="200" value="{{$sec.Title}}" class="template-editor__section-title">
           </label>
-          <div class="template-editor-section-actions">
+          <div class="template-editor__section-actions">
             <button type="button" class="button button-ghost button-sm" data-action="section-up" aria-label="Monter cette section">↑</button>
             <button type="button" class="button button-ghost button-sm" data-action="section-down" aria-label="Descendre cette section">↓</button>
-            <button type="button" class="button button-ghost button-sm" data-action="section-remove" aria-label="Supprimer cette section">Supprimer la section</button>
+            <button type="button" class="button button-ghost button-sm" data-action="section-remove">Supprimer la section</button>
           </div>
         </div>
-        <div class="table-scroll">
-          <table class="data-table template-editor-table">
-            <thead>
-              <tr>
-                <th scope="col">Libellé</th>
-                <th scope="col">Texte d'aide</th>
-                <th scope="col">Requis</th>
-                <th scope="col"><span class="visually-hidden">Actions</span></th>
-              </tr>
-            </thead>
-            <tbody class="template-section-rows">
-            {{range $i, $row := $sec.Items}}
-              <tr class="template-editor-row">
-                <td>
-                  <input type="hidden" name="item_row_idx" value="{{if $row.RowIndex}}{{$row.RowIndex}}{{else}}{{$i}}{{end}}">
-                  <input type="hidden" name="item_section_idx" value="{{$sec.SectionIndex}}">
-                  <label class="visually-hidden" for="item_label_{{$sec.SectionIndex}}_{{$i}}">Libellé</label>
-                  <input type="text" id="item_label_{{$sec.SectionIndex}}_{{$i}}" name="item_label" maxlength="500" value="{{$row.Label}}" class="template-editor-input"{{if $.ItemsError}} aria-describedby="template-items-error"{{end}}>
-                </td>
-                <td>
-                  <label class="visually-hidden" for="item_help_{{$sec.SectionIndex}}_{{$i}}">Texte d'aide</label>
-                  <input type="text" id="item_help_{{$sec.SectionIndex}}_{{$i}}" name="item_help" maxlength="500" value="{{$row.HelpText}}" class="template-editor-input">
-                </td>
-                <td>
-                  <label class="checkbox-row">
-                    <input type="checkbox" name="item_required" value="{{if $row.RowIndex}}{{$row.RowIndex}}{{else}}{{$i}}{{end}}"{{if $row.Required}} checked{{end}}>
-                    <span class="visually-hidden">Point requis</span>
-                    <span aria-hidden="true">oui</span>
-                  </label>
-                </td>
-                <td class="template-editor-actions">
-                  <button type="button" class="button button-ghost button-sm" data-action="move-up" aria-label="Monter ce point">↑</button>
-                  <button type="button" class="button button-ghost button-sm" data-action="move-down" aria-label="Descendre ce point">↓</button>
-                  <button type="button" class="button button-ghost button-sm" data-action="remove" aria-label="Supprimer ce point">Supprimer</button>
-                </td>
-              </tr>
-            {{end}}
-            </tbody>
-          </table>
+        <div class="template-editor__points">
+        {{range $i, $row := $sec.Items}}
+          <div class="template-editor__point">
+            <input type="hidden" name="item_row_idx" value="{{if $row.RowIndex}}{{$row.RowIndex}}{{else}}{{$i}}{{end}}">
+            <input type="hidden" name="item_section_idx" value="{{$sec.SectionIndex}}">
+            <div class="template-editor__point-fields">
+              <label class="template-editor__field">
+                Libellé
+                <span class="field-hint">Court — affiché dans la liste de revue ({{.MaxItemLabelLen}} caractères max).</span>
+                <input type="text" id="item_label_{{$sec.SectionIndex}}_{{$i}}" name="item_label" maxlength="{{$.MaxItemLabelLen}}" value="{{$row.Label}}"{{if $.ItemsError}} aria-describedby="template-items-error"{{end}}>
+              </label>
+              <label class="template-editor__field">
+                Texte d'aide
+                <span class="field-hint">Optionnel — visible sur la fiche point ({{$.MaxItemHelpLen}} caractères max).</span>
+                <textarea id="item_help_{{$sec.SectionIndex}}_{{$i}}" name="item_help" maxlength="{{$.MaxItemHelpLen}}" rows="2" class="template-editor__help">{{$row.HelpText}}</textarea>
+              </label>
+              <label class="checkbox-row template-editor__required">
+                <input type="checkbox" name="item_required" value="{{if $row.RowIndex}}{{$row.RowIndex}}{{else}}{{$i}}{{end}}"{{if $row.Required}} checked{{end}}>
+                Requis
+              </label>
+            </div>
+            <div class="template-editor__point-actions">
+              <button type="button" class="button button-ghost button-sm" data-action="move-up" aria-label="Monter ce point">↑</button>
+              <button type="button" class="button button-ghost button-sm" data-action="move-down" aria-label="Descendre ce point">↓</button>
+              <button type="button" class="button button-ghost button-sm" data-action="remove">Supprimer</button>
+            </div>
+          </div>
+        {{end}}
         </div>
-        <p class="template-editor-add">
+        <p class="template-editor__add">
           <button type="button" class="button button-ghost button-sm" data-action="add-point">Ajouter un point</button>
         </p>
       </div>
     {{end}}
     </div>
-    <p id="template-section-tools" class="template-editor-add"{{if not .SectionsEnabled}} hidden{{end}}>
+    <p id="template-section-tools" class="template-editor__add"{{if not .SectionsEnabled}} hidden{{end}}>
       <button type="button" class="button button-ghost button-sm" id="template-add-section">Ajouter une section</button>
     </p>
-    <p id="template-enable-sections" class="template-editor-add"{{if .SectionsEnabled}} hidden{{end}}>
-      <button type="button" class="button button-ghost button-sm" id="template-enable-sections-btn">Ajouter des sections</button>
+    <p id="template-enable-sections" class="template-editor__add"{{if .SectionsEnabled}} hidden{{end}}>
+      <button type="button" class="button button-ghost button-sm" id="template-enable-sections-btn">Organiser en sections</button>
     </p>
   </section>
 
-  <div class="inline-actions">
-    <button type="submit" class="button">{{icon "check"}} Enregistrer</button>
+  <div class="form-actions">
+    <button type="submit" class="button">Enregistrer</button>
     {{if .Template}}
     <a class="button button-ghost" href="/modeles/{{.Template.ID}}">Annuler</a>
     {{else}}
@@ -109,6 +96,17 @@
     {{end}}
   </div>
 </form>
+
+{{if .Template}}
+<section class="card form-danger-zone">
+  <p class="form-danger-zone__text">Archiver retire le modèle de la liste active. Les revues déjà lancées conservent leur snapshot.</p>
+  <form method="post" action="/modeles/{{.Template.ID}}/archive" onsubmit="return confirm('Archiver ce modèle ?');">
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+    <button type="submit" class="button-danger">Archiver le modèle</button>
+  </form>
+</section>
+{{end}}
+
 {{template "layout_end" .}}
 {{end}}
 {{define "main_class"}} site-main--wide{{end}}

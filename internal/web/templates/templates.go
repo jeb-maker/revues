@@ -283,6 +283,7 @@ type TemplatesIndexData struct {
 	FilterQuery      string
 	HasActiveFilters bool
 	CanManage        bool
+	Message          string
 }
 
 // TemplateEditorRow is one editable checklist point in the form.
@@ -349,21 +350,12 @@ type ChecklistTemplateFormData struct {
 	TagsList        []string
 	Sections        []TemplateEditorSection
 	SectionsEnabled bool
+	MaxItemLabelLen int
+	MaxItemHelpLen  int
 	NameError       string
 	ItemsError      string
 	FormAction      string
 	Error           string
-}
-
-// TemplateRowFragmentData is view data for HTMX row insertion.
-type TemplateRowFragmentData struct {
-	TemplateID int64
-	Index      int
-	CSRFToken  string
-	Section    string
-	Label      string
-	HelpText   string
-	Required   bool
 }
 
 // ChecklistTemplateShowData is view data for template detail.

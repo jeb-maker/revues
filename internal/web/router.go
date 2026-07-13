@@ -238,14 +238,10 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, error) {
 		r.Post("/modeles", checklistTemplates.Create)
 		r.Get("/modeles/notion-import", checklistTemplates.NotionImportForm)
 		r.Post("/modeles/notion-import", checklistTemplates.NotionImport)
-		r.Post("/modeles/new/row", checklistTemplates.AddRow)
-		r.Delete("/modeles/new/row/{idx}", checklistTemplates.DeleteRow)
 		r.Get("/modeles/{tid}", checklistTemplates.Show)
 		r.Get("/modeles/{tid}/edit", checklistTemplates.EditForm)
 		r.Post("/modeles/{tid}", checklistTemplates.Save)
 		r.Post("/modeles/{tid}/archive", checklistTemplates.Archive)
-		r.Post("/modeles/{tid}/edit/row", checklistTemplates.AddRow)
-		r.Delete("/modeles/{tid}/edit/row/{idx}", checklistTemplates.DeleteRow)
 	})
 
 	r.Group(func(r chi.Router) {

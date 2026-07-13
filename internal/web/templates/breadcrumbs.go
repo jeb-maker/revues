@@ -99,9 +99,9 @@ func BCProjectNew() []Breadcrumb {
 	return []Breadcrumb{crumb("Projets", PathProjects), current("Nouveau")}
 }
 
-// BCProjectShow is a project detail breadcrumb.
-func BCProjectShow(name string) []Breadcrumb {
-	return []Breadcrumb{crumb("Projets", PathProjects), current(name)}
+// BCProjectShow is a project detail breadcrumb (title is shown in the page card).
+func BCProjectShow() []Breadcrumb {
+	return []Breadcrumb{crumb("Projets", PathProjects)}
 }
 
 // BCProjectEdit is the edit project form breadcrumb.
@@ -154,6 +154,14 @@ func runLaunchTemplateLabel(name string, version, itemCount int) string {
 // BCTemplatesNewWizard is the global new template wizard breadcrumb.
 func BCTemplatesNewWizard() []Breadcrumb {
 	return []Breadcrumb{crumb("Modèles", PathTemplates), current("Nouveau")}
+}
+
+// BCTemplateGlobalShow is the global template detail breadcrumb.
+func BCTemplateGlobalShow(name string, templateID int64) []Breadcrumb {
+	return []Breadcrumb{
+		crumb("Modèles", PathTemplates),
+		current(name),
+	}
 }
 
 // BCTemplateGlobalEdit is the global template edit form breadcrumb.

@@ -3,6 +3,7 @@ package checklisttemplates
 import (
 	"net/http"
 	"net/url"
+	"strings"
 	"testing"
 
 	"github.com/jeb-maker/revues/internal/store"
@@ -79,5 +80,38 @@ func TestParseTemplateItems_LegacyFlatRows(t *testing.T) {
 	}
 	if len(items) != 1 || items[0].Section != "Général" {
 		t.Fatalf("item = %+v", items[0])
+	}
+}
+
+func TestParseTemplateItems_RejectsLongLabel(t *testing.T) {
+	form := url.Values{}
+	form.Add("item_label", strings.Repeat("a", MaxTemplateItemLabelLen+1))
+	form.Add("item_help", "")
+
+	req := &http.Request{Method: http.MethodPost, Form: form}
+	_, errMsg := parseTemplateItems(req)
+	if errMsg == "" {
+		t.Fatal("expected label length error")
+	}
+}
+
+func TestParseTemplateItems_RejectsLongHelp(t *testing.T) {
+	form := url.Values{}
+	form.Add("item_label", "Point")
+	form.Add("item_help", strings.Repeat("b", MaxTemplateItemHelpLen+1))
+
+	req := &http.Request{Method: http.MethodPost, Form: form}
+	_, errMsg := parseTemplateItems(req)
+	if errMsg == "" {
+		t.Fatal("expected help length error")
+	}
+}
+
+func TestValidateTemplateItems_AcceptsLimits(t *testing.T) {
+	items := []store.TemplateItemInput{
+		{Label: strings.Repeat("a", MaxTemplateItemLabelLen), HelpText: strings.Repeat("b", MaxTemplateItemHelpLen)},
+	}
+	if msg := validateTemplateItems(items); msg != "" {
+		t.Fatalf("unexpected error: %s", msg)
 	}
 }

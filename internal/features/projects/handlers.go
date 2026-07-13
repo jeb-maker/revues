@@ -579,15 +579,7 @@ func (h *Projects) buildProjectShowData(
 	canManageMembers := CanAddProjectMember(user, memberRole, callerOrgRole)
 
 	pd := h.PageDataTab(r, project.Name, "")
-	pd.Breadcrumbs = templates.BCProjectShow(project.Name)
-	var pageActions []templates.PageAction
-	if canLaunch {
-		pageActions = append(pageActions, templates.LaunchAction(templates.ProjectTemplatesForRunPath(project.ID)))
-	}
-	if canManage {
-		pageActions = append(pageActions, templates.SecondaryAction("Modifier", "/projects/"+strconv.FormatInt(project.ID, 10)+"/edit"))
-	}
-	pd.PageActions = pageActions
+	pd.Breadcrumbs = templates.BCProjectShow()
 
 	addRole := extras.addMemberRole
 	if addRole == "" {
