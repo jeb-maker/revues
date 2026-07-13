@@ -68,11 +68,15 @@ if [[ -f go.mod ]]; then
     echo "golangci-lint absent localement — CI l'exécutera"
   fi
 
-  step "Taille JS static"
+  step "Taille assets static"
   if [[ -d web/static ]]; then
     js_size=$(find web/static -name '*.js' -exec cat {} + 2>/dev/null | wc -c || echo 0)
     if [[ "$js_size" -gt 15360 ]]; then
       fail "JS total $js_size octets > 15 Ko"
+    fi
+    css_size=$(find web/static -name '*.css' -exec cat {} + 2>/dev/null | wc -c || echo 0)
+    if [[ "$css_size" -gt 20480 ]]; then
+      fail "CSS total $css_size octets > 20 Ko"
     fi
   fi
 else
