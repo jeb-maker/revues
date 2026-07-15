@@ -40,14 +40,6 @@ func subjectModelesPath(id int64) string {
 	return subjectPath(id) + "/modeles"
 }
 
-func projectPath(id int64) string {
-	return subjectPath(id)
-}
-
-func projectTemplatesPath(id int64) string {
-	return subjectModelesPath(id)
-}
-
 func templatePath(subjectID, templateID int64) string {
 	return subjectModelesPath(subjectID) + "/" + strconv.FormatInt(templateID, 10)
 }

@@ -85,6 +85,9 @@ func TestCreateChecklistRunWithDueDate(t *testing.T) {
 		t.Fatalf("SetRunDueDate(): %v", err)
 	}
 	run, err = st.RunByID(ctx, run.ID)
+	if err != nil {
+		t.Fatalf("RunByID(): %v", err)
+	}
 	if !run.DueDate.Valid || run.DueDate.String != dueDate.String {
 		t.Fatalf("due_date = %+v, want %q", run.DueDate, dueDate.String)
 	}
