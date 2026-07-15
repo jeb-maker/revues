@@ -15,7 +15,7 @@ import (
 
 	"github.com/jeb-maker/revues/internal/auth"
 	"github.com/jeb-maker/revues/internal/config"
-	"github.com/jeb-maker/revues/internal/features/projects"
+	"github.com/jeb-maker/revues/internal/features/subjects"
 	"github.com/jeb-maker/revues/internal/store"
 	appweb "github.com/jeb-maker/revues/internal/web"
 )
@@ -74,7 +74,7 @@ func TestAssignItem_LeadCanAssign(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateProject(): %v", err)
 	}
-	if err = st.AddProjectMember(ctx, project.ID, contrib.ID, projects.LocalRoleContributor); err != nil {
+	if err = st.AddProjectMember(ctx, project.ID, contrib.ID, subjects.LocalRoleContributor); err != nil {
 		t.Fatalf("AddProjectMember(): %v", err)
 	}
 	template, _, err := st.CreateChecklistTemplate(ctx, "Modèle", lead.ID, nil, []store.TemplateItemInput{
@@ -83,7 +83,7 @@ func TestAssignItem_LeadCanAssign(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateChecklistTemplate(): %v", err)
 	}
-	run, err := st.CreateChecklistRun(ctx, project.ID, template.ID, "Revue", lead.ID, sql.NullString{})
+	run, err := st.CreateChecklistRun(ctx, project.ID, template.ID, lead.ID)
 	if err != nil {
 		t.Fatalf("CreateChecklistRun(): %v", err)
 	}
@@ -119,7 +119,7 @@ func TestAssignItem_LeadCanAssign(t *testing.T) {
 	}
 }
 
-func TestAssignItem_ContributorForbidden(t *testing.T) {
+func TestAssignItem_ReaderForbidden(t *testing.T) {
 	handler, db := testRouter(t)
 	ctx := context.Background()
 	st := store.New(db)
@@ -129,16 +129,21 @@ func TestAssignItem_ContributorForbidden(t *testing.T) {
 	if err != nil {
 		t.Fatalf("UpsertGitHubUser(): %v", err)
 	}
-	contrib, err := st.UpsertGitHubUser(ctx, 71, "contrib", "contrib@example.com", "Contrib", "", auth.RoleEditor)
+	reader, err := st.UpsertGitHubUser(ctx, 71, "reader", "reader@example.com", "Reader", "", auth.RoleReader)
 	if err != nil {
-		t.Fatalf("UpsertGitHubUser(contrib): %v", err)
+		t.Fatalf("UpsertGitHubUser(reader): %v", err)
 	}
+	defaultOrg, err := st.OrganizationBySlug(ctx, "default")
+	if err != nil {
+		t.Fatalf("OrganizationBySlug(): %v", err)
+	}
+	if err = st.AddOrganizationMember(ctx, defaultOrg.ID, reader.ID, store.OrgRoleMember); err != nil {
+		t.Fatalf("AddOrganizationMember(reader): %v", err)
+	}
+
 	project, err := st.CreateProject(ctx, "Team", "", lead.ID, nil)
 	if err != nil {
 		t.Fatalf("CreateProject(): %v", err)
-	}
-	if err = st.AddProjectMember(ctx, project.ID, contrib.ID, projects.LocalRoleContributor); err != nil {
-		t.Fatalf("AddProjectMember(): %v", err)
 	}
 	template, _, err := st.CreateChecklistTemplate(ctx, "Modèle", lead.ID, nil, []store.TemplateItemInput{
 		{Label: "Point", Required: true},
@@ -146,7 +151,7 @@ func TestAssignItem_ContributorForbidden(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateChecklistTemplate(): %v", err)
 	}
-	run, err := st.CreateChecklistRun(ctx, project.ID, template.ID, "Revue", lead.ID, sql.NullString{})
+	run, err := st.CreateChecklistRun(ctx, project.ID, template.ID, lead.ID)
 	if err != nil {
 		t.Fatalf("CreateChecklistRun(): %v", err)
 	}
@@ -159,7 +164,7 @@ func TestAssignItem_ContributorForbidden(t *testing.T) {
 	}
 
 	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
-	token, _, err := sessions.CreateLoginSession(ctx, contrib.ID, 0)
+	token, _, err := sessions.CreateLoginSession(ctx, reader.ID, 0)
 	if err != nil {
 		t.Fatalf("CreateLoginSession(): %v", err)
 	}
@@ -195,7 +200,7 @@ func TestMyTasks_ListAssigned(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateProject(): %v", err)
 	}
-	if err = st.AddProjectMember(ctx, project.ID, contrib.ID, projects.LocalRoleContributor); err != nil {
+	if err = st.AddProjectMember(ctx, project.ID, contrib.ID, subjects.LocalRoleContributor); err != nil {
 		t.Fatalf("AddProjectMember(): %v", err)
 	}
 	template, _, err := st.CreateChecklistTemplate(ctx, "Modèle", lead.ID, nil, []store.TemplateItemInput{
@@ -204,7 +209,7 @@ func TestMyTasks_ListAssigned(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateChecklistTemplate(): %v", err)
 	}
-	run, err := st.CreateChecklistRun(ctx, project.ID, template.ID, "Revue", lead.ID, sql.NullString{})
+	run, err := st.CreateChecklistRun(ctx, project.ID, template.ID, lead.ID)
 	if err != nil {
 		t.Fatalf("CreateChecklistRun(): %v", err)
 	}

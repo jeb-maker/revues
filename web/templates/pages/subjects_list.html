@@ -1,0 +1,68 @@
+{{define "subjects_list"}}
+{{template "layout_start" .}}
+{{if eq .AdminSection "subjects"}}
+<section class="card">
+  <p class="muted">Gérez les {{.Labels.Subject.Plural | lowerFirst}} de l'organisation — nom, domaines et archivage.</p>
+</section>
+{{template "admin_nav" .}}
+{{end}}
+{{if and (not .Subjects) (not .HasActiveFilters)}}
+{{if .Message}}<p class="success" role="status">{{.Message}}</p>{{end}}
+{{if .Error}}<p class="error" role="alert">{{.Error}}</p>{{end}}
+<section class="empty-state">
+  <h2>Aucun {{.Labels.Subject.Singular | lowerFirst}}</h2>
+  {{if .CanManageOrgUsers}}
+  <p>Votre organisation est prête. Commencez par autoriser les utilisateurs, puis créez votre premier {{.Labels.Subject.Singular | lowerFirst}}.</p>
+  <p class="empty-state-actions">
+    <a class="button" href="/admin/users">Gérer les emails autorisés</a>
+    {{if .CanCreate}}<a class="button-secondary" href="{{if eq .AdminSection "subjects"}}/admin/subjects/new{{else}}/subjects/new{{end}}">Créer un {{.Labels.Subject.Singular | lowerFirst}}</a>{{end}}
+  </p>
+  {{else if .CanCreate}}
+  <p>Créez un {{.Labels.Subject.Singular | lowerFirst}} pour y ajouter des modèles de checklist et lancer une revue.</p>
+  <p class="empty-state-actions">
+    <a class="button" href="/subjects/new">Créer un {{.Labels.Subject.Singular | lowerFirst}}</a>
+  </p>
+  {{else}}
+  <p>Aucun {{.Labels.Subject.Singular | lowerFirst}} disponible pour le moment. Demandez à un administrateur de l'organisation.</p>
+  <p class="empty-state-actions">
+    <a class="button" href="/mes-taches">Voir mes tâches</a>
+  </p>
+  {{end}}
+</section>
+{{else}}
+<section class="card">
+  {{if .Message}}<p class="success" role="status">{{.Message}}</p>{{end}}
+  {{if .Error}}<p class="error" role="alert">{{.Error}}</p>{{end}}
+  <div class="list-toolbar">
+    <form method="get" action="{{if eq .AdminSection "subjects"}}/admin/subjects{{else}}/subjects{{end}}" class="list-toolbar__form filter-form filter-form--inline">
+      <input class="list-toolbar__search toolbar-control" type="search" id="filter-query" name="q" value="{{.FilterQuery}}" placeholder="Rechercher un {{.Labels.Subject.Singular | lowerFirst}}…" aria-label="Rechercher un {{.Labels.Subject.Singular | lowerFirst}}">
+      <button type="submit" class="button-secondary toolbar-control">Filtrer</button>
+      {{if .HasActiveFilters}}<a href="{{if eq .AdminSection "subjects"}}/admin/subjects{{else}}/subjects{{end}}" class="button-ghost toolbar-control">Effacer</a>{{end}}
+    </form>
+    {{if .CanCreate}}<a class="button list-toolbar__action toolbar-control" href="{{if eq .AdminSection "subjects"}}/admin/subjects/new{{else}}/subjects/new{{end}}" title="Nouveau {{.Labels.Subject.Singular | lowerFirst}}">Créer</a>{{end}}
+  </div>
+  <div class="table-scroll">
+  <table class="data-table table-sticky">
+    <thead>
+      <tr><th scope="col">{{.Labels.Subject.Singular}}</th></tr>
+    </thead>
+    <tbody>
+      {{if .Subjects}}
+      {{range .Subjects}}
+      <tr>
+        <td><a href="/subjects/{{.ID}}">{{.Name}}</a></td>
+      </tr>
+      {{end}}
+      {{else}}
+      <tr>
+        <td class="muted">Aucun {{$.Labels.Subject.Singular | lowerFirst}} pour cette recherche. <a href="{{if eq $.AdminSection "subjects"}}/admin/subjects{{else}}/subjects{{end}}">Effacer</a></td>
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+  </div>
+</section>
+{{end}}
+{{template "layout_end" .}}
+{{end}}
+{{define "main_class"}} site-main--wide{{end}}

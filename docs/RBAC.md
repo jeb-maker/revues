@@ -2,6 +2,48 @@
 
 Document normatif. Toute PR touchant une route doit mettre à jour la matrice dans la description PR.
 
+## Sujets v1 (greenfield — en vigueur)
+
+Modèle actuel après migration `subjects` (épique [subjects-epic.md](./issues/subjects-epic.md)).
+
+| Entité | Accès v1 |
+|--------|----------|
+| **Sujet** | Membre de l'organisation du sujet (`organization_members`) |
+| **Étiquettes** (`subject_tags`) | Classification descriptive — **jamais** d'accès |
+| **Domaines** (`subject_domains`, `template_domains`) | Matching modèles ↔ sujet — **jamais** d'accès |
+
+### Permissions sujet (`internal/features/subjects/service.go`)
+
+| Action | admin global | org owner/admin | editor + membre org | reader + membre org |
+|--------|--------------|-----------------|---------------------|---------------------|
+| Voir sujet | ✓ | ✓ | ✓ | ✓ |
+| Créer sujet | ✓ | ✓ | ✓ | — |
+| Modifier / archiver sujet | ✓ | ✓ | ✓ | — |
+| Lancer revue | ✓ | ✓ | ✓ | — |
+| Cocher / commenter | ✓ | ✓ | ✓ | — |
+| Clôturer revue | ✓ | ✓ | ✓ | — |
+
+- Pas de `project_members` / `subject_members` en v1.
+- IDOR : sujet hors org active → **404**.
+- Libellé UI injecté via `{{.Labels.Subject.*}}` (preset défaut : `sujet`).
+
+### Routes sujets v1
+
+| Route | Contrôle |
+|-------|----------|
+| `GET /subjects` | Auth ; liste sujets org active |
+| `GET /subjects/{id}` | Auth + `CanViewSubject` |
+| `POST /subjects` | Auth + `CanCreateSubject` |
+| `POST /subjects/{id}` | Auth + `CanManageSubject` |
+| `GET /subjects/{id}/modeles?for_run=1` | Auth + `CanLaunchRun` |
+| `POST /subjects/{id}/revues` | Auth + `CanLaunchRun` |
+
+---
+
+## Modèle cible équipes (épique access-teams — **non implémenté**)
+
+Les sections ci-dessous décrivent le modèle **futur** rebasé sur `subjects` (voir note en tête de [access-teams-epic.md](./issues/access-teams-epic.md)).
+
 ## Rôles
 
 ### Globaux (`users.role`)

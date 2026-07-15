@@ -1,0 +1,49 @@
+{{define "subject_form"}}
+{{template "layout_start" .}}
+{{if eq .AdminSection "subjects"}}
+{{template "admin_nav" .}}
+{{end}}
+
+<div class="card">
+  {{if .Error}}<p class="error" role="alert">{{.Error}}</p>{{end}}
+  <form method="post" action="{{.FormAction}}" class="stack-form">
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+    <label>
+      Nom
+      <input type="text" name="name" required maxlength="200" value="{{if .Subject}}{{.Subject.Name}}{{end}}">
+    </label>
+    <label>
+      Description
+      <textarea name="description" rows="4">{{if .Subject}}{{.Subject.Description}}{{end}}</textarea>
+    </label>
+    <details class="stack-form">
+      <summary>Options avancées</summary>
+      <label>
+        Domaines
+        <span class="field-hint">Séparez par des virgules (ex. k8s, frontend). Filtre les modèles proposés pour ce {{.Labels.Subject.Singular | lowerFirst}}.</span>
+        <input type="text" name="domains" maxlength="500" value="{{.Domains}}">
+      </label>
+      <label>
+        Étiquettes
+        <span class="field-hint">Classification libre (ex. prod, critique).</span>
+        <input type="text" name="tags" maxlength="500" value="{{.Tags}}">
+      </label>
+    </details>
+    <div class="form-actions">
+      <button type="submit" class="button">Enregistrer</button>
+    </div>
+  </form>
+</div>
+
+{{if .Subject}}
+<section class="card form-danger-zone">
+  <p class="form-danger-zone__text">Archiver retire le {{.Labels.Subject.Singular | lowerFirst}} de la liste active. Cette action est irréversible.</p>
+  <form method="post" action="{{if eq .AdminSection "subjects"}}/admin/subjects/{{.Subject.ID}}/archive{{else}}/subjects/{{.Subject.ID}}/archive{{end}}" onsubmit="return confirm('Archiver ce {{.Labels.Subject.Singular | lowerFirst}} ?');">
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+    <button type="submit" class="button-danger">Archiver le {{.Labels.Subject.Singular | lowerFirst}}</button>
+  </form>
+</section>
+{{end}}
+{{template "layout_end" .}}
+{{end}}
+{{define "main_class"}} site-main--wide{{end}}

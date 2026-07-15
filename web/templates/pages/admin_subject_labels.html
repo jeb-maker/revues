@@ -1,0 +1,34 @@
+{{define "admin_subject_labels"}}
+{{template "layout_start" .}}
+<section class="card">
+  <p class="muted">Choisissez le libellé affiché dans l’interface pour désigner ce que vous révisez (sujet, cible, entité…).</p>
+</section>
+
+{{template "admin_nav" .}}
+
+{{if .Message}}
+<p class="success content-inset" role="status">{{.Message}}</p>
+{{end}}
+{{if .Error}}
+<p class="error content-inset" role="alert">{{.Error}}</p>
+{{end}}
+
+<section class="card">
+  <h2>Libellé {{.Labels.Subject.Singular | lowerFirst}}</h2>
+  <form method="post" action="/admin/settings/labels" class="stack-form">
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+    <label>
+      Preset
+      <select name="ui_subject_label" required>
+        {{range .Presets}}
+        <option value="{{.Value}}"{{if eq $.Current .Value}} selected{{end}}>{{.Singular}} / {{.Plural}}</option>
+        {{end}}
+      </select>
+    </label>
+    <span class="field-hint">Ce choix s’applique à toute l’organisation (navigation, formulaires, fiches).</span>
+    <button type="submit" class="button">Enregistrer</button>
+  </form>
+</section>
+{{template "layout_end" .}}
+{{end}}
+{{define "main_class"}} site-main--wide{{end}}

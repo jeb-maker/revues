@@ -11,9 +11,11 @@ const headerDataContextKey contextKey = 3
 
 // HeaderData holds organization switcher and pending invitation view data.
 type HeaderData struct {
-	ActiveOrg          *store.Organization
-	UserOrganizations  []store.OrganizationMembership
-	PendingInvitations []store.OrganizationInvitation
+	ActiveOrg           *store.Organization
+	UserOrganizations   []store.OrganizationMembership
+	PendingInvitations  []store.OrganizationInvitation
+	CanManageOrgUsers   bool
+	ShowOrganisationNav bool
 }
 
 // LoadHeaderData preloads organization switcher data for authenticated requests.
@@ -42,6 +44,9 @@ func LoadHeaderData(st *store.Store) func(http.Handler) http.Handler {
 					hd.PendingInvitations = invites
 				}
 			}
+
+			hd.CanManageOrgUsers = CanManageOrgUsers(r.Context(), st, user)
+			hd.ShowOrganisationNav = showOrganisationNav(r.Context(), st, user, hd)
 
 			ctx := context.WithValue(r.Context(), headerDataContextKey, hd)
 			next.ServeHTTP(w, r.WithContext(ctx))

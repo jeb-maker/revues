@@ -41,7 +41,7 @@ func TestLoadActiveOrganization_InjectsOrganization(t *testing.T) {
 	handler := chi.NewRouter()
 	handler.Use(appmiddleware.LoadUser(st))
 	handler.Use(appmiddleware.LoadActiveOrganization(st))
-	handler.Get("/projects", func(w http.ResponseWriter, r *http.Request) {
+	handler.Get("/subjects", func(w http.ResponseWriter, r *http.Request) {
 		ctxOrg, ok := appmiddleware.OrganizationFromContext(r.Context())
 		if !ok {
 			http.Error(w, "missing organization", http.StatusInternalServerError)
@@ -51,7 +51,7 @@ func TestLoadActiveOrganization_InjectsOrganization(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	req := httptest.NewRequest(http.MethodGet, "/projects", nil)
+	req := httptest.NewRequest(http.MethodGet, "/subjects", nil)
 	req.AddCookie(&http.Cookie{Name: "revues_session", Value: token})
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
@@ -94,11 +94,11 @@ func TestLoadActiveOrganization_RedirectsWithoutMembership(t *testing.T) {
 	handler := chi.NewRouter()
 	handler.Use(appmiddleware.LoadUser(st))
 	handler.Use(appmiddleware.LoadActiveOrganization(st))
-	handler.Get("/projects", func(w http.ResponseWriter, _ *http.Request) {
+	handler.Get("/subjects", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	req := httptest.NewRequest(http.MethodGet, "/projects", nil)
+	req := httptest.NewRequest(http.MethodGet, "/subjects", nil)
 	req.AddCookie(&http.Cookie{Name: "revues_session", Value: token})
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
@@ -167,11 +167,11 @@ func TestLoadActiveOrganization_RedirectsPendingWithoutOrganizations(t *testing.
 	handler := chi.NewRouter()
 	handler.Use(appmiddleware.LoadUser(st))
 	handler.Use(appmiddleware.LoadActiveOrganization(st))
-	handler.Get("/projects", func(w http.ResponseWriter, _ *http.Request) {
+	handler.Get("/subjects", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	req := httptest.NewRequest(http.MethodGet, "/projects", nil)
+	req := httptest.NewRequest(http.MethodGet, "/subjects", nil)
 	req.AddCookie(&http.Cookie{Name: "revues_session", Value: token})
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)

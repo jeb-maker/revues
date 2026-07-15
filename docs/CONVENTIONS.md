@@ -8,7 +8,7 @@ Normes de code et d'architecture. Tout agent et contributeur les suit.
 cmd/revues/main.go          # point d'entrée
 internal/
   auth/                     # OAuth, sessions, CSRF
-  projects/                 # projets, membres
+  subjects/                 # sujets, domaines
   templates/                # modèles versionnés
   runs/                     # exécutions
   items/                    # points, statuts, audit
@@ -55,8 +55,9 @@ GET  /login
 GET  /auth/github/callback
 POST /logout
 
-GET|POST /projects/...
-GET|POST /projects/{id}/runs/...
+GET|POST /subjects/...
+GET /subjects/{id}/modeles
+POST /subjects/{id}/revues
 GET|PATCH /runs/{id}/items/{id}
 
 GET|POST /admin/users

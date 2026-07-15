@@ -1,24 +1,25 @@
 {{define "runs_list"}}
 {{template "layout_start" .}}
 
-{{if not .HasProjects}}
+{{if not .HasSubjects}}
 {{if .Message}}<p class="success" role="status">{{.Message}}</p>{{end}}
 {{if .Error}}<p class="error" role="alert">{{.Error}}</p>{{end}}
 <section class="empty-state">
   <h2>Bienvenue dans Revues</h2>
-  {{if .CanManageOrgUsers}}
-  <p>Votre organisation est prête. Commencez par autoriser les utilisateurs, puis créez votre premier projet.</p>
+  {{if .CanLaunch}}
+  <p>Aucune revue pour l'instant. Lancez-en une — vous pourrez choisir ou créer un {{.Labels.Subject.Singular | lowerFirst}} au passage.</p>
+  <p class="empty-state-actions">
+    <a class="button" href="/revues/nouvelle">Lancer une revue</a>
+    {{if .CanManageOrgUsers}}<a class="button-secondary" href="/admin/users">Gérer les emails autorisés</a>{{end}}
+  </p>
+  {{else if .CanManageOrgUsers}}
+  <p>Votre organisation est prête. Commencez par autoriser les utilisateurs, puis lancez une première revue.</p>
   <p class="empty-state-actions">
     <a class="button" href="/admin/users">Gérer les emails autorisés</a>
-    <a class="button" href="/projects/new">Créer un projet</a>
-  </p>
-  {{else if .CanCreate}}
-  <p>Aucun projet pour l'instant. Créez un projet pour y ajouter des modèles de checklist et lancer une revue.</p>
-  <p class="empty-state-actions">
-    <a class="button" href="/projects/new">Créer un projet</a>
+    <a class="button-secondary" href="/mes-taches">Voir mes tâches</a>
   </p>
   {{else}}
-  <p>Aucun projet ne vous est encore assigné. Demandez à un administrateur ou à un responsable de projet de vous ajouter comme membre.</p>
+  <p>Aucun {{.Labels.Subject.Singular | lowerFirst}} disponible pour le moment. Demandez à un administrateur de l'organisation.</p>
   <p class="empty-state-actions">
     <a class="button" href="/mes-taches">Voir mes tâches</a>
   </p>
@@ -30,24 +31,19 @@
   {{if .Error}}<p class="error" role="alert">{{.Error}}</p>{{end}}
   <div class="list-toolbar">
     <form method="get" action="/revues" class="list-toolbar__form filter-form filter-form--inline">
-      <input class="list-toolbar__search toolbar-control" type="search" id="filter-query" name="q" value="{{.FilterQuery}}" placeholder="Rechercher une revue ou un projet…" aria-label="Rechercher une revue ou un projet">
+      <input class="list-toolbar__search toolbar-control" type="search" id="filter-query" name="q" value="{{.FilterQuery}}" placeholder="Rechercher une revue ou un {{.Labels.Subject.Singular | lowerFirst}}…" aria-label="Rechercher une revue ou un {{.Labels.Subject.Singular | lowerFirst}}">
       {{if .FilterStatus}}<input type="hidden" name="status" value="{{.FilterStatus}}">{{end}}
       <button type="submit" class="button-secondary toolbar-control">Filtrer</button>
       {{if .HasActiveFilters}}<a href="/revues" class="button-ghost toolbar-control">Effacer</a>{{end}}
     </form>
-    <nav class="segmented-tabs" aria-label="Filtrer par statut">
-      <a href="{{runsListURL "" .FilterQuery}}" class="segmented-tabs__item{{if not .FilterStatus}} is-active{{end}}">Toutes</a>
-      <a href="{{runsListURL "draft" .FilterQuery}}" class="segmented-tabs__item{{if eq .FilterStatus "draft"}} is-active{{end}}">Brouillon</a>
-      <a href="{{runsListURL "in_progress" .FilterQuery}}" class="segmented-tabs__item{{if eq .FilterStatus "in_progress"}} is-active{{end}}">En cours</a>
-      <a href="{{runsListURL "done" .FilterQuery}}" class="segmented-tabs__item{{if eq .FilterStatus "done"}} is-active{{end}}">Terminées</a>
-    </nav>
+    {{if .CanLaunch}}<a class="button list-toolbar__action toolbar-control" href="/revues/nouvelle">Lancer une revue</a>{{end}}
   </div>
   <div class="table-scroll">
   <table class="data-table table-sticky">
     <thead>
       <tr>
         <th scope="col">Revue</th>
-        <th scope="col">Projet</th>
+        <th scope="col">{{.Labels.Subject.Singular}}</th>
         <th scope="col" class="data-table__col--center">Statut</th>
         <th scope="col" class="data-table__col--center">Échéance</th>
         <th scope="col" class="data-table__col--end">Progression</th>
@@ -58,7 +54,7 @@
       {{range .Runs}}
       <tr>
         <td><a href="/runs/{{.RunID}}">{{.Title}}</a></td>
-        <td><a href="/projects/{{.ProjectID}}">{{.ProjectName}}</a></td>
+        <td><a href="/subjects/{{.SubjectID}}">{{.SubjectName}}</a></td>
         <td class="data-table__col--center"><span class="status-badge status-{{.Status}}">{{formatRunStatus .Status}}</span></td>
         <td class="data-table__col--center">{{if .DueDate.Valid}}{{formatDueDate .DueDate}}{{else}}<span class="muted">—</span>{{end}}</td>
         <td class="data-table__stats data-table__progress muted" style="--run-progress: {{.Percent}}%" aria-label="Progression {{.Done}} sur {{.Total}}, {{.Percent}} pourcent">{{.Done}}/{{.Total}} ({{.Percent}}%)</td>
@@ -70,7 +66,7 @@
       </tr>
       {{else}}
       <tr>
-        <td colspan="5" class="muted">Aucune revue pour l'instant. <a href="/projects">Ouvrir un projet</a> pour en lancer une.</td>
+        <td colspan="5" class="muted">Aucune revue pour l'instant. {{if .CanLaunch}}<a href="/revues/nouvelle">Lancer une revue</a>{{else}}Demandez à un éditeur d'en lancer une.{{end}}</td>
       </tr>
       {{end}}
     </tbody>

@@ -2,7 +2,6 @@ package store_test
 
 import (
 	"context"
-	"database/sql"
 	"testing"
 
 	"github.com/jeb-maker/revues/internal/store"
@@ -36,7 +35,7 @@ func TestIntegrationLinkUpsertAndList(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateChecklistTemplate(): %v", err)
 	}
-	run, err := st.CreateChecklistRun(ctx, project.ID, template.ID, "Run", user.ID, sql.NullString{})
+	run, err := st.CreateChecklistRun(ctx, project.ID, template.ID, user.ID)
 	if err != nil {
 		t.Fatalf("CreateChecklistRun(): %v", err)
 	}

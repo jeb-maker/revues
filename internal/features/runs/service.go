@@ -8,32 +8,25 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jeb-maker/revues/internal/auth"
-	"github.com/jeb-maker/revues/internal/features/projects"
+	"github.com/jeb-maker/revues/internal/features/subjects"
 	"github.com/jeb-maker/revues/internal/store"
 )
 
 // --- Access (formerly internal/runs/access.go) ---
 
-// CanView reports whether the user may view a run on a project.
-func CanView(user *store.User, isMember bool) bool {
-	return projects.CanView(user, isMember)
+// CanView reports whether the user may view a run on a subject.
+func CanView(user *store.User, orgMember bool) bool {
+	return subjects.CanViewSubject(user, orgMember)
 }
 
 // CanLaunch reports whether the user may create or start a run.
-func CanLaunch(user *store.User, memberRole string) bool {
-	if auth.HasMinRole(user.Role, auth.RoleAdmin) {
-		return true
-	}
-	if !auth.HasMinRole(user.Role, auth.RoleEditor) {
-		return false
-	}
-	return memberRole == projects.LocalRoleLead || memberRole == projects.LocalRoleContributor
+func CanLaunch(user *store.User, orgMember bool) bool {
+	return subjects.CanLaunchRun(user, orgMember)
 }
 
 // CanComplete reports whether the user may close a run (in_progress → done).
-func CanComplete(user *store.User, memberRole string) bool {
-	return projects.CanManage(user, memberRole)
+func CanComplete(user *store.User, orgRole string, orgMember bool) bool {
+	return subjects.CanManageSubject(user, orgRole, orgMember)
 }
 
 // --- Due date (formerly internal/runs/due_date.go) ---
@@ -58,7 +51,7 @@ func ParseDueDate(raw string) (string, error) {
 // --- CSV export (formerly internal/runs/export.go) ---
 
 //nolint:misspell // French CSV column headers per issue #31
-var runExportHeaders = []string{"projet", "revue", "date", "points", "statuts", "commentaires", "auteur"}
+var runExportHeaders = []string{"subject", "revue", "date", "points", "statuts", "commentaires", "auteur"}
 
 // BuildRunCSV encodes export rows as CSV with a header row.
 func BuildRunCSV(rows []store.RunExportRow) ([]byte, error) {
@@ -71,7 +64,7 @@ func BuildRunCSV(rows []store.RunExportRow) ([]byte, error) {
 
 	for _, row := range rows {
 		record := []string{
-			row.ProjectName,
+			row.SubjectName,
 			row.RunTitle,
 			row.RunDate,
 			row.PointLabel,
@@ -95,30 +88,18 @@ func BuildRunCSV(rows []store.RunExportRow) ([]byte, error) {
 // --- Item access (formerly internal/items/access.go) ---
 
 // CanUpdate reports whether the user may change run item statuses.
-func CanUpdate(user *store.User, memberRole string) bool {
-	if auth.HasMinRole(user.Role, auth.RoleAdmin) {
-		return true
-	}
-	if !auth.HasMinRole(user.Role, auth.RoleEditor) {
-		return false
-	}
-	return memberRole == projects.LocalRoleLead || memberRole == projects.LocalRoleContributor
+func CanUpdate(user *store.User, orgMember bool) bool {
+	return subjects.CanLaunchRun(user, orgMember)
 }
 
 // CanLinkJira reports whether the user may link Jira issues to run items.
-func CanLinkJira(user *store.User, memberRole string) bool {
-	return CanUpdate(user, memberRole)
+func CanLinkJira(user *store.User, orgMember bool) bool {
+	return CanUpdate(user, orgMember)
 }
 
 // CanAssign reports whether the user may assign run items to members.
-func CanAssign(user *store.User, memberRole string) bool {
-	if auth.HasMinRole(user.Role, auth.RoleAdmin) {
-		return true
-	}
-	if !auth.HasMinRole(user.Role, auth.RoleEditor) {
-		return false
-	}
-	return memberRole == projects.LocalRoleLead
+func CanAssign(user *store.User, orgRole string, orgMember bool) bool {
+	return subjects.CanManageSubject(user, orgRole, orgMember)
 }
 
 // --- Item progress (formerly internal/items/progress.go) ---

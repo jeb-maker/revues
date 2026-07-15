@@ -46,9 +46,9 @@ func (s *ExportService) ExportRun(ctx context.Context, runID int64) (string, err
 	if strings.TrimSpace(run.NotionURL) != "" {
 		return "", ErrAlreadyExported
 	}
-	project, err := s.Store.ProjectByID(ctx, run.ProjectID)
+	subject, err := s.Store.SubjectByID(ctx, run.SubjectID)
 	if err != nil {
-		return "", fmt.Errorf("load project: %w", err)
+		return "", fmt.Errorf("load subject: %w", err)
 	}
 	items, err := s.Store.ListRunItems(ctx, runID)
 	if err != nil {
@@ -58,8 +58,13 @@ func (s *ExportService) ExportRun(ctx context.Context, runID int64) (string, err
 	for i, item := range items {
 		pageItems[i] = PageItem{Section: item.Section, Label: item.Label, Status: item.Status, Comment: item.Comment}
 	}
+	versionInfo, err := s.Store.TemplateVersionInfo(ctx, run.TemplateVersionID)
+	if err != nil {
+		return "", fmt.Errorf("template version info: %w", err)
+	}
+	displayLabel := store.RunDisplayLabel(versionInfo.Name, subject.Name, run.CreatedAt, run.ID)
 	result, err := s.client().CreateReviewPage(ctx, cfg, CreatePageInput{
-		DatabaseID: cfg.DefaultDatabaseID, Title: run.Title, Project: project.Name,
+		DatabaseID: cfg.DefaultDatabaseID, Title: displayLabel, Subject: subject.Name,
 		Date: exportDate(run.CompletedAt), RevuesURL: runURL(s.BaseURL, runID),
 		ClosingNote: run.ClosingNote, Items: pageItems,
 	})

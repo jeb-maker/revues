@@ -146,7 +146,7 @@ func (s *Store) AssignRunItem(ctx context.Context, runID, itemID int64, assignee
 
 	var assignedTo sql.NullInt64
 	if assigneeID != nil {
-		_, isMember, memberErr := s.MemberRole(ctx, run.ProjectID, *assigneeID)
+		_, isMember, memberErr := s.MemberRole(ctx, run.SubjectID, *assigneeID)
 		if memberErr != nil {
 			return fmt.Errorf("member role for assignee: %w", memberErr)
 		}
@@ -209,10 +209,12 @@ func (s *Store) ListAssignedRunItems(ctx context.Context, userID int64, status, 
 	sqlQuery := `
 		SELECT ri.id, ri.run_id, ri.source_item_id, ri.section, ri.position, ri.label, ri.help_text, ri.required,
 		       ri.status, ri.comment, ri.assigned_to, u.login, ri.updated_at,
-		       cr.title, cr.project_id, p.name
+		       t.name, p.name, cr.created_at, cr.id, cr.subject_id
 		FROM run_items ri
 		INNER JOIN checklist_runs cr ON cr.id = ri.run_id
-		INNER JOIN projects p ON p.id = cr.project_id
+		INNER JOIN subjects p ON p.id = cr.subject_id
+		INNER JOIN template_versions tv ON tv.id = cr.template_version_id
+		INNER JOIN checklist_templates t ON t.id = tv.template_id
 		LEFT JOIN users u ON u.id = ri.assigned_to
 		WHERE ri.assigned_to = ? AND cr.status != ?
 	`
@@ -226,13 +228,13 @@ func (s *Store) ListAssignedRunItems(ctx context.Context, userID int64, status, 
 		pattern := likeContainsPattern(term)
 		sqlQuery += ` AND (
 			p.name LIKE ? ESCAPE '\'
-			OR cr.title LIKE ? ESCAPE '\'
+			OR t.name LIKE ? ESCAPE '\'
 			OR ri.label LIKE ? ESCAPE '\'
 			OR ri.section LIKE ? ESCAPE '\'
 		)`
 		args = append(args, pattern, pattern, pattern, pattern)
 	}
-	sqlQuery += " ORDER BY p.name, cr.title, ri.position"
+	sqlQuery += " ORDER BY p.name, t.name, cr.created_at, ri.position"
 
 	rows, err := s.db.QueryContext(ctx, sqlQuery, args...)
 	if err != nil {
@@ -245,15 +247,19 @@ func (s *Store) ListAssignedRunItems(ctx context.Context, userID int64, status, 
 		var summary AssignedRunItemSummary
 		var required int
 		var assignedLogin sql.NullString
+		var templateName, subjectName, createdAt string
+		var runID int64
 		err := rows.Scan(
 			&summary.ID, &summary.RunID, &summary.SourceItemID, &summary.Section, &summary.Position,
 			&summary.Label, &summary.HelpText, &required, &summary.Status, &summary.Comment,
 			&summary.AssignedTo, &assignedLogin, &summary.UpdatedAt,
-			&summary.RunTitle, &summary.ProjectID, &summary.ProjectName,
+			&templateName, &subjectName, &createdAt, &runID, &summary.SubjectID,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("scan assigned run item: %w", err)
 		}
+		summary.RunTitle = RunDisplayLabel(templateName, subjectName, createdAt, runID)
+		summary.SubjectName = subjectName
 		summary.Required = required == 1
 		if assignedLogin.Valid {
 			summary.AssignedLogin = assignedLogin.String

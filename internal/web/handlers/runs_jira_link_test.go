@@ -2,8 +2,6 @@ package handlers_test
 
 import (
 	"context"
-	"database/sql"
-	"github.com/jeb-maker/revues/internal/testutil"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -11,9 +9,10 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/jeb-maker/revues/internal/testutil"
+
 	"github.com/jeb-maker/revues/internal/auth"
 	"github.com/jeb-maker/revues/internal/config"
-	"github.com/jeb-maker/revues/internal/features/projects"
 	"github.com/jeb-maker/revues/internal/integrations/jira"
 	"github.com/jeb-maker/revues/internal/store"
 )
@@ -48,7 +47,7 @@ func TestIDOR_CrossProjectJiraLink(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateChecklistTemplate(): %v", err)
 	}
-	runA, err := st.CreateChecklistRun(ctx, projectA.ID, templateA.ID, "Revue A", alice.ID, sql.NullString{})
+	runA, err := st.CreateChecklistRun(ctx, projectA.ID, templateA.ID, alice.ID)
 	if err != nil {
 		t.Fatalf("CreateChecklistRun(): %v", err)
 	}
@@ -63,7 +62,7 @@ func TestIDOR_CrossProjectJiraLink(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateChecklistTemplate(): %v", err)
 	}
-	runB, err := st.CreateChecklistRun(ctx, projectB.ID, templateB.ID, "Revue B", bob.ID, sql.NullString{})
+	runB, err := st.CreateChecklistRun(ctx, projectB.ID, templateB.ID, bob.ID)
 	if err != nil {
 		t.Fatalf("CreateChecklistRun(): %v", err)
 	}
@@ -92,7 +91,7 @@ func TestIDOR_CrossProjectJiraLink(t *testing.T) {
 	}
 }
 
-func TestJiraLink_ViewerForbidden(t *testing.T) {
+func TestJiraLink_ReaderForbidden(t *testing.T) {
 	handler, db := testRouterWithEncryptionKey(t, config.TestEncryptionKey())
 	ctx := context.Background()
 	st := store.New(db)
@@ -102,17 +101,21 @@ func TestJiraLink_ViewerForbidden(t *testing.T) {
 	if err != nil {
 		t.Fatalf("UpsertGitHubUser(): %v", err)
 	}
-	viewer, err := st.UpsertGitHubUser(ctx, 71, "viewer", "viewer@example.com", "Viewer", "", auth.RoleEditor)
+	reader, err := st.UpsertGitHubUser(ctx, 71, "reader", "reader@example.com", "Reader", "", auth.RoleReader)
 	if err != nil {
-		t.Fatalf("UpsertGitHubUser(viewer): %v", err)
+		t.Fatalf("UpsertGitHubUser(reader): %v", err)
+	}
+	defaultOrg, err := st.OrganizationBySlug(ctx, "default")
+	if err != nil {
+		t.Fatalf("OrganizationBySlug(): %v", err)
+	}
+	if err = st.AddOrganizationMember(ctx, defaultOrg.ID, reader.ID, store.OrgRoleMember); err != nil {
+		t.Fatalf("AddOrganizationMember(reader): %v", err)
 	}
 
 	project, err := st.CreateProject(ctx, "P", "", lead.ID, nil)
 	if err != nil {
 		t.Fatalf("CreateProject(): %v", err)
-	}
-	if err = st.AddProjectMember(ctx, project.ID, viewer.ID, projects.LocalRoleViewer); err != nil {
-		t.Fatalf("AddProjectMember(): %v", err)
 	}
 
 	template, _, err := st.CreateChecklistTemplate(ctx, "Modèle", lead.ID, nil, []store.TemplateItemInput{
@@ -121,7 +124,7 @@ func TestJiraLink_ViewerForbidden(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateChecklistTemplate(): %v", err)
 	}
-	run, err := st.CreateChecklistRun(ctx, project.ID, template.ID, "Revue", lead.ID, sql.NullString{})
+	run, err := st.CreateChecklistRun(ctx, project.ID, template.ID, lead.ID)
 	if err != nil {
 		t.Fatalf("CreateChecklistRun(): %v", err)
 	}
@@ -131,7 +134,7 @@ func TestJiraLink_ViewerForbidden(t *testing.T) {
 	}
 
 	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
-	token, _, err := sessions.CreateLoginSession(ctx, viewer.ID, 0)
+	token, _, err := sessions.CreateLoginSession(ctx, reader.ID, 0)
 	if err != nil {
 		t.Fatalf("CreateLoginSession(): %v", err)
 	}
@@ -180,7 +183,7 @@ func TestJiraLink_Success(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateChecklistTemplate(): %v", err)
 	}
-	run, err := st.CreateChecklistRun(ctx, project.ID, template.ID, "Revue", lead.ID, sql.NullString{})
+	run, err := st.CreateChecklistRun(ctx, project.ID, template.ID, lead.ID)
 	if err != nil {
 		t.Fatalf("CreateChecklistRun(): %v", err)
 	}

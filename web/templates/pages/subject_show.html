@@ -1,0 +1,88 @@
+{{define "subject_show"}}
+{{template "layout_start" .}}
+
+<section class="card subject-meta">
+  {{if .Message}}<p class="success" role="status">{{.Message}}</p>{{end}}
+  {{if .Error}}<p class="error" role="alert">{{.Error}}</p>{{end}}
+  <div class="subject-meta__head">
+    <h1 class="subject-meta__title">{{.Subject.Name}}</h1>
+    {{if or .CanLaunch .CanManage}}
+    <div class="subject-meta__actions">
+      {{if .CanLaunch}}<a class="button" href="/subjects/{{.Subject.ID}}/modeles?for_run=1" title="{{launchActionTitle .Labels.Subject}}">Lancer une revue</a>{{end}}
+      {{if .CanManage}}<a class="button-secondary" href="{{.EditPath}}">Modifier</a>{{end}}
+    </div>
+    {{end}}
+  </div>
+  {{if .Subject.Description}}
+  <p class="subject-meta__description">{{.Subject.Description}}</p>
+  {{end}}
+  {{if or .Domains .Tags}}
+  <details class="subject-meta__details stack-form">
+    <summary>Détails</summary>
+    {{if .Domains}}
+    <p class="muted subject-meta__line">
+      Domaines : {{range $i, $tag := .Domains}}{{if $i}}, {{end}}<span class="tag">{{$tag}}</span>{{end}}
+    </p>
+    {{else}}
+    <p class="muted subject-meta__line">Domaines : aucun (tous les modèles sans domaine seront proposés)</p>
+    {{end}}
+    {{if .Tags}}
+    <p class="muted subject-meta__line">
+      Étiquettes : {{range $i, $tag := .Tags}}{{if $i}}, {{end}}<span class="tag">{{$tag}}</span>{{end}}
+    </p>
+    {{end}}
+  </details>
+  {{end}}
+</section>
+
+{{if .NokItems}}
+<section class="card">
+  <h2>Points non validés ({{len .NokItems}})</h2>
+  <ul class="item-list">
+    {{range .NokItems}}
+    <li>
+      <a href="/runs/{{.RunID}}/items/{{.ID}}"><strong>{{.Label}}</strong></a>
+      <span class="muted"> — revue <a href="/runs/{{.RunID}}">{{.RunTitle}}</a></span>
+      {{if .Comment}} · {{.Comment}}{{end}}
+    </li>
+    {{end}}
+  </ul>
+</section>
+{{end}}
+
+<section class="card">
+  <h2>Revues ({{len .Runs}})</h2>
+  {{if .Runs}}
+  <div class="table-scroll">
+  <table class="data-table">
+    <thead>
+      <tr><th scope="col">Revue</th><th scope="col" class="data-table__col--center">Statut</th><th scope="col" class="data-table__col--center">Échéance</th><th scope="col" class="data-table__col--end">Progression</th></tr>
+    </thead>
+    <tbody>
+      {{range .Runs}}
+      <tr>
+        <td><a href="/runs/{{.ID}}">{{.DisplayLabel}}</a></td>
+        <td class="data-table__col--center"><span class="status-badge status-{{.Status}}">{{formatRunStatus .Status}}</span></td>
+        <td class="data-table__col--center">{{if .DueDate.Valid}}{{formatDueDate .DueDate}}{{else}}<span class="muted">—</span>{{end}}</td>
+        <td class="data-table__stats data-table__progress muted" style="--run-progress: {{if eq .Status "in_progress"}}{{.Percent}}{{else}}0{{end}}%"{{if eq .Status "in_progress"}} aria-label="Progression {{.Done}} sur {{.Total}}, {{.Percent}} pourcent"{{else if gt .Total 0}} aria-label="Progression {{.Done}} sur {{.Total}}"{{end}}>
+          {{if eq .Status "in_progress"}}
+          {{.Done}} / {{.Total}} ({{.Percent}}%)
+          {{else if gt .Total 0}}
+          {{.Done}} / {{.Total}}
+          {{else}}
+          —
+          {{end}}
+        </td>
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+  </div>
+  {{else}}
+  <p class="muted">Aucune revue sur ce {{.Labels.Subject.Singular | lowerFirst}}.{{if .CanLaunch}} <a href="/subjects/{{.Subject.ID}}/modeles?for_run=1">Lancer une revue</a>.{{end}}</p>
+  {{end}}
+</section>
+{{template "layout_end" .}}
+{{end}}
+{{define "page_heading"}}{{end}}
+{{define "main_class"}} site-main--wide{{end}}

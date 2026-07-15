@@ -4,7 +4,7 @@
 
 <div class="card">
   <p class="muted">
-    Projet : <a href="/projects/{{.Project.ID}}">{{.Project.Name}}</a>
+    {{.Labels.Subject.Singular}} : <a href="/subjects/{{.Subject.ID}}">{{.Subject.Name}}</a>
     · Modèle : {{.TemplateName}} v{{.VersionNum}}
     · Statut : <span class="status-badge status-{{.Run.Status}}">{{formatRunStatus .Run.Status}}</span>
     {{if .Run.DueDate.Valid}} · Échéance : {{formatDueDate .Run.DueDate}}{{end}}
@@ -51,7 +51,7 @@
       <button type="submit" class="button-secondary">{{icon "external-link"}} Exporter vers Notion</button>
     </form>
     {{end}}
-    <a href="/projects/{{.Project.ID}}" class="button-ghost">{{icon "arrow-left"}} Retour au projet</a>
+    <a href="/subjects/{{.Subject.ID}}" class="button-ghost">{{icon "arrow-left"}} Retour au {{.Labels.Subject.Singular | lowerFirst}}</a>
   </div>
 </div>
 {{end}}
@@ -68,31 +68,6 @@
 {{end}}
 
 {{if eq .Run.Status "in_progress"}}
-{{if .CanComplete}}
-<div class="card" id="complete-section">
-  <h2>Clôturer la revue</h2>
-  {{if .NokItems}}
-  <div class="warning-panel closing-nok">
-    <h3>{{icon "alert"}} Points non validés ({{len .NokItems}})</h3>
-    <ul class="item-list">
-      {{range .NokItems}}
-      <li><a href="/runs/{{$.Run.ID}}/items/{{.ID}}"><strong>{{.Label}}</strong></a>{{if .Comment}} — {{.Comment}}{{end}}</li>
-      {{end}}
-    </ul>
-  </div>
-  {{else}}
-  <p class="muted">Aucun point non validé — tous les points sont validés.</p>
-  {{end}}
-  <form method="post" action="/runs/{{.Run.ID}}/complete" class="stack-form" hx-post="/runs/{{.Run.ID}}/complete" hx-target="#complete-section" hx-swap="outerHTML" hx-confirm="Confirmer la clôture de la revue ?">
-    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
-    <label>
-      Note de clôture (optionnelle)
-      <textarea name="closing_note" rows="4" placeholder="Note optionnelle…">{{.ClosingNote}}</textarea>
-    </label>
-    <button type="submit" class="button">{{icon "check"}} Terminer la revue</button>
-  </form>
-</div>
-{{end}}
 {{end}}
 
 <div class="card">
@@ -126,27 +101,106 @@
     </form>
   </div>
   {{end}}
+  {{if .ItemSections}}
+  {{$colspan := runItemTableColspan .Run.Status .CanCheck .CanAssign}}
   <div class="table-scroll">
-    <table class="data-table">
+    <table class="data-table data-table--run-items">
+      {{if and (eq .Run.Status "in_progress") (or .CanCheck .CanAssign)}}
+      <colgroup>
+        <col style="width:24%">
+        <col style="width:10%">
+        <col style="width:12%">
+        <col style="width:38%">
+        <col style="width:8%">
+        <col style="width:8%">
+      </colgroup>
+      {{else}}
+      <colgroup>
+        <col style="width:26%">
+        <col style="width:11%">
+        <col style="width:13%">
+        <col style="width:42%">
+        <col style="width:8%">
+      </colgroup>
+      {{end}}
       <thead class="table-sticky">
-        <tr><th scope="col">Section</th><th scope="col">Point</th><th scope="col" class="data-table__col--center">Jira</th><th scope="col" class="data-table__col--center">Statut</th><th scope="col">Assigné</th><th scope="col">Commentaire</th><th scope="col" class="data-table__col--center">PJ</th>{{if and (eq $.Run.Status "in_progress") (or $.CanCheck $.CanAssign)}}<th scope="col" class="data-table__col--end"><span class="visually-hidden">Actions</span></th>{{end}}</tr>
+        <tr><th scope="col">Point</th><th scope="col" class="data-table__col--center">Statut</th><th scope="col">Assigné</th><th scope="col">Commentaire</th><th scope="col" class="data-table__col--center">PJ</th>{{if and (eq .Run.Status "in_progress") (or .CanCheck .CanAssign)}}<th scope="col" class="data-table__col--end"><span class="visually-hidden">Actions</span></th>{{end}}</tr>
       </thead>
-      <tbody id="run-items">
+      {{range .ItemSections}}
+      <tbody class="run-section" data-auto-collapse="1" data-all-ok="{{if .AllOKOrNA}}1{{else}}0{{end}}">
+        <tr class="run-section__head">
+          <td colspan="{{$colspan}}">
+            <div class="run-section__label">
+              <strong>{{if eq .Title "Sans section"}}Point{{else}}{{.Title}}{{end}}</strong>
+              <span class="muted">{{.Total}} point{{if ne .Total 1}}s{{end}}{{if .AllOKOrNA}} · terminé{{else}} · {{.OKCount}} / {{.Total}} OK{{end}}</span>
+            </div>
+          </td>
+        </tr>
         {{range .Items}}
         {{template "run_item_row_fragment" (runItemRow $.Run . $.Members $.CSRFToken $.CanCheck $.CanAssign $.CanLinkJira $.JiraConfigured (index $.JiraLinks .ID) (index $.Attachments .ID) "" "")}}
-        {{else}}
-        <tr><td colspan="{{runItemTableColspan $.Run.Status $.CanCheck $.CanAssign}}"><p class="muted">Aucun point trouvé pour ce filtre.</p></td></tr>
         {{end}}
       </tbody>
+      {{end}}
     </table>
   </div>
+  {{else}}
+  <p class="muted">Aucun point trouvé pour ce filtre.</p>
+  {{end}}
 </div>
+
+<script>
+  (function () {
+    var sections = document.querySelectorAll('tbody.run-section[data-auto-collapse="1"]');
+    for (var i = 0; i < sections.length; i++) {
+      if (sections[i].getAttribute('data-all-ok') === '1') {
+        sections[i].classList.add('is-collapsed');
+      }
+      var head = sections[i].querySelector('.run-section__head');
+      if (head) {
+        head.addEventListener('click', function () {
+          var section = this.closest('tbody.run-section');
+          if (section) {
+            section.classList.toggle('is-collapsed');
+          }
+        });
+      }
+    }
+  })();
+</script>
+
+{{if eq .Run.Status "in_progress"}}
+{{if .CanComplete}}
+<div class="card" id="complete-section">
+  <h2>Clôturer la revue</h2>
+  {{if .NokItems}}
+  <div class="warning-panel closing-nok">
+    <h3>{{icon "alert"}} Points non validés ({{len .NokItems}})</h3>
+    <ul class="item-list">
+      {{range .NokItems}}
+      <li><a href="/runs/{{$.Run.ID}}/items/{{.ID}}"><strong>{{.Label}}</strong></a>{{if .Comment}} — {{.Comment}}{{end}}</li>
+      {{end}}
+    </ul>
+  </div>
+  {{else}}
+  <p class="muted">Aucun point non validé — tous les points sont validés.</p>
+  {{end}}
+  <form method="post" action="/runs/{{.Run.ID}}/complete" class="stack-form" hx-post="/runs/{{.Run.ID}}/complete" hx-target="#complete-section" hx-swap="outerHTML" hx-confirm="Confirmer la clôture de la revue ?">
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+    <label>
+      Note de clôture (optionnelle)
+      <textarea name="closing_note" rows="4" placeholder="Note optionnelle…">{{.ClosingNote}}</textarea>
+    </label>
+    <button type="submit" class="button-danger">{{icon "check"}} Terminer la revue</button>
+  </form>
+</div>
+{{end}}
+{{end}}
 
 {{if ne .Run.Status "done"}}
 <div class="card post-closure-links">
   <p>
-    <a href="/projects/{{.Project.ID}}" class="button-ghost">{{icon "arrow-left"}} Retour au projet</a>
-    <a href="/projects/{{.Project.ID}}/templates?for_run=1" class="button-ghost">Lancer une autre revue</a>
+    <a href="/subjects/{{.Subject.ID}}" class="button-ghost">{{icon "arrow-left"}} Retour au {{.Labels.Subject.Singular | lowerFirst}}</a>
+    <a href="/subjects/{{.Subject.ID}}/modeles?for_run=1" class="button-ghost">Lancer une autre revue</a>
   </p>
 </div>
 {{end}}

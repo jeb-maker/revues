@@ -3,8 +3,9 @@ package store_test
 import (
 	"context"
 	"database/sql"
-	"github.com/jeb-maker/revues/internal/testutil"
 	"testing"
+
+	"github.com/jeb-maker/revues/internal/testutil"
 
 	"github.com/jeb-maker/revues/internal/auth"
 	"github.com/jeb-maker/revues/internal/store"
@@ -33,7 +34,7 @@ func TestCreateChecklistRunSnapshotsItems(t *testing.T) {
 		t.Fatalf("CreateChecklistTemplate(): %v", err)
 	}
 
-	run, err := st.CreateChecklistRun(ctx, project.ID, template.ID, "Revue Q1", lead.ID, sql.NullString{})
+	run, err := st.CreateChecklistRun(ctx, project.ID, template.ID, lead.ID)
 	if err != nil {
 		t.Fatalf("CreateChecklistRun(): %v", err)
 	}
@@ -76,10 +77,14 @@ func TestCreateChecklistRunWithDueDate(t *testing.T) {
 	}
 
 	dueDate := sql.NullString{String: "2026-07-15T00:00:00Z", Valid: true}
-	run, err := st.CreateChecklistRun(ctx, project.ID, template.ID, "Revue datée", lead.ID, dueDate)
+	run, err := st.CreateChecklistRun(ctx, project.ID, template.ID, lead.ID)
 	if err != nil {
 		t.Fatalf("CreateChecklistRun(): %v", err)
 	}
+	if err := st.SetRunDueDate(ctx, run.ID, dueDate); err != nil {
+		t.Fatalf("SetRunDueDate(): %v", err)
+	}
+	run, err = st.RunByID(ctx, run.ID)
 	if !run.DueDate.Valid || run.DueDate.String != dueDate.String {
 		t.Fatalf("due_date = %+v, want %q", run.DueDate, dueDate.String)
 	}
@@ -106,7 +111,7 @@ func TestRunStatusTransitions(t *testing.T) {
 		t.Fatalf("CreateChecklistTemplate(): %v", err)
 	}
 
-	run, err := st.CreateChecklistRun(ctx, project.ID, template.ID, "Revue", lead.ID, sql.NullString{})
+	run, err := st.CreateChecklistRun(ctx, project.ID, template.ID, lead.ID)
 	if err != nil {
 		t.Fatalf("CreateChecklistRun(): %v", err)
 	}

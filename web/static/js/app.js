@@ -15,7 +15,7 @@
   var h = document.querySelector('.hamburger');
   var n = document.querySelector('.site-nav');
   if (h && n) {
-    n.classList.add('site-nav--nojs');
+    n.classList.remove('site-nav--nojs');
     h.addEventListener('click', function () {
       var e = h.getAttribute('aria-expanded') === 'true';
       h.setAttribute('aria-expanded', !e);

@@ -1,0 +1,25 @@
+{{define "admin_org_hub"}}
+{{template "layout_start" .}}
+<section class="card">
+  <h2>Organisation</h2>
+  {{if .OrganizationName}}
+  <p class="muted">Gérez <strong>{{.OrganizationName}}</strong> — membres autorisés et {{.Labels.Subject.Plural | lowerFirst}}.</p>
+  {{else}}
+  <p class="muted">Gérez les membres autorisés et les {{.Labels.Subject.Plural | lowerFirst}} de l'organisation.</p>
+  {{end}}
+</section>
+
+<section class="card">
+  <h2>Accès rapide</h2>
+  <div class="empty-state-actions">
+    <a class="button-secondary" href="/admin/users">Inviter</a>
+    <a class="button-secondary" href="/admin/subjects">Mes {{.Labels.Subject.Plural | lowerFirst}}</a>
+    <a class="button-secondary" href="/admin/settings/labels">Libellé {{.Labels.Subject.Singular | lowerFirst}}</a>
+    {{if .ShowIntegrations}}
+    <a class="button-secondary" href="/admin/integrations">Intégrations</a>
+    {{end}}
+  </div>
+</section>
+{{template "layout_end" .}}
+{{end}}
+{{define "main_class"}} site-main--wide{{end}}

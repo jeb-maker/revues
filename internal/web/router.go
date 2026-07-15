@@ -21,8 +21,8 @@ import (
 	home "github.com/jeb-maker/revues/internal/features/home"
 	mytasks "github.com/jeb-maker/revues/internal/features/mytasks"
 	"github.com/jeb-maker/revues/internal/features/organizations"
-	"github.com/jeb-maker/revues/internal/features/projects"
 	runs "github.com/jeb-maker/revues/internal/features/runs"
+	"github.com/jeb-maker/revues/internal/features/subjects"
 	"github.com/jeb-maker/revues/internal/integrations/webhooks"
 	"github.com/jeb-maker/revues/internal/notifications"
 	"github.com/jeb-maker/revues/internal/store"
@@ -133,7 +133,7 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, error) {
 		},
 		EncryptionKey: adminSMTPKey,
 	}
-	projectsHandler := &projects.Projects{Deps: projects.Deps{
+	subjectsHandler := &subjects.Subjects{Deps: subjects.Deps{
 		Templates:     tpl,
 		Store:         st,
 		SessionSecret: deps.Config.SessionSecret,
@@ -206,20 +206,17 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, error) {
 		r.Use(appmiddleware.RequireAuth)
 		r.Post("/org/switch", orgsHandler.Switch)
 		r.Get("/revues", runsHandler.List)
-		r.Get("/projects", projectsHandler.List)
-		r.Get("/projects/new", projectsHandler.NewForm)
-		r.Post("/projects", projectsHandler.Create)
-		r.Get("/projects/{id}", projectsHandler.Show)
-		r.Get("/projects/{id}/edit", projectsHandler.EditForm)
-		r.Post("/projects/{id}", projectsHandler.Update)
-		r.Post("/projects/{id}/archive", projectsHandler.Archive)
-		r.Post("/projects/{id}/members", projectsHandler.AddMember)
-		r.Post("/projects/{id}/members/remove", projectsHandler.RemoveMember)
-		r.Get("/projects/{id}/templates", checklistTemplates.List)
-		r.Post("/projects/{id}/runs", runsHandler.Create)
-		r.Get("/runs/new", runsHandler.WizardProjects)
-		r.Get("/runs/new/projects/{id}", runsHandler.WizardTemplates)
-		r.Get("/runs/new/projects/{id}/templates/{tid}", runsHandler.WizardLaunch)
+		r.Get("/subjects", subjectsHandler.List)
+		r.Get("/subjects/new", subjectsHandler.NewForm)
+		r.Post("/subjects", subjectsHandler.Create)
+		r.Get("/subjects/{id}", subjectsHandler.Show)
+		r.Get("/subjects/{id}/edit", subjectsHandler.EditForm)
+		r.Post("/subjects/{id}", subjectsHandler.Update)
+		r.Post("/subjects/{id}/archive", subjectsHandler.Archive)
+		r.Get("/subjects/{id}/modeles", checklistTemplates.List)
+		r.Post("/subjects/{id}/revues", runsHandler.Create)
+		r.Get("/revues/nouvelle", subjectsHandler.WizardNouvelle)
+		r.Post("/revues/nouvelle", subjectsHandler.WizardNouvelleCreate)
 		r.Get("/runs/{id}", runsHandler.Show)
 		r.Get("/runs/{id}/export.csv", runsHandler.ExportCSV)
 		r.Post("/runs/{id}/export/notion", runsHandler.ExportNotion)
@@ -247,17 +244,23 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, error) {
 	r.Group(func(r chi.Router) {
 		r.Use(appmiddleware.RequireAuth)
 		r.Use(appmiddleware.RequireOrgAdmin(st))
+		r.Get("/admin", orgsHandler.AdminHub)
 		r.Get("/admin/users", adminUsers.List)
 		r.Post("/admin/users", adminUsers.Add)
 		r.Post("/admin/users/remove", adminUsers.Remove)
+		r.Get("/admin/subjects", subjectsHandler.List)
+		r.Get("/admin/subjects/new", subjectsHandler.NewForm)
+		r.Post("/admin/subjects", subjectsHandler.Create)
+		r.Get("/admin/subjects/{id}/edit", subjectsHandler.EditForm)
+		r.Post("/admin/subjects/{id}", subjectsHandler.Update)
+		r.Post("/admin/subjects/{id}/archive", subjectsHandler.Archive)
+		r.Get("/admin/settings/labels", orgsHandler.SubjectLabelsShow)
+		r.Post("/admin/settings/labels", orgsHandler.SubjectLabelsSave)
 	})
 
 	r.Group(func(r chi.Router) {
 		r.Use(appmiddleware.RequireAuth)
 		r.Use(appmiddleware.RequireRole(auth.RoleAdmin))
-		r.Get("/admin", func(w http.ResponseWriter, r *http.Request) {
-			http.Redirect(w, r, "/admin/integrations", http.StatusFound)
-		})
 		r.Get("/admin/integrations", adminIntegrations.Show)
 		r.Get("/admin/settings/smtp", adminSMTP.Show)
 		r.Post("/admin/settings/smtp", adminSMTP.Save)

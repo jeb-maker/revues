@@ -22,13 +22,13 @@ type TestData struct {
 }
 
 type ReviewRef struct {
-	ID          int64  `json:"id"`
-	Title       string `json:"title"`
-	Status      string `json:"status"`
-	ProjectID   int64  `json:"project_id"`
-	ProjectName string `json:"project_name"`
-	ClosingNote string `json:"closing_note,omitempty"`
-	CompletedAt string `json:"completed_at,omitempty"`
+	ID           int64  `json:"id"`
+	DisplayLabel string `json:"display_label"`
+	Status       string `json:"status"`
+	SubjectID    int64  `json:"subject_id"`
+	SubjectName  string `json:"subject_name"`
+	ClosingNote  string `json:"closing_note,omitempty"`
+	CompletedAt  string `json:"completed_at,omitempty"`
 }
 
 type ItemRef struct {

@@ -127,7 +127,7 @@ func (h *AdminWebhooks) pageData(r *http.Request) templates.AdminWebhooksData {
 		PageData:   templates.ApplyPageMeta(h.PageData(r, ""), templates.BCAdminWebhooks()),
 		CanEncrypt: len(h.EncryptionKey) > 0,
 	}
-	data.ActiveTab = "admin"
+	data.ActiveTab = "org"
 	data.AdminSection = "webhooks"
 	return data
 }

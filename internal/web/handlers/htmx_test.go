@@ -2,14 +2,14 @@ package handlers_test
 
 import (
 	"context"
-	"database/sql"
-	"github.com/jeb-maker/revues/internal/testutil"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"strconv"
 	"strings"
 	"testing"
+
+	"github.com/jeb-maker/revues/internal/testutil"
 
 	"github.com/jeb-maker/revues/internal/auth"
 	runs "github.com/jeb-maker/revues/internal/features/runs"
@@ -37,7 +37,7 @@ func TestUpdateItem_HTMXReturnsFragment(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateChecklistTemplate(): %v", err)
 	}
-	run, err := st.CreateChecklistRun(ctx, project.ID, template.ID, "Revue", lead.ID, sql.NullString{})
+	run, err := st.CreateChecklistRun(ctx, project.ID, template.ID, lead.ID)
 	if err != nil {
 		t.Fatalf("CreateChecklistRun(): %v", err)
 	}
@@ -105,7 +105,7 @@ func TestUpdateItem_HTMXValidationError(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateChecklistTemplate(): %v", err)
 	}
-	run, err := st.CreateChecklistRun(ctx, project.ID, template.ID, "Revue", lead.ID, sql.NullString{})
+	run, err := st.CreateChecklistRun(ctx, project.ID, template.ID, lead.ID)
 	if err != nil {
 		t.Fatalf("CreateChecklistRun(): %v", err)
 	}

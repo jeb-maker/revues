@@ -47,6 +47,9 @@
       {{end}}
       {{template "site_nav" .}}
       <div class="header-account">
+        {{if and .CanManageOrgUsers (not .ShowOrganisationNav)}}
+        <a href="/admin" class="button button-ghost button-sm">Organisation</a>
+        {{end}}
         {{if .User.AvatarURL}}<img class="header-account__avatar" src="{{.User.AvatarURL}}" alt="" width="28" height="28">{{end}}
         <span class="header-account__name">{{if .User.DisplayName}}{{.User.DisplayName}}{{else}}{{.User.Login}}{{end}}</span>
         <span class="status-badge status-{{.User.Role}} role-badge">{{formatRole .User.Role}}</span>
@@ -64,7 +67,7 @@
   <div class="invite-banner" role="region" aria-label="Invitations en attente">
     {{range .PendingInvitations}}
     <p class="invite-banner__item">
-      Invitation à rejoindre <strong>{{.OrganizationName}}</strong>{{if .ProjectName.Valid}} pour le projet <strong>{{.ProjectName.String}}</strong>{{end}}
+      Invitation à rejoindre <strong>{{.OrganizationName}}</strong>
       <form method="post" action="/org/invitations/{{.ID}}/accept" class="inline-form">
         <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
         <button type="submit" class="button button-sm">Accepter</button>
@@ -103,7 +106,7 @@
   </main>
   <footer class="site-footer">
     <div class="site-footer__inner">
-      <p>Revues — gestion de check-lists pour revues de projets.</p>
+      <p>Revues — gestion de check-lists pour revues qualité.</p>
     </div>
   </footer>
   </div>

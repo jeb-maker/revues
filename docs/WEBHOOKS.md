@@ -11,13 +11,13 @@ Delivery: 3 retries, 5s timeout, anti-SSRF (block private/metadata IPs, https on
 ## review.completed
 
 ```json
-{"event_id":"uuid","event_type":"review.completed","occurred_at":"2026-06-28T12:00:00Z","data":{"review":{"id":42,"title":"…","status":"done","project_id":3,"project_name":"…","closing_note":"…","completed_at":"…"},"items":{"total":10,"ok":8,"nok":1,"na":1,"pending":0}}}
+{"event_id":"uuid","event_type":"review.completed","occurred_at":"2026-06-28T12:00:00Z","data":{"review":{"id":42,"title":"…","status":"done","subject_id":3,"subject_name":"…","closing_note":"…","completed_at":"…"},"items":{"total":10,"ok":8,"nok":1,"na":1,"pending":0}}}
 ```
 
 ## review.item.nok
 
 ```json
-{"event_id":"uuid","event_type":"review.item.nok","occurred_at":"…","data":{"review":{"id":42,"title":"…","status":"in_progress","project_id":3,"project_name":"…"},"item":{"id":101,"section":"…","label":"…","status":"nok","comment":"…"}}}
+{"event_id":"uuid","event_type":"review.item.nok","occurred_at":"…","data":{"review":{"id":42,"title":"…","status":"in_progress","subject_id":3,"subject_name":"…"},"item":{"id":101,"section":"…","label":"…","status":"nok","comment":"…"}}}
 ```
 
 ## webhook.test

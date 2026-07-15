@@ -13,7 +13,7 @@ func TestBuildRunCSV(t *testing.T) {
 
 	data, err := runs.BuildRunCSV([]store.RunExportRow{
 		{
-			ProjectName: "Alpha",
+			SubjectName: "Alpha",
 			RunTitle:    "Revue Q2",
 			RunDate:     "2025-06-01T10:00:00Z",
 			PointLabel:  "Backup OK",
@@ -22,7 +22,7 @@ func TestBuildRunCSV(t *testing.T) {
 			AuthorLogin: "marie",
 		},
 		{
-			ProjectName: "Alpha",
+			SubjectName: "Alpha",
 			RunTitle:    "Revue Q2",
 			RunDate:     "2025-06-01T10:00:00Z",
 			PointLabel:  "Logs",
@@ -37,7 +37,7 @@ func TestBuildRunCSV(t *testing.T) {
 
 	csv := string(data)
 	//nolint:misspell // French CSV column headers per issue #31
-	if !strings.HasPrefix(csv, "projet,revue,date,points,statuts,commentaires,auteur\n") {
+	if !strings.HasPrefix(csv, "subject,revue,date,points,statuts,commentaires,auteur\n") {
 		t.Fatalf("unexpected header: %q", csv)
 	}
 	if !strings.Contains(csv, "Alpha,Revue Q2,2025-06-01T10:00:00Z,Backup OK,ok,,marie") {

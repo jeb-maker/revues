@@ -69,7 +69,7 @@ func (h *AdminIntegrations) pageData(r *http.Request) templates.AdminIntegration
 	data := templates.AdminIntegrationsData{
 		PageData: templates.ApplyPageMeta(h.PageData(r, ""), templates.BCAdminIntegrations()),
 	}
-	data.ActiveTab = "admin"
+	data.ActiveTab = "org"
 	data.AdminSection = "integrations"
 	return data
 }

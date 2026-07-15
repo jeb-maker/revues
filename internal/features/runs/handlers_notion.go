@@ -3,6 +3,7 @@ package runs
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"net/http"
 	"strconv"
 
@@ -12,11 +13,17 @@ import (
 )
 
 func (h *Runs) ExportNotion(w http.ResponseWriter, r *http.Request) {
-	run, project, user, memberRole, ok := h.loadRun(w, r)
+	run, project, user, memberRole, isMember, ok := h.loadRun(w, r)
 	if !ok {
 		return
 	}
-	if !CanComplete(user, memberRole) {
+	orgRole, orgMember, err := h.Store.OrganizationMemberRole(r.Context(), project.OrganizationID, user.ID)
+	if err != nil {
+		slog.Error("caller org role", "err", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	if !CanComplete(user, orgRole, orgMember) {
 		http.NotFound(w, r)
 		return
 	}
@@ -25,7 +32,7 @@ func (h *Runs) ExportNotion(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if _, err := h.notionExportService().ExportRun(r.Context(), run.ID); err != nil {
-		h.renderRunShow(w, r, run, project, user, memberRole, viewtemplates.RunShowData{
+		h.renderRunShow(w, r, run, project, user, memberRole, isMember, viewtemplates.RunShowData{
 			NotionExportError: notionExportErrorMessage(err),
 		})
 		return

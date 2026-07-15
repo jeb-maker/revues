@@ -12,7 +12,7 @@
 <section class="card">
   <div class="list-toolbar">
     <form method="get" action="/mes-taches" class="list-toolbar__form filter-form filter-form--inline">
-      <input class="list-toolbar__search toolbar-control" type="search" id="filter-query" name="q" value="{{.FilterQuery}}" placeholder="Rechercher un projet, une revue, un point…" aria-label="Rechercher un projet, une revue ou un point">
+      <input class="list-toolbar__search toolbar-control" type="search" id="filter-query" name="q" value="{{.FilterQuery}}" placeholder="Rechercher un {{.Labels.Subject.Singular | lowerFirst}}, une revue, un point…" aria-label="Rechercher un {{.Labels.Subject.Singular | lowerFirst}}, une revue ou un point">
       {{if .FilterStatus}}<input type="hidden" name="status" value="{{.FilterStatus}}">{{end}}
       <button type="submit" class="button-secondary toolbar-control">Filtrer</button>
       {{if .HasActiveFilters}}<a href="/mes-taches" class="button-ghost toolbar-control">Effacer</a>{{end}}
@@ -28,13 +28,13 @@
   <div class="table-scroll">
   <table class="data-table table-sticky">
     <thead>
-      <tr><th scope="col">Projet</th><th scope="col">Revue</th><th scope="col">Point</th><th scope="col" class="data-table__col--center">Statut</th></tr>
+      <tr><th scope="col">{{.Labels.Subject.Singular}}</th><th scope="col">Revue</th><th scope="col">Point</th><th scope="col" class="data-table__col--center">Statut</th></tr>
     </thead>
     <tbody>
       {{if .Tasks}}
       {{range .Tasks}}
       <tr>
-        <td>{{.ProjectName}}</td>
+        <td>{{.SubjectName}}</td>
         <td><a href="/runs/{{.RunID}}">{{.RunTitle}}</a></td>
         <td><a href="/runs/{{.RunID}}/items/{{.ID}}">{{if .Section}}{{.Section}} — {{end}}{{.Label}}</a></td>
         <td class="data-table__col--center"><span class="status-badge status-{{.Status}}">{{formatItemStatus .Status}}</span></td>

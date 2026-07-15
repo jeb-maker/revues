@@ -35,9 +35,8 @@ var ErrInvalidRunStatus = errors.New("invalid run status transition")
 // ChecklistRun is a review execution instance.
 type ChecklistRun struct {
 	ID                int64
-	ProjectID         int64
+	SubjectID         int64
 	TemplateVersionID int64
-	Title             string
 	Status            string
 	DueDate           sql.NullString
 	ClosingNote       string
@@ -69,12 +68,12 @@ type RunItem struct {
 type AssignedRunItemSummary struct {
 	RunItem
 	RunTitle    string
-	ProjectID   int64
-	ProjectName string
+	SubjectID   int64
+	SubjectName string
 }
 
 // CreateChecklistRun inserts a run and snapshots template items in one transaction.
-func (s *Store) CreateChecklistRun(ctx context.Context, projectID, templateID int64, title string, createdBy int64, dueDate sql.NullString) (*ChecklistRun, error) {
+func (s *Store) CreateChecklistRun(ctx context.Context, subjectID, templateID int64, createdBy int64) (*ChecklistRun, error) {
 	template, err := s.ChecklistTemplateByID(ctx, templateID)
 	if err != nil {
 		return nil, err
@@ -82,9 +81,9 @@ func (s *Store) CreateChecklistRun(ctx context.Context, projectID, templateID in
 	if template.ArchivedAt.Valid {
 		return nil, ErrChecklistTemplateNotFound
 	}
-	matches, err := s.TemplateMatchesProject(ctx, projectID, templateID)
+	matches, err := s.TemplateMatchesSubject(ctx, subjectID, templateID)
 	if err != nil {
-		return nil, fmt.Errorf("template matches project: %w", err)
+		return nil, fmt.Errorf("template matches subject: %w", err)
 	}
 	if !matches {
 		return nil, ErrChecklistTemplateNotFound
@@ -107,9 +106,9 @@ func (s *Store) CreateChecklistRun(ctx context.Context, projectID, templateID in
 
 	res, err := tx.ExecContext(ctx, `
 		INSERT INTO checklist_runs (
-			project_id, template_version_id, title, status, due_date, created_by, created_at
-		) VALUES (?, ?, ?, ?, ?, ?, ?)
-	`, projectID, version.ID, title, RunStatusDraft, dueDate, createdBy, now)
+			subject_id, template_version_id, status, created_by, created_at
+		) VALUES (?, ?, ?, ?, ?)
+	`, subjectID, version.ID, RunStatusDraft, createdBy, now)
 	if err != nil {
 		return nil, fmt.Errorf("insert checklist run: %w", err)
 	}
@@ -142,12 +141,12 @@ func (s *Store) CreateChecklistRun(ctx context.Context, projectID, templateID in
 func (s *Store) RunByID(ctx context.Context, id int64) (*ChecklistRun, error) {
 	var run ChecklistRun
 	err := s.db.QueryRowContext(ctx, `
-		SELECT id, project_id, template_version_id, title, status, due_date, closing_note,
+		SELECT id, subject_id, template_version_id, status, due_date, closing_note,
 		       created_by, started_at, completed_at, notion_url, created_at
 		FROM checklist_runs
 		WHERE id = ?
 	`, id).Scan(
-		&run.ID, &run.ProjectID, &run.TemplateVersionID, &run.Title, &run.Status, &run.DueDate,
+		&run.ID, &run.SubjectID, &run.TemplateVersionID, &run.Status, &run.DueDate,
 		&run.ClosingNote, &run.CreatedBy, &run.StartedAt, &run.CompletedAt, &run.NotionURL, &run.CreatedAt,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
@@ -159,17 +158,17 @@ func (s *Store) RunByID(ctx context.Context, id int64) (*ChecklistRun, error) {
 	return &run, nil
 }
 
-// ListRunsByProject returns runs for a project ordered by recency.
-func (s *Store) ListRunsByProject(ctx context.Context, projectID int64) ([]ChecklistRun, error) {
+// ListRunsBySubject returns runs for a subject ordered by recency.
+func (s *Store) ListRunsBySubject(ctx context.Context, subjectID int64) ([]ChecklistRun, error) {
 	rows, err := s.db.QueryContext(ctx, `
-		SELECT id, project_id, template_version_id, title, status, due_date, closing_note,
+		SELECT id, subject_id, template_version_id, status, due_date, closing_note,
 		       created_by, started_at, completed_at, notion_url, created_at
 		FROM checklist_runs
-		WHERE project_id = ? AND status != ?
+		WHERE subject_id = ? AND status != ?
 		ORDER BY created_at DESC
-	`, projectID, RunStatusArchived)
+	`, subjectID, RunStatusArchived)
 	if err != nil {
-		return nil, fmt.Errorf("list runs by project: %w", err)
+		return nil, fmt.Errorf("list runs by subject: %w", err)
 	}
 	defer rows.Close()
 
@@ -177,7 +176,7 @@ func (s *Store) ListRunsByProject(ctx context.Context, projectID int64) ([]Check
 	for rows.Next() {
 		var run ChecklistRun
 		if err := rows.Scan(
-			&run.ID, &run.ProjectID, &run.TemplateVersionID, &run.Title, &run.Status, &run.DueDate,
+			&run.ID, &run.SubjectID, &run.TemplateVersionID, &run.Status, &run.DueDate,
 			&run.ClosingNote, &run.CreatedBy, &run.StartedAt, &run.CompletedAt, &run.NotionURL, &run.CreatedAt,
 		); err != nil {
 			return nil, fmt.Errorf("scan run: %w", err)
@@ -189,6 +188,11 @@ func (s *Store) ListRunsByProject(ctx context.Context, projectID int64) ([]Check
 	}
 
 	return runs, nil
+}
+
+// ListRunsByProject is a deprecated alias for ListRunsBySubject.
+func (s *Store) ListRunsByProject(ctx context.Context, subjectID int64) ([]ChecklistRun, error) {
+	return s.ListRunsBySubject(ctx, subjectID)
 }
 
 // ListRunItems returns ordered items for a run.
@@ -252,7 +256,7 @@ func (s *Store) StartRun(ctx context.Context, id int64) error {
 // ListRunsDueOn returns in-progress runs whose due_date starts with datePrefix (YYYY-MM-DD).
 func (s *Store) ListRunsDueOn(ctx context.Context, datePrefix string) ([]ChecklistRun, error) {
 	rows, err := s.db.QueryContext(ctx, `
-		SELECT id, project_id, template_version_id, title, status, due_date, closing_note,
+		SELECT id, subject_id, template_version_id, status, due_date, closing_note,
 		       created_by, started_at, completed_at, notion_url, created_at
 		FROM checklist_runs
 		WHERE status = ? AND due_date IS NOT NULL AND due_date LIKE ?
@@ -267,7 +271,7 @@ func (s *Store) ListRunsDueOn(ctx context.Context, datePrefix string) ([]Checkli
 	for rows.Next() {
 		var run ChecklistRun
 		if err := rows.Scan(
-			&run.ID, &run.ProjectID, &run.TemplateVersionID, &run.Title, &run.Status, &run.DueDate,
+			&run.ID, &run.SubjectID, &run.TemplateVersionID, &run.Status, &run.DueDate,
 			&run.ClosingNote, &run.CreatedBy, &run.StartedAt, &run.CompletedAt, &run.NotionURL, &run.CreatedAt,
 		); err != nil {
 			return nil, fmt.Errorf("scan run due on: %w", err)

@@ -13,8 +13,8 @@ import (
 
 	"github.com/jeb-maker/revues/internal/auth"
 	"github.com/jeb-maker/revues/internal/config"
-	"github.com/jeb-maker/revues/internal/features/projects"
 	runs "github.com/jeb-maker/revues/internal/features/runs"
+	"github.com/jeb-maker/revues/internal/orgctx"
 	"github.com/jeb-maker/revues/internal/store"
 	appweb "github.com/jeb-maker/revues/internal/web"
 )
@@ -90,34 +90,45 @@ func newRBACFixture(t *testing.T) *rbacFixture {
 		t.Fatalf("UpsertGitHubUser(outsider): %v", err)
 	}
 
-	project, err := st.CreateProject(ctx, "Alpha", "fixture project", lead.ID, nil)
+	teamOrg, err := st.CreateOrganization(ctx, "Team", "team-fixture", lead.ID)
+	if err != nil {
+		t.Fatalf("CreateOrganization(): %v", err)
+	}
+	for _, member := range []struct {
+		userID int64
+		role   string
+	}{
+		{admin.ID, store.OrgRoleMember},
+		{lead.ID, store.OrgRoleMember},
+		{contributor.ID, store.OrgRoleMember},
+		{viewer.ID, store.OrgRoleMember},
+		{reader.ID, store.OrgRoleMember},
+	} {
+		if err = st.AddOrganizationMember(ctx, teamOrg.ID, member.userID, member.role); err != nil {
+			t.Fatalf("AddOrganizationMember(%d): %v", member.userID, err)
+		}
+	}
+
+	teamCtx := orgctx.WithOrganizationID(ctx, teamOrg.ID)
+	project, err := st.CreateProject(teamCtx, "Alpha", "fixture project", lead.ID, nil)
 	if err != nil {
 		t.Fatalf("CreateProject(): %v", err)
 	}
-	if err = st.AddProjectMember(ctx, project.ID, contributor.ID, projects.LocalRoleContributor); err != nil {
-		t.Fatalf("AddProjectMember(contributor): %v", err)
-	}
-	if err = st.AddProjectMember(ctx, project.ID, viewer.ID, projects.LocalRoleViewer); err != nil {
-		t.Fatalf("AddProjectMember(viewer): %v", err)
-	}
-	if err = st.AddProjectMember(ctx, project.ID, reader.ID, projects.LocalRoleViewer); err != nil {
-		t.Fatalf("AddProjectMember(reader): %v", err)
-	}
 
-	template, _, err := st.CreateChecklistTemplate(ctx, "Modèle", lead.ID, nil, []store.TemplateItemInput{
+	template, _, err := st.CreateChecklistTemplate(teamCtx, "Modèle", lead.ID, nil, []store.TemplateItemInput{
 		{Label: "Point", Required: true},
 	})
 	if err != nil {
 		t.Fatalf("CreateChecklistTemplate(): %v", err)
 	}
-	run, err := st.CreateChecklistRun(ctx, project.ID, template.ID, "Revue", lead.ID, sql.NullString{})
+	run, err := st.CreateChecklistRun(teamCtx, project.ID, template.ID, lead.ID)
 	if err != nil {
 		t.Fatalf("CreateChecklistRun(): %v", err)
 	}
-	if err = st.StartRun(ctx, run.ID); err != nil {
+	if err = st.StartRun(teamCtx, run.ID); err != nil {
 		t.Fatalf("StartRun(): %v", err)
 	}
-	runItems, err := st.ListRunItems(ctx, run.ID)
+	runItems, err := st.ListRunItems(teamCtx, run.ID)
 	if err != nil || len(runItems) != 1 {
 		t.Fatalf("ListRunItems() = %v, %v", runItems, err)
 	}
@@ -129,20 +140,24 @@ func newRBACFixture(t *testing.T) *rbacFixture {
 		"contributor": contributor,
 		"viewer":      viewer,
 		"reader":      reader,
-		"outsider":    outsider,
 	} {
-		token, _, err := sessions.CreateLoginSession(ctx, user.ID, 0)
+		token, _, err := sessions.CreateLoginSession(ctx, user.ID, teamOrg.ID)
 		if err != nil {
 			t.Fatalf("CreateLoginSession(%s): %v", key, err)
 		}
 		tokens[key] = token
 	}
+	token, _, err := sessions.CreateLoginSession(ctx, outsider.ID, 0)
+	if err != nil {
+		t.Fatalf("CreateLoginSession(outsider): %v", err)
+	}
+	tokens["outsider"] = token
 
 	return &rbacFixture{
 		t:           t,
 		handler:     handler,
 		st:          st,
-		ctx:         ctx,
+		ctx:         teamCtx,
 		sessions:    sessions,
 		admin:       admin,
 		lead:        lead,
@@ -158,8 +173,8 @@ func newRBACFixture(t *testing.T) *rbacFixture {
 	}
 }
 
-func (f *rbacFixture) projectPath(suffix string) string {
-	return "/projects/" + strconv.FormatInt(f.project.ID, 10) + suffix
+func (f *rbacFixture) subjectPath(suffix string) string {
+	return "/subjects/" + strconv.FormatInt(f.project.ID, 10) + suffix
 }
 
 func (f *rbacFixture) runPath(suffix string) string {
@@ -226,6 +241,16 @@ func TestRBAC_Matrix(t *testing.T) {
 	outsiderItem.Set("status", runs.StatusOK)
 	outsiderItem.Set("comment", "")
 
+	readerLaunch := url.Values{}
+	readerLaunch.Set("csrf_token", f.csrf(f.tokens["reader"]))
+	readerLaunch.Set("template_id", strconv.FormatInt(f.template.ID, 10))
+	readerLaunch.Set("title", "Nouvelle revue")
+
+	readerItem := url.Values{}
+	readerItem.Set("csrf_token", f.csrf(f.tokens["reader"]))
+	readerItem.Set("status", runs.StatusOK)
+	readerItem.Set("comment", "")
+
 	tests := []struct {
 		name       string
 		method     string
@@ -234,35 +259,37 @@ func TestRBAC_Matrix(t *testing.T) {
 		body       string
 		wantStatus int
 	}{
-		// GET /projects — auth required; list filtered by membership (except admin).
-		{"GET /projects anonymous", http.MethodGet, "/projects", "", "", http.StatusFound},
-		{"GET /projects reader member", http.MethodGet, "/projects", "reader", "", http.StatusOK},
-		{"GET /projects outsider", http.MethodGet, "/projects", "outsider", "", http.StatusOK},
+		// GET /subjects — auth required; list filtered by membership (except admin).
+		{"GET /subjects anonymous", http.MethodGet, "/subjects", "", "", http.StatusFound},
+		{"GET /subjects reader member", http.MethodGet, "/subjects", "reader", "", http.StatusOK},
+		{"GET /subjects outsider", http.MethodGet, "/subjects", "outsider", "", http.StatusOK},
 
-		// GET /projects/{id} — auth + project member or admin.
-		{"GET /projects/{id} outsider", http.MethodGet, f.projectPath(""), "outsider", "", http.StatusNotFound},
-		{"GET /projects/{id} viewer", http.MethodGet, f.projectPath(""), "viewer", "", http.StatusOK},
-		{"GET /projects/{id} admin bypass", http.MethodGet, f.projectPath(""), "admin", "", http.StatusOK},
-		{"GET /projects/{id} reader member", http.MethodGet, f.projectPath(""), "reader", "", http.StatusOK},
+		// GET /subjects/{id} — auth + org member or admin.
+		{"GET /subjects/{id} outsider", http.MethodGet, f.subjectPath(""), "outsider", "", http.StatusNotFound},
+		{"GET /subjects/{id} viewer", http.MethodGet, f.subjectPath(""), "viewer", "", http.StatusOK},
+		{"GET /subjects/{id} admin bypass", http.MethodGet, f.subjectPath(""), "admin", "", http.StatusOK},
+		{"GET /subjects/{id} reader member", http.MethodGet, f.subjectPath(""), "reader", "", http.StatusOK},
 
-		// POST /projects/{id}/runs — auth + lead/contributor or admin.
-		{"POST /projects/{id}/runs viewer denied", http.MethodPost, f.projectPath("/runs"), "viewer", viewerLaunch.Encode(), http.StatusNotFound},
-		{"POST /projects/{id}/runs contributor ok", http.MethodPost, f.projectPath("/runs"), "contributor", contributorLaunch.Encode(), http.StatusSeeOther},
-		{"POST /projects/{id}/runs outsider denied", http.MethodPost, f.projectPath("/runs"), "outsider", outsiderLaunch.Encode(), http.StatusNotFound},
+		// POST /subjects/{id}/revues — auth + org member editor+ (v1).
+		{"POST /subjects/{id}/revues viewer ok", http.MethodPost, f.subjectPath("/revues"), "viewer", viewerLaunch.Encode(), http.StatusSeeOther},
+		{"POST /subjects/{id}/revues contributor ok", http.MethodPost, f.subjectPath("/revues"), "contributor", contributorLaunch.Encode(), http.StatusSeeOther},
+		{"POST /subjects/{id}/revues outsider denied", http.MethodPost, f.subjectPath("/revues"), "outsider", outsiderLaunch.Encode(), http.StatusNotFound},
+		{"POST /subjects/{id}/revues reader denied", http.MethodPost, f.subjectPath("/revues"), "reader", readerLaunch.Encode(), http.StatusNotFound},
 
-		// GET /runs/{id} — auth + project member or admin.
+		// GET /runs/{id} — auth + org member or admin.
 		{"GET /runs/{id} outsider denied", http.MethodGet, f.runPath(""), "outsider", "", http.StatusNotFound},
 		{"GET /runs/{id} viewer ok", http.MethodGet, f.runPath(""), "viewer", "", http.StatusOK},
 		{"GET /runs/{id} admin bypass", http.MethodGet, f.runPath(""), "admin", "", http.StatusOK},
 
-		// POST /runs/{id}/items/{itemId} — auth + contributor+ or admin (RBAC.md PATCH).
-		{"POST run item viewer denied", http.MethodPost, f.runItemPath(), "viewer", viewerItem.Encode(), http.StatusNotFound},
+		// POST /runs/{id}/items/{itemId} — auth + org member editor+ (v1).
+		{"POST run item viewer ok", http.MethodPost, f.runItemPath(), "viewer", viewerItem.Encode(), http.StatusSeeOther},
 		{"POST run item contributor ok", http.MethodPost, f.runItemPath(), "contributor", contributorItem.Encode(), http.StatusSeeOther},
 		{"POST run item outsider denied", http.MethodPost, f.runItemPath(), "outsider", outsiderItem.Encode(), http.StatusNotFound},
+		{"POST run item reader denied", http.MethodPost, f.runItemPath(), "reader", readerItem.Encode(), http.StatusNotFound},
 
-		// POST /admin/* — auth + admin (except /admin/users → org admin).
+		// POST /admin/* — auth + org admin (except /admin/integrations → global admin).
 		{"GET /admin editor denied", http.MethodGet, "/admin", "lead", "", http.StatusForbidden},
-		{"GET /admin admin redirect", http.MethodGet, "/admin", "admin", "", http.StatusFound},
+		{"GET /admin admin ok", http.MethodGet, "/admin", "admin", "", http.StatusOK},
 		{"GET /admin/users editor denied", http.MethodGet, "/admin/users", "lead", "", http.StatusForbidden},
 		{"GET /admin/users reader denied", http.MethodGet, "/admin/users", "reader", "", http.StatusForbidden},
 		{"GET /admin/users admin ok", http.MethodGet, "/admin/users", "admin", "", http.StatusOK},
@@ -281,8 +308,8 @@ func TestRBAC_Matrix(t *testing.T) {
 	}
 }
 
-// TestIDOR_CrossProject ensures user A cannot access project B resources (404, not 403).
-func TestIDOR_CrossProject(t *testing.T) {
+// TestIDOR_CrossSubject ensures user A cannot access subject B resources (404, not 403).
+func TestIDOR_CrossSubject(t *testing.T) {
 	f := newRBACFixture(t)
 
 	aliceProject, err := f.st.CreateProject(f.ctx, "Secret", "hidden", f.lead.ID, nil)
@@ -295,7 +322,7 @@ func TestIDOR_CrossProject(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateChecklistTemplate(): %v", err)
 	}
-	run, err := f.st.CreateChecklistRun(f.ctx, aliceProject.ID, template.ID, "Revue secrète", f.lead.ID, sql.NullString{})
+	run, err := f.st.CreateChecklistRun(f.ctx, aliceProject.ID, template.ID, f.lead.ID)
 	if err != nil {
 		t.Fatalf("CreateChecklistRun(): %v", err)
 	}
@@ -308,7 +335,7 @@ func TestIDOR_CrossProject(t *testing.T) {
 	}
 
 	bobToken := f.tokens["outsider"]
-	projectPath := "/projects/" + strconv.FormatInt(aliceProject.ID, 10)
+	subjectPath := "/subjects/" + strconv.FormatInt(aliceProject.ID, 10)
 	runPath := "/runs/" + strconv.FormatInt(run.ID, 10)
 	itemPath := runPath + "/items/" + strconv.FormatInt(runItems[0].ID, 10)
 
@@ -323,7 +350,7 @@ func TestIDOR_CrossProject(t *testing.T) {
 		body       string
 		wantStatus int
 	}{
-		{"GET /projects/{id}", http.MethodGet, projectPath, "", http.StatusNotFound},
+		{"GET /subjects/{id}", http.MethodGet, subjectPath, "", http.StatusNotFound},
 		{"GET /runs/{id}", http.MethodGet, runPath, "", http.StatusNotFound},
 		{"POST /runs/{id}/items/{itemId}", http.MethodPost, itemPath, itemForm.Encode(), http.StatusNotFound},
 	}
@@ -361,7 +388,7 @@ func TestCSRF_MissingToken(t *testing.T) {
 		body     string
 	}{
 		{"POST /logout", http.MethodPost, "/logout", "reader", ""},
-		{"POST /projects/{id}/runs", http.MethodPost, f.projectPath("/runs"), "contributor", launchForm.Encode()},
+		{"POST /subjects/{id}/revues", http.MethodPost, f.subjectPath("/revues"), "contributor", launchForm.Encode()},
 		{"POST /runs/{id}/items/{itemId}", http.MethodPost, f.runItemPath(), "contributor", itemForm.Encode()},
 		{"POST /admin/users", http.MethodPost, "/admin/users", "admin", adminForm.Encode()},
 	}

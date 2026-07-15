@@ -17,11 +17,11 @@ import (
 
 // LinkJiraItem associates a Jira issue with a run item.
 func (h *Runs) LinkJiraItem(w http.ResponseWriter, r *http.Request) {
-	run, project, user, memberRole, ok := h.loadRun(w, r)
+	run, project, user, memberRole, isMember, ok := h.loadRun(w, r)
 	if !ok {
 		return
 	}
-	if !CanLinkJira(user, memberRole) {
+	if !CanLinkJira(user, isMember) {
 		http.NotFound(w, r)
 		return
 	}
@@ -103,7 +103,7 @@ func (h *Runs) loadJiraLinksForItems(ctx context.Context, runItems []store.RunIt
 	return links
 }
 
-func (h *Runs) renderRunItemShow(w http.ResponseWriter, r *http.Request, run *store.ChecklistRun, project *store.Project, user *store.User, memberRole string, itemID int64, extra viewtemplates.RunItemShowData) {
+func (h *Runs) renderRunItemShow(w http.ResponseWriter, r *http.Request, run *store.ChecklistRun, subject *store.Subject, user *store.User, memberRole string, itemID int64, extra viewtemplates.RunItemShowData) {
 	item, err := h.Store.RunItemByID(r.Context(), run.ID, itemID)
 	if errors.Is(err, store.ErrRunItemNotFound) {
 		http.NotFound(w, r)
@@ -111,6 +111,13 @@ func (h *Runs) renderRunItemShow(w http.ResponseWriter, r *http.Request, run *st
 	}
 	if err != nil {
 		slog.Error("load run item", "err", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	_, isMember, err := h.Store.MemberRole(r.Context(), subject.ID, user.ID)
+	if err != nil {
+		slog.Error("member role", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
@@ -131,20 +138,21 @@ func (h *Runs) renderRunItemShow(w http.ResponseWriter, r *http.Request, run *st
 	}
 
 	pd := h.PageData(r, item.Label)
-	pd.Breadcrumbs = viewtemplates.BCRunItemShow(run.Title, run.ID, item.Label)
+	pd.Breadcrumbs = viewtemplates.BCRunItemShow(h.runDisplayLabel(r.Context(), run, subject), run.ID, item.Label)
 	pd.ActiveTab = "runs"
 	data := viewtemplates.RunItemShowData{
 		PageData:        pd,
-		Project:         project,
+		Subject:         subject,
 		Run:             run,
+		RunDisplayLabel: h.runDisplayLabel(r.Context(), run, subject),
 		Item:            item,
 		Events:          events,
 		JiraLink:        jiraLink,
 		Attachment:      attachment,
 		MemberRole:      memberRole,
-		CanCheck:        CanUpdate(user, memberRole),
-		CanUpload:       CanUpdate(user, memberRole) && run.Status == store.RunStatusInProgress,
-		CanLinkJira:     CanLinkJira(user, memberRole),
+		CanCheck:        CanUpdate(user, isMember),
+		CanUpload:       CanUpdate(user, isMember) && run.Status == store.RunStatusInProgress,
+		CanLinkJira:     CanLinkJira(user, isMember),
 		JiraConfigured:  h.jiraConfigured(r.Context()),
 		Message:         extra.Message,
 		LinkError:       extra.LinkError,
@@ -160,8 +168,8 @@ func (h *Runs) renderRunItemShow(w http.ResponseWriter, r *http.Request, run *st
 	}
 	if item.Status == store.RunItemStatusNOK && data.JiraLink == nil && data.CanLinkJira && data.JiraConfigured && !data.ShowJiraCreate {
 		data.ShowJiraCreate = true
-		itemURL := h.jiraRunItemContext(r, run, project, itemID).ItemURL
-		data.JiraCreateTitle, data.JiraCreateDesc = h.jiraCreateDefaults(r.Context(), run, project, item, itemURL)
+		itemURL := h.jiraRunItemContext(r, run, subject, itemID).ItemURL
+		data.JiraCreateTitle, data.JiraCreateDesc = h.jiraCreateDefaults(r.Context(), run, subject, item, itemURL)
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")

@@ -79,7 +79,7 @@ func TestResolveLoginRole(t *testing.T) {
 		if err != nil {
 			t.Fatalf("OrganizationBySlug(): %v", err)
 		}
-		if err = st.CreateOrganizationInvitation(ctx, "invited@example.com", defaultOrg.ID, 0, ""); err != nil {
+		if err = st.CreateOrganizationInvitation(ctx, "invited@example.com", defaultOrg.ID); err != nil {
 			t.Fatalf("CreateOrganizationInvitation(): %v", err)
 		}
 		role, err := st.ResolveLoginRole(ctx, "invited@example.com", "")

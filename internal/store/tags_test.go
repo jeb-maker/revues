@@ -16,7 +16,7 @@ func TestNormalizeTags(t *testing.T) {
 	}
 }
 
-func TestTemplateMatchesProject_Intersection(t *testing.T) {
+func TestTemplateMatchesSubject_Intersection(t *testing.T) {
 	ctx := context.Background()
 	db := openMemoryDB(t)
 	st := store.New(db)
@@ -26,9 +26,9 @@ func TestTemplateMatchesProject_Intersection(t *testing.T) {
 	if err != nil {
 		t.Fatalf("UpsertGitHubUser(): %v", err)
 	}
-	project, err := st.CreateProject(ctx, "P", "", lead.ID, []string{"k8s", "frontend"})
+	subject, err := st.CreateSubject(ctx, "P", "", lead.ID, []string{"k8s", "frontend"})
 	if err != nil {
-		t.Fatalf("CreateProject(): %v", err)
+		t.Fatalf("CreateSubject(): %v", err)
 	}
 
 	globalTpl, _, err := st.CreateChecklistTemplate(ctx, "Global", lead.ID, nil, []store.TemplateItemInput{{Label: "A"}})
@@ -46,12 +46,12 @@ func TestTemplateMatchesProject_Intersection(t *testing.T) {
 
 	assertMatch := func(templateID int64, want bool) {
 		t.Helper()
-		ok, matchErr := st.TemplateMatchesProject(ctx, project.ID, templateID)
+		ok, matchErr := st.TemplateMatchesSubject(ctx, subject.ID, templateID)
 		if matchErr != nil {
-			t.Fatalf("TemplateMatchesProject(%d): %v", templateID, matchErr)
+			t.Fatalf("TemplateMatchesSubject(%d): %v", templateID, matchErr)
 		}
 		if ok != want {
-			t.Fatalf("TemplateMatchesProject(%d) = %v, want %v", templateID, ok, want)
+			t.Fatalf("TemplateMatchesSubject(%d) = %v, want %v", templateID, ok, want)
 		}
 	}
 
@@ -59,7 +59,7 @@ func TestTemplateMatchesProject_Intersection(t *testing.T) {
 	assertMatch(matchTpl.ID, true)
 	assertMatch(otherTpl.ID, false)
 
-	list, err := st.ListChecklistTemplates(ctx, project.ID)
+	list, err := st.ListChecklistTemplates(ctx, subject.ID)
 	if err != nil {
 		t.Fatalf("ListChecklistTemplates(): %v", err)
 	}
@@ -68,16 +68,16 @@ func TestTemplateMatchesProject_Intersection(t *testing.T) {
 	}
 }
 
-func TestTemplateMatchesProject_ProjectWithoutTags(t *testing.T) {
+func TestTemplateMatchesSubject_SubjectWithoutDomains(t *testing.T) {
 	ctx := context.Background()
 	db := openMemoryDB(t)
 	st := store.New(db)
 	ctx = defaultOrgCtx(ctx, st)
 
 	lead, _ := st.UpsertGitHubUser(ctx, 2, "lead", "lead@example.com", "Lead", "", auth.RoleEditor)
-	project, err := st.CreateProject(ctx, "P", "", lead.ID, nil)
+	subject, err := st.CreateSubject(ctx, "P", "", lead.ID, nil)
 	if err != nil {
-		t.Fatalf("CreateProject(): %v", err)
+		t.Fatalf("CreateSubject(): %v", err)
 	}
 
 	globalTpl, _, err := st.CreateChecklistTemplate(ctx, "Global", lead.ID, nil, nil)
@@ -89,11 +89,11 @@ func TestTemplateMatchesProject_ProjectWithoutTags(t *testing.T) {
 		t.Fatalf("CreateChecklistTemplate(tagged): %v", err)
 	}
 
-	ok, err := st.TemplateMatchesProject(ctx, project.ID, globalTpl.ID)
+	ok, err := st.TemplateMatchesSubject(ctx, subject.ID, globalTpl.ID)
 	if err != nil || !ok {
 		t.Fatalf("global match = %v, %v", ok, err)
 	}
-	ok, err = st.TemplateMatchesProject(ctx, project.ID, taggedTpl.ID)
+	ok, err = st.TemplateMatchesSubject(ctx, subject.ID, taggedTpl.ID)
 	if err != nil || ok {
 		t.Fatalf("tagged match = %v, %v; want false", ok, err)
 	}

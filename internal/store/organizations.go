@@ -23,17 +23,46 @@ const (
 	OrgRoleOwner  = "owner"
 	OrgRoleAdmin  = "admin"
 	OrgRoleMember = "member"
+
+	UISubjectLabelSujet  = "sujet"
+	UISubjectLabelCible  = "cible"
+	UISubjectLabelEntite = "entite"
+	UISubjectLabelAsset  = "asset"
 )
 
-var organizationSlugPattern = regexp.MustCompile(`^[a-z0-9]+(?:-[a-z0-9]+)*$`)
+// ErrInvalidUISubjectLabel is returned when a subject label preset is unknown.
+var ErrInvalidUISubjectLabel = errors.New("invalid ui subject label")
 
-// Organization is a multi-tenant container above projects.
+var (
+	organizationSlugPattern = regexp.MustCompile(`^[a-z0-9]+(?:-[a-z0-9]+)*$`)
+	validUISubjectLabels    = map[string]struct{}{
+		UISubjectLabelSujet:  {},
+		UISubjectLabelCible:  {},
+		UISubjectLabelEntite: {},
+		UISubjectLabelAsset:  {},
+	}
+)
+
+// Organization is a multi-tenant container above subjects.
 type Organization struct {
-	ID        int64
-	Name      string
-	Slug      string
-	CreatedAt string
-	CreatedBy sql.NullInt64
+	ID             int64
+	Name           string
+	Slug           string
+	UISubjectLabel string
+	CreatedAt      string
+	CreatedBy      sql.NullInt64
+}
+
+// NormalizeUISubjectLabel validates and returns a known subject label preset.
+func NormalizeUISubjectLabel(label string) (string, error) {
+	label = strings.TrimSpace(strings.ToLower(label))
+	if label == "" {
+		return UISubjectLabelSujet, nil
+	}
+	if _, ok := validUISubjectLabels[label]; !ok {
+		return "", ErrInvalidUISubjectLabel
+	}
+	return label, nil
 }
 
 // OrganizationMembership links a user to an organization with a role.
@@ -114,9 +143,9 @@ func (s *Store) OrganizationBySlug(ctx context.Context, slug string) (*Organizat
 
 	var org Organization
 	err = s.db.QueryRowContext(ctx, `
-		SELECT id, name, slug, created_at, created_by
+		SELECT id, name, slug, ui_subject_label, created_at, created_by
 		FROM organizations WHERE slug = ?
-	`, slug).Scan(&org.ID, &org.Name, &org.Slug, &org.CreatedAt, &org.CreatedBy)
+	`, slug).Scan(&org.ID, &org.Name, &org.Slug, &org.UISubjectLabel, &org.CreatedAt, &org.CreatedBy)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrOrganizationNotFound
 	}
@@ -131,9 +160,9 @@ func (s *Store) OrganizationBySlug(ctx context.Context, slug string) (*Organizat
 func (s *Store) OrganizationByID(ctx context.Context, id int64) (*Organization, error) {
 	var org Organization
 	err := s.db.QueryRowContext(ctx, `
-		SELECT id, name, slug, created_at, created_by
+		SELECT id, name, slug, ui_subject_label, created_at, created_by
 		FROM organizations WHERE id = ?
-	`, id).Scan(&org.ID, &org.Name, &org.Slug, &org.CreatedAt, &org.CreatedBy)
+	`, id).Scan(&org.ID, &org.Name, &org.Slug, &org.UISubjectLabel, &org.CreatedAt, &org.CreatedBy)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrOrganizationNotFound
 	}
@@ -142,6 +171,28 @@ func (s *Store) OrganizationByID(ctx context.Context, id int64) (*Organization, 
 	}
 
 	return &org, nil
+}
+
+// UpdateOrganizationUISubjectLabel sets the org-wide subject UI label preset.
+func (s *Store) UpdateOrganizationUISubjectLabel(ctx context.Context, organizationID int64, label string) error {
+	normalized, err := NormalizeUISubjectLabel(label)
+	if err != nil {
+		return err
+	}
+	res, err := s.db.ExecContext(ctx, `
+		UPDATE organizations SET ui_subject_label = ? WHERE id = ?
+	`, normalized, organizationID)
+	if err != nil {
+		return fmt.Errorf("update organization ui subject label: %w", err)
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("update organization ui subject label rows: %w", err)
+	}
+	if n == 0 {
+		return ErrOrganizationNotFound
+	}
+	return nil
 }
 
 // AddOrganizationMember assigns a user to an organization.
@@ -197,7 +248,7 @@ func (s *Store) OrganizationMemberRole(ctx context.Context, organizationID, user
 // ListUserOrganizations returns organizations a user belongs to.
 func (s *Store) ListUserOrganizations(ctx context.Context, userID int64) ([]OrganizationMembership, error) {
 	rows, err := s.db.QueryContext(ctx, `
-		SELECT o.id, o.name, o.slug, o.created_at, o.created_by, om.role, om.created_at
+		SELECT o.id, o.name, o.slug, o.ui_subject_label, o.created_at, o.created_by, om.role, om.created_at
 		FROM organization_members om
 		INNER JOIN organizations o ON o.id = om.organization_id
 		WHERE om.user_id = ?
@@ -215,6 +266,7 @@ func (s *Store) ListUserOrganizations(ctx context.Context, userID int64) ([]Orga
 			&m.Organization.ID,
 			&m.Organization.Name,
 			&m.Organization.Slug,
+			&m.Organization.UISubjectLabel,
 			&m.Organization.CreatedAt,
 			&m.Organization.CreatedBy,
 			&m.Role,
@@ -241,6 +293,18 @@ func (s *Store) CountUserOrganizations(ctx context.Context, userID int64) (int, 
 		return 0, fmt.Errorf("count user organizations: %w", err)
 	}
 
+	return count, nil
+}
+
+// CountOrganizationMembers returns how many users belong to an organization.
+func (s *Store) CountOrganizationMembers(ctx context.Context, organizationID int64) (int, error) {
+	var count int
+	err := s.db.QueryRowContext(ctx, `
+		SELECT COUNT(*) FROM organization_members WHERE organization_id = ?
+	`, organizationID).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("count organization members: %w", err)
+	}
 	return count, nil
 }
 

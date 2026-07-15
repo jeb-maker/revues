@@ -1,6 +1,6 @@
 # Revues — Plan produit & technique
 
-Application de gestion de check-lists pour revues de projets.
+Application de gestion de check-lists pour revues qualité.
 
 **Trois piliers** : simple d'utilisation · éco-conçue · riche fonctionnellement.
 
@@ -52,7 +52,7 @@ revues/
   cmd/revues/main.go
   internal/
     auth/           # OAuth GitHub, sessions, RBAC
-    projects/       # projets + membres
+    subjects/       # sujets (choses revues)
     templates/      # modèles versionnés
     runs/           # exécutions + snapshot
     items/          # statuts, commentaires, assignations
@@ -74,9 +74,10 @@ revues/
 ```mermaid
 erDiagram
     users ||--o{ checklist_runs : creates
-    projects ||--o{ project_members : has
-    users ||--o{ project_members : member
-    projects ||--o{ checklist_runs : has
+    subjects ||--o{ checklist_runs : has
+    subjects ||--o{ subject_domains : has
+    subjects ||--o{ subject_tags : labeled
+    checklist_templates ||--o{ template_domains : has
     checklist_templates ||--o{ template_versions : versioned
     template_versions ||--o{ template_items : contains
     template_versions ||--o{ checklist_runs : frozen_at
@@ -88,7 +89,7 @@ erDiagram
 ### Tables principales
 
 - `users` — identité GitHub, rôle global (`admin` / `editor` / `reader`)
-- `projects` + `project_members` — projets et rôles locaux
+- `subjects` + `subject_domains` + `subject_tags` — sujets revus, domaines (matching modèles) et étiquettes descriptives
 - `checklist_templates` → `template_versions` → `template_items` — modèles versionnés
 - `checklist_runs` → `run_items` — exécutions (snapshot immuable), champ `due_date` optionnel
 - `run_item_events` — audit des changements de statut

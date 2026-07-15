@@ -32,7 +32,7 @@ type emailMessage struct {
 	body    string
 }
 
-// NotifyRunCompleted emails all project members when a review is completed.
+// NotifyRunCompleted emails org members when a review is completed.
 func (s *Service) NotifyRunCompleted(ctx context.Context, runID int64) {
 	if s == nil || s.Store == nil || s.Settings == nil {
 		return
@@ -44,13 +44,19 @@ func (s *Service) NotifyRunCompleted(ctx context.Context, runID int64) {
 		return
 	}
 
-	project, err := s.Store.ProjectByID(ctx, run.ProjectID)
+	subject, err := s.Store.SubjectByID(ctx, run.SubjectID)
 	if err != nil {
-		slog.Error("notification run completed load project", "run_id", runID, "err", err)
+		slog.Error("notification run completed load subject", "run_id", runID, "err", err)
 		return
 	}
 
-	members, err := s.Store.ListProjectMembers(ctx, run.ProjectID)
+	displayLabel, err := s.Store.RunDisplayLabelForRun(ctx, run)
+	if err != nil {
+		slog.Error("notification run completed display label", "run_id", runID, "err", err)
+		return
+	}
+
+	members, err := s.Store.ListSubjectMembers(ctx, run.SubjectID)
 	if err != nil {
 		slog.Error("notification run completed list members", "run_id", runID, "err", err)
 		return
@@ -68,12 +74,12 @@ func (s *Service) NotifyRunCompleted(ctx context.Context, runID int64) {
 		}
 		seen[to] = struct{}{}
 
-		subject := fmt.Sprintf("Revue terminée : %s", run.Title)
+		subjectLine := fmt.Sprintf("Revue terminée : %s", displayLabel)
 		body := fmt.Sprintf(
-			"La revue « %s » du projet « %s » est terminée.\n\n%s/runs/%d\n",
-			run.Title, project.Name, strings.TrimRight(s.BaseURL, "/"), run.ID,
+			"La revue « %s » du sujet « %s » est terminée.\n\n%s/runs/%d\n",
+			displayLabel, subject.Name, strings.TrimRight(s.BaseURL, "/"), run.ID,
 		)
-		messages = append(messages, emailMessage{to: to, subject: subject, body: body})
+		messages = append(messages, emailMessage{to: to, subject: subjectLine, body: body})
 	}
 
 	s.dispatch(ctx, messages)
@@ -110,18 +116,24 @@ func (s *Service) NotifyItemAssigned(ctx context.Context, runID, itemID int64) {
 		return
 	}
 
-	project, err := s.Store.ProjectByID(ctx, run.ProjectID)
+	subjectEntity, err := s.Store.SubjectByID(ctx, run.SubjectID)
 	if err != nil {
-		slog.Error("notification item assigned load project", "run_id", runID, "item_id", itemID, "err", err)
+		slog.Error("notification item assigned load subject", "run_id", runID, "item_id", itemID, "err", err)
 		return
 	}
 
-	subject := fmt.Sprintf("Point assigné : %s", item.Label)
+	displayLabel, err := s.Store.RunDisplayLabelForRun(ctx, run)
+	if err != nil {
+		slog.Error("notification item assigned display label", "run_id", runID, "item_id", itemID, "err", err)
+		return
+	}
+
+	subjectLine := fmt.Sprintf("Point assigné : %s", item.Label)
 	body := fmt.Sprintf(
-		"Le point « %s » de la revue « %s » (projet « %s ») vous a été assigné.\n\n%s/runs/%d/items/%d\n",
-		item.Label, run.Title, project.Name, strings.TrimRight(s.BaseURL, "/"), run.ID, item.ID,
+		"Le point « %s » de la revue « %s » (sujet « %s ») vous a été assigné.\n\n%s/runs/%d/items/%d\n",
+		item.Label, displayLabel, subjectEntity.Name, strings.TrimRight(s.BaseURL, "/"), run.ID, item.ID,
 	)
-	s.dispatch(ctx, []emailMessage{{to: to, subject: subject, body: body}})
+	s.dispatch(ctx, []emailMessage{{to: to, subject: subjectLine, body: body}})
 }
 
 // SendDueReminders emails run responsibles for reviews due tomorrow (J-1).
@@ -137,12 +149,12 @@ func (s *Service) SendDueReminders(ctx context.Context) error {
 	}
 
 	for _, run := range runs {
-		project, err := s.Store.ProjectByIDUnscoped(ctx, run.ProjectID)
+		subjectEntity, err := s.Store.SubjectByIDUnscoped(ctx, run.SubjectID)
 		if err != nil {
-			slog.Error("notification due reminder load project", "run_id", run.ID, "err", err)
+			slog.Error("notification due reminder load subject", "run_id", run.ID, "err", err)
 			continue
 		}
-		runCtx := orgctx.WithOrganizationID(ctx, project.OrganizationID)
+		runCtx := orgctx.WithOrganizationID(ctx, subjectEntity.OrganizationID)
 		s.sendDueReminder(runCtx, &run, tomorrow)
 	}
 	return nil
@@ -154,9 +166,15 @@ func (s *Service) sendDueReminder(ctx context.Context, run *store.ChecklistRun, 
 		return
 	}
 
-	project, err := s.Store.ProjectByID(ctx, run.ProjectID)
+	subjectEntity, err := s.Store.SubjectByID(ctx, run.SubjectID)
 	if err != nil {
-		slog.Error("notification due reminder load project", "run_id", run.ID, "err", err)
+		slog.Error("notification due reminder load subject", "run_id", run.ID, "err", err)
+		return
+	}
+
+	displayLabel, err := s.Store.RunDisplayLabelForRun(ctx, run)
+	if err != nil {
+		slog.Error("notification due reminder display label", "run_id", run.ID, "err", err)
 		return
 	}
 
@@ -165,12 +183,12 @@ func (s *Service) sendDueReminder(ctx context.Context, run *store.ChecklistRun, 
 		dueLabel = run.DueDate.String
 	}
 
-	subject := fmt.Sprintf("Échéance demain : %s", run.Title)
+	subjectLine := fmt.Sprintf("Échéance demain : %s", displayLabel)
 	body := fmt.Sprintf(
-		"La revue « %s » du projet « %s » arrive à échéance demain (%s).\n\n%s/runs/%d\n",
-		run.Title, project.Name, dueLabel, strings.TrimRight(s.BaseURL, "/"), run.ID,
+		"La revue « %s » du sujet « %s » arrive à échéance demain (%s).\n\n%s/runs/%d\n",
+		displayLabel, subjectEntity.Name, dueLabel, strings.TrimRight(s.BaseURL, "/"), run.ID,
 	)
-	s.dispatch(ctx, []emailMessage{{to: to, subject: subject, body: body}})
+	s.dispatch(ctx, []emailMessage{{to: to, subject: subjectLine, body: body}})
 }
 
 func (s *Service) runResponsibleEmail(ctx context.Context, run *store.ChecklistRun) string {
@@ -183,7 +201,7 @@ func (s *Service) runResponsibleEmail(ctx context.Context, run *store.ChecklistR
 		}
 	}
 
-	members, err := s.Store.ListProjectMembers(ctx, run.ProjectID)
+	members, err := s.Store.ListSubjectMembers(ctx, run.SubjectID)
 	if err != nil {
 		slog.Error("notification responsible list members", "run_id", run.ID, "err", err)
 		return ""

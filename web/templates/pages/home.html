@@ -1,10 +1,10 @@
 {{define "home"}}
 {{template "layout_start" .}}
-<p>Application de gestion de check-lists pour revues de projets.</p>
+<p>Application de gestion de check-lists pour revues qualité.</p>
 {{if .User}}
 <div class="user-bar">
   <p>Connecté en tant que {{.User.Login}} ({{.User.Role}}).</p>
-  <p><a href="/projects">Projets</a> · <a href="/mes-taches">Mes tâches</a>{{if eq .User.Role "admin"}} · <a href="/admin/users">Admin</a>{{end}}</p>
+  <p><a href="/subjects">{{.Labels.Subject.Plural}}</a> · <a href="/mes-taches">Mes tâches</a>{{if eq .User.Role "admin"}} · <a href="/admin/users">Organisation</a>{{end}}</p>
   <form method="post" action="/logout">
     <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
     <button type="submit">Se déconnecter</button>

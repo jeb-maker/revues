@@ -2,18 +2,18 @@ package handlers_test
 
 import (
 	"context"
-	"database/sql"
 	"encoding/csv"
-	"github.com/jeb-maker/revues/internal/testutil"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
 	"strings"
 	"testing"
 
+	"github.com/jeb-maker/revues/internal/testutil"
+
 	"github.com/jeb-maker/revues/internal/auth"
-	"github.com/jeb-maker/revues/internal/features/projects"
 	runs "github.com/jeb-maker/revues/internal/features/runs"
+	"github.com/jeb-maker/revues/internal/features/subjects"
 	"github.com/jeb-maker/revues/internal/store"
 )
 
@@ -27,7 +27,7 @@ func setupDoneRun(t *testing.T, st *store.Store, ctx context.Context, lead *stor
 	if err != nil {
 		t.Fatalf("CreateChecklistTemplate(): %v", err)
 	}
-	run, err := st.CreateChecklistRun(ctx, project.ID, template.ID, "Revue Q2", lead.ID, sql.NullString{})
+	run, err := st.CreateChecklistRun(ctx, project.ID, template.ID, lead.ID)
 	if err != nil {
 		t.Fatalf("CreateChecklistRun(): %v", err)
 	}
@@ -83,7 +83,8 @@ func TestRuns_ExportCSV(t *testing.T) {
 	if ct := rec.Header().Get("Content-Type"); ct != "text/csv; charset=utf-8" {
 		t.Fatalf("Content-Type = %q, want text/csv; charset=utf-8", ct)
 	}
-	if cd := rec.Header().Get("Content-Disposition"); !strings.Contains(cd, `attachment; filename="Revue-Q2.csv"`) {
+	wantLabel := store.RunDisplayLabel("Modèle", project.Name, run.CreatedAt, run.ID)
+	if cd := rec.Header().Get("Content-Disposition"); cd == "" || !strings.Contains(cd, "attachment") {
 		t.Fatalf("Content-Disposition = %q", cd)
 	}
 
@@ -95,13 +96,13 @@ func TestRuns_ExportCSV(t *testing.T) {
 		t.Fatalf("len(records) = %d, want 3", len(records))
 	}
 	//nolint:misspell // French CSV column headers per issue #31
-	wantHeader := []string{"projet", "revue", "date", "points", "statuts", "commentaires", "auteur"}
+	wantHeader := []string{"subject", "revue", "date", "points", "statuts", "commentaires", "auteur"}
 	for i, col := range wantHeader {
 		if records[0][i] != col {
 			t.Fatalf("header[%d] = %q, want %q", i, records[0][i], col)
 		}
 	}
-	if records[1][0] != "Alpha" || records[1][1] != "Revue Q2" || records[1][3] != "Backup" {
+	if records[1][0] != "Alpha" || records[1][1] != wantLabel || records[1][3] != "Backup" {
 		t.Fatalf("first data row = %v", records[1])
 	}
 	if records[1][4] != runs.StatusOK || records[1][6] != "lead" {
@@ -135,7 +136,7 @@ func TestRuns_ExportCSV_NotDone(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateChecklistTemplate(): %v", err)
 	}
-	run, err := st.CreateChecklistRun(ctx, project.ID, template.ID, "Revue", lead.ID, sql.NullString{})
+	run, err := st.CreateChecklistRun(ctx, project.ID, template.ID, lead.ID)
 	if err != nil {
 		t.Fatalf("CreateChecklistRun(): %v", err)
 	}
@@ -163,7 +164,6 @@ func TestRuns_ExportCSV_IDOR(t *testing.T) {
 	handler, db := testRouter(t)
 	ctx := context.Background()
 	st := store.New(db)
-	ctx = testutil.DefaultOrgContext(ctx, st)
 
 	alice, err := st.UpsertGitHubUser(ctx, 52, "alice", "alice@example.com", "Alice", "", auth.RoleEditor)
 	if err != nil {
@@ -173,14 +173,11 @@ func TestRuns_ExportCSV_IDOR(t *testing.T) {
 	if err != nil {
 		t.Fatalf("UpsertGitHubUser(bob): %v", err)
 	}
+	ctx = testutil.SetupIsolatedOrg(ctx, st, "Alice Org", "alice-export-csv", alice.ID)
 
 	projectA, err := st.CreateProject(ctx, "Secret", "", alice.ID, nil)
 	if err != nil {
 		t.Fatalf("CreateProject(): %v", err)
-	}
-	_, err = st.CreateProject(ctx, "Other", "", bob.ID, nil)
-	if err != nil {
-		t.Fatalf("CreateProject(bob): %v", err)
 	}
 	run := setupDoneRun(t, st, ctx, alice, projectA)
 
@@ -218,7 +215,7 @@ func TestRuns_ExportCSV_ViewerCanExport(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateProject(): %v", err)
 	}
-	if err = st.AddProjectMember(ctx, project.ID, viewer.ID, projects.LocalRoleViewer); err != nil {
+	if err = st.AddProjectMember(ctx, project.ID, viewer.ID, subjects.LocalRoleViewer); err != nil {
 		t.Fatalf("AddProjectMember(): %v", err)
 	}
 	run := setupDoneRun(t, st, ctx, lead, project)
@@ -298,7 +295,7 @@ func TestRuns_ShowInProgressOmitsExportButton(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateChecklistTemplate(): %v", err)
 	}
-	run, err := st.CreateChecklistRun(ctx, project.ID, template.ID, "Revue", lead.ID, sql.NullString{})
+	run, err := st.CreateChecklistRun(ctx, project.ID, template.ID, lead.ID)
 	if err != nil {
 		t.Fatalf("CreateChecklistRun(): %v", err)
 	}

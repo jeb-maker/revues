@@ -42,9 +42,10 @@ type DeliveryStore interface {
 
 type RunLoader interface {
 	RunByID(ctx context.Context, id int64) (*store.ChecklistRun, error)
-	ProjectByID(ctx context.Context, id int64) (*store.Project, error)
+	SubjectByID(ctx context.Context, id int64) (*store.Subject, error)
 	RunItemByID(ctx context.Context, runID, itemID int64) (*store.RunItem, error)
 	ListRunItems(ctx context.Context, runID int64) ([]store.RunItem, error)
+	RunDisplayLabelForRun(ctx context.Context, run *store.ChecklistRun) (string, error)
 }
 
 type Dispatcher struct {
@@ -193,15 +194,19 @@ func (d *Dispatcher) buildReviewCompletedPayload(ctx context.Context, runID int6
 	if err != nil {
 		return ReviewCompletedData{}, fmt.Errorf("load run: %w", err)
 	}
-	project, err := d.Runs.ProjectByID(ctx, run.ProjectID)
+	project, err := d.Runs.SubjectByID(ctx, run.SubjectID)
 	if err != nil {
-		return ReviewCompletedData{}, fmt.Errorf("load project: %w", err)
+		return ReviewCompletedData{}, fmt.Errorf("load subject: %w", err)
 	}
 	items, err := d.Runs.ListRunItems(ctx, runID)
 	if err != nil {
 		return ReviewCompletedData{}, fmt.Errorf("list run items: %w", err)
 	}
-	return ReviewCompletedData{Review: ReviewRef{ID: run.ID, Title: run.Title, Status: run.Status, ProjectID: project.ID, ProjectName: project.Name, ClosingNote: run.ClosingNote, CompletedAt: nullString(run.CompletedAt)}, Items: itemSummary(items)}, nil
+	displayLabel, err := d.Runs.RunDisplayLabelForRun(ctx, run)
+	if err != nil {
+		return ReviewCompletedData{}, fmt.Errorf("run display label: %w", err)
+	}
+	return ReviewCompletedData{Review: ReviewRef{ID: run.ID, DisplayLabel: displayLabel, Status: run.Status, SubjectID: project.ID, SubjectName: project.Name, ClosingNote: run.ClosingNote, CompletedAt: nullString(run.CompletedAt)}, Items: itemSummary(items)}, nil
 }
 
 func (d *Dispatcher) buildReviewItemNOKPayload(ctx context.Context, runID, itemID int64) (ReviewItemNOKData, error) {
@@ -209,15 +214,19 @@ func (d *Dispatcher) buildReviewItemNOKPayload(ctx context.Context, runID, itemI
 	if err != nil {
 		return ReviewItemNOKData{}, fmt.Errorf("load run: %w", err)
 	}
-	project, err := d.Runs.ProjectByID(ctx, run.ProjectID)
+	project, err := d.Runs.SubjectByID(ctx, run.SubjectID)
 	if err != nil {
-		return ReviewItemNOKData{}, fmt.Errorf("load project: %w", err)
+		return ReviewItemNOKData{}, fmt.Errorf("load subject: %w", err)
 	}
 	item, err := d.Runs.RunItemByID(ctx, runID, itemID)
 	if err != nil {
 		return ReviewItemNOKData{}, fmt.Errorf("load run item: %w", err)
 	}
-	return ReviewItemNOKData{Review: ReviewRef{ID: run.ID, Title: run.Title, Status: run.Status, ProjectID: project.ID, ProjectName: project.Name}, Item: ItemRef{ID: item.ID, Section: item.Section, Label: item.Label, Status: item.Status, Comment: item.Comment}}, nil
+	displayLabel, err := d.Runs.RunDisplayLabelForRun(ctx, run)
+	if err != nil {
+		return ReviewItemNOKData{}, fmt.Errorf("run display label: %w", err)
+	}
+	return ReviewItemNOKData{Review: ReviewRef{ID: run.ID, DisplayLabel: displayLabel, Status: run.Status, SubjectID: project.ID, SubjectName: project.Name}, Item: ItemRef{ID: item.ID, Section: item.Section, Label: item.Label, Status: item.Status, Comment: item.Comment}}, nil
 }
 
 func SignBody(secret string, body []byte) string {

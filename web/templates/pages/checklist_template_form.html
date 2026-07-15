@@ -9,7 +9,7 @@
     {{if and .Template .Version}}
     <p class="field-hint">Version actuelle v{{.Version.Version}}. L'enregistrement publie une <strong>nouvelle version</strong> ; les revues déjà lancées conservent la version figée.</p>
     {{else}}
-    <p class="field-hint">Définissez le nom et les tags de compatibilité projet. <a href="/modeles/notion-import">Importer depuis Notion</a></p>
+    <p class="field-hint">Définissez le nom et les domaines de compatibilité. <a href="/modeles/notion-import">Importer depuis Notion</a></p>
     {{end}}
     <label>
       Nom du modèle
@@ -17,8 +17,8 @@
       {{if .NameError}}<span class="field-error">{{.NameError}}</span>{{end}}
     </label>
     <label>
-      Tags
-      <span class="field-hint">Séparez par des virgules. Laissez vide pour proposer ce modèle à tous les projets.</span>
+      Domaines
+      <span class="field-hint">Séparez par des virgules. Laissez vide pour proposer ce modèle à tous les {{.Labels.Subject.Plural | lowerFirst}}.</span>
       <input type="text" name="tags" maxlength="500" value="{{if .Tags}}{{.Tags}}{{else if .TagsList}}{{range $i, $tag := .TagsList}}{{if $i}}, {{end}}{{$tag}}{{end}}{{end}}">
     </label>
   </section>
@@ -52,7 +52,7 @@
             <div class="template-editor__point-fields">
               <label class="template-editor__field">
                 Libellé
-                <span class="field-hint">Court — affiché dans la liste de revue ({{.MaxItemLabelLen}} caractères max).</span>
+                <span class="field-hint">Court — affiché dans la liste de revue ({{$.MaxItemLabelLen}} caractères max).</span>
                 <input type="text" id="item_label_{{$sec.SectionIndex}}_{{$i}}" name="item_label" maxlength="{{$.MaxItemLabelLen}}" value="{{$row.Label}}"{{if $.ItemsError}} aria-describedby="template-items-error"{{end}}>
               </label>
               <label class="template-editor__field">

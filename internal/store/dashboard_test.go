@@ -41,7 +41,7 @@ func TestDashboard_ActiveRunsAndNokItems(t *testing.T) {
 		t.Fatalf("percent = %d, want 50", summaries[0].Percent)
 	}
 
-	nokItems, err := st.ListProjectNokItems(ctx, run.ProjectID)
+	nokItems, err := st.ListProjectNokItems(ctx, run.SubjectID)
 	if err != nil {
 		t.Fatalf("ListProjectNokItems(): %v", err)
 	}
@@ -49,7 +49,7 @@ func TestDashboard_ActiveRunsAndNokItems(t *testing.T) {
 		t.Fatalf("ListProjectNokItems() = %+v", nokItems)
 	}
 
-	runs, err := st.ListRunsWithProgressByProject(ctx, run.ProjectID)
+	runs, err := st.ListRunsWithProgressByProject(ctx, run.SubjectID)
 	if err != nil {
 		t.Fatalf("ListRunsWithProgressByProject(): %v", err)
 	}
@@ -126,7 +126,7 @@ func TestDashboard_RecentCompletedRuns(t *testing.T) {
 		t.Fatalf("len(draftOnly) = %d, want 0", len(draftOnly))
 	}
 
-	byTitle, err := st.ListFilteredRunSummaries(ctx, 1, true, "", run.Title)
+	byTitle, err := st.ListFilteredRunSummaries(ctx, 1, true, "", "Modèle")
 	if err != nil {
 		t.Fatalf("ListFilteredRunSummaries(title): %v", err)
 	}

@@ -21,11 +21,11 @@ import (
 const multipartMaxMemory = 6 << 20
 
 func (h *Runs) UploadAttachment(w http.ResponseWriter, r *http.Request) {
-	run, project, user, memberRole, ok := h.loadRun(w, r)
+	run, project, user, memberRole, isMember, ok := h.loadRun(w, r)
 	if !ok {
 		return
 	}
-	if !CanUpdate(user, memberRole) {
+	if !CanUpdate(user, isMember) {
 		http.NotFound(w, r)
 		return
 	}
@@ -100,7 +100,7 @@ func (h *Runs) DownloadAttachment(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
-	_, isMember, err := h.Store.MemberRole(r.Context(), run.ProjectID, user.ID)
+	_, isMember, err := h.Store.MemberRole(r.Context(), run.SubjectID, user.ID)
 	if err != nil {
 		slog.Error("member role for attachment download", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)

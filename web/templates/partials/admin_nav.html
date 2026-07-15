@@ -3,7 +3,10 @@
   <div class="admin-nav__group">
     <span class="admin-nav__group-label">Gestion</span>
     <a href="/admin/users"{{if eq .AdminSection "users"}} aria-current="page"{{end}}>Emails autorisés</a>
+    <a href="/admin/subjects"{{if eq .AdminSection "subjects"}} aria-current="page"{{end}}>{{.Labels.Subject.Plural}}</a>
+    <a href="/admin/settings/labels"{{if eq .AdminSection "labels"}} aria-current="page"{{end}}>Libellé</a>
   </div>
+  {{if and .User (eq .User.Role "admin")}}
   <div class="admin-nav__group">
     <span class="admin-nav__group-label">Intégrations</span>
     <a href="/admin/integrations"{{if eq .AdminSection "integrations"}} aria-current="page"{{end}}>Vue d'ensemble</a>
@@ -12,5 +15,6 @@
     <a href="/admin/integrations/jira"{{if eq .AdminSection "jira"}} aria-current="page"{{end}}>Jira</a>
     <a href="/admin/integrations/notion"{{if eq .AdminSection "notion"}} aria-current="page"{{end}}>Notion</a>
   </div>
+  {{end}}
 </nav>
 {{end}}
