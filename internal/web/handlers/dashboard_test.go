@@ -222,7 +222,7 @@ func TestDashboard_ShowsRunDueDate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateChecklistRun(): %v", err)
 	}
-	if err := st.SetRunDueDate(ctx, run.ID, sql.NullString{String: "2026-07-01T00:00:00Z", Valid: true}); err != nil {
+	if err = st.SetRunDueDate(ctx, run.ID, sql.NullString{String: "2026-07-01T00:00:00Z", Valid: true}); err != nil {
 		t.Fatalf("SetRunDueDate(): %v", err)
 	}
 	if err = st.StartRun(ctx, run.ID); err != nil {
@@ -277,7 +277,7 @@ func TestProjectShow_ShowsRunDueDate(t *testing.T) {
 	if err != nil || len(runs) == 0 {
 		t.Fatalf("ListRunsBySubject() = %v, %v", runs, err)
 	}
-	if err := st.SetRunDueDate(ctx, runs[0].ID, sql.NullString{String: "2026-09-30T00:00:00Z", Valid: true}); err != nil {
+	if err = st.SetRunDueDate(ctx, runs[0].ID, sql.NullString{String: "2026-09-30T00:00:00Z", Valid: true}); err != nil {
 		t.Fatalf("SetRunDueDate(): %v", err)
 	}
 

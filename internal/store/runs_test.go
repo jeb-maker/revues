@@ -81,7 +81,7 @@ func TestCreateChecklistRunWithDueDate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateChecklistRun(): %v", err)
 	}
-	if err := st.SetRunDueDate(ctx, run.ID, dueDate); err != nil {
+	if err = st.SetRunDueDate(ctx, run.ID, dueDate); err != nil {
 		t.Fatalf("SetRunDueDate(): %v", err)
 	}
 	run, err = st.RunByID(ctx, run.ID)

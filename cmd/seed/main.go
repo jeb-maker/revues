@@ -192,7 +192,7 @@ func seedV1(ctx context.Context, st *store.Store, admin *store.User) error {
 		{bob, store.OrgRoleMember},
 		{claire, store.OrgRoleMember},
 	} {
-		if err := st.AddOrganizationMember(ctx, defaultOrg.ID, pair.user.ID, pair.role); err != nil {
+		if err = st.AddOrganizationMember(ctx, defaultOrg.ID, pair.user.ID, pair.role); err != nil {
 			return fmt.Errorf("org member %s: %w", pair.user.Login, err)
 		}
 	}
@@ -205,7 +205,7 @@ func seedV1(ctx context.Context, st *store.Store, admin *store.User) error {
 	if err != nil {
 		return fmt.Errorf("subject api: %w", err)
 	}
-	if err := st.SetSubjectTags(ctx, portail.ID, []string{"prod", "critique"}); err != nil {
+	if err = st.SetSubjectTags(ctx, portail.ID, []string{"prod", "critique"}); err != nil {
 		return fmt.Errorf("tags portail: %w", err)
 	}
 
@@ -240,13 +240,13 @@ func seedV1(ctx context.Context, st *store.Store, admin *store.User) error {
 	if err != nil {
 		return fmt.Errorf("active run: %w", err)
 	}
-	if err := st.SetRunDueDate(ctx, activeRun.ID, dueSoon); err != nil {
+	if err = st.SetRunDueDate(ctx, activeRun.ID, dueSoon); err != nil {
 		return fmt.Errorf("set active run due date: %w", err)
 	}
-	if err := st.StartRun(ctx, activeRun.ID); err != nil {
+	if err = st.StartRun(ctx, activeRun.ID); err != nil {
 		return fmt.Errorf("start active run: %w", err)
 	}
-	if err := populateActiveRun(ctx, st, activeRun.ID, admin.ID, alice.ID, bob.ID); err != nil {
+	if err = populateActiveRun(ctx, st, activeRun.ID, admin.ID, alice.ID, bob.ID); err != nil {
 		return err
 	}
 
@@ -260,7 +260,7 @@ func seedV1(ctx context.Context, st *store.Store, admin *store.User) error {
 	if err != nil {
 		return fmt.Errorf("done run: %w", err)
 	}
-	if err := st.StartRun(ctx, doneRun.ID); err != nil {
+	if err = st.StartRun(ctx, doneRun.ID); err != nil {
 		return fmt.Errorf("start done run: %w", err)
 	}
 	doneItems, err := st.ListRunItems(ctx, doneRun.ID)
@@ -268,11 +268,11 @@ func seedV1(ctx context.Context, st *store.Store, admin *store.User) error {
 		return fmt.Errorf("done run items: %w", err)
 	}
 	for _, item := range doneItems {
-		if err := st.UpdateRunItemStatus(ctx, doneRun.ID, item.ID, admin.ID, store.RunItemStatusOK, ""); err != nil {
+		if err = st.UpdateRunItemStatus(ctx, doneRun.ID, item.ID, admin.ID, store.RunItemStatusOK, ""); err != nil {
 			return fmt.Errorf("complete item %d: %w", item.ID, err)
 		}
 	}
-	if err := st.CompleteRun(ctx, doneRun.ID, "Déploiement réussi, aucun incident."); err != nil {
+	if err = st.CompleteRun(ctx, doneRun.ID, "Déploiement réussi, aucun incident."); err != nil {
 		return fmt.Errorf("complete run: %w", err)
 	}
 
