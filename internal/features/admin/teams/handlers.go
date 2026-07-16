@@ -127,7 +127,7 @@ func (h *AdminTeams) AddMember(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	if err := r.ParseForm(); err != nil {
+	if err = r.ParseForm(); err != nil {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
 	}
@@ -143,7 +143,8 @@ func (h *AdminTeams) AddMember(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
-	_, isMember, err := h.Store.OrganizationMemberRole(r.Context(), org.ID, userID)
+	var isMember bool
+	_, isMember, err = h.Store.OrganizationMemberRole(r.Context(), org.ID, userID)
 	if err != nil {
 		slog.Error("organization member role", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -154,7 +155,7 @@ func (h *AdminTeams) AddMember(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.Store.AddTeamMember(r.Context(), teamID, userID); err != nil {
+	if err = h.Store.AddTeamMember(r.Context(), teamID, userID); err != nil {
 		if errors.Is(err, ErrTeamNotFound) {
 			http.NotFound(w, r)
 			return
@@ -174,7 +175,7 @@ func (h *AdminTeams) RemoveMember(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	if err := r.ParseForm(); err != nil {
+	if err = r.ParseForm(); err != nil {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
 	}
@@ -185,7 +186,7 @@ func (h *AdminTeams) RemoveMember(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.Store.RemoveTeamMember(r.Context(), teamID, userID); err != nil {
+	if err = h.Store.RemoveTeamMember(r.Context(), teamID, userID); err != nil {
 		if errors.Is(err, ErrTeamNotFound) {
 			http.NotFound(w, r)
 			return

@@ -56,21 +56,21 @@ func TestTeamsStore(t *testing.T) {
 	}
 
 	t.Run("create and list teams", func(t *testing.T) {
-		team, err := st.CreateTeam(ctx, "Qualité", "Qualite", "revue QA")
-		if err != nil {
-			t.Fatalf("CreateTeam(): %v", err)
+		created, createErr := st.CreateTeam(ctx, "Qualité", "Qualite", "revue QA")
+		if createErr != nil {
+			t.Fatalf("CreateTeam(): %v", createErr)
 		}
-		if team.Slug != "qualite" {
-			t.Fatalf("slug = %q, want qualite", team.Slug)
+		if created.Slug != "qualite" {
+			t.Fatalf("slug = %q, want qualite", created.Slug)
 		}
-		if _, err := st.CreateTeam(ctx, "Dup", "qualite", ""); !errors.Is(err, store.ErrTeamSlugTaken) {
-			t.Fatalf("duplicate slug error = %v, want ErrTeamSlugTaken", err)
+		if _, dupErr := st.CreateTeam(ctx, "Dup", "qualite", ""); !errors.Is(dupErr, store.ErrTeamSlugTaken) {
+			t.Fatalf("duplicate slug error = %v, want ErrTeamSlugTaken", dupErr)
 		}
-		teams, err := st.ListOrganizationTeams(ctx)
-		if err != nil {
-			t.Fatalf("ListOrganizationTeams(): %v", err)
+		teams, listErr := st.ListOrganizationTeams(ctx)
+		if listErr != nil {
+			t.Fatalf("ListOrganizationTeams(): %v", listErr)
 		}
-		if len(teams) != 1 || teams[0].ID != team.ID {
+		if len(teams) != 1 || teams[0].ID != created.ID {
 			t.Fatalf("ListOrganizationTeams() = %+v", teams)
 		}
 	})
@@ -81,15 +81,15 @@ func TestTeamsStore(t *testing.T) {
 	}
 
 	t.Run("team members", func(t *testing.T) {
-		if err := st.AddTeamMember(ctx, team.ID, alice.ID); err != nil {
-			t.Fatalf("AddTeamMember(alice): %v", err)
+		if addErr := st.AddTeamMember(ctx, team.ID, alice.ID); addErr != nil {
+			t.Fatalf("AddTeamMember(alice): %v", addErr)
 		}
-		if err := st.AddTeamMember(ctx, team.ID, bob.ID); err != nil {
-			t.Fatalf("AddTeamMember(bob): %v", err)
+		if addErr := st.AddTeamMember(ctx, team.ID, bob.ID); addErr != nil {
+			t.Fatalf("AddTeamMember(bob): %v", addErr)
 		}
-		members, err := st.ListTeamMembers(ctx, team.ID)
-		if err != nil {
-			t.Fatalf("ListTeamMembers(): %v", err)
+		members, listErr := st.ListTeamMembers(ctx, team.ID)
+		if listErr != nil {
+			t.Fatalf("ListTeamMembers(): %v", listErr)
 		}
 		if len(members) != 2 {
 			t.Fatalf("len(members) = %d, want 2", len(members))
@@ -97,26 +97,26 @@ func TestTeamsStore(t *testing.T) {
 		if members[0].Login == "" || members[0].Email == "" {
 			t.Fatalf("ListTeamMembers missing login/email: %+v", members[0])
 		}
-		orgMembers, err := st.ListOrganizationMembers(ctx)
-		if err != nil {
-			t.Fatalf("ListOrganizationMembers(): %v", err)
+		orgMembers, listOrgErr := st.ListOrganizationMembers(ctx)
+		if listOrgErr != nil {
+			t.Fatalf("ListOrganizationMembers(): %v", listOrgErr)
 		}
 		if len(orgMembers) < 3 {
 			t.Fatalf("ListOrganizationMembers len = %d, want >= 3", len(orgMembers))
 		}
-		userTeams, err := st.ListUserTeams(ctx, alice.ID)
-		if err != nil {
-			t.Fatalf("ListUserTeams(): %v", err)
+		userTeams, listUserErr := st.ListUserTeams(ctx, alice.ID)
+		if listUserErr != nil {
+			t.Fatalf("ListUserTeams(): %v", listUserErr)
 		}
 		if len(userTeams) != 1 || userTeams[0].ID != team.ID {
 			t.Fatalf("ListUserTeams() = %+v", userTeams)
 		}
-		if err := st.RemoveTeamMember(ctx, team.ID, bob.ID); err != nil {
-			t.Fatalf("RemoveTeamMember(bob): %v", err)
+		if removeErr := st.RemoveTeamMember(ctx, team.ID, bob.ID); removeErr != nil {
+			t.Fatalf("RemoveTeamMember(bob): %v", removeErr)
 		}
-		members, err = st.ListTeamMembers(ctx, team.ID)
-		if err != nil {
-			t.Fatalf("ListTeamMembers after remove: %v", err)
+		members, listErr = st.ListTeamMembers(ctx, team.ID)
+		if listErr != nil {
+			t.Fatalf("ListTeamMembers after remove: %v", listErr)
 		}
 		if len(members) != 1 || members[0].UserID != alice.ID {
 			t.Fatalf("members after remove = %+v", members)
@@ -149,26 +149,26 @@ func TestTeamsStore(t *testing.T) {
 		if err := st.GrantTeamSubjectRole(ctx, team.ID, subject.ID, store.SubjectRoleContributor, owner.ID); err != nil {
 			t.Fatalf("GrantTeamSubjectRole(update): %v", err)
 		}
-		subjectTeams, err := st.ListSubjectTeams(ctx, subject.ID)
-		if err != nil {
-			t.Fatalf("ListSubjectTeams(): %v", err)
+		subjectTeams, listErr := st.ListSubjectTeams(ctx, subject.ID)
+		if listErr != nil {
+			t.Fatalf("ListSubjectTeams(): %v", listErr)
 		}
 		if len(subjectTeams) != 1 || subjectTeams[0].Role != store.SubjectRoleContributor {
 			t.Fatalf("ListSubjectTeams() = %+v", subjectTeams)
 		}
-		teamSubjects, err := st.ListTeamSubjects(ctx, team.ID)
-		if err != nil {
-			t.Fatalf("ListTeamSubjects(): %v", err)
+		teamSubjects, listTeamErr := st.ListTeamSubjects(ctx, team.ID)
+		if listTeamErr != nil {
+			t.Fatalf("ListTeamSubjects(): %v", listTeamErr)
 		}
 		if len(teamSubjects) != 1 || teamSubjects[0].SubjectID != subject.ID {
 			t.Fatalf("ListTeamSubjects() = %+v", teamSubjects)
 		}
-		if err := st.RevokeTeamSubjectRole(ctx, team.ID, subject.ID); err != nil {
-			t.Fatalf("RevokeTeamSubjectRole(): %v", err)
+		if revokeErr := st.RevokeTeamSubjectRole(ctx, team.ID, subject.ID); revokeErr != nil {
+			t.Fatalf("RevokeTeamSubjectRole(): %v", revokeErr)
 		}
-		subjectTeams, err = st.ListSubjectTeams(ctx, subject.ID)
-		if err != nil {
-			t.Fatalf("ListSubjectTeams after revoke: %v", err)
+		subjectTeams, listErr = st.ListSubjectTeams(ctx, subject.ID)
+		if listErr != nil {
+			t.Fatalf("ListSubjectTeams after revoke: %v", listErr)
 		}
 		if len(subjectTeams) != 0 {
 			t.Fatalf("expected empty after revoke, got %+v", subjectTeams)
