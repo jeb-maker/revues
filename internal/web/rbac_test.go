@@ -428,6 +428,153 @@ func TestIDOR_GatedSubjectWithoutGrant(t *testing.T) {
 	}
 }
 
+// TestIDOR_OrgAdmin ensures org owner/admin sees gated subjects/runs/exports without
+// direct or team membership, while plain org members get 404 and cross-org is 404.
+func TestIDOR_OrgAdmin(t *testing.T) {
+	f := newRBACFixture(t)
+
+	gated, err := f.st.CreateSubject(f.ctx, "GatedOrgAdmin", "", f.lead.ID, nil)
+	if err != nil {
+		t.Fatalf("CreateSubject(gated): %v", err)
+	}
+	if err = f.st.UpsertDirectSubjectMember(f.ctx, gated.ID, f.lead.ID, store.SubjectRoleLead); err != nil {
+		t.Fatalf("UpsertDirectSubjectMember(): %v", err)
+	}
+
+	run, err := f.st.CreateChecklistRun(f.ctx, gated.ID, f.template.ID, f.lead.ID)
+	if err != nil {
+		t.Fatalf("CreateChecklistRun(): %v", err)
+	}
+	if err = f.st.StartRun(f.ctx, run.ID); err != nil {
+		t.Fatalf("StartRun(): %v", err)
+	}
+	runItems, err := f.st.ListRunItems(f.ctx, run.ID)
+	if err != nil || len(runItems) != 1 {
+		t.Fatalf("ListRunItems() = %v, %v", runItems, err)
+	}
+	if err = f.st.UpdateRunItemStatus(f.ctx, run.ID, runItems[0].ID, f.lead.ID, runs.StatusOK, ""); err != nil {
+		t.Fatalf("UpdateRunItemStatus(): %v", err)
+	}
+	if err = f.st.CompleteRun(f.ctx, run.ID, "done"); err != nil {
+		t.Fatalf("CompleteRun(): %v", err)
+	}
+
+	otherOrg, err := f.st.CreateOrganization(f.ctx, "Other Org", "other-idor-orgadmin", f.lead.ID)
+	if err != nil {
+		t.Fatalf("CreateOrganization(other): %v", err)
+	}
+	otherCtx := orgctx.WithOrganizationID(f.ctx, otherOrg.ID)
+	otherSubject, err := f.st.CreateSubject(otherCtx, "OtherGated", "", f.lead.ID, nil)
+	if err != nil {
+		t.Fatalf("CreateSubject(other): %v", err)
+	}
+	if err = f.st.UpsertDirectSubjectMember(otherCtx, otherSubject.ID, f.lead.ID, store.SubjectRoleLead); err != nil {
+		t.Fatalf("UpsertDirectSubjectMember(other): %v", err)
+	}
+
+	gatedSubjectPath := "/subjects/" + strconv.FormatInt(gated.ID, 10)
+	gatedRunPath := "/runs/" + strconv.FormatInt(run.ID, 10)
+	gatedExportPath := gatedRunPath + "/export.csv"
+	otherSubjectPath := "/subjects/" + strconv.FormatInt(otherSubject.ID, 10)
+
+	launchForm := url.Values{}
+	launchForm.Set("csrf_token", f.csrf(f.tokens["orgAdmin"]))
+	launchForm.Set("template_id", strconv.FormatInt(f.template.ID, 10))
+	launchForm.Set("title", "Org admin launch")
+
+	completeForm := url.Values{}
+	completeForm.Set("csrf_token", f.csrf(f.tokens["orgAdmin"]))
+	completeForm.Set("closing_note", "should not close without lead")
+
+	// Fresh in-progress run for write-action checks (export run is already done).
+	activeRun, err := f.st.CreateChecklistRun(f.ctx, gated.ID, f.template.ID, f.lead.ID)
+	if err != nil {
+		t.Fatalf("CreateChecklistRun(active): %v", err)
+	}
+	if err = f.st.StartRun(f.ctx, activeRun.ID); err != nil {
+		t.Fatalf("StartRun(active): %v", err)
+	}
+	activeItems, err := f.st.ListRunItems(f.ctx, activeRun.ID)
+	if err != nil || len(activeItems) != 1 {
+		t.Fatalf("ListRunItems(active) = %v, %v", activeItems, err)
+	}
+	activeItemPath := "/runs/" + strconv.FormatInt(activeRun.ID, 10) + "/items/" + strconv.FormatInt(activeItems[0].ID, 10)
+	activeCompletePath := "/runs/" + strconv.FormatInt(activeRun.ID, 10) + "/complete"
+
+	itemForm := url.Values{}
+	itemForm.Set("csrf_token", f.csrf(f.tokens["orgAdmin"]))
+	itemForm.Set("status", runs.StatusOK)
+
+	tests := []struct {
+		name       string
+		method     string
+		path       string
+		tokenKey   string
+		body       string
+		wantStatus int
+	}{
+		{"org admin GET gated subject", http.MethodGet, gatedSubjectPath, "orgAdmin", "", http.StatusOK},
+		{"org admin GET gated run", http.MethodGet, gatedRunPath, "orgAdmin", "", http.StatusOK},
+		{"org admin GET gated export", http.MethodGet, gatedExportPath, "orgAdmin", "", http.StatusOK},
+		{"org member GET gated subject 404", http.MethodGet, gatedSubjectPath, "contributor", "", http.StatusNotFound},
+		{"org member GET gated run 404", http.MethodGet, gatedRunPath, "contributor", "", http.StatusNotFound},
+		{"org member GET gated export 404", http.MethodGet, gatedExportPath, "contributor", "", http.StatusNotFound},
+		{"cross-org subject 404", http.MethodGet, otherSubjectPath, "orgAdmin", "", http.StatusNotFound},
+		{"org admin editor launch ok", http.MethodPost, gatedSubjectPath + "/revues", "orgAdmin", launchForm.Encode(), http.StatusSeeOther},
+		{"org admin editor check item ok", http.MethodPost, activeItemPath, "orgAdmin", itemForm.Encode(), http.StatusSeeOther},
+		{"org admin without lead complete 404", http.MethodPost, activeCompletePath, "orgAdmin", completeForm.Encode(), http.StatusNotFound},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rec := f.do(tt.method, tt.path, tt.tokenKey, tt.body)
+			if rec.Code != tt.wantStatus {
+				t.Errorf("status = %d, want %d", rec.Code, tt.wantStatus)
+			}
+		})
+	}
+
+	listed, err := f.st.ListSubjects(f.ctx, f.orgAdmin.ID, false, "")
+	if err != nil {
+		t.Fatalf("ListSubjects(orgAdmin): %v", err)
+	}
+	foundGated := false
+	for _, s := range listed {
+		if s.ID == gated.ID {
+			foundGated = true
+			break
+		}
+	}
+	if !foundGated {
+		t.Fatal("ListSubjects: org admin must see gated subject without membership")
+	}
+
+	memberListed, err := f.st.ListSubjects(f.ctx, f.contributor.ID, false, "")
+	if err != nil {
+		t.Fatalf("ListSubjects(contributor): %v", err)
+	}
+	for _, s := range memberListed {
+		if s.ID == gated.ID {
+			t.Fatal("ListSubjects: plain org member must not see gated subject")
+		}
+	}
+
+	activeRuns, err := f.st.ListActiveRunSummaries(f.ctx, f.orgAdmin.ID, false)
+	if err != nil {
+		t.Fatalf("ListActiveRunSummaries(orgAdmin): %v", err)
+	}
+	foundActive := false
+	for _, summary := range activeRuns {
+		if summary.RunID == activeRun.ID {
+			foundActive = true
+			break
+		}
+	}
+	if !foundActive {
+		t.Fatal("ListActiveRunSummaries: org admin must see runs on gated subjects")
+	}
+}
+
 // TestCSRF_MissingToken rejects mutating requests without a valid CSRF token.
 func TestCSRF_MissingToken(t *testing.T) {
 	f := newRBACFixture(t)

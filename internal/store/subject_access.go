@@ -39,10 +39,9 @@ func (a SubjectAccess) IsSupervisor() bool {
 }
 
 // RoleAtLeast reports whether the effective subject role is at least want.
+// Supervisors (global/org admin) do not invent a subject role here — action
+// helpers (CanContributeAccess / CanLeadAccess) apply org-admin write rules.
 func (a SubjectAccess) RoleAtLeast(want string) bool {
-	if a.IsSupervisor() {
-		return true
-	}
 	return subjectRoleRank(a.Role) >= subjectRoleRank(want)
 }
 
@@ -79,12 +78,6 @@ func (s *Store) ResolveSubjectAccess(ctx context.Context, userID, subjectID int6
 	if err != nil {
 		return SubjectAccess{}, err
 	}
-	if isMember && (orgRole == OrgRoleOwner || orgRole == OrgRoleAdmin) {
-		return SubjectAccess{
-			Visible: true,
-			Sources: []string{AccessSourceOrgAdmin},
-		}, nil
-	}
 
 	var access SubjectAccess
 	directRole, err := s.directSubjectMemberRole(ctx, subjectID, userID)
@@ -103,6 +96,14 @@ func (s *Store) ResolveSubjectAccess(ctx context.Context, userID, subjectID int6
 	for _, tr := range teamRoles {
 		access.Role = maxSubjectRole(access.Role, tr.Role)
 		access.Sources = append(access.Sources, accessSourceTeamPrefix+strconv.FormatInt(tr.TeamID, 10))
+	}
+
+	// Org owner/admin: always visible for supervision. Keep any direct/team role
+	// so lead actions are not implied by org_admin alone.
+	if isMember && (orgRole == OrgRoleOwner || orgRole == OrgRoleAdmin) {
+		access.Visible = true
+		access.Sources = append([]string{AccessSourceOrgAdmin}, access.Sources...)
+		return access, nil
 	}
 
 	if access.Role != "" {

@@ -76,7 +76,7 @@ ResolveSubjectAccess(user, subject) :
 - [x] Migration teams + store (`organization_teams`, `team_members`, `subject_members`, `team_subject_roles`) — greenfield `00001` + `canonical.sql`
 - [x] `ResolveSubjectAccess` + tests (`internal/store/subject_access.go`)
 - [x] Refactor handlers sur `ResolveSubjectAccess` (transition legacy ungated)
-- [ ] Org admin voit tout + TestIDOR
+- [x] Org admin voit tout + TestIDOR
 - [ ] UI admin équipes CRUD
 - [ ] UI sujet — équipes + preview + sources
 - [ ] Sujets privés (`visibility`)
@@ -207,20 +207,21 @@ Remplacer les appels dispersés à `MemberRole` + branche `admin` par `ResolveSu
 ## Issue 5 — `[auth] Org admin — visibilité globale org + TestIDOR`
 
 **Labels** : `area:auth`, `vague-5`  
-**Bloqué par** : Issue 3
+**Bloqué par** : Issue 3  
+**Statut** : livré (visibilité org admin + `TestIDOR_OrgAdmin` ; pas de bypass lead implicite).
 
 ### Objectif
 
-Org owner/admin voit tous les projets et revues de l'organisation active sans membership direct ni équipe.
+Org owner/admin voit tous les sujets et revues de l'organisation active sans membership direct ni équipe.
 
 ### Critères d'acceptation
 
-- [ ] `ListProjects` : org owner/admin reçoit tous les projets non archivés de l'org
-- [ ] `ListActiveRunSummaries` / page `/revues` : idem
-- [ ] Accès GET projet/revue/export : org admin `Visible=true`
-- [ ] Actions PATCH/POST métier : org admin soumis au rôle **global** (`editor` minimum pour cocher/lancer) — pas de bypass lead implicite
-- [ ] Tests : org admin voit projet sans membership ; org `member` non ; cross-org 404
-- [ ] `./scripts/check.sh` vert
+- [x] `ListSubjects` : org owner/admin reçoit tous les sujets non archivés de l'org
+- [x] `ListActiveRunSummaries` / page `/revues` : idem
+- [x] Accès GET sujet/revue/export : org admin `Visible=true`
+- [x] Actions PATCH/POST métier : org admin soumis au rôle **global** (`editor` minimum pour cocher/lancer) — pas de bypass lead implicite
+- [x] Tests : org admin voit sujet sans membership ; org `member` non ; cross-org 404
+- [x] `./scripts/check.sh` vert
 
 ---
 

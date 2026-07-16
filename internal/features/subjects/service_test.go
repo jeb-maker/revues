@@ -32,3 +32,62 @@ func TestCanManageOrgUsers(t *testing.T) {
 		})
 	}
 }
+
+func TestCanContributeAccess_OrgAdmin(t *testing.T) {
+	editor := &User{Role: auth.RoleEditor}
+	reader := &User{Role: auth.RoleReader}
+	orgAdminVis := store.SubjectAccess{Visible: true, Sources: []string{store.AccessSourceOrgAdmin}}
+
+	if !CanContributeAccess(editor, orgAdminVis) {
+		t.Fatal("org admin editor should contribute without subject role")
+	}
+	if CanContributeAccess(reader, orgAdminVis) {
+		t.Fatal("org admin reader must not contribute")
+	}
+}
+
+func TestCanLeadAccess_NoOrgAdminBypass(t *testing.T) {
+	admin := &User{Role: auth.RoleAdmin}
+	editor := &User{Role: auth.RoleEditor}
+	orgAdminOnly := store.SubjectAccess{Visible: true, Sources: []string{store.AccessSourceOrgAdmin}}
+	orgAdminLead := store.SubjectAccess{
+		Visible: true,
+		Role:    store.SubjectRoleLead,
+		Sources: []string{store.AccessSourceOrgAdmin, store.AccessSourceDirect},
+	}
+	legacy := store.SubjectAccess{
+		Visible: true,
+		Role:    store.SubjectRoleContributor,
+		Sources: []string{store.AccessSourceOrgMemberLegacy},
+	}
+
+	if CanLeadAccess(editor, orgAdminOnly) {
+		t.Fatal("org admin must not get implicit lead")
+	}
+	if !CanLeadAccess(editor, orgAdminLead) {
+		t.Fatal("org admin who is also subject lead may assign/complete")
+	}
+	if !CanLeadAccess(editor, legacy) {
+		t.Fatal("legacy ungated path still allows lead actions for editor")
+	}
+	if !CanLeadAccess(admin, orgAdminOnly) {
+		t.Fatal("global admin should keep lead capability")
+	}
+}
+
+func TestCanManageAccess_OrgAdminReaderDenied(t *testing.T) {
+	editor := &User{Role: auth.RoleEditor}
+	reader := &User{Role: auth.RoleReader}
+	admin := &User{Role: auth.RoleAdmin}
+	orgAdminVis := store.SubjectAccess{Visible: true, Sources: []string{store.AccessSourceOrgAdmin}}
+
+	if !CanManageAccess(editor, orgAdminVis) {
+		t.Fatal("org admin editor may manage subjects")
+	}
+	if CanManageAccess(reader, orgAdminVis) {
+		t.Fatal("org admin reader must not manage subjects")
+	}
+	if !CanManageAccess(admin, orgAdminVis) {
+		t.Fatal("global admin may manage subjects")
+	}
+}

@@ -85,6 +85,9 @@ func TestResolveSubjectAccess(t *testing.T) {
 	if err = st.UpsertDirectSubjectMember(ctx, subject.ID, both.ID, store.SubjectRoleContributor); err != nil {
 		t.Fatal(err)
 	}
+	if err = st.UpsertDirectSubjectMember(ctx, subject.ID, orgAdmin.ID, store.SubjectRoleLead); err != nil {
+		t.Fatal(err)
+	}
 
 	otherOrg, err := st.CreateOrganization(ctx, "Other", "other-access", lead.ID)
 	if err != nil {
@@ -105,22 +108,23 @@ func TestResolveSubjectAccess(t *testing.T) {
 	}
 
 	tests := []struct {
-		name       string
-		ctx        context.Context
-		userID     int64
-		subjectID  int64
-		globalRole string
-		wantVis    bool
-		wantRole   string
-		wantSource string
+		name           string
+		ctx            context.Context
+		userID         int64
+		subjectID      int64
+		globalRole     string
+		wantVis        bool
+		wantRole       string
+		wantSource     string
+		wantAlsoDirect bool
 	}{
 		{
 			name: "global admin", ctx: ctx, userID: admin.ID, subjectID: subject.ID, globalRole: auth.RoleAdmin,
 			wantVis: true, wantSource: store.AccessSourceGlobalAdmin,
 		},
 		{
-			name: "org admin", ctx: ctx, userID: orgAdmin.ID, subjectID: subject.ID, globalRole: auth.RoleEditor,
-			wantVis: true, wantSource: store.AccessSourceOrgAdmin,
+			name: "org admin with direct lead", ctx: ctx, userID: orgAdmin.ID, subjectID: subject.ID, globalRole: auth.RoleEditor,
+			wantVis: true, wantRole: store.SubjectRoleLead, wantSource: store.AccessSourceOrgAdmin, wantAlsoDirect: true,
 		},
 		{
 			name: "direct lead", ctx: ctx, userID: lead.ID, subjectID: subject.ID, globalRole: auth.RoleEditor,
@@ -170,6 +174,25 @@ func TestResolveSubjectAccess(t *testing.T) {
 			if tt.wantSource != "" && !slices.Contains(got.Sources, tt.wantSource) {
 				t.Fatalf("Sources = %v, want contain %q", got.Sources, tt.wantSource)
 			}
+			if tt.wantAlsoDirect && !slices.Contains(got.Sources, store.AccessSourceDirect) {
+				t.Fatalf("Sources = %v, want contain %q", got.Sources, store.AccessSourceDirect)
+			}
 		})
+	}
+
+	// Org admin without subject grant: visible, empty role (no implicit lead).
+	gatedOnly, err := st.CreateSubject(ctx, "GatedOnly", "", lead.ID, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = st.UpsertDirectSubjectMember(ctx, gatedOnly.ID, lead.ID, store.SubjectRoleLead); err != nil {
+		t.Fatal(err)
+	}
+	got, err := st.ResolveSubjectAccess(ctx, orgAdmin.ID, gatedOnly.ID, auth.RoleEditor)
+	if err != nil {
+		t.Fatalf("ResolveSubjectAccess(org admin gated): %v", err)
+	}
+	if !got.Visible || got.Role != "" || !got.HasSource(store.AccessSourceOrgAdmin) {
+		t.Fatalf("org admin gated access = %+v, want Visible Role=\"\" org_admin", got)
 	}
 }

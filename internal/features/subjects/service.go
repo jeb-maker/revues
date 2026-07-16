@@ -37,16 +37,20 @@ func CanManageSubject(user *User, orgRole string, orgMember bool) bool {
 }
 
 // CanManageAccess reports whether the user may edit/archive a subject under resolved access.
-// Org/global supervisors, subject leads, and v1 legacy org members (editor+) may manage.
+// Global admin may always manage. Org admin and subject leads require editor+ global role.
+// Org admin reader cannot edit subjects (visibility ≠ write).
 func CanManageAccess(user *User, access store.SubjectAccess) bool {
 	if !access.Visible {
 		return false
 	}
-	if auth.HasMinRole(user.Role, auth.RoleAdmin) || access.HasSource(store.AccessSourceOrgAdmin) {
+	if auth.HasMinRole(user.Role, auth.RoleAdmin) {
 		return true
 	}
 	if !auth.HasMinRole(user.Role, auth.RoleEditor) {
 		return false
+	}
+	if access.HasSource(store.AccessSourceOrgAdmin) {
+		return true
 	}
 	return access.Role == store.SubjectRoleLead || access.HasSource(store.AccessSourceOrgMemberLegacy)
 }
@@ -60,6 +64,7 @@ func CanLaunchRun(user *User, orgMember bool) bool {
 }
 
 // CanContributeAccess reports whether the user may launch/check on a subject.
+// Org admin with editor+ may contribute (no subject role required); reader cannot.
 func CanContributeAccess(user *User, access store.SubjectAccess) bool {
 	if !access.Visible {
 		return false
@@ -67,10 +72,15 @@ func CanContributeAccess(user *User, access store.SubjectAccess) bool {
 	if !auth.HasMinRole(user.Role, auth.RoleEditor) {
 		return false
 	}
+	if auth.HasMinRole(user.Role, auth.RoleAdmin) || access.HasSource(store.AccessSourceOrgAdmin) {
+		return true
+	}
 	return access.RoleAtLeast(store.SubjectRoleContributor)
 }
 
 // CanLeadAccess reports whether the user may assign/complete (lead-level) on a subject.
+// Org admin visibility is not an implicit lead: assign/complete require subject lead
+// (or legacy ungated path). Global admin keeps full lead capability.
 func CanLeadAccess(user *User, access store.SubjectAccess) bool {
 	if !access.Visible {
 		return false
@@ -78,7 +88,10 @@ func CanLeadAccess(user *User, access store.SubjectAccess) bool {
 	if !auth.HasMinRole(user.Role, auth.RoleEditor) {
 		return false
 	}
-	if access.IsSupervisor() || access.HasSource(store.AccessSourceOrgMemberLegacy) {
+	if auth.HasMinRole(user.Role, auth.RoleAdmin) {
+		return true
+	}
+	if access.HasSource(store.AccessSourceOrgMemberLegacy) {
 		return true
 	}
 	return access.Role == store.SubjectRoleLead
@@ -107,12 +120,13 @@ const (
 )
 
 // DisplayRole returns a UI role label from resolved access.
+// Supervisors without a subject role are not shown as lead.
 func DisplayRole(access store.SubjectAccess) string {
 	if access.Role != "" {
 		return access.Role
 	}
-	if access.Visible {
-		return LocalRoleLead
+	if access.HasSource(store.AccessSourceOrgMemberLegacy) {
+		return LocalRoleContributor
 	}
 	return ""
 }
