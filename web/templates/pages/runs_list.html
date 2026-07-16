@@ -72,6 +72,21 @@
     </tbody>
   </table>
   </div>
+  {{if gt .Pagination.TotalPages 1}}
+  <nav class="pagination" aria-label="Pagination des revues">
+    {{if .Pagination.HasPrev}}
+    <a class="button-secondary" href="{{.Pagination.PrevURL}}">Précédent</a>
+    {{else}}
+    <span class="button-secondary" aria-disabled="true">Précédent</span>
+    {{end}}
+    <span class="pagination__status" role="status">Page {{.Pagination.Page}} sur {{.Pagination.TotalPages}} ({{.Pagination.Total}})</span>
+    {{if .Pagination.HasNext}}
+    <a class="button-secondary" href="{{.Pagination.NextURL}}">Suivant</a>
+    {{else}}
+    <span class="button-secondary" aria-disabled="true">Suivant</span>
+    {{end}}
+  </nav>
+  {{end}}
 </section>
 {{end}}
 {{template "layout_end" .}}

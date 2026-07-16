@@ -16,8 +16,8 @@ func CSRF(sessionSecret string) func(http.Handler) http.Handler {
 				return
 			}
 
-			sessionToken, err := auth.SessionTokenFromRequest(r)
-			if err != nil {
+			sessionToken := SessionTokenFromContext(r)
+			if sessionToken == "" {
 				http.Error(w, "Forbidden", http.StatusForbidden)
 				return
 			}

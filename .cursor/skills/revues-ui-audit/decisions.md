@@ -12,6 +12,13 @@ Ne pas remonter ces choix comme des problèmes UX. Mettre à jour ce fichier qua
 | CTA fiche sujet | **Conservé** — lancement depuis un sujet connu reste possible |
 | CTA fiche modèle `/modeles/{id}` | **Oui** — « Lancer avec ce modèle » → wizard étape 1 (choix sujet), modèle présélectionné à l'étape 2 ; pas de lancement sans sujet (matching domaines) |
 | Stepper wizard | **Supprimé** — fil d'Ariane ; **2 étapes** (sujet → modèle, clic = lancer) |
+| Titre de page (H1) | **Visible** — `.page-title` = dernier crumb |
+| Fil d'Ariane | **Ancêtres seulement** (≥ 2 niveaux) ; **absent** sur pages racine (1 crumb) — le courant = H1 |
+| Saisie points (revue en cours) | **Sans confirm** sur changement de statut ; confirm **uniquement** à la clôture |
+| Clôturer | Bouton **primary** (`.button`) + `hx-confirm` ; pas `.button-danger` |
+| Fiche point | **Satellite** PJ / Jira / historique — saisie statut/commentaire dans la grille ; lien **Détails** discret |
+| Statut revue à la création | **Directement `in_progress`** — pas d'étape brouillon ni CTA « Démarrer » (legacy `draft` encore démarable) |
+| Liste `/revues` | **Pagination** — 25 par page (`?page=`), total affiché ; pas de SPA |
 | Post-CRUD sujet (admin org) | **Créer** → redirect fiche `/subjects/{id}` (hub métier) ; **modifier / archiver** depuis admin → liste `/admin/subjects` ; « Modifier » fiche sujet → `/admin/subjects/{id}/edit` pour admin org |
 | Colonne « Auteur » sur `/revues` | **Non** — placeholder sans « auteur » ; recherche SQL par login conservée |
 | Titre de revue (UI) | **Supprimé** — pas de champ titre à la création ni en liste (issue parallèle) |
@@ -20,7 +27,7 @@ Ne pas remonter ces choix comme des problèmes UX. Mettre à jour ce fichier qua
 
 | Sujet | Décision |
 |-------|----------|
-| Onglet principal | **Revues** · Mes tâches · Modèles (éditeur+) · **Organisation** (admin org ; intégrations instance dans le sous-menu si admin global) |
+| Onglet principal | **Revues** · Mes tâches · Modèles (éditeur+) · **Organisation** (admin org ; intégrations dans le sous-menu org) — **sans logo/marque** dans la barre (menu seul) |
 | Solo sans onglet Organisation | Lien header **Organisation** → hub minimal (`/admin` org) : Inviter + Mes sujets ; onglet Organisation complet réapparaît après le 2ᵉ email whitelisté |
 | Sujets dans nav principale | **Non** — déplacés sous Organisation → `/admin/subjects` ; solo : pas de liste dans nav principale, accès via hub org ou wizard |
 | Route `/subjects` (liste membre) | **Conservée** (deep link) mais **hors nav** — usage quotidien = wizard + fiches ; liste admin = `/admin/subjects` |

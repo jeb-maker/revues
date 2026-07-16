@@ -99,47 +99,92 @@ func TestDashboard_RecentCompletedRuns(t *testing.T) {
 		t.Fatalf("len(active) = %d, want 0 after completion", len(active))
 	}
 
-	filtered, err := st.ListFilteredRunSummaries(ctx, 1, true, "", "")
+	filtered, total, err := st.ListFilteredRunSummaries(ctx, 1, true, "", "", 0, 0)
 	if err != nil {
 		t.Fatalf("ListFilteredRunSummaries(): %v", err)
 	}
-	if len(filtered) != 1 || filtered[0].RunID != run.ID || filtered[0].Status != store.RunStatusDone {
-		t.Fatalf("ListFilteredRunSummaries() = %+v", filtered)
+	if total != 1 || len(filtered) != 1 || filtered[0].RunID != run.ID || filtered[0].Status != store.RunStatusDone {
+		t.Fatalf("ListFilteredRunSummaries() = %+v total=%d", filtered, total)
 	}
 	if !filtered[0].CreatedByLogin.Valid {
 		t.Fatal("expected created_by login on filtered summary")
 	}
 
-	doneOnly, err := st.ListFilteredRunSummaries(ctx, 1, true, store.RunStatusDone, "")
+	doneOnly, total, err := st.ListFilteredRunSummaries(ctx, 1, true, store.RunStatusDone, "", 0, 0)
 	if err != nil {
 		t.Fatalf("ListFilteredRunSummaries(done): %v", err)
 	}
-	if len(doneOnly) != 1 {
-		t.Fatalf("len(doneOnly) = %d, want 1", len(doneOnly))
+	if total != 1 || len(doneOnly) != 1 {
+		t.Fatalf("len(doneOnly) = %d total=%d, want 1", len(doneOnly), total)
 	}
 
-	draftOnly, err := st.ListFilteredRunSummaries(ctx, 1, true, store.RunStatusDraft, "")
+	draftOnly, total, err := st.ListFilteredRunSummaries(ctx, 1, true, store.RunStatusDraft, "", 0, 0)
 	if err != nil {
 		t.Fatalf("ListFilteredRunSummaries(draft): %v", err)
 	}
-	if len(draftOnly) != 0 {
-		t.Fatalf("len(draftOnly) = %d, want 0", len(draftOnly))
+	if total != 0 || len(draftOnly) != 0 {
+		t.Fatalf("len(draftOnly) = %d total=%d, want 0", len(draftOnly), total)
 	}
 
-	byTitle, err := st.ListFilteredRunSummaries(ctx, 1, true, "", "Modèle")
+	byTitle, total, err := st.ListFilteredRunSummaries(ctx, 1, true, "", "Modèle", 0, 0)
 	if err != nil {
 		t.Fatalf("ListFilteredRunSummaries(title): %v", err)
 	}
-	if len(byTitle) != 1 {
-		t.Fatalf("len(byTitle) = %d, want 1", len(byTitle))
+	if total != 1 || len(byTitle) != 1 {
+		t.Fatalf("len(byTitle) = %d total=%d, want 1", len(byTitle), total)
 	}
 
-	missing, err := st.ListFilteredRunSummaries(ctx, 1, true, "", "revue-inexistante-xyz")
+	missing, total, err := st.ListFilteredRunSummaries(ctx, 1, true, "", "revue-inexistante-xyz", 0, 0)
 	if err != nil {
 		t.Fatalf("ListFilteredRunSummaries(missing): %v", err)
 	}
-	if len(missing) != 0 {
-		t.Fatalf("len(missing) = %d, want 0", len(missing))
+	if total != 0 || len(missing) != 0 {
+		t.Fatalf("len(missing) = %d total=%d, want 0", len(missing), total)
+	}
+}
+
+func TestListFilteredRunSummaries_Pagination(t *testing.T) {
+	ctx := context.Background()
+	db := openMemoryDB(t)
+	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
+
+	user, err := st.UpsertGitHubUser(ctx, 90, "pager", "pager@example.com", "Pager", "", "admin")
+	if err != nil {
+		t.Fatalf("UpsertGitHubUser(): %v", err)
+	}
+	subject, err := st.CreateProject(ctx, "Paged", "", user.ID, nil)
+	if err != nil {
+		t.Fatalf("CreateProject(): %v", err)
+	}
+	tmpl, _, err := st.CreateChecklistTemplate(ctx, "Modèle page", user.ID, nil, []store.TemplateItemInput{
+		{Label: "A", Required: true},
+	})
+	if err != nil {
+		t.Fatalf("CreateChecklistTemplate(): %v", err)
+	}
+	for i := 0; i < 3; i++ {
+		if _, err := st.CreateChecklistRun(ctx, subject.ID, tmpl.ID, user.ID); err != nil {
+			t.Fatalf("CreateChecklistRun(%d): %v", i, err)
+		}
+	}
+
+	page1, total, err := st.ListFilteredRunSummaries(ctx, user.ID, true, "", "", 2, 0)
+	if err != nil {
+		t.Fatalf("page1: %v", err)
+	}
+	if total != 3 || len(page1) != 2 {
+		t.Fatalf("page1 len=%d total=%d, want 2/3", len(page1), total)
+	}
+	page2, total, err := st.ListFilteredRunSummaries(ctx, user.ID, true, "", "", 2, 2)
+	if err != nil {
+		t.Fatalf("page2: %v", err)
+	}
+	if total != 3 || len(page2) != 1 {
+		t.Fatalf("page2 len=%d total=%d, want 1/3", len(page2), total)
+	}
+	if page1[0].RunID == page2[0].RunID {
+		t.Fatalf("expected distinct pages, both id=%d", page1[0].RunID)
 	}
 }
 

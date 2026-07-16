@@ -73,8 +73,8 @@ func TestDashboard_ShowsActiveRunProgress(t *testing.T) {
 	if !strings.Contains(body, "50%") {
 		t.Fatal("expected run progress percent")
 	}
-	if !strings.Contains(body, "brand is-active") || !strings.Contains(body, "brand__name\">Revues") {
-		t.Fatal("expected active brand link on revues home")
+	if !strings.Contains(body, `href="/revues"`) || !strings.Contains(body, `aria-current="page"`) {
+		t.Fatal("expected active Revues nav link on revues home")
 	}
 }
 
@@ -151,7 +151,7 @@ func TestDashboard_ShowsRecentCompletedRuns(t *testing.T) {
 	}
 }
 
-func TestDashboard_ShowsDraftRun(t *testing.T) {
+func TestDashboard_ShowsNewRunAsInProgress(t *testing.T) {
 	handler, db := testRouter(t)
 	ctx := context.Background()
 	st := store.New(db)
@@ -191,10 +191,13 @@ func TestDashboard_ShowsDraftRun(t *testing.T) {
 	}
 	body := rec.Body.String()
 	if !strings.Contains(body, "DraftCo") {
-		t.Fatal("expected draft run display label on dashboard")
+		t.Fatal("expected run display label on dashboard")
 	}
-	if !strings.Contains(body, "Brouillon") {
-		t.Fatal("expected draft status label on dashboard")
+	if !strings.Contains(body, "En cours") {
+		t.Fatal("expected in-progress status label on dashboard")
+	}
+	if strings.Contains(body, "Brouillon") {
+		t.Fatal("new runs must not appear as draft")
 	}
 }
 

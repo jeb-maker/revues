@@ -22,8 +22,8 @@ func LoadActiveOrganization(st *store.Store) func(http.Handler) http.Handler {
 				return
 			}
 
-			token, err := auth.SessionTokenFromRequest(r)
-			if err != nil {
+			token := SessionTokenFromContext(r)
+			if token == "" {
 				redirectPendingOrganization(w, r, st, user)
 				return
 			}

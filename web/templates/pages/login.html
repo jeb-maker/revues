@@ -1,5 +1,12 @@
 {{define "login"}}
 {{template "layout_start" .}}
+{{if .DevAuth}}
+<section class="card">
+  <h2>Mode démo</h2>
+  <p class="muted"><code>REVUES_DEV_AUTH</code> est actif sur <strong>127.0.0.1</strong> uniquement — la connexion GitHub n'est pas requise.</p>
+  <p><a class="button" href="/revues">Entrer sans GitHub</a></p>
+</section>
+{{else}}
 <p>Connectez-vous avec votre compte GitHub pour accéder à Revues.</p>
 {{if .LoginError}}
 <div class="login-alert" role="alert">
@@ -7,5 +14,6 @@
 </div>
 {{end}}
 <p><a class="button" href="/auth/github/start">Se connecter avec GitHub</a></p>
+{{end}}
 {{template "layout_end" .}}
 {{end}}

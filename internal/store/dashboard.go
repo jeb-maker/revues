@@ -8,7 +8,8 @@ import (
 
 const (
 	recentCompletedRunsLimit = 10
-	filteredRunsLimit        = 100
+	// FilteredRunsPageSize keeps /revues HTML under the page budget.
+	FilteredRunsPageSize = 25
 )
 
 // ActiveRunSummary is a draft or in-progress run with completion stats for the dashboard.
@@ -114,22 +115,66 @@ func (s *Store) ListActiveRunSummaries(ctx context.Context, userID int64, admin 
 	return scanActiveRunSummaries(rows)
 }
 
-// ListFilteredRunSummaries returns non-archived runs visible to the user with optional filters.
-func (s *Store) ListFilteredRunSummaries(ctx context.Context, userID int64, admin bool, status, query string) ([]RunListSummary, error) {
+// ListFilteredRunSummaries returns a page of non-archived runs visible to the user.
+// total is the full match count for the same filters (ignoring limit/offset).
+func (s *Store) ListFilteredRunSummaries(ctx context.Context, userID int64, admin bool, status, query string, limit, offset int) ([]RunListSummary, int, error) {
 	orgID, err := organizationIDFromContext(ctx)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
+	}
+	if limit <= 0 {
+		limit = FilteredRunsPageSize
+	}
+	if offset < 0 {
+		offset = 0
 	}
 
-	sqlQuery := runListSummariesSQL
+	filterSQL, args := filteredRunSummariesFilterSQL(userID, admin, orgID, status, query)
+
+	var total int
+	countSQL := `SELECT COUNT(*) FROM (
+		SELECT r.id
+		FROM checklist_runs r
+		INNER JOIN subjects p ON p.id = r.subject_id
+		INNER JOIN template_versions tv ON tv.id = r.template_version_id
+		INNER JOIN checklist_templates t ON t.id = tv.template_id
+		LEFT JOIN users u ON u.id = r.created_by
+		` + filterSQL + `
+		GROUP BY r.id
+	)`
+	if err := s.db.QueryRowContext(ctx, countSQL, args...).Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("count filtered run summaries: %w", err)
+	}
+
+	sqlQuery := runListSummariesSelect + runListSummariesFrom + filterSQL + `
+		GROUP BY r.id, t.name, r.subject_id, p.name, r.status, r.due_date,
+		         r.created_at, r.started_at, r.completed_at, u.login
+		ORDER BY COALESCE(r.completed_at, r.started_at, r.created_at) DESC, r.id DESC
+		LIMIT ? OFFSET ?`
+	listArgs := append(append([]any{}, args...), limit, offset)
+
+	rows, err := s.queryRows(ctx, sqlQuery, listArgs...)
+	if err != nil {
+		return nil, 0, fmt.Errorf("list filtered run summaries: %w", err)
+	}
+	defer rows.Close()
+
+	summaries, err := scanRunListSummaries(rows)
+	if err != nil {
+		return nil, 0, err
+	}
+	return summaries, total, nil
+}
+
+func filteredRunSummariesFilterSQL(userID int64, admin bool, orgID int64, status, query string) (string, []any) {
+	var sqlQuery string
 	var args []any
 
 	if admin {
-		sqlQuery += `
-		WHERE r.status != ? AND p.archived_at IS NULL AND p.organization_id = ?`
+		sqlQuery = `WHERE r.status != ? AND p.archived_at IS NULL AND p.organization_id = ?`
 		args = append(args, RunStatusArchived, orgID)
 	} else {
-		sqlQuery += `
+		sqlQuery = `
 		INNER JOIN organization_members om ON om.organization_id = p.organization_id AND om.user_id = ?
 		WHERE r.status != ? AND p.archived_at IS NULL AND p.organization_id = ?`
 		args = append(args, userID, RunStatusArchived, orgID)
@@ -153,20 +198,7 @@ func (s *Store) ListFilteredRunSummaries(ctx context.Context, userID int64, admi
 		args = append(args, pattern, pattern, pattern)
 	}
 
-	sqlQuery += `
-		GROUP BY r.id, t.name, r.subject_id, p.name, r.status, r.due_date,
-		         r.created_at, r.started_at, r.completed_at, u.login
-		ORDER BY COALESCE(r.completed_at, r.started_at, r.created_at) DESC, r.id DESC
-		LIMIT ?`
-	args = append(args, filteredRunsLimit)
-
-	rows, err := s.queryRows(ctx, sqlQuery, args...)
-	if err != nil {
-		return nil, fmt.Errorf("list filtered run summaries: %w", err)
-	}
-	defer rows.Close()
-
-	return scanRunListSummaries(rows)
+	return sqlQuery, args
 }
 
 // ListRecentCompletedRunSummaries returns the most recently closed runs visible to the user.
@@ -212,11 +244,14 @@ const activeRunSummariesSQL = `
 	INNER JOIN run_items ri ON ri.run_id = r.id
 `
 
-const runListSummariesSQL = `
+const runListSummariesSelect = `
 	SELECT r.id, t.name, r.subject_id, p.name, r.status, r.due_date,
 	       r.created_at, r.started_at, r.completed_at, u.login,
 	       COUNT(ri.id) AS total,
 	       SUM(CASE WHEN ri.status IN ('ok', 'na') THEN 1 ELSE 0 END) AS done
+`
+
+const runListSummariesFrom = `
 	FROM checklist_runs r
 	INNER JOIN subjects p ON p.id = r.subject_id
 	INNER JOIN template_versions tv ON tv.id = r.template_version_id
@@ -224,6 +259,9 @@ const runListSummariesSQL = `
 	LEFT JOIN users u ON u.id = r.created_by
 	LEFT JOIN run_items ri ON ri.run_id = r.id
 `
+
+// Deprecated: kept for any remaining references; prefer runListSummariesSelect + From.
+const runListSummariesSQL = runListSummariesSelect + runListSummariesFrom
 
 const completedRunSummariesSQL = `
 	SELECT r.id, t.name, r.subject_id, p.name, r.completed_at, r.created_at,

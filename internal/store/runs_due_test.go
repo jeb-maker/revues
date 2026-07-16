@@ -38,9 +38,9 @@ func TestListRunsDueOn(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateChecklistRun(other): %v", err)
 	}
-	runDraft, err := st.CreateChecklistRun(ctx, project.ID, template.ID, lead.ID)
+	runDone, err := st.CreateChecklistRun(ctx, project.ID, template.ID, lead.ID)
 	if err != nil {
-		t.Fatalf("CreateChecklistRun(draft): %v", err)
+		t.Fatalf("CreateChecklistRun(done): %v", err)
 	}
 
 	tomorrow := time.Now().UTC().Add(24 * time.Hour).Format("2006-01-02")
@@ -52,14 +52,11 @@ func TestListRunsDueOn(t *testing.T) {
 	if err = st.SetRunDueDate(ctx, runOther.ID, sql.NullString{String: nextWeek + "T00:00:00Z", Valid: true}); err != nil {
 		t.Fatalf("SetRunDueDate(other): %v", err)
 	}
-	if err = st.SetRunDueDate(ctx, runDraft.ID, sql.NullString{String: tomorrow + "T00:00:00Z", Valid: true}); err != nil {
-		t.Fatalf("SetRunDueDate(draft): %v", err)
+	if err = st.SetRunDueDate(ctx, runDone.ID, sql.NullString{String: tomorrow + "T00:00:00Z", Valid: true}); err != nil {
+		t.Fatalf("SetRunDueDate(done): %v", err)
 	}
-
-	for _, id := range []int64{runDue.ID, runOther.ID} {
-		if err = st.StartRun(ctx, id); err != nil {
-			t.Fatalf("StartRun(%d): %v", id, err)
-		}
+	if err = st.CompleteRun(ctx, runDone.ID, ""); err != nil {
+		t.Fatalf("CompleteRun(done): %v", err)
 	}
 
 	got, err := st.ListRunsDueOn(ctx, tomorrow)

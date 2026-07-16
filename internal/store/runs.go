@@ -72,7 +72,7 @@ type AssignedRunItemSummary struct {
 	SubjectName string
 }
 
-// CreateChecklistRun inserts a run and snapshots template items in one transaction.
+// CreateChecklistRun inserts a run (already in progress) and snapshots template items in one transaction.
 func (s *Store) CreateChecklistRun(ctx context.Context, subjectID, templateID int64, createdBy int64) (*ChecklistRun, error) {
 	template, err := s.ChecklistTemplateByID(ctx, templateID)
 	if err != nil {
@@ -106,9 +106,9 @@ func (s *Store) CreateChecklistRun(ctx context.Context, subjectID, templateID in
 
 	res, err := tx.ExecContext(ctx, `
 		INSERT INTO checklist_runs (
-			subject_id, template_version_id, status, created_by, created_at
-		) VALUES (?, ?, ?, ?, ?)
-	`, subjectID, version.ID, RunStatusDraft, createdBy, now)
+			subject_id, template_version_id, status, created_by, started_at, created_at
+		) VALUES (?, ?, ?, ?, ?, ?)
+	`, subjectID, version.ID, RunStatusInProgress, createdBy, now, now)
 	if err != nil {
 		return nil, fmt.Errorf("insert checklist run: %w", err)
 	}
@@ -226,6 +226,7 @@ func (s *Store) ListRunItems(ctx context.Context, runID int64) ([]RunItem, error
 }
 
 // StartRun moves a run from draft to in_progress.
+// Already in-progress runs are a no-op (legacy drafts + callers that still start after create).
 func (s *Store) StartRun(ctx context.Context, id int64) error {
 	now := time.Now().UTC().Format(time.RFC3339)
 	res, err := s.db.ExecContext(ctx, `
@@ -244,6 +245,9 @@ func (s *Store) StartRun(ctx context.Context, id int64) error {
 		run, loadErr := s.RunByID(ctx, id)
 		if loadErr != nil {
 			return loadErr
+		}
+		if run.Status == RunStatusInProgress {
+			return nil
 		}
 		if run.Status != RunStatusDraft {
 			return ErrInvalidRunStatus

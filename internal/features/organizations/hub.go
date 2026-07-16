@@ -14,10 +14,6 @@ func (h *Organizations) AdminHub(w http.ResponseWriter, r *http.Request) {
 		PageData: templates.ApplyPageMeta(h.pageData(r), templates.BCAdminOrgHub()),
 	}
 	data.ActiveTab = "org"
-
-	if user, ok := middleware.UserFromContext(r.Context()); ok {
-		data.ShowIntegrations = middleware.CanManageOrgUsers(r.Context(), h.Store, user)
-	}
 	if org, ok := middleware.OrganizationFromContext(r.Context()); ok {
 		data.OrganizationName = org.Name
 	}

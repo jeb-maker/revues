@@ -11,6 +11,7 @@ import (
 type contextKey int
 
 const userContextKey contextKey = 1
+const sessionTokenContextKey contextKey = 4
 
 // LoadUser resolves the session cookie into a user on the request context.
 func LoadUser(st *store.Store) func(http.Handler) http.Handler {
@@ -25,6 +26,7 @@ func LoadUser(st *store.Store) func(http.Handler) http.Handler {
 					user, err := st.UserByID(ctx, userID)
 					if err == nil {
 						ctx = context.WithValue(ctx, userContextKey, user)
+						ctx = context.WithValue(ctx, sessionTokenContextKey, token)
 					}
 				}
 			}
@@ -40,8 +42,11 @@ func UserFromContext(ctx context.Context) (*store.User, bool) {
 	return user, ok
 }
 
-// SessionTokenFromContext is a helper for handlers needing the raw cookie value.
+// SessionTokenFromContext returns the raw session token (cookie or freshly minted dev auth).
 func SessionTokenFromContext(r *http.Request) string {
+	if token, ok := r.Context().Value(sessionTokenContextKey).(string); ok && token != "" {
+		return token
+	}
 	token, err := auth.SessionTokenFromRequest(r)
 	if err != nil {
 		return ""

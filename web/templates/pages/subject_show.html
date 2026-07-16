@@ -5,7 +5,6 @@
   {{if .Message}}<p class="success" role="status">{{.Message}}</p>{{end}}
   {{if .Error}}<p class="error" role="alert">{{.Error}}</p>{{end}}
   <div class="subject-meta__head">
-    <h1 class="subject-meta__title">{{.Subject.Name}}</h1>
     {{if or .CanLaunch .CanManage}}
     <div class="subject-meta__actions">
       {{if .CanLaunch}}<a class="button" href="/subjects/{{.Subject.ID}}/modeles?for_run=1" title="{{launchActionTitle .Labels.Subject}}">Lancer une revue</a>{{end}}
@@ -84,5 +83,4 @@
 </section>
 {{template "layout_end" .}}
 {{end}}
-{{define "page_heading"}}{{end}}
 {{define "main_class"}} site-main--wide{{end}}

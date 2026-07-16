@@ -27,7 +27,7 @@ func TestBCRunWizardLaunch_Links(t *testing.T) {
 	if crumbs[1].URL != "/subjects/3" || crumbs[1].Label != "Alpha" {
 		t.Fatalf("subject crumb = %+v", crumbs[1])
 	}
-	if crumbs[2].URL != "/subjects/3/modeles?for_run=1" || crumbs[2].Label != "Lancer" {
+	if crumbs[2].URL != "/subjects/3/modeles?for_run=1" || crumbs[2].Label != "Choisir un modèle" {
 		t.Fatalf("launch crumb = %+v", crumbs[2])
 	}
 	wantLabel := "Checklist QA · v1 · 4 points de contrôle"
@@ -44,7 +44,7 @@ func TestBCRunWizardTemplates_Links(t *testing.T) {
 	if crumbs[1].URL != "/subjects/3" {
 		t.Fatalf("subject URL = %q", crumbs[1].URL)
 	}
-	if crumbs[2].Label != "Lancer" || crumbs[2].URL != "" {
+	if crumbs[2].Label != "Choisir un modèle" || crumbs[2].URL != "" {
 		t.Fatalf("last crumb = %+v", crumbs[2])
 	}
 }
@@ -52,5 +52,20 @@ func TestBCRunWizardTemplates_Links(t *testing.T) {
 func TestBreadcrumbCurrent_Empty(t *testing.T) {
 	if got := templates.BreadcrumbCurrent(nil); got != "" {
 		t.Fatalf("BreadcrumbCurrent(nil) = %q", got)
+	}
+}
+
+func TestBreadcrumbAncestors(t *testing.T) {
+	if got := templates.BreadcrumbAncestors(nil); got != nil {
+		t.Fatalf("nil crumbs = %v", got)
+	}
+	one := templates.BCRevues()
+	if got := templates.BreadcrumbAncestors(one); got != nil {
+		t.Fatalf("single crumb = %v, want nil", got)
+	}
+	deep := templates.BCRunWizardTemplates("Alpha", 3)
+	got := templates.BreadcrumbAncestors(deep)
+	if len(got) != 2 || got[0].Label != "Revues" || got[1].Label != "Alpha" {
+		t.Fatalf("ancestors = %+v", got)
 	}
 }

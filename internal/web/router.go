@@ -170,11 +170,13 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, error) {
 
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
+	r.Use(appmiddleware.CapturePeerAddr) // before RealIP — DevAuth must see true peer
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	r.Use(DevNoCache(deps.Config.Env))
 	r.Use(appmiddleware.LoadUser(st))
+	r.Use(appmiddleware.EnsureDevAuth(st, sessions, deps.Config.DevAuthEnabled(), deps.Config.DevAuthEmail))
 	r.Use(appmiddleware.LoadActiveOrganization(st))
 	r.Use(appmiddleware.LoadHeaderData(st))
 	r.Use(appmiddleware.CSRF(deps.Config.SessionSecret))

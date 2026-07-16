@@ -9,7 +9,7 @@ import (
 type RunStore interface {
 	SubjectByID(ctx context.Context, id int64) (*store.Subject, error)
 	ListSubjects(ctx context.Context, userID int64, admin bool, query string) ([]store.Subject, error)
-	ListFilteredRunSummaries(ctx context.Context, userID int64, admin bool, status, query string) ([]store.RunListSummary, error)
+	ListFilteredRunSummaries(ctx context.Context, userID int64, admin bool, status, query string, limit, offset int) ([]store.RunListSummary, int, error)
 	ListActiveRunSummaries(ctx context.Context, userID int64, admin bool) ([]store.ActiveRunSummary, error)
 	ListRecentCompletedRunSummaries(ctx context.Context, userID int64, admin bool) ([]store.CompletedRunSummary, error)
 	OrganizationMemberRole(ctx context.Context, organizationID, userID int64) (string, bool, error)

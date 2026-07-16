@@ -29,9 +29,6 @@
       <button class="hamburger" aria-label="Menu" aria-expanded="false">
         {{icon "menu"}}
       </button>
-      <a class="brand{{if and .User (eq .ActiveTab "runs")}} is-active{{end}}" href="{{if .User}}/revues{{else}}/{{end}}" aria-label="Revues — accueil"{{if and .User (eq .ActiveTab "runs")}} aria-current="page"{{end}}>
-        <span class="brand__name">Revues</span>
-      </a>
       {{if .User}}
       {{if gt (len .UserOrganizations) 1}}
       <form method="post" action="/org/switch" class="org-switcher">
@@ -79,13 +76,20 @@
   <div class="site-shell">
   <main id="main" class="site-main{{block "main_class" .}}{{end}}">
     {{if .Breadcrumbs}}
+    {{block "page_heading" .}}
+    <h1 class="page-title">{{breadcrumbCurrent .Breadcrumbs}}</h1>
+    {{end}}
+    {{$ancestors := breadcrumbAncestors .Breadcrumbs}}
+    {{if or $ancestors .PageActions}}
     <div class="page-header">
+      {{if $ancestors}}
       <nav class="breadcrumb" aria-label="Fil d'Ariane">
-        {{range $i, $b := .Breadcrumbs}}
+        {{range $i, $b := $ancestors}}
           {{if gt $i 0}}<span class="breadcrumb__sep" aria-hidden="true">{{icon "chevron-right"}}</span>{{end}}
-          {{if $b.URL}}<a href="{{$b.URL}}">{{$b.Label}}</a>{{else}}<span aria-current="page">{{$b.Label}}</span>{{end}}
+          {{if $b.URL}}<a href="{{$b.URL}}">{{$b.Label}}</a>{{else}}<span>{{$b.Label}}</span>{{end}}
         {{end}}
       </nav>
+      {{end}}
       {{if .PageActions}}
       <div class="page-actions">
         {{range .PageActions}}
@@ -94,8 +98,6 @@
       </div>
       {{end}}
     </div>
-    {{block "page_heading" .}}
-    <h1 class="visually-hidden">{{breadcrumbCurrent .Breadcrumbs}}</h1>
     {{end}}
     {{end}}
     <div class="page-body">
