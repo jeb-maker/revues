@@ -45,12 +45,43 @@ var (
 
 // Organization is a multi-tenant container above subjects.
 type Organization struct {
-	ID             int64
-	Name           string
-	Slug           string
-	UISubjectLabel string
-	CreatedAt      string
-	CreatedBy      sql.NullInt64
+	ID                      int64
+	Name                    string
+	Slug                    string
+	UISubjectLabel          string
+	LeadsMayAssignTeams     bool
+	LeadsMayInviteMembers   bool
+	LeadsMayInviteExternals bool
+	CreatedAt               string
+	CreatedBy               sql.NullInt64
+}
+
+// OrgLeadPolicies holds org-level lead delegation flags.
+type OrgLeadPolicies struct {
+	LeadsMayAssignTeams     bool
+	LeadsMayInviteMembers   bool
+	LeadsMayInviteExternals bool
+}
+
+// DefaultOrgLeadPolicies returns greenfield defaults for lead delegation.
+func DefaultOrgLeadPolicies() OrgLeadPolicies {
+	return OrgLeadPolicies{
+		LeadsMayAssignTeams:     true,
+		LeadsMayInviteMembers:   true,
+		LeadsMayInviteExternals: false,
+	}
+}
+
+// LeadPolicies returns the org's lead-delegation flags (defaults if org is nil).
+func (o *Organization) LeadPolicies() OrgLeadPolicies {
+	if o == nil {
+		return DefaultOrgLeadPolicies()
+	}
+	return OrgLeadPolicies{
+		LeadsMayAssignTeams:     o.LeadsMayAssignTeams,
+		LeadsMayInviteMembers:   o.LeadsMayInviteMembers,
+		LeadsMayInviteExternals: o.LeadsMayInviteExternals,
+	}
 }
 
 // NormalizeUISubjectLabel validates and returns a known subject label preset.
@@ -153,9 +184,15 @@ func (s *Store) OrganizationBySlug(ctx context.Context, slug string) (*Organizat
 
 	var org Organization
 	err = s.db.QueryRowContext(ctx, `
-		SELECT id, name, slug, ui_subject_label, created_at, created_by
+		SELECT id, name, slug, ui_subject_label,
+		       leads_may_assign_teams, leads_may_invite_members, leads_may_invite_externals,
+		       created_at, created_by
 		FROM organizations WHERE slug = ?
-	`, slug).Scan(&org.ID, &org.Name, &org.Slug, &org.UISubjectLabel, &org.CreatedAt, &org.CreatedBy)
+	`, slug).Scan(
+		&org.ID, &org.Name, &org.Slug, &org.UISubjectLabel,
+		&org.LeadsMayAssignTeams, &org.LeadsMayInviteMembers, &org.LeadsMayInviteExternals,
+		&org.CreatedAt, &org.CreatedBy,
+	)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrOrganizationNotFound
 	}
@@ -170,9 +207,15 @@ func (s *Store) OrganizationBySlug(ctx context.Context, slug string) (*Organizat
 func (s *Store) OrganizationByID(ctx context.Context, id int64) (*Organization, error) {
 	var org Organization
 	err := s.db.QueryRowContext(ctx, `
-		SELECT id, name, slug, ui_subject_label, created_at, created_by
+		SELECT id, name, slug, ui_subject_label,
+		       leads_may_assign_teams, leads_may_invite_members, leads_may_invite_externals,
+		       created_at, created_by
 		FROM organizations WHERE id = ?
-	`, id).Scan(&org.ID, &org.Name, &org.Slug, &org.UISubjectLabel, &org.CreatedAt, &org.CreatedBy)
+	`, id).Scan(
+		&org.ID, &org.Name, &org.Slug, &org.UISubjectLabel,
+		&org.LeadsMayAssignTeams, &org.LeadsMayInviteMembers, &org.LeadsMayInviteExternals,
+		&org.CreatedAt, &org.CreatedBy,
+	)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrOrganizationNotFound
 	}
@@ -203,6 +246,35 @@ func (s *Store) UpdateOrganizationUISubjectLabel(ctx context.Context, organizati
 		return ErrOrganizationNotFound
 	}
 	return nil
+}
+
+// UpdateOrganizationLeadPolicies sets org lead-delegation flags.
+func (s *Store) UpdateOrganizationLeadPolicies(ctx context.Context, organizationID int64, policies OrgLeadPolicies) error {
+	res, err := s.db.ExecContext(ctx, `
+		UPDATE organizations SET
+			leads_may_assign_teams = ?,
+			leads_may_invite_members = ?,
+			leads_may_invite_externals = ?
+		WHERE id = ?
+	`, boolToInt(policies.LeadsMayAssignTeams), boolToInt(policies.LeadsMayInviteMembers), boolToInt(policies.LeadsMayInviteExternals), organizationID)
+	if err != nil {
+		return fmt.Errorf("update organization lead policies: %w", err)
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("update organization lead policies rows: %w", err)
+	}
+	if n == 0 {
+		return ErrOrganizationNotFound
+	}
+	return nil
+}
+
+func boolToInt(v bool) int {
+	if v {
+		return 1
+	}
+	return 0
 }
 
 // AddOrganizationMember assigns a user to an organization.
@@ -258,7 +330,9 @@ func (s *Store) OrganizationMemberRole(ctx context.Context, organizationID, user
 // ListUserOrganizations returns organizations a user belongs to.
 func (s *Store) ListUserOrganizations(ctx context.Context, userID int64) ([]OrganizationMembership, error) {
 	rows, err := s.db.QueryContext(ctx, `
-		SELECT o.id, o.name, o.slug, o.ui_subject_label, o.created_at, o.created_by, om.role, om.created_at
+		SELECT o.id, o.name, o.slug, o.ui_subject_label,
+		       o.leads_may_assign_teams, o.leads_may_invite_members, o.leads_may_invite_externals,
+		       o.created_at, o.created_by, om.role, om.created_at
 		FROM organization_members om
 		INNER JOIN organizations o ON o.id = om.organization_id
 		WHERE om.user_id = ?
@@ -277,6 +351,9 @@ func (s *Store) ListUserOrganizations(ctx context.Context, userID int64) ([]Orga
 			&m.Organization.Name,
 			&m.Organization.Slug,
 			&m.Organization.UISubjectLabel,
+			&m.Organization.LeadsMayAssignTeams,
+			&m.Organization.LeadsMayInviteMembers,
+			&m.Organization.LeadsMayInviteExternals,
 			&m.Organization.CreatedAt,
 			&m.Organization.CreatedBy,
 			&m.Role,

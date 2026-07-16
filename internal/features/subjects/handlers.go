@@ -278,14 +278,31 @@ func (h *Subjects) Show(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func requestOrgPolicies(r *http.Request) store.OrgLeadPolicies {
+	org, _ := middleware.OrganizationFromContext(r.Context())
+	return PoliciesFromOrganization(org)
+}
+
+func (h *Subjects) denyAssignTeams(w http.ResponseWriter, r *http.Request, subject *Subject, user *User, access store.SubjectAccess, policies store.OrgLeadPolicies) bool {
+	if CanAssignSubjectTeams(user, access, policies) {
+		return false
+	}
+	if leadBlockedByAssignTeamsPolicy(user, access, policies) {
+		h.renderShowError(w, r, subject, user, access, "La politique de l'organisation n'autorise pas les leads à affecter des équipes.")
+		return true
+	}
+	http.NotFound(w, r)
+	return true
+}
+
 // AddTeam grants an organization team a role on the subject.
 func (h *Subjects) AddTeam(w http.ResponseWriter, r *http.Request) {
 	subject, user, access, ok := h.loadSubject(w, r)
 	if !ok {
 		return
 	}
-	if !CanAssignSubjectTeams(user, access) {
-		http.NotFound(w, r)
+	policies := requestOrgPolicies(r)
+	if h.denyAssignTeams(w, r, subject, user, access, policies) {
 		return
 	}
 	if err := r.ParseForm(); err != nil {
@@ -326,8 +343,8 @@ func (h *Subjects) RemoveTeam(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if !CanAssignSubjectTeams(user, access) {
-		http.NotFound(w, r)
+	policies := requestOrgPolicies(r)
+	if h.denyAssignTeams(w, r, subject, user, access, policies) {
 		return
 	}
 	if err := r.ParseForm(); err != nil {
@@ -364,7 +381,8 @@ func (h *Subjects) PreviewTeam(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if !CanAssignSubjectTeams(user, access) {
+	policies := requestOrgPolicies(r)
+	if !CanAssignSubjectTeams(user, access, policies) {
 		http.NotFound(w, r)
 		return
 	}
@@ -416,6 +434,113 @@ func (h *Subjects) PreviewTeam(w http.ResponseWriter, r *http.Request) {
 	if execErr := h.Templates.ExecuteTemplate(w, "subject_team_preview_fragment", data); execErr != nil {
 		slog.Error("render team preview", "err", execErr)
 	}
+}
+
+// AddMember adds a direct subject member by email (org member or external).
+func (h *Subjects) AddMember(w http.ResponseWriter, r *http.Request) {
+	subject, user, access, ok := h.loadSubject(w, r)
+	if !ok {
+		return
+	}
+	policies := requestOrgPolicies(r)
+	if !CanManageSubjectMembers(user, access, policies) {
+		if CanLeadAccess(user, access) {
+			h.renderShowError(w, r, subject, user, access, "La politique de l'organisation n'autorise pas les leads à inviter des membres.")
+			return
+		}
+		http.NotFound(w, r)
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
+
+	email := strings.TrimSpace(r.FormValue("email"))
+	role := strings.TrimSpace(r.FormValue("role"))
+	if role == "" {
+		role = store.SubjectRoleViewer
+	}
+	if email == "" {
+		h.renderShowError(w, r, subject, user, access, "Email requis.")
+		return
+	}
+
+	invitee, err := h.Store.UserByEmail(r.Context(), email)
+	if err != nil {
+		if errors.Is(err, ErrUserNotFound) {
+			h.renderShowError(w, r, subject, user, access, "Aucun compte avec cet email. L'invité doit d'abord se connecter via GitHub.")
+			return
+		}
+		slog.Error("user by email for subject member", "err", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	org, orgOK := middleware.OrganizationFromContext(r.Context())
+	inviteeIsOrgMember := false
+	if orgOK {
+		_, inviteeIsOrgMember, _ = h.Store.OrganizationMemberRole(r.Context(), org.ID, invitee.ID)
+	}
+	if !CanInviteSubjectMember(user, access, policies, inviteeIsOrgMember) {
+		if inviteeIsOrgMember {
+			h.renderShowError(w, r, subject, user, access, "La politique de l'organisation n'autorise pas les leads à inviter des membres.")
+		} else {
+			h.renderShowError(w, r, subject, user, access, "La politique de l'organisation n'autorise pas les leads à inviter des externes.")
+		}
+		return
+	}
+
+	if err = h.Store.UpsertDirectSubjectMember(r.Context(), subject.ID, invitee.ID, role); err != nil {
+		if errors.Is(err, ErrInvalidSubjectRole) {
+			h.renderShowError(w, r, subject, user, access, "Rôle invalide.")
+			return
+		}
+		slog.Error("upsert direct subject member", "err", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	http.Redirect(w, r, "/subjects/"+strconv.FormatInt(subject.ID, 10)+"?msg=Membre+ajout%C3%A9", http.StatusSeeOther)
+}
+
+// RemoveMember removes a direct subject member.
+func (h *Subjects) RemoveMember(w http.ResponseWriter, r *http.Request) {
+	subject, user, access, ok := h.loadSubject(w, r)
+	if !ok {
+		return
+	}
+	policies := requestOrgPolicies(r)
+	if !CanManageSubjectMembers(user, access, policies) {
+		if CanLeadAccess(user, access) {
+			h.renderShowError(w, r, subject, user, access, "La politique de l'organisation n'autorise pas les leads à gérer les membres.")
+			return
+		}
+		http.NotFound(w, r)
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
+
+	userID, err := strconv.ParseInt(strings.TrimSpace(r.FormValue("user_id")), 10, 64)
+	if err != nil || userID <= 0 {
+		h.renderShowError(w, r, subject, user, access, "Membre invalide.")
+		return
+	}
+
+	if err = h.Store.RemoveDirectSubjectMember(r.Context(), subject.ID, userID); err != nil {
+		if errors.Is(err, ErrDirectSubjectMemberNotFound) || errors.Is(err, ErrSubjectNotFound) {
+			h.renderShowError(w, r, subject, user, access, "Ce membre n'est pas affecté à ce sujet.")
+			return
+		}
+		slog.Error("remove direct subject member", "err", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	http.Redirect(w, r, "/subjects/"+strconv.FormatInt(subject.ID, 10)+"?msg=Membre+retir%C3%A9", http.StatusSeeOther)
 }
 
 // EditForm renders the edit subject form.
@@ -785,10 +910,12 @@ func (h *Subjects) renderWizardError(w http.ResponseWriter, r *http.Request, mes
 }
 
 type subjectShowExtras struct {
-	message string
-	errMsg  string
-	addTeam int64
-	addRole string
+	message        string
+	errMsg         string
+	addTeam        int64
+	addRole        string
+	addMemberEmail string
+	addMemberRole  string
 }
 
 func (h *Subjects) buildSubjectShowData(
@@ -807,9 +934,11 @@ func (h *Subjects) buildSubjectShowData(
 	nokItems []SubjectNokItemSummary,
 	extras subjectShowExtras,
 ) (templates.SubjectShowData, error) {
+	policies := requestOrgPolicies(r)
 	canManage := CanManageAccess(user, access)
 	canLaunch := CanContributeAccess(user, access)
-	canAssignTeams := CanAssignSubjectTeams(user, access)
+	canAssignTeams := CanAssignSubjectTeams(user, access, policies)
+	canManageMembers := CanManageSubjectMembers(user, access, policies)
 	editPath := templates.PathSubjects + "/" + strconv.FormatInt(subject.ID, 10) + "/edit"
 	if CanManageOrgUsers(user, callerOrgRole, callerOrgMember) {
 		editPath = templates.PathAdminSubjects + "/" + strconv.FormatInt(subject.ID, 10) + "/edit"
@@ -838,32 +967,40 @@ func (h *Subjects) buildSubjectShowData(
 	if addRole == "" {
 		addRole = store.SubjectRoleViewer
 	}
+	addMemberRole := extras.addMemberRole
+	if addMemberRole == "" {
+		addMemberRole = store.SubjectRoleViewer
+	}
 
 	pd := h.PageDataTab(r, subject.Name, "")
 	pd.Breadcrumbs = templates.BCSubjectShow(subject.Name, pd.Labels.Subject)
 
 	return templates.SubjectShowData{
-		PageData:         pd,
-		Subject:          subject,
-		Domains:          domains,
-		Tags:             tags,
-		Members:          members,
-		DirectMembers:    directMembers,
-		Teams:            subjectTeams,
-		AvailableTeams:   available,
-		AccessSources:    accessSources,
-		Runs:             subjectRuns,
-		NokItems:         nokItems,
-		MemberRole:       DisplayRole(access),
-		CanManage:        canManage,
-		CanManageMembers: false,
-		CanAssignTeams:   canAssignTeams,
-		CanLaunch:        canLaunch,
-		EditPath:         editPath,
-		AddTeamID:        extras.addTeam,
-		AddTeamRole:      addRole,
-		Message:          extras.message,
-		Error:            extras.errMsg,
+		PageData:            pd,
+		Subject:             subject,
+		Domains:             domains,
+		Tags:                tags,
+		Members:             members,
+		DirectMembers:       directMembers,
+		Teams:               subjectTeams,
+		AvailableTeams:      available,
+		AccessSources:       accessSources,
+		Runs:                subjectRuns,
+		NokItems:            nokItems,
+		MemberRole:          DisplayRole(access),
+		CanManage:           canManage,
+		CanManageMembers:    canManageMembers,
+		CanAssignTeams:      canAssignTeams,
+		TeamsPolicyDenied:   leadBlockedByAssignTeamsPolicy(user, access, policies),
+		MembersPolicyDenied: CanLeadAccess(user, access) && !canManageMembers && !auth.HasMinRole(user.Role, auth.RoleAdmin) && !access.HasSource(store.AccessSourceOrgAdmin),
+		CanLaunch:           canLaunch,
+		EditPath:            editPath,
+		AddMemberEmail:      extras.addMemberEmail,
+		AddMemberRole:       addMemberRole,
+		AddTeamID:           extras.addTeam,
+		AddTeamRole:         addRole,
+		Message:             extras.message,
+		Error:               extras.errMsg,
 	}, nil
 }
 
@@ -913,10 +1050,13 @@ func (h *Subjects) renderShowError(w http.ResponseWriter, r *http.Request, subje
 
 	teamID, _ := strconv.ParseInt(strings.TrimSpace(r.FormValue("team_id")), 10, 64)
 	callerOrgRole, callerOrgMember, _ := h.Store.OrganizationMemberRole(r.Context(), subject.OrganizationID, user.ID)
+	memberRole := strings.TrimSpace(r.FormValue("role"))
 	data, err := h.buildSubjectShowData(r, subject, user, access, callerOrgRole, callerOrgMember, domains, tags, nil, directMembers, subjectTeams, orgTeams, subjectRuns, nokItems, subjectShowExtras{
-		errMsg:  message,
-		addTeam: teamID,
-		addRole: strings.TrimSpace(r.FormValue("role")),
+		errMsg:         message,
+		addTeam:        teamID,
+		addRole:        memberRole,
+		addMemberEmail: strings.TrimSpace(r.FormValue("email")),
+		addMemberRole:  memberRole,
 	})
 	if err != nil {
 		slog.Error("build subject show data", "err", err)

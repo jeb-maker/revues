@@ -966,3 +966,294 @@ func TestSubjectTeams_IDOR_CrossOrg(t *testing.T) {
 		t.Fatalf("cross-org preview status = %d, want %d", previewRec.Code, http.StatusNotFound)
 	}
 }
+
+func TestOrgPolicies_LeadAssignTeamsDenied(t *testing.T) {
+	handler, db := testRouter(t)
+	ctx := context.Background()
+	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
+	defaultOrg, err := st.OrganizationBySlug(ctx, "default")
+	if err != nil {
+		t.Fatalf("OrganizationBySlug(): %v", err)
+	}
+	if err = st.UpdateOrganizationLeadPolicies(ctx, defaultOrg.ID, store.OrgLeadPolicies{
+		LeadsMayAssignTeams:     false,
+		LeadsMayInviteMembers:   true,
+		LeadsMayInviteExternals: false,
+	}); err != nil {
+		t.Fatalf("UpdateOrganizationLeadPolicies(): %v", err)
+	}
+
+	owner, err := st.UpsertGitHubUser(ctx, 300, "owner-pol", "owner-pol@example.com", "Owner", "", auth.RoleEditor)
+	if err != nil {
+		t.Fatalf("UpsertGitHubUser(owner): %v", err)
+	}
+	lead, err := st.UpsertGitHubUser(ctx, 301, "lead-pol", "lead-pol@example.com", "Lead", "", auth.RoleEditor)
+	if err != nil {
+		t.Fatalf("UpsertGitHubUser(lead): %v", err)
+	}
+	if err = st.AddOrganizationMember(ctx, defaultOrg.ID, owner.ID, store.OrgRoleOwner); err != nil {
+		t.Fatalf("AddOrganizationMember(owner): %v", err)
+	}
+	if err = st.AddOrganizationMember(ctx, defaultOrg.ID, lead.ID, store.OrgRoleMember); err != nil {
+		t.Fatalf("AddOrganizationMember(lead): %v", err)
+	}
+
+	subject, err := st.CreateSubject(ctx, "Sujet policies teams", "", owner.ID, nil)
+	if err != nil {
+		t.Fatalf("CreateSubject(): %v", err)
+	}
+	if err = st.UpsertDirectSubjectMember(ctx, subject.ID, lead.ID, store.SubjectRoleLead); err != nil {
+		t.Fatalf("UpsertDirectSubjectMember(): %v", err)
+	}
+	team, err := st.CreateTeam(ctx, "Ops", "ops-pol", "")
+	if err != nil {
+		t.Fatalf("CreateTeam(): %v", err)
+	}
+
+	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
+	leadToken, _, err := sessions.CreateLoginSession(ctx, lead.ID, defaultOrg.ID)
+	if err != nil {
+		t.Fatalf("CreateLoginSession(lead): %v", err)
+	}
+	ownerToken, _, err := sessions.CreateLoginSession(ctx, owner.ID, defaultOrg.ID)
+	if err != nil {
+		t.Fatalf("CreateLoginSession(owner): %v", err)
+	}
+	leadCSRF := auth.CSRFToken(leadToken, "test-secret-at-least-thirty-two-bytes")
+	ownerCSRF := auth.CSRFToken(ownerToken, "test-secret-at-least-thirty-two-bytes")
+	subjectPath := "/subjects/" + strconv.FormatInt(subject.ID, 10)
+
+	showReq := httptest.NewRequest(http.MethodGet, subjectPath, nil)
+	showReq.AddCookie(&http.Cookie{Name: "revues_session", Value: leadToken})
+	showRec := httptest.NewRecorder()
+	handler.ServeHTTP(showRec, showReq)
+	if showRec.Code != http.StatusOK {
+		t.Fatalf("show status = %d", showRec.Code)
+	}
+	body := showRec.Body.String()
+	if !strings.Contains(body, "n'autorise pas les leads à affecter des équipes") {
+		t.Fatalf("expected teams policy denial message in body")
+	}
+	if strings.Contains(body, `action="`+subjectPath+`/teams"`) {
+		t.Fatalf("lead must not see add-team form when policy denies")
+	}
+
+	leadForm := url.Values{}
+	leadForm.Set("csrf_token", leadCSRF)
+	leadForm.Set("team_id", strconv.FormatInt(team.ID, 10))
+	leadForm.Set("role", "viewer")
+	leadAdd := httptest.NewRequest(http.MethodPost, subjectPath+"/teams", strings.NewReader(leadForm.Encode()))
+	leadAdd.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	leadAdd.AddCookie(&http.Cookie{Name: "revues_session", Value: leadToken})
+	leadRec := httptest.NewRecorder()
+	handler.ServeHTTP(leadRec, leadAdd)
+	if leadRec.Code != http.StatusBadRequest {
+		t.Fatalf("lead add status = %d, want %d", leadRec.Code, http.StatusBadRequest)
+	}
+	if !strings.Contains(leadRec.Body.String(), "autorise pas les leads") ||
+		!strings.Contains(leadRec.Body.String(), "affecter des équipes") {
+		t.Fatalf("expected denial message on POST")
+	}
+
+	ownerForm := url.Values{}
+	ownerForm.Set("csrf_token", ownerCSRF)
+	ownerForm.Set("team_id", strconv.FormatInt(team.ID, 10))
+	ownerForm.Set("role", "viewer")
+	ownerAdd := httptest.NewRequest(http.MethodPost, subjectPath+"/teams", strings.NewReader(ownerForm.Encode()))
+	ownerAdd.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	ownerAdd.AddCookie(&http.Cookie{Name: "revues_session", Value: ownerToken})
+	ownerRec := httptest.NewRecorder()
+	handler.ServeHTTP(ownerRec, ownerAdd)
+	if ownerRec.Code != http.StatusSeeOther {
+		t.Fatalf("owner add status = %d, want %d", ownerRec.Code, http.StatusSeeOther)
+	}
+}
+
+func TestOrgPolicies_LeadInviteMembersDenied(t *testing.T) {
+	handler, db := testRouter(t)
+	ctx := context.Background()
+	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
+	defaultOrg, err := st.OrganizationBySlug(ctx, "default")
+	if err != nil {
+		t.Fatalf("OrganizationBySlug(): %v", err)
+	}
+	if err = st.UpdateOrganizationLeadPolicies(ctx, defaultOrg.ID, store.OrgLeadPolicies{
+		LeadsMayAssignTeams:     true,
+		LeadsMayInviteMembers:   false,
+		LeadsMayInviteExternals: false,
+	}); err != nil {
+		t.Fatalf("UpdateOrganizationLeadPolicies(): %v", err)
+	}
+
+	owner, err := st.UpsertGitHubUser(ctx, 310, "owner-inv", "owner-inv@example.com", "Owner", "", auth.RoleEditor)
+	if err != nil {
+		t.Fatalf("UpsertGitHubUser(owner): %v", err)
+	}
+	lead, err := st.UpsertGitHubUser(ctx, 311, "lead-inv", "lead-inv@example.com", "Lead", "", auth.RoleEditor)
+	if err != nil {
+		t.Fatalf("UpsertGitHubUser(lead): %v", err)
+	}
+	invitee, err := st.UpsertGitHubUser(ctx, 312, "invitee-inv", "invitee-inv@example.com", "Invitee", "", auth.RoleEditor)
+	if err != nil {
+		t.Fatalf("UpsertGitHubUser(invitee): %v", err)
+	}
+	if err = st.AddOrganizationMember(ctx, defaultOrg.ID, owner.ID, store.OrgRoleOwner); err != nil {
+		t.Fatalf("AddOrganizationMember(owner): %v", err)
+	}
+	if err = st.AddOrganizationMember(ctx, defaultOrg.ID, lead.ID, store.OrgRoleMember); err != nil {
+		t.Fatalf("AddOrganizationMember(lead): %v", err)
+	}
+	if err = st.AddOrganizationMember(ctx, defaultOrg.ID, invitee.ID, store.OrgRoleMember); err != nil {
+		t.Fatalf("AddOrganizationMember(invitee): %v", err)
+	}
+
+	subject, err := st.CreateSubject(ctx, "Sujet policies invite", "", owner.ID, nil)
+	if err != nil {
+		t.Fatalf("CreateSubject(): %v", err)
+	}
+	if err = st.UpsertDirectSubjectMember(ctx, subject.ID, lead.ID, store.SubjectRoleLead); err != nil {
+		t.Fatalf("UpsertDirectSubjectMember(): %v", err)
+	}
+
+	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
+	leadToken, _, err := sessions.CreateLoginSession(ctx, lead.ID, defaultOrg.ID)
+	if err != nil {
+		t.Fatalf("CreateLoginSession(lead): %v", err)
+	}
+	ownerToken, _, err := sessions.CreateLoginSession(ctx, owner.ID, defaultOrg.ID)
+	if err != nil {
+		t.Fatalf("CreateLoginSession(owner): %v", err)
+	}
+	leadCSRF := auth.CSRFToken(leadToken, "test-secret-at-least-thirty-two-bytes")
+	ownerCSRF := auth.CSRFToken(ownerToken, "test-secret-at-least-thirty-two-bytes")
+	subjectPath := "/subjects/" + strconv.FormatInt(subject.ID, 10)
+
+	showReq := httptest.NewRequest(http.MethodGet, subjectPath, nil)
+	showReq.AddCookie(&http.Cookie{Name: "revues_session", Value: leadToken})
+	showRec := httptest.NewRecorder()
+	handler.ServeHTTP(showRec, showReq)
+	if showRec.Code != http.StatusOK {
+		t.Fatalf("show status = %d", showRec.Code)
+	}
+	if !strings.Contains(showRec.Body.String(), "n'autorise pas les leads à inviter des membres") {
+		t.Fatalf("expected members policy denial message")
+	}
+
+	leadForm := url.Values{}
+	leadForm.Set("csrf_token", leadCSRF)
+	leadForm.Set("email", invitee.Email)
+	leadForm.Set("role", "viewer")
+	leadAdd := httptest.NewRequest(http.MethodPost, subjectPath+"/members", strings.NewReader(leadForm.Encode()))
+	leadAdd.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	leadAdd.AddCookie(&http.Cookie{Name: "revues_session", Value: leadToken})
+	leadRec := httptest.NewRecorder()
+	handler.ServeHTTP(leadRec, leadAdd)
+	if leadRec.Code != http.StatusBadRequest {
+		t.Fatalf("lead invite status = %d, want %d", leadRec.Code, http.StatusBadRequest)
+	}
+
+	ownerForm := url.Values{}
+	ownerForm.Set("csrf_token", ownerCSRF)
+	ownerForm.Set("email", invitee.Email)
+	ownerForm.Set("role", "contributor")
+	ownerAdd := httptest.NewRequest(http.MethodPost, subjectPath+"/members", strings.NewReader(ownerForm.Encode()))
+	ownerAdd.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	ownerAdd.AddCookie(&http.Cookie{Name: "revues_session", Value: ownerToken})
+	ownerRec := httptest.NewRecorder()
+	handler.ServeHTTP(ownerRec, ownerAdd)
+	if ownerRec.Code != http.StatusSeeOther {
+		t.Fatalf("owner invite status = %d, want %d; body=%s", ownerRec.Code, http.StatusSeeOther, ownerRec.Body.String())
+	}
+}
+
+func TestOrgPolicies_LeadInviteExternals(t *testing.T) {
+	handler, db := testRouter(t)
+	ctx := context.Background()
+	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
+	defaultOrg, err := st.OrganizationBySlug(ctx, "default")
+	if err != nil {
+		t.Fatalf("OrganizationBySlug(): %v", err)
+	}
+	if err = st.UpdateOrganizationLeadPolicies(ctx, defaultOrg.ID, store.OrgLeadPolicies{
+		LeadsMayAssignTeams:     true,
+		LeadsMayInviteMembers:   false,
+		LeadsMayInviteExternals: true,
+	}); err != nil {
+		t.Fatalf("UpdateOrganizationLeadPolicies(): %v", err)
+	}
+
+	owner, err := st.UpsertGitHubUser(ctx, 320, "owner-ext", "owner-ext@example.com", "Owner", "", auth.RoleEditor)
+	if err != nil {
+		t.Fatalf("UpsertGitHubUser(owner): %v", err)
+	}
+	lead, err := st.UpsertGitHubUser(ctx, 321, "lead-ext", "lead-ext@example.com", "Lead", "", auth.RoleEditor)
+	if err != nil {
+		t.Fatalf("UpsertGitHubUser(lead): %v", err)
+	}
+	external, err := st.UpsertGitHubUser(ctx, 322, "external-ext", "external-ext@example.com", "External", "", auth.RoleEditor)
+	if err != nil {
+		t.Fatalf("UpsertGitHubUser(external): %v", err)
+	}
+	orgMember, err := st.UpsertGitHubUser(ctx, 323, "member-ext", "member-ext@example.com", "Member", "", auth.RoleEditor)
+	if err != nil {
+		t.Fatalf("UpsertGitHubUser(member): %v", err)
+	}
+	if err = st.AddOrganizationMember(ctx, defaultOrg.ID, owner.ID, store.OrgRoleOwner); err != nil {
+		t.Fatalf("AddOrganizationMember(owner): %v", err)
+	}
+	if err = st.AddOrganizationMember(ctx, defaultOrg.ID, lead.ID, store.OrgRoleMember); err != nil {
+		t.Fatalf("AddOrganizationMember(lead): %v", err)
+	}
+	if err = st.AddOrganizationMember(ctx, defaultOrg.ID, orgMember.ID, store.OrgRoleMember); err != nil {
+		t.Fatalf("AddOrganizationMember(orgMember): %v", err)
+	}
+
+	subject, err := st.CreateSubject(ctx, "Sujet policies externals", "", owner.ID, nil)
+	if err != nil {
+		t.Fatalf("CreateSubject(): %v", err)
+	}
+	if err = st.UpsertDirectSubjectMember(ctx, subject.ID, lead.ID, store.SubjectRoleLead); err != nil {
+		t.Fatalf("UpsertDirectSubjectMember(): %v", err)
+	}
+
+	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
+	leadToken, _, err := sessions.CreateLoginSession(ctx, lead.ID, defaultOrg.ID)
+	if err != nil {
+		t.Fatalf("CreateLoginSession(lead): %v", err)
+	}
+	leadCSRF := auth.CSRFToken(leadToken, "test-secret-at-least-thirty-two-bytes")
+	subjectPath := "/subjects/" + strconv.FormatInt(subject.ID, 10)
+
+	denyOrgMember := url.Values{}
+	denyOrgMember.Set("csrf_token", leadCSRF)
+	denyOrgMember.Set("email", orgMember.Email)
+	denyOrgMember.Set("role", "viewer")
+	denyReq := httptest.NewRequest(http.MethodPost, subjectPath+"/members", strings.NewReader(denyOrgMember.Encode()))
+	denyReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	denyReq.AddCookie(&http.Cookie{Name: "revues_session", Value: leadToken})
+	denyRec := httptest.NewRecorder()
+	handler.ServeHTTP(denyRec, denyReq)
+	if denyRec.Code != http.StatusBadRequest {
+		t.Fatalf("invite org member status = %d, want %d", denyRec.Code, http.StatusBadRequest)
+	}
+	if !strings.Contains(denyRec.Body.String(), "autorise pas les leads") ||
+		!strings.Contains(denyRec.Body.String(), "inviter des membres") {
+		t.Fatalf("expected members policy denial, body=%q", denyRec.Body.String())
+	}
+
+	allowExternal := url.Values{}
+	allowExternal.Set("csrf_token", leadCSRF)
+	allowExternal.Set("email", external.Email)
+	allowExternal.Set("role", "viewer")
+	allowReq := httptest.NewRequest(http.MethodPost, subjectPath+"/members", strings.NewReader(allowExternal.Encode()))
+	allowReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	allowReq.AddCookie(&http.Cookie{Name: "revues_session", Value: leadToken})
+	allowRec := httptest.NewRecorder()
+	handler.ServeHTTP(allowRec, allowReq)
+	if allowRec.Code != http.StatusSeeOther {
+		t.Fatalf("invite external status = %d, want %d; body=%s", allowRec.Code, http.StatusSeeOther, allowRec.Body.String())
+	}
+}

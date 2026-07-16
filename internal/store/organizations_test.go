@@ -172,6 +172,49 @@ func TestDefaultOrganizationExistsAfterMigrate(t *testing.T) {
 	if defaultOrg.UISubjectLabel != store.UISubjectLabelSujet {
 		t.Fatalf("default ui_subject_label = %q, want %q", defaultOrg.UISubjectLabel, store.UISubjectLabelSujet)
 	}
+	if !defaultOrg.LeadsMayAssignTeams || !defaultOrg.LeadsMayInviteMembers || defaultOrg.LeadsMayInviteExternals {
+		t.Fatalf("default lead policies = assign=%v invite=%v externals=%v, want true/true/false",
+			defaultOrg.LeadsMayAssignTeams, defaultOrg.LeadsMayInviteMembers, defaultOrg.LeadsMayInviteExternals)
+	}
+}
+
+func TestUpdateOrganizationLeadPolicies(t *testing.T) {
+	ctx := context.Background()
+	db := openMemoryDB(t)
+	st := store.New(db)
+
+	creator, err := st.UpsertGitHubUser(ctx, 1, "owner", "owner@example.com", "Owner", "", auth.RoleAdmin)
+	if err != nil {
+		t.Fatalf("UpsertGitHubUser(): %v", err)
+	}
+	org, err := st.CreateOrganization(ctx, "Acme", "acme", creator.ID)
+	if err != nil {
+		t.Fatalf("CreateOrganization(): %v", err)
+	}
+	if !org.LeadsMayAssignTeams || !org.LeadsMayInviteMembers || org.LeadsMayInviteExternals {
+		t.Fatalf("create defaults = assign=%v invite=%v externals=%v",
+			org.LeadsMayAssignTeams, org.LeadsMayInviteMembers, org.LeadsMayInviteExternals)
+	}
+
+	if err = st.UpdateOrganizationLeadPolicies(ctx, org.ID, store.OrgLeadPolicies{
+		LeadsMayAssignTeams:     false,
+		LeadsMayInviteMembers:   false,
+		LeadsMayInviteExternals: true,
+	}); err != nil {
+		t.Fatalf("UpdateOrganizationLeadPolicies(): %v", err)
+	}
+	got, err := st.OrganizationByID(ctx, org.ID)
+	if err != nil {
+		t.Fatalf("OrganizationByID(): %v", err)
+	}
+	if got.LeadsMayAssignTeams || got.LeadsMayInviteMembers || !got.LeadsMayInviteExternals {
+		t.Fatalf("updated policies = assign=%v invite=%v externals=%v, want false/false/true",
+			got.LeadsMayAssignTeams, got.LeadsMayInviteMembers, got.LeadsMayInviteExternals)
+	}
+
+	if err = st.UpdateOrganizationLeadPolicies(ctx, 99999, store.DefaultOrgLeadPolicies()); !errors.Is(err, store.ErrOrganizationNotFound) {
+		t.Fatalf("missing org error = %v, want %v", err, store.ErrOrganizationNotFound)
+	}
 }
 
 func TestUpdateOrganizationUISubjectLabel(t *testing.T) {

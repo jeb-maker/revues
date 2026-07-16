@@ -21,6 +21,8 @@ type SubjectStore interface {
 	ListSubjectMembers(ctx context.Context, subjectID int64) ([]SubjectMember, error)
 	ListDirectSubjectMembers(ctx context.Context, subjectID int64) ([]DirectSubjectMember, error)
 	UpsertDirectSubjectMember(ctx context.Context, subjectID, userID int64, role string) error
+	RemoveDirectSubjectMember(ctx context.Context, subjectID, userID int64) error
+	UserByEmail(ctx context.Context, email string) (*User, error)
 	ListRunsWithProgressBySubject(ctx context.Context, subjectID int64) ([]RunWithProgress, error)
 	ListSubjectNokItems(ctx context.Context, subjectID int64) ([]SubjectNokItemSummary, error)
 	OrganizationMemberRole(ctx context.Context, organizationID, userID int64) (string, bool, error)
@@ -46,3 +48,5 @@ var ErrSubjectNotFound = store.ErrSubjectNotFound
 var ErrTeamNotFound = store.ErrTeamNotFound
 var ErrInvalidSubjectRole = store.ErrInvalidSubjectRole
 var ErrTeamSubjectRoleNotFound = store.ErrTeamSubjectRoleNotFound
+var ErrDirectSubjectMemberNotFound = store.ErrDirectSubjectMemberNotFound
+var ErrUserNotFound = store.ErrUserNotFound

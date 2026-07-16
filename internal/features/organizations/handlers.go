@@ -31,6 +31,7 @@ type OrgStore interface {
 	DeleteOrganizationInvitation(ctx context.Context, id int64) error
 	OrganizationByID(ctx context.Context, id int64) (*store.Organization, error)
 	UpdateOrganizationUISubjectLabel(ctx context.Context, organizationID int64, label string) error
+	UpdateOrganizationLeadPolicies(ctx context.Context, organizationID int64, policies store.OrgLeadPolicies) error
 }
 
 // Deps holds shared dependencies for organization HTTP handlers.

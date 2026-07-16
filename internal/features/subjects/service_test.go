@@ -125,6 +125,9 @@ func TestCanAssignSubjectTeams(t *testing.T) {
 	editor := &User{Role: auth.RoleEditor}
 	reader := &User{Role: auth.RoleReader}
 
+	allow := store.OrgLeadPolicies{LeadsMayAssignTeams: true, LeadsMayInviteMembers: true}
+	deny := store.OrgLeadPolicies{LeadsMayAssignTeams: false, LeadsMayInviteMembers: true}
+
 	orgAdminOnly := store.SubjectAccess{Visible: true, Sources: []string{store.AccessSourceOrgAdmin}}
 	leadDirect := store.SubjectAccess{
 		Visible: true,
@@ -138,22 +141,80 @@ func TestCanAssignSubjectTeams(t *testing.T) {
 	}
 	hidden := store.SubjectAccess{}
 
-	if !CanAssignSubjectTeams(admin, orgAdminOnly) {
-		t.Fatal("global admin may assign teams")
+	if !CanAssignSubjectTeams(admin, orgAdminOnly, deny) {
+		t.Fatal("global admin may assign teams even when policy denies leads")
 	}
-	if !CanAssignSubjectTeams(editor, orgAdminOnly) {
+	if !CanAssignSubjectTeams(editor, orgAdminOnly, deny) {
 		t.Fatal("org admin may assign teams without subject lead")
 	}
-	if !CanAssignSubjectTeams(reader, orgAdminOnly) {
+	if !CanAssignSubjectTeams(reader, orgAdminOnly, deny) {
 		t.Fatal("org admin reader may assign teams (supervision, not métier write)")
 	}
-	if !CanAssignSubjectTeams(editor, leadDirect) {
+	if !CanAssignSubjectTeams(editor, leadDirect, allow) {
 		t.Fatal("subject lead may assign teams when policy allows")
 	}
-	if CanAssignSubjectTeams(editor, contributor) {
+	if CanAssignSubjectTeams(editor, leadDirect, deny) {
+		t.Fatal("subject lead must not assign teams when policy denies")
+	}
+	if CanAssignSubjectTeams(editor, contributor, allow) {
 		t.Fatal("contributor must not assign teams")
 	}
-	if CanAssignSubjectTeams(editor, hidden) {
+	if CanAssignSubjectTeams(editor, hidden, allow) {
 		t.Fatal("invisible subject: no team assign")
+	}
+}
+
+func TestCanInviteSubjectMember(t *testing.T) {
+	admin := &User{Role: auth.RoleAdmin}
+	editor := &User{Role: auth.RoleEditor}
+
+	allowMembers := store.OrgLeadPolicies{LeadsMayInviteMembers: true, LeadsMayInviteExternals: false}
+	allowExternals := store.OrgLeadPolicies{LeadsMayInviteMembers: false, LeadsMayInviteExternals: true}
+	denyAll := store.OrgLeadPolicies{}
+
+	orgAdminOnly := store.SubjectAccess{Visible: true, Sources: []string{store.AccessSourceOrgAdmin}}
+	leadDirect := store.SubjectAccess{
+		Visible: true,
+		Role:    store.SubjectRoleLead,
+		Sources: []string{store.AccessSourceDirect},
+	}
+	contributor := store.SubjectAccess{
+		Visible: true,
+		Role:    store.SubjectRoleContributor,
+		Sources: []string{store.AccessSourceDirect},
+	}
+
+	if !CanInviteSubjectMember(admin, orgAdminOnly, denyAll, true) {
+		t.Fatal("global admin may invite org members")
+	}
+	if !CanInviteSubjectMember(editor, orgAdminOnly, denyAll, false) {
+		t.Fatal("org admin may invite externals regardless of policy")
+	}
+	if !CanInviteSubjectMember(editor, leadDirect, allowMembers, true) {
+		t.Fatal("lead may invite org members when policy allows")
+	}
+	if CanInviteSubjectMember(editor, leadDirect, allowMembers, false) {
+		t.Fatal("lead must not invite externals when only members policy is on")
+	}
+	if !CanInviteSubjectMember(editor, leadDirect, allowExternals, false) {
+		t.Fatal("lead may invite externals when policy allows")
+	}
+	if CanInviteSubjectMember(editor, leadDirect, allowExternals, true) {
+		t.Fatal("lead must not invite org members when only externals policy is on")
+	}
+	if CanInviteSubjectMember(editor, leadDirect, denyAll, true) {
+		t.Fatal("lead must not invite when both policies deny")
+	}
+	if CanInviteSubjectMember(editor, contributor, allowMembers, true) {
+		t.Fatal("contributor must not invite")
+	}
+	if !CanManageSubjectMembers(editor, leadDirect, allowMembers) {
+		t.Fatal("lead may manage members when invite members allowed")
+	}
+	if !CanManageSubjectMembers(editor, leadDirect, allowExternals) {
+		t.Fatal("lead may manage members when invite externals allowed")
+	}
+	if CanManageSubjectMembers(editor, leadDirect, denyAll) {
+		t.Fatal("lead must not manage members when both invite policies deny")
 	}
 }

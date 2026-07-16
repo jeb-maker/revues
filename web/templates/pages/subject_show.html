@@ -96,6 +96,10 @@
   <p class="muted">Aucune équipe affectée à ce {{.Labels.Subject.Singular | lowerFirst}}.</p>
   {{end}}
 
+  {{if .TeamsPolicyDenied}}
+  <p class="muted" role="status">La politique de l'organisation n'autorise pas les leads à affecter des équipes.</p>
+  {{end}}
+
   {{if .CanAssignTeams}}
   <h3>Ajouter une équipe</h3>
   {{if .AvailableTeams}}
@@ -143,6 +147,7 @@
         <th scope="col">Membre</th>
         <th scope="col">Rôle</th>
         <th scope="col">Source</th>
+        {{if $.CanManageMembers}}<th scope="col" class="data-table__col--end"></th>{{end}}
       </tr>
     </thead>
     <tbody>
@@ -151,6 +156,15 @@
         <td>{{.Login}} <span class="muted">{{.Email}}</span></td>
         <td>{{formatRole .Role}}</td>
         <td><span class="tag">direct</span></td>
+        {{if $.CanManageMembers}}
+        <td class="data-table__col--end">
+          <form method="post" action="/subjects/{{$.Subject.ID}}/members/remove" class="inline-form" onsubmit="return confirm('Retirer ce membre du sujet ?');">
+            <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
+            <input type="hidden" name="user_id" value="{{.UserID}}">
+            <button type="submit" class="button-ghost button-sm">Retirer</button>
+          </form>
+        </td>
+        {{end}}
       </tr>
       {{end}}
     </tbody>
@@ -158,6 +172,33 @@
   </div>
   {{else}}
   <p class="muted">Aucun membre direct — l'accès passe par les équipes ou la supervision org.</p>
+  {{end}}
+
+  {{if .MembersPolicyDenied}}
+  <p class="muted" role="status">La politique de l'organisation n'autorise pas les leads à inviter des membres.</p>
+  {{end}}
+
+  {{if .CanManageMembers}}
+  <h3>Inviter un membre</h3>
+  <form method="post" action="/subjects/{{.Subject.ID}}/members" class="stack-form">
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+    <label>
+      Email
+      <input type="email" name="email" required value="{{.AddMemberEmail}}" autocomplete="off">
+    </label>
+    <label>
+      Rôle
+      <select name="role" required>
+        <option value="viewer"{{if eq .AddMemberRole "viewer"}} selected{{end}}>Observateur</option>
+        <option value="contributor"{{if eq .AddMemberRole "contributor"}} selected{{end}}>Contributeur</option>
+        <option value="lead"{{if eq .AddMemberRole "lead"}} selected{{end}}>Responsable</option>
+      </select>
+    </label>
+    <span class="field-hint">L'invité doit déjà avoir un compte. Hors organisation = politique « externes ».</span>
+    <div class="form-actions">
+      <button type="submit" class="button">Inviter</button>
+    </div>
+  </form>
   {{end}}
 </section>
 

@@ -80,7 +80,7 @@ ResolveSubjectAccess(user, subject) :
 - [x] UI admin équipes CRUD
 - [x] UI sujet — équipes + preview + sources
 - [x] Sujets privés (`visibility`)
-- [ ] Politiques org
+- [x] Politiques org
 
 ### Hors scope épique
 
@@ -262,7 +262,7 @@ Sur la fiche sujet, gérer les équipes affectées et afficher les sources d'acc
 - [x] Section « Équipes » : liste équipes + rôle sur ce sujet ; formulaire ajout équipe + rôle
 - [x] Preview avant ajout : « Équipe X : N membres auront le rôle Y »
 - [x] Section « Membres directs » : lecture seule + badge source (`direct`) ; sources d'accès viewer via `ResolveSubjectAccess`
-- [x] RBAC ajout équipe : lead sujet OU org owner/admin ; politique `leads_may_assign_teams` (stub true — Issue 9)
+- [x] RBAC ajout équipe : lead sujet OU org owner/admin ; politique `leads_may_assign_teams` (Issue 9)
 - [x] Retrait équipe du sujet : org admin ou lead
 - [x] CSRF, tests handlers
 - [x] `./scripts/check.sh` vert
@@ -294,7 +294,8 @@ Permettre d'isoler un sujet au sein d'une org.
 ## Issue 9 — `[admin] Politiques org — délégation lead`
 
 **Labels** : `area:admin`, `area:auth`, `vague-5`  
-**Bloqué par** : Issue 7
+**Bloqué par** : Issue 7  
+**Statut** : livré (colonnes `organizations` + UI `/admin/settings/policies` + handlers sujets).
 
 ### Objectif
 
@@ -302,14 +303,14 @@ Réglages org contrôlant ce que les leads peuvent faire.
 
 ### Critères d'acceptation
 
-- [ ] Settings org (table existante `settings` ou colonnes dédiées) :
+- [x] Settings org (colonnes dédiées sur `organizations`, greenfield `00001` + `canonical.sql`) :
   - `leads_may_assign_teams` (bool, défaut `true`)
   - `leads_may_invite_members` (bool, défaut `true`)
   - `leads_may_invite_externals` (bool, défaut `false`)
-- [ ] UI `/admin/settings` ou section org : édition par org owner/admin
-- [ ] Handlers projet respectent les flags (refus serveur + message UI)
-- [ ] Tests RBAC par politique
-- [ ] `./scripts/check.sh` vert
+- [x] UI `/admin/settings/policies` : édition par org owner/admin
+- [x] Handlers sujet respectent les flags (refus serveur + message UI) — équipes + membres directs
+- [x] Tests RBAC par politique (`TestRBAC_OrgLeadPolicies`, helpers service, UI admin)
+- [x] `./scripts/check.sh` vert
 
 ---
 

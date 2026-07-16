@@ -20,6 +20,9 @@ CREATE TABLE organizations (
     slug            TEXT NOT NULL UNIQUE,
     ui_subject_label TEXT NOT NULL DEFAULT 'sujet'
                     CHECK (ui_subject_label IN ('sujet', 'cible', 'entite', 'asset')),
+    leads_may_assign_teams     INTEGER NOT NULL DEFAULT 1 CHECK (leads_may_assign_teams IN (0, 1)),
+    leads_may_invite_members   INTEGER NOT NULL DEFAULT 1 CHECK (leads_may_invite_members IN (0, 1)),
+    leads_may_invite_externals INTEGER NOT NULL DEFAULT 0 CHECK (leads_may_invite_externals IN (0, 1)),
     created_at      TEXT NOT NULL,
     created_by      INTEGER REFERENCES users(id) ON DELETE SET NULL
 );

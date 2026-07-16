@@ -308,8 +308,11 @@ func TestRBAC_Matrix(t *testing.T) {
 		{"GET /admin/integrations admin ok", http.MethodGet, "/admin/integrations", "admin", "", http.StatusOK},
 		{"GET /admin/integrations org admin ok", http.MethodGet, "/admin/integrations", "orgAdmin", "", http.StatusOK},
 		{"GET /admin/settings/smtp org admin ok", http.MethodGet, "/admin/settings/smtp", "orgAdmin", "", http.StatusOK},
+		{"GET /admin/settings/policies member denied", http.MethodGet, "/admin/settings/policies", "lead", "", http.StatusForbidden},
+		{"GET /admin/settings/policies org admin ok", http.MethodGet, "/admin/settings/policies", "orgAdmin", "", http.StatusOK},
 		{"POST /admin/users editor denied", http.MethodPost, "/admin/users", "lead", "email=x@example.com&role=editor", http.StatusForbidden},
 		{"POST /admin/teams member denied", http.MethodPost, "/admin/teams", "lead", "name=QA&slug=qa", http.StatusForbidden},
+		{"POST /admin/settings/policies member denied", http.MethodPost, "/admin/settings/policies", "lead", "leads_may_assign_teams=on", http.StatusForbidden},
 	}
 
 	for _, tt := range tests {

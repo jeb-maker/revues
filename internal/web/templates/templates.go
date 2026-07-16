@@ -213,6 +213,14 @@ type AdminSubjectLabelsData struct {
 	Error   string
 }
 
+// AdminLeadPoliciesData is view data for org lead-delegation policies.
+type AdminLeadPoliciesData struct {
+	PageData
+	Policies store.OrgLeadPolicies
+	Message  string
+	Error    string
+}
+
 type AdminNotionData struct {
 	PageData
 	WorkspaceName     string
@@ -391,28 +399,30 @@ type SubjectTeamPreviewData struct {
 // SubjectShowData is view data for subject detail.
 type SubjectShowData struct {
 	PageData
-	Subject          *store.Subject
-	Domains          []string
-	Tags             []string
-	Members          []store.SubjectMember
-	DirectMembers    []store.DirectSubjectMember
-	Teams            []store.TeamSubjectRole
-	AvailableTeams   []store.OrganizationTeam
-	AccessSources    []string
-	Runs             []store.RunWithProgress
-	NokItems         []store.SubjectNokItemSummary
-	MemberRole       string
-	CanManage        bool
-	CanManageMembers bool
-	CanAssignTeams   bool
-	CanLaunch        bool
-	EditPath         string
-	AddMemberEmail   string
-	AddMemberRole    string
-	AddTeamID        int64
-	AddTeamRole      string
-	Message          string
-	Error            string
+	Subject             *store.Subject
+	Domains             []string
+	Tags                []string
+	Members             []store.SubjectMember
+	DirectMembers       []store.DirectSubjectMember
+	Teams               []store.TeamSubjectRole
+	AvailableTeams      []store.OrganizationTeam
+	AccessSources       []string
+	Runs                []store.RunWithProgress
+	NokItems            []store.SubjectNokItemSummary
+	MemberRole          string
+	CanManage           bool
+	CanManageMembers    bool
+	CanAssignTeams      bool
+	TeamsPolicyDenied   bool
+	MembersPolicyDenied bool
+	CanLaunch           bool
+	EditPath            string
+	AddMemberEmail      string
+	AddMemberRole       string
+	AddTeamID           int64
+	AddTeamRole         string
+	Message             string
+	Error               string
 }
 
 // TemplatesIndexData is view data for the global templates tab.

@@ -314,6 +314,11 @@ func BCAdminSubjectLabels(labels SubjectUILabels) []Breadcrumb {
 	return []Breadcrumb{crumb("Organisation", PathAdminOrg), current("Libellé " + LowerFirst(labels.Singular))}
 }
 
+// BCAdminLeadPolicies is the org lead-delegation policies breadcrumb.
+func BCAdminLeadPolicies() []Breadcrumb {
+	return []Breadcrumb{crumb("Organisation", PathAdminOrg), current("Politiques")}
+}
+
 // BCAdminSubjects is the org admin subjects list breadcrumb.
 func BCAdminSubjects(labels SubjectUILabels) []Breadcrumb {
 	return []Breadcrumb{crumb("Organisation", PathAdminOrg), current(labels.Plural)}

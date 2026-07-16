@@ -6,6 +6,7 @@
     <a href="/admin/teams"{{if eq .AdminSection "teams"}} aria-current="page"{{end}}>Équipes</a>
     <a href="/admin/subjects"{{if eq .AdminSection "subjects"}} aria-current="page"{{end}}>{{.Labels.Subject.Plural}}</a>
     <a href="/admin/settings/labels"{{if eq .AdminSection "labels"}} aria-current="page"{{end}}>Libellé</a>
+    <a href="/admin/settings/policies"{{if eq .AdminSection "policies"}} aria-current="page"{{end}}>Politiques</a>
   </div>
   {{if .CanManageOrgUsers}}
   <div class="admin-nav__group">

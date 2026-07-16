@@ -129,16 +129,15 @@ func CanManageOrgUsers(user *User, orgRole string, orgMember bool) bool {
 	return orgRole == store.OrgRoleOwner || orgRole == store.OrgRoleAdmin
 }
 
-// LeadsMayAssignTeams reports whether subject leads may grant team access.
-// Stubbed true until Issue 9 (org policies) lands.
-func LeadsMayAssignTeams() bool {
-	return true
+// PoliciesFromOrganization returns lead-delegation flags for the active org.
+func PoliciesFromOrganization(org *store.Organization) store.OrgLeadPolicies {
+	return org.LeadPolicies()
 }
 
 // CanAssignSubjectTeams reports whether the user may add/remove teams on a subject.
-// Org owner/admin and global admin always may; subject leads require LeadsMayAssignTeams.
+// Org owner/admin and global admin always may; subject leads require policies.LeadsMayAssignTeams.
 // Org admin visibility alone is enough (no subject lead required — unlike CanLeadAccess).
-func CanAssignSubjectTeams(user *User, access store.SubjectAccess) bool {
+func CanAssignSubjectTeams(user *User, access store.SubjectAccess, policies store.OrgLeadPolicies) bool {
 	if !access.Visible {
 		return false
 	}
@@ -148,7 +147,58 @@ func CanAssignSubjectTeams(user *User, access store.SubjectAccess) bool {
 	if access.HasSource(store.AccessSourceOrgAdmin) {
 		return true
 	}
-	if !LeadsMayAssignTeams() {
+	if !policies.LeadsMayAssignTeams {
+		return false
+	}
+	return CanLeadAccess(user, access)
+}
+
+// CanInviteSubjectMember reports whether the user may add a direct subject member.
+// inviteeIsOrgMember selects leads_may_invite_members vs leads_may_invite_externals.
+// Org owner/admin and global admin always may.
+func CanInviteSubjectMember(user *User, access store.SubjectAccess, policies store.OrgLeadPolicies, inviteeIsOrgMember bool) bool {
+	if !access.Visible {
+		return false
+	}
+	if auth.HasMinRole(user.Role, auth.RoleAdmin) {
+		return true
+	}
+	if access.HasSource(store.AccessSourceOrgAdmin) {
+		return true
+	}
+	if !CanLeadAccess(user, access) {
+		return false
+	}
+	if inviteeIsOrgMember {
+		return policies.LeadsMayInviteMembers
+	}
+	return policies.LeadsMayInviteExternals
+}
+
+// CanManageSubjectMembers reports whether the user may manage direct subject members
+// (invite form / remove). Org admin always; leads need at least one invite policy.
+func CanManageSubjectMembers(user *User, access store.SubjectAccess, policies store.OrgLeadPolicies) bool {
+	if !access.Visible {
+		return false
+	}
+	if auth.HasMinRole(user.Role, auth.RoleAdmin) {
+		return true
+	}
+	if access.HasSource(store.AccessSourceOrgAdmin) {
+		return true
+	}
+	if !CanLeadAccess(user, access) {
+		return false
+	}
+	return policies.LeadsMayInviteMembers || policies.LeadsMayInviteExternals
+}
+
+// leadBlockedByAssignTeamsPolicy is true when a subject lead is denied only by leads_may_assign_teams.
+func leadBlockedByAssignTeamsPolicy(user *User, access store.SubjectAccess, policies store.OrgLeadPolicies) bool {
+	if policies.LeadsMayAssignTeams {
+		return false
+	}
+	if auth.HasMinRole(user.Role, auth.RoleAdmin) || access.HasSource(store.AccessSourceOrgAdmin) {
 		return false
 	}
 	return CanLeadAccess(user, access)

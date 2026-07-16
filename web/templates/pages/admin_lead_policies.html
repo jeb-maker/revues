@@ -1,0 +1,38 @@
+{{define "admin_lead_policies"}}
+{{template "layout_start" .}}
+<section class="card">
+  <p class="muted">Contrôlez ce que les responsables de {{.Labels.Subject.Singular | lowerFirst}} peuvent faire sans passer par un admin org.</p>
+</section>
+
+{{template "admin_nav" .}}
+
+{{if .Message}}
+<p class="success content-inset" role="status">{{.Message}}</p>
+{{end}}
+{{if .Error}}
+<p class="error content-inset" role="alert">{{.Error}}</p>
+{{end}}
+
+<section class="card">
+  <h2>Délégation aux leads</h2>
+  <form method="post" action="/admin/settings/policies" class="stack-form">
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+    <label class="checkbox-label">
+      <input type="checkbox" name="leads_may_assign_teams" value="on"{{if .Policies.LeadsMayAssignTeams}} checked{{end}}>
+      Les leads peuvent affecter des équipes à leur {{.Labels.Subject.Singular | lowerFirst}}
+    </label>
+    <label class="checkbox-label">
+      <input type="checkbox" name="leads_may_invite_members" value="on"{{if .Policies.LeadsMayInviteMembers}} checked{{end}}>
+      Les leads peuvent inviter des membres de l'organisation
+    </label>
+    <label class="checkbox-label">
+      <input type="checkbox" name="leads_may_invite_externals" value="on"{{if .Policies.LeadsMayInviteExternals}} checked{{end}}>
+      Les leads peuvent inviter des personnes hors organisation
+    </label>
+    <span class="field-hint">Les admins org et l'admin global ne sont jamais limités par ces options.</span>
+    <button type="submit" class="button">Enregistrer</button>
+  </form>
+</section>
+{{template "layout_end" .}}
+{{end}}
+{{define "main_class"}} site-main--wide{{end}}
