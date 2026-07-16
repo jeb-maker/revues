@@ -49,7 +49,7 @@ func TestChecklistTemplates_TaggedTemplateNotInProjectList(t *testing.T) {
 
 	assertList := func(projectID int64, wantNames ...string) {
 		t.Helper()
-		req := httptest.NewRequest(http.MethodGet, "/projects/"+strconv.FormatInt(projectID, 10)+"/templates", nil)
+		req := httptest.NewRequest(http.MethodGet, "/subjects/"+strconv.FormatInt(projectID, 10)+"/modeles", nil)
 		req.AddCookie(&http.Cookie{Name: "revues_session", Value: token})
 		rec := httptest.NewRecorder()
 		handler.ServeHTTP(rec, req)
@@ -102,7 +102,7 @@ func TestChecklistTemplates_TagMismatchRunCreate(t *testing.T) {
 	form.Set("csrf_token", csrf)
 	form.Set("template_id", strconv.FormatInt(template.ID, 10))
 	form.Set("title", "Revue")
-	req := httptest.NewRequest(http.MethodPost, "/projects/"+strconv.FormatInt(project.ID, 10)+"/runs", strings.NewReader(form.Encode()))
+	req := httptest.NewRequest(http.MethodPost, "/subjects/"+strconv.FormatInt(project.ID, 10)+"/revues", strings.NewReader(form.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.AddCookie(&http.Cookie{Name: "revues_session", Value: token})
 	rec := httptest.NewRecorder()
@@ -155,7 +155,7 @@ func TestChecklistTemplates_CreateAndVersion(t *testing.T) {
 		t.Fatalf("create status = %d, want %d", rec.Code, http.StatusSeeOther)
 	}
 
-	listReq := httptest.NewRequest(http.MethodGet, "/projects/"+strconv.FormatInt(project.ID, 10)+"/templates", nil)
+	listReq := httptest.NewRequest(http.MethodGet, "/subjects/"+strconv.FormatInt(project.ID, 10)+"/modeles", nil)
 	listReq.AddCookie(&http.Cookie{Name: "revues_session", Value: token})
 	listRec := httptest.NewRecorder()
 	handler.ServeHTTP(listRec, listReq)
@@ -230,7 +230,7 @@ func TestChecklistTemplates_MatchingTagRunCreate(t *testing.T) {
 	form.Set("csrf_token", csrf)
 	form.Set("template_id", strconv.FormatInt(template.ID, 10))
 	form.Set("title", "Revue cluster")
-	req := httptest.NewRequest(http.MethodPost, "/projects/"+strconv.FormatInt(project.ID, 10)+"/runs", strings.NewReader(form.Encode()))
+	req := httptest.NewRequest(http.MethodPost, "/subjects/"+strconv.FormatInt(project.ID, 10)+"/revues", strings.NewReader(form.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.AddCookie(&http.Cookie{Name: "revues_session", Value: token})
 	rec := httptest.NewRecorder()
@@ -267,7 +267,7 @@ func TestChecklistTemplates_ForRunUsesLaunchMode(t *testing.T) {
 		t.Fatalf("CreateLoginSession(): %v", err)
 	}
 
-	req := httptest.NewRequest(http.MethodGet, "/projects/"+strconv.FormatInt(project.ID, 10)+"/templates?for_run=1", nil)
+	req := httptest.NewRequest(http.MethodGet, "/subjects/"+strconv.FormatInt(project.ID, 10)+"/modeles?for_run=1", nil)
 	req.AddCookie(&http.Cookie{Name: "revues_session", Value: token})
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
@@ -276,8 +276,8 @@ func TestChecklistTemplates_ForRunUsesLaunchMode(t *testing.T) {
 		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
 	}
 	body := rec.Body.String()
-	if !strings.Contains(body, `/runs/new/projects/`+strconv.FormatInt(project.ID, 10)+`/templates/`) {
-		t.Fatal("expected launch links to confirmation step")
+	if !strings.Contains(body, `action="/subjects/`+strconv.FormatInt(project.ID, 10)+`/revues"`) {
+		t.Fatal("expected POST create form on template list")
 	}
 	if strings.Contains(body, `href="/modeles/`) {
 		t.Fatal("expected launch mode links, not template detail links")
@@ -311,7 +311,7 @@ func TestChecklistTemplates_ForRunFiltersByQuery(t *testing.T) {
 		t.Fatalf("CreateLoginSession(): %v", err)
 	}
 
-	req := httptest.NewRequest(http.MethodGet, "/projects/"+strconv.FormatInt(project.ID, 10)+"/templates?for_run=1&q=infra", nil)
+	req := httptest.NewRequest(http.MethodGet, "/subjects/"+strconv.FormatInt(project.ID, 10)+"/modeles?for_run=1&q=infra", nil)
 	req.AddCookie(&http.Cookie{Name: "revues_session", Value: token})
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
@@ -328,5 +328,113 @@ func TestChecklistTemplates_ForRunFiltersByQuery(t *testing.T) {
 	}
 	if !strings.Contains(body, `id="filter-query"`) {
 		t.Fatal("expected search input on launch template list")
+	}
+}
+
+func TestChecklistTemplateShow_LaunchCTA(t *testing.T) {
+	handler, db := testRouter(t)
+	ctx := context.Background()
+	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
+	defaultOrg, err := st.OrganizationBySlug(ctx, "default")
+	if err != nil {
+		t.Fatalf("OrganizationBySlug(): %v", err)
+	}
+
+	editor, err := st.UpsertGitHubUser(ctx, 34, "tpl-editor", "tpl-editor@example.com", "Editor", "", auth.RoleEditor)
+	if err != nil {
+		t.Fatalf("UpsertGitHubUser(editor): %v", err)
+	}
+	if err = st.AddOrganizationMember(ctx, defaultOrg.ID, editor.ID, store.OrgRoleMember); err != nil {
+		t.Fatalf("AddOrganizationMember(editor): %v", err)
+	}
+
+	reader, err := st.UpsertGitHubUser(ctx, 35, "tpl-reader", "tpl-reader@example.com", "Reader", "", auth.RoleReader)
+	if err != nil {
+		t.Fatalf("UpsertGitHubUser(reader): %v", err)
+	}
+	if err = st.AddOrganizationMember(ctx, defaultOrg.ID, reader.ID, store.OrgRoleMember); err != nil {
+		t.Fatalf("AddOrganizationMember(reader): %v", err)
+	}
+
+	template, _, err := st.CreateChecklistTemplate(ctx, "Modèle CTA", editor.ID, nil, []store.TemplateItemInput{{Label: "Point"}})
+	if err != nil {
+		t.Fatalf("CreateChecklistTemplate(): %v", err)
+	}
+
+	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
+
+	assertShow := func(userID int64, wantCTA bool) {
+		t.Helper()
+		token, _, err := sessions.CreateLoginSession(ctx, userID, defaultOrg.ID)
+		if err != nil {
+			t.Fatalf("CreateLoginSession(): %v", err)
+		}
+		req := httptest.NewRequest(http.MethodGet, "/modeles/"+strconv.FormatInt(template.ID, 10), nil)
+		req.AddCookie(&http.Cookie{Name: "revues_session", Value: token})
+		rec := httptest.NewRecorder()
+		handler.ServeHTTP(rec, req)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+		}
+		body := rec.Body.String()
+		hasCTA := strings.Contains(body, "Lancer avec ce modèle") &&
+			strings.Contains(body, "/revues/nouvelle?template="+strconv.FormatInt(template.ID, 10))
+		if hasCTA != wantCTA {
+			t.Fatalf("launch CTA present = %v, want %v", hasCTA, wantCTA)
+		}
+	}
+
+	assertShow(editor.ID, true)
+	assertShow(reader.ID, false)
+}
+
+func TestChecklistTemplates_ForRunPreselectsTemplate(t *testing.T) {
+	handler, db := testRouter(t)
+	ctx := context.Background()
+	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
+
+	lead, err := st.UpsertGitHubUser(ctx, 36, "preselect", "preselect@example.com", "Lead", "", auth.RoleEditor)
+	if err != nil {
+		t.Fatalf("UpsertGitHubUser(): %v", err)
+	}
+	project, err := st.CreateProject(ctx, "Team", "", lead.ID, []string{"k8s"})
+	if err != nil {
+		t.Fatalf("CreateProject(): %v", err)
+	}
+	selected, _, err := st.CreateChecklistTemplate(ctx, "Revue infra", lead.ID, []string{"k8s"}, []store.TemplateItemInput{{Label: "A"}})
+	if err != nil {
+		t.Fatalf("CreateChecklistTemplate(infra): %v", err)
+	}
+	if _, _, err = st.CreateChecklistTemplate(ctx, "Revue mobile", lead.ID, []string{"mobile"}, []store.TemplateItemInput{{Label: "B"}}); err != nil {
+		t.Fatalf("CreateChecklistTemplate(mobile): %v", err)
+	}
+
+	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
+	token, _, err := sessions.CreateLoginSession(ctx, lead.ID, 0)
+	if err != nil {
+		t.Fatalf("CreateLoginSession(): %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/subjects/"+strconv.FormatInt(project.ID, 10)+"/modeles?for_run=1&template="+strconv.FormatInt(selected.ID, 10), nil)
+	req.AddCookie(&http.Cookie{Name: "revues_session", Value: token})
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+	body := rec.Body.String()
+	if !strings.Contains(body, "Revue infra") {
+		t.Fatal("expected compatible preselected template in list")
+	}
+	if strings.Contains(body, "Revue mobile") {
+		t.Fatal("incompatible template must not appear when domains do not match")
+	}
+	if !strings.Contains(body, "présélectionné") {
+		t.Fatal("expected preselection hint")
+	}
+	if !strings.Contains(body, `aria-current="true"`) {
+		t.Fatal("expected highlighted row for preselected template")
 	}
 }

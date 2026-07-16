@@ -18,9 +18,6 @@ type OrganizationInvitation struct {
 	Email            string
 	OrganizationID   int64
 	OrganizationName string
-	ProjectID        sql.NullInt64
-	ProjectName      sql.NullString
-	ProjectRole      sql.NullString
 	OrgRole          string
 	CreatedAt        string
 }
@@ -30,40 +27,26 @@ func (s *Store) CreateOrganizationInvitation(
 	ctx context.Context,
 	email string,
 	organizationID int64,
-	projectID int64,
-	projectRole string,
 ) error {
 	email = strings.ToLower(strings.TrimSpace(email))
 	if email == "" {
 		return fmt.Errorf("invitation email: empty")
 	}
 
-	var projectIDVal sql.NullInt64
-	var projectRoleVal sql.NullString
-	if projectID > 0 {
-		projectIDVal = sql.NullInt64{Int64: projectID, Valid: true}
-		projectRoleVal = sql.NullString{String: projectRole, Valid: projectRole != ""}
-	}
-
 	now := time.Now().UTC().Format(time.RFC3339)
-
-	var projectKey int64
-	if projectID > 0 {
-		projectKey = projectID
-	}
 
 	_, err := s.db.ExecContext(ctx, `
 		DELETE FROM organization_invitations
-		WHERE organization_id = ? AND email = ? AND IFNULL(project_id, 0) = ?
-	`, organizationID, email, projectKey)
+		WHERE organization_id = ? AND email = ?
+	`, organizationID, email)
 	if err != nil {
 		return fmt.Errorf("clear organization invitation: %w", err)
 	}
 
 	_, err = s.db.ExecContext(ctx, `
-		INSERT INTO organization_invitations (email, organization_id, project_id, project_role, org_role, created_at)
-		VALUES (?, ?, ?, ?, ?, ?)
-	`, email, organizationID, projectIDVal, projectRoleVal, OrgRoleMember, now)
+		INSERT INTO organization_invitations (email, organization_id, org_role, created_at)
+		VALUES (?, ?, ?, ?)
+	`, email, organizationID, OrgRoleMember, now)
 	if err != nil {
 		return fmt.Errorf("insert organization invitation: %w", err)
 	}
@@ -79,10 +62,9 @@ func (s *Store) ListPendingInvitationsByEmail(ctx context.Context, email string)
 	}
 
 	rows, err := s.db.QueryContext(ctx, `
-		SELECT i.id, i.email, i.organization_id, o.name, i.project_id, p.name, i.project_role, i.org_role, i.created_at
+		SELECT i.id, i.email, i.organization_id, o.name, i.org_role, i.created_at
 		FROM organization_invitations i
 		INNER JOIN organizations o ON o.id = i.organization_id
-		LEFT JOIN projects p ON p.id = i.project_id
 		WHERE i.email = ?
 		ORDER BY i.created_at
 	`, email)
@@ -99,9 +81,6 @@ func (s *Store) ListPendingInvitationsByEmail(ctx context.Context, email string)
 			&inv.Email,
 			&inv.OrganizationID,
 			&inv.OrganizationName,
-			&inv.ProjectID,
-			&inv.ProjectName,
-			&inv.ProjectRole,
 			&inv.OrgRole,
 			&inv.CreatedAt,
 		); err != nil {
@@ -138,19 +117,15 @@ func (s *Store) HasPendingInvitationByEmail(ctx context.Context, email string) (
 func (s *Store) OrganizationInvitationByID(ctx context.Context, id int64) (*OrganizationInvitation, error) {
 	var inv OrganizationInvitation
 	err := s.db.QueryRowContext(ctx, `
-		SELECT i.id, i.email, i.organization_id, o.name, i.project_id, p.name, i.project_role, i.org_role, i.created_at
+		SELECT i.id, i.email, i.organization_id, o.name, i.org_role, i.created_at
 		FROM organization_invitations i
 		INNER JOIN organizations o ON o.id = i.organization_id
-		LEFT JOIN projects p ON p.id = i.project_id
 		WHERE i.id = ?
 	`, id).Scan(
 		&inv.ID,
 		&inv.Email,
 		&inv.OrganizationID,
 		&inv.OrganizationName,
-		&inv.ProjectID,
-		&inv.ProjectName,
-		&inv.ProjectRole,
 		&inv.OrgRole,
 		&inv.CreatedAt,
 	)

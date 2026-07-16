@@ -30,7 +30,7 @@ func (h *Auth) Login(w http.ResponseWriter, r *http.Request) {
 			http.Redirect(w, r, dest, http.StatusFound)
 			return
 		}
-		http.Redirect(w, r, "/projects", http.StatusFound)
+		http.Redirect(w, r, "/revues", http.StatusFound)
 		return
 	}
 
@@ -171,7 +171,7 @@ func (h *Auth) postLoginRedirect(ctx context.Context, userID int64) string {
 	if err != nil {
 		return ""
 	}
-	if redirect == "/projects" {
+	if redirect == "/revues" {
 		return ""
 	}
 	return redirect

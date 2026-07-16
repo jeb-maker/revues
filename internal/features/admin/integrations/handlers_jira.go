@@ -185,7 +185,7 @@ func (h *AdminJira) pageData(r *http.Request) templates.AdminJiraData {
 		InstanceType: jira.InstanceCloud,
 		CanEncrypt:   len(h.EncryptionKey) > 0,
 	}
-	data.ActiveTab = "admin"
+	data.ActiveTab = "org"
 	data.AdminSection = "jira"
 	return data
 }

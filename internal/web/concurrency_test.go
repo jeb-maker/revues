@@ -2,7 +2,6 @@ package web_test
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -26,7 +25,7 @@ type httpLoadFixture struct {
 
 func TestConcurrentHTTPProjectListNoLock(t *testing.T) {
 	f := newHTTPRunLoadFixture(t)
-	runHTTPConcurrentGET(t, f, "/projects", 24, 40)
+	runHTTPConcurrentGET(t, f, "/subjects", 24, 40)
 }
 
 func TestConcurrentHTTPRunShowNoLock(t *testing.T) {
@@ -127,7 +126,7 @@ func newHTTPRunLoadFixture(t *testing.T) httpLoadFixture {
 	if err != nil {
 		t.Fatalf("CreateChecklistTemplate(): %v", err)
 	}
-	run, err := st.CreateChecklistRun(ctx, project.ID, template.ID, "Revue charge", user.ID, sql.NullString{})
+	run, err := st.CreateChecklistRun(ctx, project.ID, template.ID, user.ID)
 	if err != nil {
 		t.Fatalf("CreateChecklistRun(): %v", err)
 	}

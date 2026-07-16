@@ -3,12 +3,13 @@ package handlers_test
 import (
 	"context"
 	"database/sql"
-	"github.com/jeb-maker/revues/internal/testutil"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
 	"strings"
 	"testing"
+
+	"github.com/jeb-maker/revues/internal/testutil"
 
 	"github.com/jeb-maker/revues/internal/auth"
 	runs "github.com/jeb-maker/revues/internal/features/runs"
@@ -36,7 +37,7 @@ func TestDashboard_ShowsActiveRunProgress(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateChecklistTemplate(): %v", err)
 	}
-	run, err := st.CreateChecklistRun(ctx, project.ID, template.ID, "Sprint", lead.ID, sql.NullString{})
+	run, err := st.CreateChecklistRun(ctx, project.ID, template.ID, lead.ID)
 	if err != nil {
 		t.Fatalf("CreateChecklistRun(): %v", err)
 	}
@@ -66,8 +67,8 @@ func TestDashboard_ShowsActiveRunProgress(t *testing.T) {
 		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
 	}
 	body := rec.Body.String()
-	if !strings.Contains(body, "Sprint") {
-		t.Fatal("expected active run title")
+	if !strings.Contains(body, "Alpha") {
+		t.Fatal("expected active run display label")
 	}
 	if !strings.Contains(body, "50%") {
 		t.Fatal("expected run progress percent")
@@ -97,7 +98,7 @@ func TestDashboard_ShowsRecentCompletedRuns(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateChecklistTemplate(): %v", err)
 	}
-	run, err := st.CreateChecklistRun(ctx, project.ID, template.ID, "Revue clôturée", lead.ID, sql.NullString{})
+	run, err := st.CreateChecklistRun(ctx, project.ID, template.ID, lead.ID)
 	if err != nil {
 		t.Fatalf("CreateChecklistRun(): %v", err)
 	}
@@ -133,8 +134,8 @@ func TestDashboard_ShowsRecentCompletedRuns(t *testing.T) {
 	if strings.Contains(body, "Terminées récemment") {
 		t.Fatal("unexpected legacy completed runs section")
 	}
-	if !strings.Contains(body, "Revue clôturée") {
-		t.Fatal("expected completed run title")
+	if !strings.Contains(body, "Zeta") {
+		t.Fatal("expected completed run display label")
 	}
 	if !strings.Contains(body, "100%") {
 		t.Fatal("expected completed run progress")
@@ -145,14 +146,8 @@ func TestDashboard_ShowsRecentCompletedRuns(t *testing.T) {
 	if !strings.Contains(body, `id="filter-query"`) {
 		t.Fatal("expected search input on revues page")
 	}
-	if !strings.Contains(body, "segmented-tabs") {
-		t.Fatal("expected status tabs on revues page")
-	}
 	if !strings.Contains(body, ">Filtrer<") {
 		t.Fatal("expected filter submit button")
-	}
-	if strings.Contains(body, `href="/runs/new"`) {
-		t.Fatal("unexpected launch link on revues page")
 	}
 }
 
@@ -176,7 +171,7 @@ func TestDashboard_ShowsDraftRun(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateChecklistTemplate(): %v", err)
 	}
-	if _, err = st.CreateChecklistRun(ctx, project.ID, template.ID, "Revue brouillon", lead.ID, sql.NullString{}); err != nil {
+	if _, err = st.CreateChecklistRun(ctx, project.ID, template.ID, lead.ID); err != nil {
 		t.Fatalf("CreateChecklistRun(): %v", err)
 	}
 
@@ -195,10 +190,10 @@ func TestDashboard_ShowsDraftRun(t *testing.T) {
 		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
 	}
 	body := rec.Body.String()
-	if !strings.Contains(body, "Revue brouillon") {
-		t.Fatal("expected draft run title on dashboard")
+	if !strings.Contains(body, "DraftCo") {
+		t.Fatal("expected draft run display label on dashboard")
 	}
-	if !strings.Contains(body, "brouillon") {
+	if !strings.Contains(body, "Brouillon") {
 		t.Fatal("expected draft status label on dashboard")
 	}
 }
@@ -223,12 +218,12 @@ func TestDashboard_ShowsRunDueDate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateChecklistTemplate(): %v", err)
 	}
-	run, err := st.CreateChecklistRun(ctx, project.ID, template.ID, "Sprint J-7", lead.ID, sql.NullString{
-		String: "2026-07-01T00:00:00Z",
-		Valid:  true,
-	})
+	run, err := st.CreateChecklistRun(ctx, project.ID, template.ID, lead.ID)
 	if err != nil {
 		t.Fatalf("CreateChecklistRun(): %v", err)
+	}
+	if err = st.SetRunDueDate(ctx, run.ID, sql.NullString{String: "2026-07-01T00:00:00Z", Valid: true}); err != nil {
+		t.Fatalf("SetRunDueDate(): %v", err)
 	}
 	if err = st.StartRun(ctx, run.ID); err != nil {
 		t.Fatalf("StartRun(): %v", err)
@@ -252,8 +247,8 @@ func TestDashboard_ShowsRunDueDate(t *testing.T) {
 	if !strings.Contains(body, "01/07/2026") {
 		t.Fatal("expected formatted due date on dashboard")
 	}
-	if !strings.Contains(body, "Sprint J-7") {
-		t.Fatal("expected run title on dashboard")
+	if !strings.Contains(body, "Modèle") {
+		t.Fatal("expected computed run label on dashboard")
 	}
 }
 
@@ -275,11 +270,15 @@ func TestProjectShow_ShowsRunDueDate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateChecklistTemplate(): %v", err)
 	}
-	if _, err = st.CreateChecklistRun(ctx, project.ID, template.ID, "Revue Q3", lead.ID, sql.NullString{
-		String: "2026-09-30T00:00:00Z",
-		Valid:  true,
-	}); err != nil {
+	if _, err = st.CreateChecklistRun(ctx, project.ID, template.ID, lead.ID); err != nil {
 		t.Fatalf("CreateChecklistRun(): %v", err)
+	}
+	runs, err := st.ListRunsBySubject(ctx, project.ID)
+	if err != nil || len(runs) == 0 {
+		t.Fatalf("ListRunsBySubject() = %v, %v", runs, err)
+	}
+	if err = st.SetRunDueDate(ctx, runs[0].ID, sql.NullString{String: "2026-09-30T00:00:00Z", Valid: true}); err != nil {
+		t.Fatalf("SetRunDueDate(): %v", err)
 	}
 
 	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
@@ -288,7 +287,7 @@ func TestProjectShow_ShowsRunDueDate(t *testing.T) {
 		t.Fatalf("CreateLoginSession(): %v", err)
 	}
 
-	req := httptest.NewRequest(http.MethodGet, "/projects/"+strconv.FormatInt(project.ID, 10), nil)
+	req := httptest.NewRequest(http.MethodGet, "/subjects/"+strconv.FormatInt(project.ID, 10), nil)
 	req.AddCookie(&http.Cookie{Name: "revues_session", Value: token})
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
@@ -300,8 +299,8 @@ func TestProjectShow_ShowsRunDueDate(t *testing.T) {
 	if !strings.Contains(body, "30/09/2026") {
 		t.Fatal("expected formatted due date on project page")
 	}
-	if !strings.Contains(body, "Revue Q3") {
-		t.Fatal("expected run title on project page")
+	if !strings.Contains(body, "Modèle") {
+		t.Fatal("expected computed run label on project page")
 	}
 }
 
@@ -325,7 +324,7 @@ func TestProjectShow_ShowsNokItems(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateChecklistTemplate(): %v", err)
 	}
-	run, err := st.CreateChecklistRun(ctx, project.ID, template.ID, "Revue", lead.ID, sql.NullString{})
+	run, err := st.CreateChecklistRun(ctx, project.ID, template.ID, lead.ID)
 	if err != nil {
 		t.Fatalf("CreateChecklistRun(): %v", err)
 	}
@@ -346,7 +345,7 @@ func TestProjectShow_ShowsNokItems(t *testing.T) {
 		t.Fatalf("CreateLoginSession(): %v", err)
 	}
 
-	req := httptest.NewRequest(http.MethodGet, "/projects/"+strconv.FormatInt(project.ID, 10), nil)
+	req := httptest.NewRequest(http.MethodGet, "/subjects/"+strconv.FormatInt(project.ID, 10), nil)
 	req.AddCookie(&http.Cookie{Name: "revues_session", Value: token})
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
@@ -399,7 +398,7 @@ func TestTemplatesIndex_ListsVisibleTemplates(t *testing.T) {
 	if !strings.Contains(body, "Checklist QA") {
 		t.Fatal("expected template in index")
 	}
-	if !strings.Contains(body, "tous projets") {
+	if !strings.Contains(body, "tous sujets") {
 		t.Fatal("expected global template marker in index")
 	}
 	if !strings.Contains(body, "list-toolbar") {

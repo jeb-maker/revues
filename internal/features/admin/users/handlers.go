@@ -124,7 +124,7 @@ func (h *AdminUsers) adminData(r *http.Request) templates.AdminUsersData {
 	data := templates.AdminUsersData{
 		PageData: templates.ApplyPageMeta(h.PageData(r, ""), templates.BCAdminUsers()),
 	}
-	data.ActiveTab = "admin"
+	data.ActiveTab = "org"
 	data.AdminSection = "users"
 	return data
 }

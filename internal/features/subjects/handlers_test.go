@@ -1,0 +1,709 @@
+package subjects_test
+
+import (
+	"context"
+	"database/sql"
+	"net/http"
+	"net/http/httptest"
+	"net/url"
+	"strconv"
+	"strings"
+	"testing"
+
+	_ "modernc.org/sqlite"
+
+	"github.com/jeb-maker/revues/internal/auth"
+	"github.com/jeb-maker/revues/internal/config"
+	"github.com/jeb-maker/revues/internal/orgctx"
+	"github.com/jeb-maker/revues/internal/store"
+	"github.com/jeb-maker/revues/internal/testutil"
+	appweb "github.com/jeb-maker/revues/internal/web"
+)
+
+func testRouter(t *testing.T) (http.Handler, *sql.DB) {
+	t.Helper()
+
+	ctx := context.Background()
+	db, err := store.Open(ctx, t.TempDir()+"/test.db", 0)
+	if err != nil {
+		t.Fatalf("Open() error = %v", err)
+	}
+	t.Cleanup(func() {
+		if closeErr := db.Close(); closeErr != nil {
+			t.Errorf("Close() error = %v", closeErr)
+		}
+	})
+	if migrateErr := store.Migrate(ctx, db); migrateErr != nil {
+		t.Fatalf("Migrate() error = %v", migrateErr)
+	}
+
+	cfg := config.Config{
+		Addr:           ":8080",
+		BaseURL:        "http://example.com",
+		SessionSecret:  "test-secret-at-least-thirty-two-bytes",
+		Env:            "development",
+		AttachmentsDir: t.TempDir() + "/attachments",
+	}
+
+	handler, _, err := appweb.NewRouter(appweb.Deps{Config: cfg, DB: db})
+	if err != nil {
+		t.Fatalf("NewRouter() error = %v", err)
+	}
+
+	return handler, db
+}
+
+func TestHandlers_IDOR_CrossSubject(t *testing.T) {
+	handler, db := testRouter(t)
+	ctx := context.Background()
+	st := store.New(db)
+
+	userA, err := st.UpsertGitHubUser(ctx, 10, "alice", "alice@example.com", "Alice", "", auth.RoleEditor)
+	if err != nil {
+		t.Fatalf("UpsertGitHubUser(alice): %v", err)
+	}
+	bob, err := st.UpsertGitHubUser(ctx, 11, "bob", "bob@example.com", "Bob", "", auth.RoleEditor)
+	if err != nil {
+		t.Fatalf("UpsertGitHubUser(bob): %v", err)
+	}
+
+	aliceOrg, err := st.CreateOrganization(ctx, "Alice Org", "alice-org-idor", userA.ID)
+	if err != nil {
+		t.Fatalf("CreateOrganization(): %v", err)
+	}
+	if err = st.AddOrganizationMember(ctx, aliceOrg.ID, userA.ID, store.OrgRoleOwner); err != nil {
+		t.Fatalf("AddOrganizationMember(alice): %v", err)
+	}
+	aliceCtx := testutil.OrgContext(ctx, aliceOrg.ID)
+
+	subject, err := st.CreateSubject(aliceCtx, "Secret", "hidden", userA.ID, nil)
+	if err != nil {
+		t.Fatalf("CreateSubject(): %v", err)
+	}
+
+	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
+	bobToken, _, err := sessions.CreateLoginSession(ctx, bob.ID, 0)
+	if err != nil {
+		t.Fatalf("CreateLoginSession(bob): %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/subjects/"+strconv.FormatInt(subject.ID, 10), nil)
+	req.AddCookie(&http.Cookie{Name: "revues_session", Value: bobToken})
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusNotFound {
+		t.Errorf("status = %d, want %d (IDOR must return 404)", rec.Code, http.StatusNotFound)
+	}
+}
+
+func TestIDOR_CrossOrganization(t *testing.T) {
+	handler, db := testRouter(t)
+	ctx := context.Background()
+	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
+
+	alice, err := st.UpsertGitHubUser(ctx, 10, "alice", "alice@example.com", "Alice", "", auth.RoleEditor)
+	if err != nil {
+		t.Fatalf("UpsertGitHubUser(alice): %v", err)
+	}
+	bob, err := st.UpsertGitHubUser(ctx, 11, "bob", "bob@example.com", "Bob", "", auth.RoleEditor)
+	if err != nil {
+		t.Fatalf("UpsertGitHubUser(bob): %v", err)
+	}
+
+	orgA, err := st.CreateOrganization(ctx, "Org A", "org-a", alice.ID)
+	if err != nil {
+		t.Fatalf("CreateOrganization(org-a): %v", err)
+	}
+	orgB, err := st.CreateOrganization(ctx, "Org B", "org-b", bob.ID)
+	if err != nil {
+		t.Fatalf("CreateOrganization(org-b): %v", err)
+	}
+	if err = st.AddOrganizationMember(ctx, orgA.ID, alice.ID, store.OrgRoleOwner); err != nil {
+		t.Fatalf("AddOrganizationMember(alice): %v", err)
+	}
+	if err = st.AddOrganizationMember(ctx, orgB.ID, bob.ID, store.OrgRoleOwner); err != nil {
+		t.Fatalf("AddOrganizationMember(bob): %v", err)
+	}
+
+	ctxA := orgctx.WithOrganizationID(ctx, orgA.ID)
+	subject, err := st.CreateSubject(ctxA, "Secret", "hidden", alice.ID, nil)
+	if err != nil {
+		t.Fatalf("CreateSubject(): %v", err)
+	}
+
+	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
+	bobToken, _, err := sessions.CreateLoginSession(ctx, bob.ID, orgB.ID)
+	if err != nil {
+		t.Fatalf("CreateLoginSession(bob): %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/subjects/"+strconv.FormatInt(subject.ID, 10), nil)
+	req.AddCookie(&http.Cookie{Name: "revues_session", Value: bobToken})
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusNotFound {
+		t.Errorf("status = %d, want %d (cross-org IDOR must return 404)", rec.Code, http.StatusNotFound)
+	}
+}
+
+func TestSubjects_CreateAndList(t *testing.T) {
+	handler, db := testRouter(t)
+	ctx := context.Background()
+	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
+
+	editor, err := st.UpsertGitHubUser(ctx, 20, "carol", "carol@example.com", "Carol", "", auth.RoleEditor)
+	if err != nil {
+		t.Fatalf("UpsertGitHubUser(): %v", err)
+	}
+
+	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
+	token, _, err := sessions.CreateLoginSession(ctx, editor.ID, 0)
+	if err != nil {
+		t.Fatalf("CreateLoginSession(): %v", err)
+	}
+	csrf := auth.CSRFToken(token, "test-secret-at-least-thirty-two-bytes")
+
+	form := url.Values{}
+	form.Set("csrf_token", csrf)
+	form.Set("name", "Sujet test")
+	form.Set("description", "desc")
+	req := httptest.NewRequest(http.MethodPost, "/subjects", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.AddCookie(&http.Cookie{Name: "revues_session", Value: token})
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+	if rec.Code != http.StatusSeeOther {
+		t.Fatalf("create status = %d, want %d", rec.Code, http.StatusSeeOther)
+	}
+
+	listReq := httptest.NewRequest(http.MethodGet, "/subjects", nil)
+	listReq.AddCookie(&http.Cookie{Name: "revues_session", Value: token})
+	listRec := httptest.NewRecorder()
+	handler.ServeHTTP(listRec, listReq)
+	if listRec.Code != http.StatusOK {
+		t.Fatalf("list status = %d, want %d", listRec.Code, http.StatusOK)
+	}
+	if !strings.Contains(listRec.Body.String(), "Sujet test") {
+		t.Fatal("expected subject name in list")
+	}
+	if !strings.Contains(listRec.Body.String(), "list-toolbar") {
+		t.Fatal("expected list toolbar on subjects page")
+	}
+	if !strings.Contains(listRec.Body.String(), `href="/subjects/new"`) {
+		t.Fatal("expected create button in toolbar")
+	}
+}
+
+func TestSubjects_ReaderCannotCreate(t *testing.T) {
+	handler, db := testRouter(t)
+	ctx := context.Background()
+	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
+
+	reader, err := st.UpsertGitHubUser(ctx, 30, "dave", "dave@example.com", "Dave", "", auth.RoleReader)
+	if err != nil {
+		t.Fatalf("UpsertGitHubUser(): %v", err)
+	}
+
+	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
+	token, _, err := sessions.CreateLoginSession(ctx, reader.ID, 0)
+	if err != nil {
+		t.Fatalf("CreateLoginSession(): %v", err)
+	}
+
+	form := url.Values{}
+	form.Set("csrf_token", auth.CSRFToken(token, "test-secret-at-least-thirty-two-bytes"))
+	form.Set("name", "Nope")
+	req := httptest.NewRequest(http.MethodPost, "/subjects", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.AddCookie(&http.Cookie{Name: "revues_session", Value: token})
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+	if rec.Code != http.StatusForbidden {
+		t.Errorf("status = %d, want %d", rec.Code, http.StatusForbidden)
+	}
+}
+
+func TestRunsListEmptyState_ByRole(t *testing.T) {
+	roles := []struct {
+		role    string
+		orgRole string
+		want    string
+		notWant string
+	}{
+		{auth.RoleAdmin, store.OrgRoleOwner, "Lancer une revue", "ne vous est encore assigné"},
+		{auth.RoleEditor, store.OrgRoleMember, "Lancer une revue", "Gérer les emails autorisés"},
+		{auth.RoleReader, store.OrgRoleMember, "Aucun sujet disponible", "Lancer une revue"},
+	}
+
+	for _, tt := range roles {
+		t.Run(tt.role, func(t *testing.T) {
+			handler, db := testRouter(t)
+			ctx := context.Background()
+			st := store.New(db)
+			ctx = testutil.DefaultOrgContext(ctx, st)
+			defaultOrg, err := st.OrganizationBySlug(ctx, "default")
+			if err != nil {
+				t.Fatalf("OrganizationBySlug(): %v", err)
+			}
+
+			user, err := st.UpsertGitHubUser(ctx, 40, "user-"+tt.role, tt.role+"@example.com", tt.role, "", tt.role)
+			if err != nil {
+				t.Fatalf("UpsertGitHubUser(): %v", err)
+			}
+			if err = st.AddOrganizationMember(ctx, defaultOrg.ID, user.ID, tt.orgRole); err != nil {
+				t.Fatalf("AddOrganizationMember(): %v", err)
+			}
+
+			sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
+			token, _, err := sessions.CreateLoginSession(ctx, user.ID, defaultOrg.ID)
+			if err != nil {
+				t.Fatalf("CreateLoginSession(): %v", err)
+			}
+
+			req := httptest.NewRequest(http.MethodGet, "/revues", nil)
+			req.AddCookie(&http.Cookie{Name: "revues_session", Value: token})
+			rec := httptest.NewRecorder()
+			handler.ServeHTTP(rec, req)
+
+			if rec.Code != http.StatusOK {
+				t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+			}
+			body := rec.Body.String()
+			if !strings.Contains(body, "empty-state") {
+				t.Fatal("expected empty dashboard state")
+			}
+			if !strings.Contains(body, tt.want) {
+				t.Fatalf("expected CTA %q in body", tt.want)
+			}
+			if tt.notWant != "" && strings.Contains(body, tt.notWant) {
+				t.Fatalf("unexpected CTA %q in body", tt.notWant)
+			}
+		})
+	}
+}
+
+func TestWizardNouvelle_InlineCreate(t *testing.T) {
+	handler, db := testRouter(t)
+	ctx := context.Background()
+	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
+
+	editor, err := st.UpsertGitHubUser(ctx, 60, "wiz", "wiz@example.com", "Wiz", "", auth.RoleEditor)
+	if err != nil {
+		t.Fatalf("UpsertGitHubUser(): %v", err)
+	}
+
+	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
+	token, _, err := sessions.CreateLoginSession(ctx, editor.ID, 0)
+	if err != nil {
+		t.Fatalf("CreateLoginSession(): %v", err)
+	}
+
+	form := url.Values{}
+	form.Set("csrf_token", auth.CSRFToken(token, "test-secret-at-least-thirty-two-bytes"))
+	form.Set("name", "Nouveau sujet")
+	req := httptest.NewRequest(http.MethodPost, "/revues/nouvelle", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.AddCookie(&http.Cookie{Name: "revues_session", Value: token})
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+	if rec.Code != http.StatusSeeOther {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusSeeOther)
+	}
+
+	subjects, err := st.ListSubjects(ctx, editor.ID, false, "Nouveau")
+	if err != nil || len(subjects) != 1 {
+		t.Fatalf("ListSubjects() = %v, %v", subjects, err)
+	}
+	want := "/subjects/" + strconv.FormatInt(subjects[0].ID, 10) + "/modeles?for_run=1"
+	if loc := rec.Header().Get("Location"); loc != want {
+		t.Fatalf("Location = %q, want %q", loc, want)
+	}
+}
+
+func TestWizardNouvelle_SearchByName(t *testing.T) {
+	handler, db := testRouter(t)
+	ctx := context.Background()
+	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
+
+	editor, err := st.UpsertGitHubUser(ctx, 61, "search", "search@example.com", "Search", "", auth.RoleEditor)
+	if err != nil {
+		t.Fatalf("UpsertGitHubUser(): %v", err)
+	}
+	if _, err = st.CreateSubject(ctx, "Alpha infra", "", editor.ID, nil); err != nil {
+		t.Fatalf("CreateSubject(alpha): %v", err)
+	}
+	if _, err = st.CreateSubject(ctx, "Beta mobile", "", editor.ID, nil); err != nil {
+		t.Fatalf("CreateSubject(beta): %v", err)
+	}
+
+	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
+	token, _, err := sessions.CreateLoginSession(ctx, editor.ID, 0)
+	if err != nil {
+		t.Fatalf("CreateLoginSession(): %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/revues/nouvelle?q=infra", nil)
+	req.AddCookie(&http.Cookie{Name: "revues_session", Value: token})
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+	body := rec.Body.String()
+	if !strings.Contains(body, "Alpha infra") {
+		t.Fatal("expected matching subject in wizard")
+	}
+	if strings.Contains(body, "Beta mobile") {
+		t.Fatal("non-matching subject must not appear in filtered wizard")
+	}
+}
+
+func TestWizardNouvelle_WithTemplate(t *testing.T) {
+	handler, db := testRouter(t)
+	ctx := context.Background()
+	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
+
+	editor, err := st.UpsertGitHubUser(ctx, 62, "wiz-tpl", "wiz-tpl@example.com", "Wiz", "", auth.RoleEditor)
+	if err != nil {
+		t.Fatalf("UpsertGitHubUser(): %v", err)
+	}
+	if _, err = st.CreateSubject(ctx, "Alpha", "", editor.ID, nil); err != nil {
+		t.Fatalf("CreateSubject(): %v", err)
+	}
+	if _, err = st.CreateSubject(ctx, "Beta", "", editor.ID, nil); err != nil {
+		t.Fatalf("CreateSubject(): %v", err)
+	}
+	template, _, err := st.CreateChecklistTemplate(ctx, "Modèle wizard", editor.ID, nil, []store.TemplateItemInput{{Label: "Point"}})
+	if err != nil {
+		t.Fatalf("CreateChecklistTemplate(): %v", err)
+	}
+
+	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
+	token, _, err := sessions.CreateLoginSession(ctx, editor.ID, 0)
+	if err != nil {
+		t.Fatalf("CreateLoginSession(): %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/revues/nouvelle?template="+strconv.FormatInt(template.ID, 10), nil)
+	req.AddCookie(&http.Cookie{Name: "revues_session", Value: token})
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+	body := rec.Body.String()
+	wantLink := "/subjects/"
+	if !strings.Contains(body, wantLink) || !strings.Contains(body, "template="+strconv.FormatInt(template.ID, 10)) {
+		t.Fatalf("expected subject links to preserve template param, body=%s", body)
+	}
+
+	form := url.Values{}
+	form.Set("csrf_token", auth.CSRFToken(token, "test-secret-at-least-thirty-two-bytes"))
+	form.Set("name", "Inline sujet")
+	form.Set("template", strconv.FormatInt(template.ID, 10))
+	postReq := httptest.NewRequest(http.MethodPost, "/revues/nouvelle", strings.NewReader(form.Encode()))
+	postReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	postReq.AddCookie(&http.Cookie{Name: "revues_session", Value: token})
+	postRec := httptest.NewRecorder()
+	handler.ServeHTTP(postRec, postReq)
+	if postRec.Code != http.StatusSeeOther {
+		t.Fatalf("create status = %d, want %d", postRec.Code, http.StatusSeeOther)
+	}
+	loc := postRec.Header().Get("Location")
+	if !strings.Contains(loc, "for_run=1") || !strings.Contains(loc, "template="+strconv.FormatInt(template.ID, 10)) {
+		t.Fatalf("Location = %q, want template preserved", loc)
+	}
+}
+
+func TestAdminSubjects_RequiresOrgAdmin(t *testing.T) {
+	handler, db := testRouter(t)
+	ctx := context.Background()
+	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
+	defaultOrg, err := st.OrganizationBySlug(ctx, "default")
+	if err != nil {
+		t.Fatalf("OrganizationBySlug(): %v", err)
+	}
+
+	reader, err := st.UpsertGitHubUser(ctx, 80, "reader-admin", "reader-admin@example.com", "Reader", "", auth.RoleReader)
+	if err != nil {
+		t.Fatalf("UpsertGitHubUser(): %v", err)
+	}
+	if err = st.AddOrganizationMember(ctx, defaultOrg.ID, reader.ID, store.OrgRoleMember); err != nil {
+		t.Fatalf("AddOrganizationMember(): %v", err)
+	}
+
+	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
+	token, _, err := sessions.CreateLoginSession(ctx, reader.ID, defaultOrg.ID)
+	if err != nil {
+		t.Fatalf("CreateLoginSession(): %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/admin/subjects", nil)
+	req.AddCookie(&http.Cookie{Name: "revues_session", Value: token})
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusForbidden)
+	}
+
+	owner, err := st.UpsertGitHubUser(ctx, 81, "owner-admin", "owner-admin@example.com", "Owner", "", auth.RoleEditor)
+	if err != nil {
+		t.Fatalf("UpsertGitHubUser(owner): %v", err)
+	}
+	if err = st.AddOrganizationMember(ctx, defaultOrg.ID, owner.ID, store.OrgRoleOwner); err != nil {
+		t.Fatalf("AddOrganizationMember(owner): %v", err)
+	}
+	ownerToken, _, err := sessions.CreateLoginSession(ctx, owner.ID, defaultOrg.ID)
+	if err != nil {
+		t.Fatalf("CreateLoginSession(owner): %v", err)
+	}
+
+	req = httptest.NewRequest(http.MethodGet, "/admin/subjects", nil)
+	req.AddCookie(&http.Cookie{Name: "revues_session", Value: ownerToken})
+	rec = httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+	body := rec.Body.String()
+	if !strings.Contains(body, `admin-nav`) || !strings.Contains(body, `href="/admin/subjects"`) {
+		t.Fatal("expected admin subjects page with admin nav")
+	}
+}
+
+func TestSubjects_UpdateRedirect_ByRoute(t *testing.T) {
+	handler, db := testRouter(t)
+	ctx := context.Background()
+	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
+	defaultOrg, err := st.OrganizationBySlug(ctx, "default")
+	if err != nil {
+		t.Fatalf("OrganizationBySlug(): %v", err)
+	}
+
+	owner, err := st.UpsertGitHubUser(ctx, 90, "owner-upd", "owner-upd@example.com", "Owner", "", auth.RoleEditor)
+	if err != nil {
+		t.Fatalf("UpsertGitHubUser(owner): %v", err)
+	}
+	if err = st.AddOrganizationMember(ctx, defaultOrg.ID, owner.ID, store.OrgRoleOwner); err != nil {
+		t.Fatalf("AddOrganizationMember(owner): %v", err)
+	}
+
+	subject, err := st.CreateSubject(ctx, "To update", "", owner.ID, nil)
+	if err != nil {
+		t.Fatalf("CreateSubject(): %v", err)
+	}
+
+	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
+	token, _, err := sessions.CreateLoginSession(ctx, owner.ID, defaultOrg.ID)
+	if err != nil {
+		t.Fatalf("CreateLoginSession(): %v", err)
+	}
+	csrf := auth.CSRFToken(token, "test-secret-at-least-thirty-two-bytes")
+
+	tests := []struct {
+		name     string
+		path     string
+		wantPath string
+	}{
+		{
+			name:     "member edit route",
+			path:     "/subjects/" + strconv.FormatInt(subject.ID, 10),
+			wantPath: "/subjects/" + strconv.FormatInt(subject.ID, 10) + "?msg=Sujet+mis+%C3%A0+jour",
+		},
+		{
+			name:     "admin edit route",
+			path:     "/admin/subjects/" + strconv.FormatInt(subject.ID, 10),
+			wantPath: "/admin/subjects?msg=Sujet+mis+%C3%A0+jour",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			form := url.Values{}
+			form.Set("csrf_token", csrf)
+			form.Set("name", "Updated name")
+			req := httptest.NewRequest(http.MethodPost, tt.path, strings.NewReader(form.Encode()))
+			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+			req.AddCookie(&http.Cookie{Name: "revues_session", Value: token})
+			rec := httptest.NewRecorder()
+			handler.ServeHTTP(rec, req)
+			if rec.Code != http.StatusSeeOther {
+				t.Fatalf("status = %d, want %d", rec.Code, http.StatusSeeOther)
+			}
+			if loc := rec.Header().Get("Location"); loc != tt.wantPath {
+				t.Fatalf("Location = %q, want %q", loc, tt.wantPath)
+			}
+		})
+	}
+}
+
+func TestSubjects_CreateRedirect_FromAdmin(t *testing.T) {
+	handler, db := testRouter(t)
+	ctx := context.Background()
+	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
+	defaultOrg, err := st.OrganizationBySlug(ctx, "default")
+	if err != nil {
+		t.Fatalf("OrganizationBySlug(): %v", err)
+	}
+
+	owner, err := st.UpsertGitHubUser(ctx, 91, "owner-create", "owner-create@example.com", "Owner", "", auth.RoleEditor)
+	if err != nil {
+		t.Fatalf("UpsertGitHubUser(owner): %v", err)
+	}
+	if err = st.AddOrganizationMember(ctx, defaultOrg.ID, owner.ID, store.OrgRoleOwner); err != nil {
+		t.Fatalf("AddOrganizationMember(owner): %v", err)
+	}
+
+	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
+	token, _, err := sessions.CreateLoginSession(ctx, owner.ID, defaultOrg.ID)
+	if err != nil {
+		t.Fatalf("CreateLoginSession(): %v", err)
+	}
+
+	form := url.Values{}
+	form.Set("csrf_token", auth.CSRFToken(token, "test-secret-at-least-thirty-two-bytes"))
+	form.Set("name", "Admin created")
+	req := httptest.NewRequest(http.MethodPost, "/admin/subjects", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.AddCookie(&http.Cookie{Name: "revues_session", Value: token})
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+	if rec.Code != http.StatusSeeOther {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusSeeOther)
+	}
+
+	subjects, err := st.ListSubjects(ctx, owner.ID, false, "Admin created")
+	if err != nil || len(subjects) != 1 {
+		t.Fatalf("ListSubjects() = %v, %v", subjects, err)
+	}
+	want := "/subjects/" + strconv.FormatInt(subjects[0].ID, 10) + "?msg=Sujet+cr%C3%A9%C3%A9"
+	if loc := rec.Header().Get("Location"); loc != want {
+		t.Fatalf("Location = %q, want %q", loc, want)
+	}
+}
+
+func TestSubjects_ArchiveRedirect_FromAdmin(t *testing.T) {
+	handler, db := testRouter(t)
+	ctx := context.Background()
+	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
+	defaultOrg, err := st.OrganizationBySlug(ctx, "default")
+	if err != nil {
+		t.Fatalf("OrganizationBySlug(): %v", err)
+	}
+
+	owner, err := st.UpsertGitHubUser(ctx, 92, "owner-arch", "owner-arch@example.com", "Owner", "", auth.RoleEditor)
+	if err != nil {
+		t.Fatalf("UpsertGitHubUser(owner): %v", err)
+	}
+	if err = st.AddOrganizationMember(ctx, defaultOrg.ID, owner.ID, store.OrgRoleOwner); err != nil {
+		t.Fatalf("AddOrganizationMember(owner): %v", err)
+	}
+
+	subject, err := st.CreateSubject(ctx, "To archive", "", owner.ID, nil)
+	if err != nil {
+		t.Fatalf("CreateSubject(): %v", err)
+	}
+
+	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
+	token, _, err := sessions.CreateLoginSession(ctx, owner.ID, defaultOrg.ID)
+	if err != nil {
+		t.Fatalf("CreateLoginSession(): %v", err)
+	}
+
+	form := url.Values{}
+	form.Set("csrf_token", auth.CSRFToken(token, "test-secret-at-least-thirty-two-bytes"))
+	req := httptest.NewRequest(http.MethodPost, "/admin/subjects/"+strconv.FormatInt(subject.ID, 10)+"/archive", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.AddCookie(&http.Cookie{Name: "revues_session", Value: token})
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+	if rec.Code != http.StatusSeeOther {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusSeeOther)
+	}
+	want := "/admin/subjects?msg=Sujet+archiv%C3%A9"
+	if loc := rec.Header().Get("Location"); loc != want {
+		t.Fatalf("Location = %q, want %q", loc, want)
+	}
+}
+
+func TestSubjects_ShowEditLink_ByOrgRole(t *testing.T) {
+	tests := []struct {
+		name     string
+		orgRole  string
+		wantHref string
+		notWant  string
+	}{
+		{
+			name:     "org owner",
+			orgRole:  store.OrgRoleOwner,
+			wantHref: `href="/admin/subjects/`,
+			notWant:  `href="/subjects/`,
+		},
+		{
+			name:     "org member editor",
+			orgRole:  store.OrgRoleMember,
+			wantHref: `href="/subjects/`,
+			notWant:  `href="/admin/subjects/`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			handler, db := testRouter(t)
+			ctx := context.Background()
+			st := store.New(db)
+			ctx = testutil.DefaultOrgContext(ctx, st)
+			defaultOrg, err := st.OrganizationBySlug(ctx, "default")
+			if err != nil {
+				t.Fatalf("OrganizationBySlug(): %v", err)
+			}
+
+			user, err := st.UpsertGitHubUser(ctx, 93, "user-"+tt.orgRole, tt.orgRole+"@example.com", tt.orgRole, "", auth.RoleEditor)
+			if err != nil {
+				t.Fatalf("UpsertGitHubUser(): %v", err)
+			}
+			if err = st.AddOrganizationMember(ctx, defaultOrg.ID, user.ID, tt.orgRole); err != nil {
+				t.Fatalf("AddOrganizationMember(): %v", err)
+			}
+
+			subject, err := st.CreateSubject(ctx, "Show me", "", user.ID, nil)
+			if err != nil {
+				t.Fatalf("CreateSubject(): %v", err)
+			}
+
+			sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
+			token, _, err := sessions.CreateLoginSession(ctx, user.ID, defaultOrg.ID)
+			if err != nil {
+				t.Fatalf("CreateLoginSession(): %v", err)
+			}
+
+			req := httptest.NewRequest(http.MethodGet, "/subjects/"+strconv.FormatInt(subject.ID, 10), nil)
+			req.AddCookie(&http.Cookie{Name: "revues_session", Value: token})
+			rec := httptest.NewRecorder()
+			handler.ServeHTTP(rec, req)
+			if rec.Code != http.StatusOK {
+				t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+			}
+			body := rec.Body.String()
+			editHref := tt.wantHref + strconv.FormatInt(subject.ID, 10) + `/edit"`
+			if !strings.Contains(body, editHref) {
+				t.Fatalf("expected edit link %q in body", editHref)
+			}
+			if strings.Contains(body, tt.notWant+strconv.FormatInt(subject.ID, 10)+`/edit"`) {
+				t.Fatalf("unexpected edit link with prefix %q", tt.notWant)
+			}
+		})
+	}
+}

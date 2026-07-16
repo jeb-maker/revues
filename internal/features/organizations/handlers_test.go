@@ -65,7 +65,7 @@ func TestPostLoginRoute(t *testing.T) {
 		wantPath   string
 	}{
 		{name: "zero organizations", userID: userNoOrg.ID, wantOrgArg: auth.SessionOrgPending, wantPath: "/org/new"},
-		{name: "one organization", userID: userOne.ID, wantOrgArg: orgOne.ID, wantPath: "/projects"},
+		{name: "one organization", userID: userOne.ID, wantOrgArg: orgOne.ID, wantPath: "/revues"},
 		{name: "many organizations", userID: userMany.ID, wantOrgArg: auth.SessionOrgPending, wantPath: "/org/select"},
 	}
 
@@ -129,8 +129,8 @@ func TestCreateOrganizationSelfService(t *testing.T) {
 	if rec.Code != http.StatusSeeOther {
 		t.Fatalf("status = %d, want %d", rec.Code, http.StatusSeeOther)
 	}
-	if loc := rec.Header().Get("Location"); loc != "/projects" {
-		t.Fatalf("Location = %q, want /projects", loc)
+	if loc := rec.Header().Get("Location"); loc != "/revues" {
+		t.Fatalf("Location = %q, want /revues", loc)
 	}
 
 	_, orgID, err := st.SessionByTokenHash(ctx, auth.HashToken(token))
@@ -318,7 +318,7 @@ func TestAcceptOrganizationInvitation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateProject(): %v", err)
 	}
-	if err = st.CreateOrganizationInvitation(ctx, "pending@example.com", org.ID, project.ID, "contributor"); err != nil {
+	if err = st.CreateOrganizationInvitation(ctx, "pending@example.com", org.ID); err != nil {
 		t.Fatalf("CreateOrganizationInvitation(): %v", err)
 	}
 	invites, err := st.ListPendingInvitationsByEmail(ctx, "pending@example.com")
@@ -359,8 +359,8 @@ func TestAcceptOrganizationInvitation(t *testing.T) {
 	if rec.Code != http.StatusSeeOther {
 		t.Fatalf("status = %d, want %d, body=%q", rec.Code, http.StatusSeeOther, rec.Body.String())
 	}
-	if loc := rec.Header().Get("Location"); loc != "/projects/"+strconv.FormatInt(project.ID, 10) {
-		t.Fatalf("Location = %q, want project page", loc)
+	if loc := rec.Header().Get("Location"); loc != "/revues" {
+		t.Fatalf("Location = %q, want /revues", loc)
 	}
 
 	_, orgID, err := st.SessionByTokenHash(ctx, auth.HashToken(token))
@@ -375,7 +375,7 @@ func TestAcceptOrganizationInvitation(t *testing.T) {
 		t.Fatalf("OrganizationMemberRole() = %q, %v, %v", role, ok, err)
 	}
 	projRole, ok, err := st.MemberRole(orgCtx, project.ID, invitee.ID)
-	if err != nil || !ok || projRole != "contributor" {
+	if err != nil || !ok || projRole != "lead" {
 		t.Fatalf("MemberRole() = %q, %v, %v", projRole, ok, err)
 	}
 }

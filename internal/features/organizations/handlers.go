@@ -13,13 +13,12 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"github.com/jeb-maker/revues/internal/auth"
-	"github.com/jeb-maker/revues/internal/orgctx"
 	"github.com/jeb-maker/revues/internal/store"
 	"github.com/jeb-maker/revues/internal/web/middleware"
 	"github.com/jeb-maker/revues/internal/web/templates"
 )
 
-const dashboardPath = "/projects"
+const dashboardPath = "/revues"
 
 // OrgStore is the persistence layer for organization onboarding handlers.
 type OrgStore interface {
@@ -30,7 +29,8 @@ type OrgStore interface {
 	OrganizationMemberRole(ctx context.Context, organizationID, userID int64) (string, bool, error)
 	OrganizationInvitationByID(ctx context.Context, id int64) (*store.OrganizationInvitation, error)
 	DeleteOrganizationInvitation(ctx context.Context, id int64) error
-	AddProjectMember(ctx context.Context, projectID, userID int64, role string) error
+	OrganizationByID(ctx context.Context, id int64) (*store.Organization, error)
+	UpdateOrganizationUISubjectLabel(ctx context.Context, organizationID int64, label string) error
 }
 
 // Deps holds shared dependencies for organization HTTP handlers.
@@ -352,19 +352,6 @@ func (h *Organizations) AcceptInvitation(w http.ResponseWriter, r *http.Request)
 		}
 	}
 
-	if invite.ProjectID.Valid && invite.ProjectID.Int64 > 0 {
-		role := store.OrgRoleMember
-		if invite.ProjectRole.Valid && invite.ProjectRole.String != "" {
-			role = invite.ProjectRole.String
-		}
-		projectCtx := orgctx.WithOrganizationID(r.Context(), invite.OrganizationID)
-		if err := h.Store.AddProjectMember(projectCtx, invite.ProjectID.Int64, user.ID, role); err != nil {
-			slog.Error("accept invitation project member", "err", err)
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-			return
-		}
-	}
-
 	if err := h.Store.DeleteOrganizationInvitation(r.Context(), invite.ID); err != nil {
 		slog.Error("delete organization invitation", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -377,11 +364,7 @@ func (h *Organizations) AcceptInvitation(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	redirect := dashboardPath
-	if invite.ProjectID.Valid && invite.ProjectID.Int64 > 0 {
-		redirect = "/projects/" + strconv.FormatInt(invite.ProjectID.Int64, 10)
-	}
-	http.Redirect(w, r, redirect, http.StatusSeeOther)
+	http.Redirect(w, r, dashboardPath, http.StatusSeeOther)
 }
 
 func (h *Organizations) onboardingRedirect(count int) string {

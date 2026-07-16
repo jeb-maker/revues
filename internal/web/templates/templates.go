@@ -40,8 +40,8 @@ func CreateAction(title, url string) PageAction {
 }
 
 // LaunchAction returns the standard launch-revue header button.
-func LaunchAction(url string) PageAction {
-	return PageAction{Label: "Lancer une revue", Title: "Lancer une revue sur ce projet", URL: url, Primary: true}
+func LaunchAction(url string, labels SubjectUILabels) PageAction {
+	return PageAction{Label: "Lancer une revue", Title: LaunchActionTitle(labels), URL: url, Primary: true}
 }
 
 // SecondaryAction returns a secondary header action.
@@ -110,24 +110,27 @@ func FormatRole(s string) string {
 // RunItemTableColspan returns the column count for the run items table empty row.
 func RunItemTableColspan(runStatus string, canCheck, canAssign bool) int {
 	if runStatus == store.RunStatusInProgress && (canCheck || canAssign) {
-		return 8
+		return 6
 	}
-	return 7
+	return 5
 }
 
 // PageData is shared view data for HTML pages.
 type PageData struct {
-	Title              string
-	User               *store.User
-	CSRFToken          string
-	LoginError         string
-	ActiveTab          string
-	AdminSection       string
-	Breadcrumbs        []Breadcrumb
-	PageActions        []PageAction
-	ActiveOrganization *store.Organization
-	UserOrganizations  []store.OrganizationMembership
-	PendingInvitations []store.OrganizationInvitation
+	Title               string
+	User                *store.User
+	CSRFToken           string
+	LoginError          string
+	ActiveTab           string
+	AdminSection        string
+	CanManageOrgUsers   bool
+	ShowOrganisationNav bool
+	Breadcrumbs         []Breadcrumb
+	PageActions         []PageAction
+	Labels              UILabels
+	ActiveOrganization  *store.Organization
+	UserOrganizations   []store.OrganizationMembership
+	PendingInvitations  []store.OrganizationInvitation
 }
 
 // AdminUsersData is view data for the org-scoped whitelist admin screen.
@@ -137,6 +140,22 @@ type AdminUsersData struct {
 	Emails           []store.AllowedEmail
 	Message          string
 	Error            string
+}
+
+// AdminOrgHubData is view data for the organisation admin landing page.
+type AdminOrgHubData struct {
+	PageData
+	OrganizationName string
+	ShowIntegrations bool
+}
+
+// AdminSubjectLabelsData is view data for the org subject label preset screen.
+type AdminSubjectLabelsData struct {
+	PageData
+	Presets []SubjectLabelPreset
+	Current string
+	Message string
+	Error   string
 }
 
 type AdminNotionData struct {
@@ -214,17 +233,18 @@ type RunsListData struct {
 	FilterQuery       string
 	FilterStatus      string
 	HasActiveFilters  bool
-	HasProjects       bool
+	HasSubjects       bool
 	CanCreate         bool
+	CanLaunch         bool
 	CanManageOrgUsers bool
 	Message           string
 	Error             string
 }
 
-// ProjectsListData is view data for the project dashboard.
-type ProjectsListData struct {
+// SubjectsListData is view data for the subjects dashboard.
+type SubjectsListData struct {
 	PageData
-	Projects          []store.Project
+	Subjects          []store.Subject
 	FilterQuery       string
 	HasActiveFilters  bool
 	CanCreate         bool
@@ -233,10 +253,11 @@ type ProjectsListData struct {
 	Error             string
 }
 
-// ProjectFormData is view data for create/edit project forms.
-type ProjectFormData struct {
+// SubjectFormData is view data for create/edit subject forms.
+type SubjectFormData struct {
 	PageData
-	Project    *store.Project
+	Subject    *store.Subject
+	Domains    string
 	Tags       string
 	FormAction string
 	Error      string
@@ -258,18 +279,20 @@ type OrgSelectData struct {
 	Error         string
 }
 
-// ProjectShowData is view data for project detail.
-type ProjectShowData struct {
+// SubjectShowData is view data for subject detail.
+type SubjectShowData struct {
 	PageData
-	Project          *store.Project
+	Subject          *store.Subject
+	Domains          []string
 	Tags             []string
-	Members          []store.ProjectMember
+	Members          []store.SubjectMember
 	Runs             []store.RunWithProgress
-	NokItems         []store.ProjectNokItemSummary
+	NokItems         []store.SubjectNokItemSummary
 	MemberRole       string
 	CanManage        bool
 	CanManageMembers bool
 	CanLaunch        bool
+	EditPath         string
 	AddMemberEmail   string
 	AddMemberRole    string
 	Message          string
@@ -326,18 +349,21 @@ type ChecklistTemplateNotionImportData struct {
 }
 type NotionPropertyOption struct{ Name, Type string }
 
-// ChecklistTemplatesListData is view data for template index on a project.
+// ChecklistTemplatesListData is view data for template index on a subject.
 type ChecklistTemplatesListData struct {
 	PageData
-	Project          *store.Project
-	Templates        []store.ChecklistTemplateSummary
-	MemberRole       string
-	CanManage        bool
-	ForRun           bool
-	FilterQuery      string
-	HasActiveFilters bool
-	Message          string
-	Error            string
+	Subject                    *store.Subject
+	Templates                  []store.ChecklistTemplateSummary
+	MemberRole                 string
+	CanManage                  bool
+	ForRun                     bool
+	SelectedTemplateID         int64
+	SelectedTemplateName       string
+	SelectedTemplateCompatible bool
+	FilterQuery                string
+	HasActiveFilters           bool
+	Message                    string
+	Error                      string
 }
 
 // ChecklistTemplateFormData is view data for create/edit template forms.
@@ -367,22 +393,25 @@ type ChecklistTemplateShowData struct {
 	ItemSections []TemplateItemSection
 	ItemCount    int
 	CanManage    bool
+	CanLaunch    bool
 	Message      string
 	Error        string
 }
 
-// RunWizardProjectsData is view data for run wizard step 1.
-type RunWizardProjectsData struct {
+// RunWizardSubjectsData is view data for run wizard step 1.
+type RunWizardSubjectsData struct {
 	PageData
-	Projects []store.Project
-	Message  string
-	Error    string
+	Subjects           []store.Subject
+	SelectedTemplateID int64
+	FilterQuery        string
+	Message            string
+	Error              string
 }
 
 // RunWizardLaunchData is view data for run wizard step 3.
 type RunWizardLaunchData struct {
 	PageData
-	Project    *store.Project
+	Subject    *store.Subject
 	Template   *store.ChecklistTemplate
 	Version    *store.TemplateVersion
 	ItemCount  int
@@ -407,7 +436,7 @@ type RunItemRowData struct {
 	RunID          int64
 	RunStatus      string
 	Item           store.RunItem
-	Members        []store.ProjectMember
+	Members        []store.SubjectMember
 	CSRFToken      string
 	CanCheck       bool
 	CanAssign      bool
@@ -419,19 +448,31 @@ type RunItemRowData struct {
 	AssignError    string
 }
 
+// RunItemSectionData is view data for one collapsible section of run items.
+type RunItemSectionData struct {
+	Title      string
+	Items      []store.RunItem
+	Total      int
+	OKCount    int
+	NonOKCount int
+	AllOKOrNA  bool
+}
+
 // RunShowData is view data for run detail.
 type RunShowData struct {
 	PageData
-	Project           *store.Project
+	Subject           *store.Subject
 	Run               *store.ChecklistRun
+	RunDisplayLabel   string
 	Items             []store.RunItem
+	ItemSections      []RunItemSectionData
 	NokItems          []store.RunItem
 	Sections          []string
 	FilterSection     string
 	FilterStatus      string
 	JiraLinks         map[int64]store.IntegrationLink
 	Attachments       map[int64]*store.Attachment
-	Members           []store.ProjectMember
+	Members           []store.SubjectMember
 	TemplateName      string
 	VersionNum        int
 	MemberRole        string
@@ -465,8 +506,9 @@ type MyTasksData struct {
 // RunItemShowData is view data for run item detail with audit history.
 type RunItemShowData struct {
 	PageData
-	Project         *store.Project
+	Subject         *store.Subject
 	Run             *store.ChecklistRun
+	RunDisplayLabel string
 	Item            *store.RunItem
 	Events          []store.RunItemEvent
 	JiraLink        *store.IntegrationLink
@@ -543,6 +585,8 @@ func Parse(assetVersion string) (*template.Template, error) {
 		"formatItemStatus":    FormatItemStatus,
 		"formatRunStatus":     FormatRunStatus,
 		"formatRole":          FormatRole,
+		"lowerFirst":          LowerFirst,
+		"launchActionTitle":   LaunchActionTitle,
 		"runItemTableColspan": RunItemTableColspan,
 		"formatDueDate":       formatDueDate,
 		"formatDateTime":      formatDateTime,
@@ -556,6 +600,15 @@ func Parse(assetVersion string) (*template.Template, error) {
 		"listURL": func(path, q string) string {
 			return listURL(path, url.Values{"q": {strings.TrimSpace(q)}})
 		},
+		"runWizardPath": func(templateID int64) string {
+			return RunWizardPath(templateID)
+		},
+		"subjectModelesListPath": func(subjectID int64, forRun bool, templateID int64) string {
+			return SubjectModelesListPath(subjectID, forRun, templateID)
+		},
+		"subjectTemplatesForRunPath": func(subjectID, templateID int64) string {
+			return SubjectTemplatesForRunPath(subjectID, templateID)
+		},
 		"myTasksListURL": func(status, q string) string {
 			return listURL("/mes-taches", url.Values{
 				"status": {status},
@@ -568,7 +621,7 @@ func Parse(assetVersion string) (*template.Template, error) {
 			}
 			return attachments.IsImageMime(att.MimeType)
 		},
-		"runItemRow": func(run *store.ChecklistRun, item store.RunItem, members []store.ProjectMember, csrf string, canCheck, canAssign, canLinkJira, jiraConfigured bool, jiraLink store.IntegrationLink, attachment *store.Attachment, itemErr, assignErr string) RunItemRowData {
+		"runItemRow": func(run *store.ChecklistRun, item store.RunItem, members []store.SubjectMember, csrf string, canCheck, canAssign, canLinkJira, jiraConfigured bool, jiraLink store.IntegrationLink, attachment *store.Attachment, itemErr, assignErr string) RunItemRowData {
 			return RunItemRowData{
 				RunID:          run.ID,
 				RunStatus:      run.Status,

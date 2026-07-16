@@ -24,10 +24,10 @@ func TestBCRunWizardLaunch_Links(t *testing.T) {
 	if crumbs[0].URL != templates.PathRevues {
 		t.Fatalf("root URL = %q", crumbs[0].URL)
 	}
-	if crumbs[1].URL != "/projects/3" || crumbs[1].Label != "Alpha" {
-		t.Fatalf("project crumb = %+v", crumbs[1])
+	if crumbs[1].URL != "/subjects/3" || crumbs[1].Label != "Alpha" {
+		t.Fatalf("subject crumb = %+v", crumbs[1])
 	}
-	if crumbs[2].URL != "/projects/3/templates?for_run=1" || crumbs[2].Label != "Lancer" {
+	if crumbs[2].URL != "/subjects/3/modeles?for_run=1" || crumbs[2].Label != "Lancer" {
 		t.Fatalf("launch crumb = %+v", crumbs[2])
 	}
 	wantLabel := "Checklist QA · v1 · 4 points de contrôle"
@@ -41,8 +41,8 @@ func TestBCRunWizardTemplates_Links(t *testing.T) {
 	if len(crumbs) != 3 {
 		t.Fatalf("len = %d, want 3", len(crumbs))
 	}
-	if crumbs[1].URL != "/projects/3" {
-		t.Fatalf("project URL = %q", crumbs[1].URL)
+	if crumbs[1].URL != "/subjects/3" {
+		t.Fatalf("subject URL = %q", crumbs[1].URL)
 	}
 	if crumbs[2].Label != "Lancer" || crumbs[2].URL != "" {
 		t.Fatalf("last crumb = %+v", crumbs[2])

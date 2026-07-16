@@ -1,6 +1,7 @@
 package checklisttemplates
 
 import (
+	"context"
 	"errors"
 	"html/template"
 	"log/slog"
@@ -11,7 +12,7 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"github.com/jeb-maker/revues/internal/auth"
-	"github.com/jeb-maker/revues/internal/features/projects"
+	"github.com/jeb-maker/revues/internal/features/subjects"
 	"github.com/jeb-maker/revues/internal/integrations/notion"
 	"github.com/jeb-maker/revues/internal/store"
 	"github.com/jeb-maker/revues/internal/web/middleware"
@@ -48,6 +49,7 @@ func (d *Deps) PageDataTab(r *http.Request, title, activeTab string) viewtemplat
 const defaultTemplateEditorRows = 3
 
 const queryForRun = "for_run"
+const queryTemplate = "template"
 
 // ChecklistTemplates handles versioned checklist model CRUD.
 type ChecklistTemplates struct {
@@ -91,29 +93,29 @@ func (h *ChecklistTemplates) IndexAll(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// List shows compatible checklist templates for a project (read-only).
-// With ?for_run=1, lists templates as step 1 of the run launch wizard.
+// List shows compatible checklist templates for a subject (read-only).
+// With ?for_run=1, lists templates as step 2 of the run launch wizard.
 func (h *ChecklistTemplates) List(w http.ResponseWriter, r *http.Request) {
-	project, user, memberRole, ok := h.loadProject(w, r)
+	subject, user, memberRole, ok := h.loadSubject(w, r)
 	if !ok {
 		return
 	}
 
 	forRun := r.URL.Query().Get(queryForRun) == "1"
 	if forRun {
-		_, isMember, err := h.Store.MemberRole(r.Context(), project.ID, user.ID)
+		_, orgMember, err := h.Store.OrganizationMemberRole(r.Context(), subject.OrganizationID, user.ID)
 		if err != nil {
-			slog.Error("member role", "err", err)
+			slog.Error("org member role", "err", err)
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}
-		if !projects.CanLaunch(user, memberRoleForLaunch(isMember, memberRole)) {
+		if !subjects.CanLaunchRun(user, orgMember) {
 			http.NotFound(w, r)
 			return
 		}
 	}
 
-	items, err := h.Store.ListChecklistTemplates(r.Context(), project.ID)
+	items, err := h.Store.ListChecklistTemplates(r.Context(), subject.ID)
 	if err != nil {
 		slog.Error("list checklist templates", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -125,29 +127,35 @@ func (h *ChecklistTemplates) List(w http.ResponseWriter, r *http.Request) {
 		items = filterChecklistTemplates(items, filterQuery)
 	}
 
+	selectedTemplateID := parseTemplateQuery(r)
+	var selectedTemplateName string
+	selectedTemplateCompatible := false
+	if forRun && selectedTemplateID > 0 {
+		items, selectedTemplateName, selectedTemplateCompatible = prioritizeSelectedTemplate(r.Context(), h.Store, items, selectedTemplateID)
+	}
+
 	var pd viewtemplates.PageData
 	if forRun {
 		pd = h.PageData(r, "Lancer")
-		pd.Breadcrumbs = viewtemplates.BCRunWizardTemplates(project.Name, project.ID)
+		pd.Breadcrumbs = viewtemplates.BCRunWizardTemplates(subject.Name, subject.ID)
 		pd.ActiveTab = "runs"
 	} else {
-		pd = h.PageDataTab(r, "Modèles — "+project.Name, "templates")
-		pd.Breadcrumbs = []viewtemplates.Breadcrumb{
-			{URL: "/projects", Label: "Projets"},
-			{URL: "/projects/" + strconv.FormatInt(project.ID, 10), Label: project.Name},
-			{Label: "Modèles"},
-		}
+		pd = h.PageDataTab(r, "Modèles — "+subject.Name, "templates")
+		pd.Breadcrumbs = viewtemplates.BCSubjectTemplatesList(subject.Name, subject.ID, pd.Labels.Subject)
 	}
 	data := viewtemplates.ChecklistTemplatesListData{
-		PageData:         pd,
-		Project:          project,
-		Templates:        items,
-		MemberRole:       memberRole,
-		CanManage:        CanManageGlobal(user),
-		ForRun:           forRun,
-		FilterQuery:      filterQuery,
-		HasActiveFilters: filterQuery != "",
-		Message:          r.URL.Query().Get("msg"),
+		PageData:                   pd,
+		Subject:                    subject,
+		Templates:                  items,
+		MemberRole:                 memberRole,
+		CanManage:                  CanManageGlobal(user),
+		ForRun:                     forRun,
+		SelectedTemplateID:         selectedTemplateID,
+		SelectedTemplateName:       selectedTemplateName,
+		SelectedTemplateCompatible: selectedTemplateCompatible,
+		FilterQuery:                filterQuery,
+		HasActiveFilters:           filterQuery != "",
+		Message:                    r.URL.Query().Get("msg"),
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -237,6 +245,9 @@ func (h *ChecklistTemplates) Show(w http.ResponseWriter, r *http.Request) {
 
 	pd := h.PageDataTab(r, template.Name, "templates")
 	pd.Breadcrumbs = viewtemplates.BCTemplateGlobalShow(template.Name, template.ID)
+
+	orgMember := h.callerOrgMembership(r, user)
+
 	data := viewtemplates.ChecklistTemplateShowData{
 		PageData:     pd,
 		Template:     template,
@@ -245,6 +256,7 @@ func (h *ChecklistTemplates) Show(w http.ResponseWriter, r *http.Request) {
 		ItemSections: groupTemplateItems(items),
 		ItemCount:    len(items),
 		CanManage:    CanManageGlobal(user),
+		CanLaunch:    subjects.CanLaunchRun(user, orgMember),
 		Message:      r.URL.Query().Get("msg"),
 	}
 
@@ -374,50 +386,44 @@ func (h *ChecklistTemplates) Archive(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/modeles?msg=Mod%C3%A8le+archiv%C3%A9", http.StatusSeeOther)
 }
 
-func (h *ChecklistTemplates) loadProject(w http.ResponseWriter, r *http.Request) (*store.Project, *store.User, string, bool) {
+func (h *ChecklistTemplates) loadSubject(w http.ResponseWriter, r *http.Request) (*store.Subject, *store.User, string, bool) {
 	user, ok := middleware.UserFromContext(r.Context())
 	if !ok {
 		http.Redirect(w, r, "/login", http.StatusFound)
 		return nil, nil, "", false
 	}
 
-	projectID, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	subjectID, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
 	if err != nil {
 		http.NotFound(w, r)
 		return nil, nil, "", false
 	}
 
-	project, err := h.Store.ProjectByID(r.Context(), projectID)
-	if errors.Is(err, store.ErrProjectNotFound) {
+	subject, err := h.Store.SubjectByID(r.Context(), subjectID)
+	if errors.Is(err, store.ErrSubjectNotFound) {
 		http.NotFound(w, r)
 		return nil, nil, "", false
 	}
 	if err != nil {
-		slog.Error("load project", "err", err)
+		slog.Error("load subject", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return nil, nil, "", false
 	}
 
-	memberRole, isMember, err := h.Store.MemberRole(r.Context(), projectID, user.ID)
+	_, orgMember, err := h.Store.OrganizationMemberRole(r.Context(), subject.OrganizationID, user.ID)
 	if err != nil {
-		slog.Error("member role", "err", err)
+		slog.Error("org member role", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return nil, nil, "", false
 	}
 
-	if !CanView(user, isMember) {
+	if !CanView(user, orgMember) {
 		http.NotFound(w, r)
 		return nil, nil, "", false
 	}
 
-	return project, user, memberRole, true
-}
-
-func memberRoleForLaunch(isMember bool, memberRole string) string {
-	if !isMember {
-		return ""
-	}
-	return memberRole
+	memberRole := "lead"
+	return subject, user, memberRole, true
 }
 
 func filterChecklistTemplates(items []store.ChecklistTemplateSummary, query string) []store.ChecklistTemplateSummary {
@@ -560,4 +566,54 @@ func formFieldErrors(name, itemErr string, itemCount int) (nameErr, itemsErr str
 		itemsErr = "Ajoutez au moins un point au modèle."
 	}
 	return nameErr, itemsErr
+}
+
+func (h *ChecklistTemplates) callerOrgMembership(r *http.Request, user *store.User) bool {
+	orgMember := false
+	if org, ok := middleware.OrganizationFromContext(r.Context()); ok {
+		_, orgMember, _ = h.Store.OrganizationMemberRole(r.Context(), org.ID, user.ID)
+	}
+	return orgMember
+}
+
+func parseTemplateQuery(r *http.Request) int64 {
+	raw := strings.TrimSpace(r.URL.Query().Get(queryTemplate))
+	if raw == "" {
+		return 0
+	}
+	id, err := strconv.ParseInt(raw, 10, 64)
+	if err != nil || id <= 0 {
+		return 0
+	}
+	return id
+}
+
+func prioritizeSelectedTemplate(
+	ctx context.Context,
+	st ChecklistTemplateStore,
+	items []store.ChecklistTemplateSummary,
+	templateID int64,
+) ([]store.ChecklistTemplateSummary, string, bool) {
+	if templateID <= 0 {
+		return items, "", false
+	}
+
+	var selected *store.ChecklistTemplateSummary
+	rest := make([]store.ChecklistTemplateSummary, 0, len(items))
+	for i := range items {
+		if items[i].ID == templateID {
+			selected = &items[i]
+			continue
+		}
+		rest = append(rest, items[i])
+	}
+	if selected != nil {
+		return append([]store.ChecklistTemplateSummary{*selected}, rest...), selected.Name, true
+	}
+
+	template, err := st.ChecklistTemplateByID(ctx, templateID)
+	if err != nil || template.ArchivedAt.Valid {
+		return items, "", false
+	}
+	return items, template.Name, false
 }

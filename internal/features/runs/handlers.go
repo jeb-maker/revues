@@ -2,7 +2,7 @@ package runs
 
 import (
 	"bytes"
-	"database/sql"
+	"context"
 	"errors"
 	"fmt"
 	"html/template"
@@ -14,7 +14,7 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"github.com/jeb-maker/revues/internal/auth"
-	projectfeature "github.com/jeb-maker/revues/internal/features/projects"
+	"github.com/jeb-maker/revues/internal/features/subjects"
 	"github.com/jeb-maker/revues/internal/integrations/notion"
 	"github.com/jeb-maker/revues/internal/integrations/webhooks"
 	"github.com/jeb-maker/revues/internal/notifications"
@@ -73,9 +73,9 @@ func (h *Runs) List(w http.ResponseWriter, r *http.Request) {
 	}
 
 	admin := auth.HasMinRole(user.Role, auth.RoleAdmin)
-	projectItems, err := h.Store.ListProjects(r.Context(), user.ID, admin, "")
+	subjectItems, err := h.Store.ListSubjects(r.Context(), user.ID, admin, "")
 	if err != nil {
-		slog.Error("list projects for runs page", "err", err)
+		slog.Error("list subjects for runs page", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
@@ -93,16 +93,18 @@ func (h *Runs) List(w http.ResponseWriter, r *http.Request) {
 		orgRole, orgMember, _ = h.Store.OrganizationMemberRole(r.Context(), org.ID, user.ID)
 	}
 
-	hasProjects := len(projectItems) > 0
+	hasSubjects := len(subjectItems) > 0
+	canLaunch := subjects.CanLaunchRun(user, orgMember) && (hasSubjects || subjects.CanCreateSubject(user))
 	data := viewtemplates.RunsListData{
 		PageData:          h.PageDataTab(r, "Revues", "runs"),
 		Runs:              runs,
 		FilterQuery:       filterQuery,
 		FilterStatus:      filterStatus,
 		HasActiveFilters:  filterQuery != "" || filterStatus != "",
-		HasProjects:       hasProjects,
-		CanCreate:         projectfeature.CanCreate(user),
-		CanManageOrgUsers: projectfeature.CanManageOrgUsers(user, orgRole, orgMember),
+		HasSubjects:       hasSubjects,
+		CanCreate:         subjects.CanCreateSubject(user),
+		CanLaunch:         canLaunch,
+		CanManageOrgUsers: subjects.CanManageOrgUsers(user, orgRole, orgMember),
 		Message:           r.URL.Query().Get("msg"),
 	}
 	data.Breadcrumbs = viewtemplates.BCRevues()
@@ -114,148 +116,13 @@ func (h *Runs) List(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// WizardProjects is step 1: choose a project.
-func (h *Runs) WizardProjects(w http.ResponseWriter, r *http.Request) {
-	user, ok := middleware.UserFromContext(r.Context())
-	if !ok {
-		http.Redirect(w, r, "/login", http.StatusFound)
-		return
-	}
-
-	admin := auth.HasMinRole(user.Role, auth.RoleAdmin)
-	allProjects, err := h.Store.ListProjects(r.Context(), user.ID, admin, "")
-	if err != nil {
-		slog.Error("list projects for run wizard", "err", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
-	}
-
-	var launchProjects []store.Project
-	for _, project := range allProjects {
-		memberRole, isMember, err := h.Store.MemberRole(r.Context(), project.ID, user.ID)
-		if err != nil {
-			slog.Error("member role", "err", err)
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-			return
-		}
-		if CanLaunch(user, memberRoleForLaunch(isMember, memberRole)) {
-			launchProjects = append(launchProjects, project)
-		}
-	}
-
-	if len(launchProjects) == 1 {
-		http.Redirect(w, r, viewtemplates.ProjectTemplatesForRunPath(launchProjects[0].ID), http.StatusSeeOther)
-		return
-	}
-
-	pd := h.PageData(r, "Lancer une revue")
-	pd.Breadcrumbs = viewtemplates.BCRunWizardProjects()
-	pd.ActiveTab = "runs"
-	data := viewtemplates.RunWizardProjectsData{
-		PageData: pd,
-		Projects: launchProjects,
-		Message:  r.URL.Query().Get("msg"),
-	}
-
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	if err := h.Templates.ExecuteTemplate(w, "run_wizard_projects", data); err != nil {
-		slog.Error("render run wizard step 1", "err", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-	}
-}
-
-// WizardTemplates redirects to the project template list in launch mode.
-func (h *Runs) WizardTemplates(w http.ResponseWriter, r *http.Request) {
-	projectID, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
-	if err != nil {
-		http.NotFound(w, r)
-		return
-	}
-	http.Redirect(w, r, viewtemplates.ProjectTemplatesForRunPath(projectID), http.StatusSeeOther)
-}
-
-// WizardLaunch is step 3: confirm title and launch.
-func (h *Runs) WizardLaunch(w http.ResponseWriter, r *http.Request) {
-	project, user, memberRole, ok := h.loadProjectForLaunch(w, r)
-	if !ok {
-		return
-	}
-
-	templateID, err := strconv.ParseInt(chi.URLParam(r, "tid"), 10, 64)
-	if err != nil {
-		http.NotFound(w, r)
-		return
-	}
-
-	template, err := h.Store.ChecklistTemplateByID(r.Context(), templateID)
-	if errors.Is(err, store.ErrChecklistTemplateNotFound) {
-		http.NotFound(w, r)
-		return
-	}
-	if err != nil {
-		slog.Error("load template for run wizard", "err", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
-	}
-	if template.ArchivedAt.Valid {
-		http.NotFound(w, r)
-		return
-	}
-
-	matches, err := h.Store.TemplateMatchesProject(r.Context(), project.ID, template.ID)
-	if err != nil {
-		slog.Error("check template matches project", "err", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
-	}
-	if !matches {
-		http.NotFound(w, r)
-		return
-	}
-
-	version, err := h.Store.LatestTemplateVersion(r.Context(), template.ID)
-	if err != nil {
-		slog.Error("load latest template version", "err", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
-	}
-
-	items, err := h.Store.ListTemplateItems(r.Context(), version.ID)
-	if err != nil {
-		slog.Error("list template items for wizard", "err", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
-	}
-
-	pd := h.PageData(r, "Lancer la revue")
-	pd.Breadcrumbs = viewtemplates.BCRunWizardLaunch(project.Name, project.ID, template.Name, version.Version, len(items))
-	pd.ActiveTab = "runs"
-	data := viewtemplates.RunWizardLaunchData{
-		PageData:   pd,
-		Project:    project,
-		Template:   template,
-		Version:    version,
-		ItemCount:  len(items),
-		Title:      template.Name,
-		FormAction: "/projects/" + strconv.FormatInt(project.ID, 10) + "/runs",
-		MemberRole: memberRole,
-		CanLaunch:  CanLaunch(user, memberRole),
-	}
-
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	if err := h.Templates.ExecuteTemplate(w, "run_wizard_launch", data); err != nil {
-		slog.Error("render run wizard step 3", "err", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-	}
-}
-
 // Create stores a new run with item snapshot.
 func (h *Runs) Create(w http.ResponseWriter, r *http.Request) {
-	project, user, memberRole, ok := h.loadProjectForLaunch(w, r)
+	project, user, _, isMember, ok := h.loadSubjectForLaunch(w, r)
 	if !ok {
 		return
 	}
-	if !CanLaunch(user, memberRole) {
+	if !CanLaunch(user, isMember) {
 		http.NotFound(w, r)
 		return
 	}
@@ -266,24 +133,8 @@ func (h *Runs) Create(w http.ResponseWriter, r *http.Request) {
 
 	templateID, err := strconv.ParseInt(r.FormValue("template_id"), 10, 64)
 	if err != nil {
-		h.renderLaunchError(w, r, project, nil, nil, 0, "Modèle invalide.")
+		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
-	}
-
-	title := strings.TrimSpace(r.FormValue("title"))
-	if title == "" {
-		h.renderLaunchError(w, r, project, nil, nil, templateID, "Le titre est obligatoire.")
-		return
-	}
-
-	dueDateRaw, err := ParseDueDate(r.FormValue("due_date"))
-	if err != nil {
-		h.renderLaunchError(w, r, project, nil, nil, templateID, "Échéance invalide.")
-		return
-	}
-	var dueDate sql.NullString
-	if dueDateRaw != "" {
-		dueDate = sql.NullString{String: dueDateRaw, Valid: true}
 	}
 
 	template, err := h.Store.ChecklistTemplateByID(r.Context(), templateID)
@@ -301,7 +152,7 @@ func (h *Runs) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	matches, err := h.Store.TemplateMatchesProject(r.Context(), project.ID, template.ID)
+	matches, err := h.Store.TemplateMatchesSubject(r.Context(), project.ID, template.ID)
 	if err != nil {
 		slog.Error("check template matches project", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -312,7 +163,7 @@ func (h *Runs) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	run, err := h.Store.CreateChecklistRun(r.Context(), project.ID, template.ID, title, user.ID, dueDate)
+	run, err := h.Store.CreateChecklistRun(r.Context(), project.ID, template.ID, user.ID)
 	if err != nil {
 		slog.Error("create checklist run", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -324,12 +175,12 @@ func (h *Runs) Create(w http.ResponseWriter, r *http.Request) {
 
 // Show displays run detail and snapshot items.
 func (h *Runs) Show(w http.ResponseWriter, r *http.Request) {
-	run, project, user, memberRole, ok := h.loadRun(w, r)
+	run, project, user, memberRole, isMember, ok := h.loadRun(w, r)
 	if !ok {
 		return
 	}
 
-	h.renderRunShow(w, r, run, project, user, memberRole, viewtemplates.RunShowData{
+	h.renderRunShow(w, r, run, project, user, memberRole, isMember, viewtemplates.RunShowData{
 		Message:   r.URL.Query().Get("msg"),
 		ItemError: r.URL.Query().Get("item_error"),
 	})
@@ -337,11 +188,11 @@ func (h *Runs) Show(w http.ResponseWriter, r *http.Request) {
 
 // UpdateItem changes status and comment on a run item.
 func (h *Runs) UpdateItem(w http.ResponseWriter, r *http.Request) {
-	run, project, user, memberRole, ok := h.loadRun(w, r)
+	run, project, user, memberRole, isMember, ok := h.loadRun(w, r)
 	if !ok {
 		return
 	}
-	if !CanUpdate(user, memberRole) {
+	if !CanUpdate(user, isMember) {
 		http.NotFound(w, r)
 		return
 	}
@@ -379,7 +230,7 @@ func (h *Runs) UpdateItem(w http.ResponseWriter, r *http.Request) {
 				h.renderRunItemHTMXError(w, r, run, project, user, memberRole, itemID, "Un commentaire est obligatoire pour le statut Non validé.", "")
 				return
 			}
-			h.renderRunShow(w, r, run, project, user, memberRole, viewtemplates.RunShowData{
+			h.renderRunShow(w, r, run, project, user, memberRole, isMember, viewtemplates.RunShowData{
 				ItemError: "Un commentaire est obligatoire pour le statut Non validé.",
 			})
 		case errors.Is(err, ErrInvalidStatus):
@@ -387,7 +238,7 @@ func (h *Runs) UpdateItem(w http.ResponseWriter, r *http.Request) {
 				h.renderRunItemHTMXError(w, r, run, project, user, memberRole, itemID, "Statut invalide.", "")
 				return
 			}
-			h.renderRunShow(w, r, run, project, user, memberRole, viewtemplates.RunShowData{
+			h.renderRunShow(w, r, run, project, user, memberRole, isMember, viewtemplates.RunShowData{
 				ItemError: "Statut invalide.",
 			})
 		default:
@@ -419,7 +270,7 @@ func (h *Runs) UpdateItem(w http.ResponseWriter, r *http.Request) {
 
 // ShowItem displays a run item and its status change history.
 func (h *Runs) ShowItem(w http.ResponseWriter, r *http.Request) {
-	run, project, user, memberRole, ok := h.loadRun(w, r)
+	run, project, user, memberRole, _, ok := h.loadRun(w, r)
 	if !ok {
 		return
 	}
@@ -435,11 +286,17 @@ func (h *Runs) ShowItem(w http.ResponseWriter, r *http.Request) {
 
 // AssignItem sets or clears assignee on a run item.
 func (h *Runs) AssignItem(w http.ResponseWriter, r *http.Request) {
-	run, project, user, memberRole, ok := h.loadRun(w, r)
+	run, project, user, memberRole, isMember, ok := h.loadRun(w, r)
 	if !ok {
 		return
 	}
-	if !CanAssign(user, memberRole) {
+	orgRole, orgMember, err := h.Store.OrganizationMemberRole(r.Context(), project.OrganizationID, user.ID)
+	if err != nil {
+		slog.Error("caller org role", "err", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	if !CanAssign(user, orgRole, orgMember) {
 		http.NotFound(w, r)
 		return
 	}
@@ -447,7 +304,7 @@ func (h *Runs) AssignItem(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
 	}
-	if err := r.ParseForm(); err != nil {
+	if err = r.ParseForm(); err != nil {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
 	}
@@ -466,7 +323,7 @@ func (h *Runs) AssignItem(w http.ResponseWriter, r *http.Request) {
 				h.renderRunItemHTMXError(w, r, run, project, user, memberRole, itemID, "", "Assigné invalide.")
 				return
 			}
-			h.renderRunShow(w, r, run, project, user, memberRole, viewtemplates.RunShowData{
+			h.renderRunShow(w, r, run, project, user, memberRole, isMember, viewtemplates.RunShowData{
 				AssignError: "Assigné invalide.",
 			})
 			return
@@ -477,11 +334,11 @@ func (h *Runs) AssignItem(w http.ResponseWriter, r *http.Request) {
 	if err := h.Store.AssignRunItem(r.Context(), run.ID, itemID, assigneeID); err != nil {
 		if errors.Is(err, store.ErrInvalidAssignee) {
 			if h.isHTMX(r) {
-				h.renderRunItemHTMXError(w, r, run, project, user, memberRole, itemID, "", "Le membre doit appartenir au projet.")
+				h.renderRunItemHTMXError(w, r, run, project, user, memberRole, itemID, "", "Le membre doit appartenir à l'organisation.")
 				return
 			}
-			h.renderRunShow(w, r, run, project, user, memberRole, viewtemplates.RunShowData{
-				AssignError: "Le membre doit appartenir au projet.",
+			h.renderRunShow(w, r, run, project, user, memberRole, isMember, viewtemplates.RunShowData{
+				AssignError: "Le membre doit appartenir au sujet.",
 			})
 			return
 		}
@@ -508,11 +365,11 @@ func (h *Runs) AssignItem(w http.ResponseWriter, r *http.Request) {
 
 // Start moves a run from draft to in_progress.
 func (h *Runs) Start(w http.ResponseWriter, r *http.Request) {
-	run, _, user, memberRole, ok := h.loadRun(w, r)
+	run, _, user, _, isMember, ok := h.loadRun(w, r)
 	if !ok {
 		return
 	}
-	if !CanLaunch(user, memberRole) {
+	if !CanLaunch(user, isMember) {
 		http.NotFound(w, r)
 		return
 	}
@@ -532,11 +389,17 @@ func (h *Runs) Start(w http.ResponseWriter, r *http.Request) {
 
 // Complete moves a run from in_progress to done.
 func (h *Runs) Complete(w http.ResponseWriter, r *http.Request) {
-	run, _, user, memberRole, ok := h.loadRun(w, r)
+	run, project, user, _, _, ok := h.loadRun(w, r)
 	if !ok {
 		return
 	}
-	if !CanComplete(user, memberRole) {
+	orgRole, orgMember, err := h.Store.OrganizationMemberRole(r.Context(), project.OrganizationID, user.ID)
+	if err != nil {
+		slog.Error("caller org role", "err", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	if !CanComplete(user, orgRole, orgMember) {
 		http.NotFound(w, r)
 		return
 	}
@@ -575,7 +438,7 @@ func (h *Runs) Complete(w http.ResponseWriter, r *http.Request) {
 
 // ExportCSV downloads a CSV export for a completed run.
 func (h *Runs) ExportCSV(w http.ResponseWriter, r *http.Request) {
-	run, _, _, _, ok := h.loadRun(w, r)
+	run, project, _, _, _, ok := h.loadRun(w, r)
 	if !ok {
 		return
 	}
@@ -598,7 +461,7 @@ func (h *Runs) ExportCSV(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	filename := exportCSVFilename(run)
+	filename := exportCSVFilename(h.runDisplayLabel(r.Context(), run, project), run.ID)
 	w.Header().Set("Content-Type", "text/csv; charset=utf-8")
 	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, filename))
 	if _, writeErr := w.Write(csvData); writeErr != nil {
@@ -606,7 +469,7 @@ func (h *Runs) ExportCSV(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func exportCSVFilename(run *store.ChecklistRun) string {
+func exportCSVFilename(displayLabel string, runID int64) string {
 	safe := strings.Map(func(r rune) rune {
 		switch {
 		case r >= 'a' && r <= 'z', r >= 'A' && r <= 'Z', r >= '0' && r <= '9':
@@ -616,14 +479,14 @@ func exportCSVFilename(run *store.ChecklistRun) string {
 		default:
 			return '-'
 		}
-	}, strings.TrimSpace(run.Title))
+	}, strings.TrimSpace(displayLabel))
 	if safe == "" {
-		return fmt.Sprintf("revue-%d.csv", run.ID)
+		return fmt.Sprintf("revue-%d.csv", runID)
 	}
 	return safe + ".csv"
 }
 
-func (h *Runs) renderRunShow(w http.ResponseWriter, r *http.Request, run *store.ChecklistRun, project *store.Project, user *store.User, memberRole string, extra viewtemplates.RunShowData) {
+func (h *Runs) renderRunShow(w http.ResponseWriter, r *http.Request, run *store.ChecklistRun, project *store.Subject, user *store.User, memberRole string, isMember bool, extra viewtemplates.RunShowData) {
 	runItems, err := h.Store.ListRunItems(r.Context(), run.ID)
 	if err != nil {
 		slog.Error("list run items", "err", err)
@@ -645,9 +508,16 @@ func (h *Runs) renderRunShow(w http.ResponseWriter, r *http.Request, run *store.
 		return
 	}
 
-	var members []store.ProjectMember
-	if CanAssign(user, memberRole) {
-		members, err = h.Store.ListProjectMembers(r.Context(), project.ID)
+	orgRole, orgMember, err := h.Store.OrganizationMemberRole(r.Context(), project.OrganizationID, user.ID)
+	if err != nil {
+		slog.Error("caller org role", "err", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	var members []store.SubjectMember
+	if CanAssign(user, orgRole, orgMember) {
+		members, err = h.Store.ListSubjectMembers(r.Context(), project.ID)
 		if err != nil {
 			slog.Error("list project members", "err", err)
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -683,14 +553,19 @@ func (h *Runs) renderRunShow(w http.ResponseWriter, r *http.Request, run *store.
 		items = filtered
 	}
 
-	pd := h.PageData(r, run.Title)
-	pd.Breadcrumbs = viewtemplates.BCRunShow(run.Title)
+	sectionGroups := buildRunItemSections(items)
+
+	displayLabel := h.runDisplayLabel(r.Context(), run, project)
+	pd := h.PageData(r, displayLabel)
+	pd.Breadcrumbs = viewtemplates.BCRunShow(displayLabel)
 	pd.ActiveTab = "runs"
 	data := viewtemplates.RunShowData{
 		PageData:          pd,
-		Project:           project,
+		Subject:           project,
 		Run:               run,
+		RunDisplayLabel:   displayLabel,
 		Items:             items,
+		ItemSections:      sectionGroups,
 		NokItems:          nokItems,
 		Sections:          sections,
 		FilterSection:     filterSection,
@@ -701,14 +576,14 @@ func (h *Runs) renderRunShow(w http.ResponseWriter, r *http.Request, run *store.
 		TemplateName:      versionInfo.Name,
 		VersionNum:        versionInfo.Version,
 		MemberRole:        memberRole,
-		CanLaunch:         CanLaunch(user, memberRole),
-		CanCheck:          CanUpdate(user, memberRole),
-		CanAssign:         CanAssign(user, memberRole),
-		CanLinkJira:       CanLinkJira(user, memberRole),
+		CanLaunch:         CanLaunch(user, isMember),
+		CanCheck:          CanUpdate(user, isMember),
+		CanAssign:         CanAssign(user, orgRole, orgMember),
+		CanLinkJira:       CanLinkJira(user, isMember),
 		JiraConfigured:    h.jiraConfigured(r.Context()),
-		CanComplete:       CanComplete(user, memberRole),
+		CanComplete:       CanComplete(user, orgRole, orgMember),
 		NotionConfigured:  h.notionConfigured(r.Context()),
-		CanExportNotion:   CanComplete(user, memberRole) && run.Status == store.RunStatusDone && strings.TrimSpace(run.NotionURL) == "",
+		CanExportNotion:   CanComplete(user, orgRole, orgMember) && run.Status == store.RunStatusDone && strings.TrimSpace(run.NotionURL) == "",
 		Progress:          h.progressData(run.ID, runItems),
 		Message:           extra.Message,
 		ItemError:         extra.ItemError,
@@ -730,157 +605,148 @@ func (h *Runs) renderRunShow(w http.ResponseWriter, r *http.Request, run *store.
 	}
 }
 
-func (h *Runs) loadProjectForLaunch(w http.ResponseWriter, r *http.Request) (*store.Project, *store.User, string, bool) {
+func buildRunItemSections(items []store.RunItem) []viewtemplates.RunItemSectionData {
+	type agg struct {
+		title string
+		items []store.RunItem
+	}
+	order := make([]string, 0, 8)
+	byTitle := make(map[string]*agg)
+
+	for _, it := range items {
+		title := strings.TrimSpace(it.Section)
+		if title == "" {
+			title = "Sans section"
+		}
+		a, ok := byTitle[title]
+		if !ok {
+			order = append(order, title)
+			a = &agg{title: title}
+			byTitle[title] = a
+		}
+		a.items = append(a.items, it)
+	}
+
+	out := make([]viewtemplates.RunItemSectionData, 0, len(order))
+	for _, title := range order {
+		a := byTitle[title]
+		okCount := 0
+		nonOK := 0
+		for _, it := range a.items {
+			switch it.Status {
+			case store.RunItemStatusOK, store.RunItemStatusNA:
+				okCount++
+			default:
+				nonOK++
+			}
+		}
+		out = append(out, viewtemplates.RunItemSectionData{
+			Title:      a.title,
+			Items:      a.items,
+			Total:      len(a.items),
+			OKCount:    okCount,
+			NonOKCount: nonOK,
+			AllOKOrNA:  nonOK == 0,
+		})
+	}
+	return out
+}
+
+func (h *Runs) loadSubjectForLaunch(w http.ResponseWriter, r *http.Request) (*store.Subject, *store.User, string, bool, bool) {
 	user, ok := middleware.UserFromContext(r.Context())
 	if !ok {
 		http.Redirect(w, r, "/login", http.StatusFound)
-		return nil, nil, "", false
+		return nil, nil, "", false, false
 	}
 
 	projectID, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
 	if err != nil {
 		http.NotFound(w, r)
-		return nil, nil, "", false
+		return nil, nil, "", false, false
 	}
 
-	project, err := h.Store.ProjectByID(r.Context(), projectID)
-	if errors.Is(err, store.ErrProjectNotFound) {
+	project, err := h.Store.SubjectByID(r.Context(), projectID)
+	if errors.Is(err, store.ErrSubjectNotFound) {
 		http.NotFound(w, r)
-		return nil, nil, "", false
+		return nil, nil, "", false, false
 	}
 	if err != nil {
 		slog.Error("load project", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return nil, nil, "", false
+		return nil, nil, "", false, false
 	}
 
 	memberRole, isMember, err := h.Store.MemberRole(r.Context(), projectID, user.ID)
 	if err != nil {
 		slog.Error("member role", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return nil, nil, "", false
+		return nil, nil, "", false, false
 	}
 
-	if !CanLaunch(user, memberRoleForLaunch(isMember, memberRole)) {
+	if !CanLaunch(user, isMember) {
 		http.NotFound(w, r)
-		return nil, nil, "", false
+		return nil, nil, "", false, false
 	}
 
-	return project, user, memberRole, true
+	return project, user, memberRole, isMember, true
 }
 
-func (h *Runs) loadRun(w http.ResponseWriter, r *http.Request) (*store.ChecklistRun, *store.Project, *store.User, string, bool) {
+func (h *Runs) loadRun(w http.ResponseWriter, r *http.Request) (*store.ChecklistRun, *store.Subject, *store.User, string, bool, bool) {
 	user, ok := middleware.UserFromContext(r.Context())
 	if !ok {
 		http.Redirect(w, r, "/login", http.StatusFound)
-		return nil, nil, nil, "", false
+		return nil, nil, nil, "", false, false
 	}
 
 	runID, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
 	if err != nil {
 		http.NotFound(w, r)
-		return nil, nil, nil, "", false
+		return nil, nil, nil, "", false, false
 	}
 
 	run, err := h.Store.RunByID(r.Context(), runID)
 	if errors.Is(err, store.ErrRunNotFound) {
 		http.NotFound(w, r)
-		return nil, nil, nil, "", false
+		return nil, nil, nil, "", false, false
 	}
 	if err != nil {
 		slog.Error("load run", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return nil, nil, nil, "", false
+		return nil, nil, nil, "", false, false
 	}
 
-	project, err := h.Store.ProjectByID(r.Context(), run.ProjectID)
-	if errors.Is(err, store.ErrProjectNotFound) {
+	project, err := h.Store.SubjectByID(r.Context(), run.SubjectID)
+	if errors.Is(err, store.ErrSubjectNotFound) {
 		http.NotFound(w, r)
-		return nil, nil, nil, "", false
+		return nil, nil, nil, "", false, false
 	}
 	if err != nil {
 		slog.Error("load run project", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return nil, nil, nil, "", false
+		return nil, nil, nil, "", false, false
 	}
 
 	memberRole, isMember, err := h.Store.MemberRole(r.Context(), project.ID, user.ID)
 	if err != nil {
 		slog.Error("member role", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return nil, nil, nil, "", false
+		return nil, nil, nil, "", false, false
 	}
 
 	if !CanView(user, isMember) {
 		http.NotFound(w, r)
-		return nil, nil, nil, "", false
+		return nil, nil, nil, "", false, false
 	}
 
-	return run, project, user, memberRole, true
+	return run, project, user, memberRole, isMember, true
 }
 
-func (h *Runs) renderLaunchError(w http.ResponseWriter, r *http.Request, project *store.Project, template *store.ChecklistTemplate, version *store.TemplateVersion, templateID int64, message string) {
-	if template == nil && templateID > 0 {
-		var err error
-		template, err = h.Store.ChecklistTemplateByID(r.Context(), templateID)
-		if err != nil {
-			http.Error(w, "Bad Request", http.StatusBadRequest)
-			return
-		}
-		version, err = h.Store.LatestTemplateVersion(r.Context(), template.ID)
-		if err != nil {
-			http.Error(w, "Bad Request", http.StatusBadRequest)
-			return
-		}
+func (h *Runs) runDisplayLabel(ctx context.Context, run *store.ChecklistRun, subject *store.Subject) string {
+	versionInfo, err := h.Store.TemplateVersionInfo(ctx, run.TemplateVersionID)
+	if err != nil {
+		return RunDisplayLabel("", subject.Name, run.CreatedAt, run.ID)
 	}
-
-	itemCount := 0
-	if version != nil {
-		items, err := h.Store.ListTemplateItems(r.Context(), version.ID)
-		if err == nil {
-			itemCount = len(items)
-		}
-	}
-
-	versionNum := 0
-	if version != nil {
-		versionNum = version.Version
-	}
-	templateName := ""
-	if template != nil {
-		templateName = template.Name
-	}
-
-	pd := h.PageData(r, "Lancer la revue")
-	pd.Breadcrumbs = viewtemplates.BCRunWizardLaunch(project.Name, project.ID, templateName, versionNum, itemCount)
-	pd.ActiveTab = "runs"
-	title := strings.TrimSpace(r.FormValue("title"))
-	if title == "" && template != nil {
-		title = template.Name
-	}
-	data := viewtemplates.RunWizardLaunchData{
-		PageData:   pd,
-		Project:    project,
-		Template:   template,
-		Version:    version,
-		ItemCount:  itemCount,
-		Title:      title,
-		DueDate:    strings.TrimSpace(r.FormValue("due_date")),
-		FormAction: "/projects/" + strconv.FormatInt(project.ID, 10) + "/runs",
-		Error:      message,
-	}
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.WriteHeader(http.StatusBadRequest)
-	if err := h.Templates.ExecuteTemplate(w, "run_wizard_launch", data); err != nil {
-		slog.Error("render run wizard launch error", "err", err)
-	}
-}
-
-func memberRoleForLaunch(isMember bool, memberRole string) string {
-	if !isMember {
-		return ""
-	}
-	return memberRole
+	return RunDisplayLabel(versionInfo.Name, subject.Name, run.CreatedAt, run.ID)
 }
 
 func (h *Runs) isHTMX(r *http.Request) bool {
@@ -913,7 +779,7 @@ func uniqueSections(items []store.RunItem) []string {
 	return sections
 }
 
-func (h *Runs) renderRunItemHTMXSuccess(w http.ResponseWriter, r *http.Request, run *store.ChecklistRun, project *store.Project, user *store.User, memberRole string, itemID int64, itemErr, assignErr string) {
+func (h *Runs) renderRunItemHTMXSuccess(w http.ResponseWriter, r *http.Request, run *store.ChecklistRun, project *store.Subject, user *store.User, memberRole string, itemID int64, itemErr, assignErr string) {
 	runItems, err := h.Store.ListRunItems(r.Context(), run.ID)
 	if err != nil {
 		slog.Error("list run items for htmx", "err", err)
@@ -930,7 +796,7 @@ func (h *Runs) renderRunItemHTMXSuccess(w http.ResponseWriter, r *http.Request, 
 	h.renderRunItemHTMX(w, r, run, project, user, memberRole, item, runItems, itemErr, assignErr, http.StatusOK)
 }
 
-func (h *Runs) renderRunItemHTMXError(w http.ResponseWriter, r *http.Request, run *store.ChecklistRun, project *store.Project, user *store.User, memberRole string, itemID int64, itemErr, assignErr string) {
+func (h *Runs) renderRunItemHTMXError(w http.ResponseWriter, r *http.Request, run *store.ChecklistRun, project *store.Subject, user *store.User, memberRole string, itemID int64, itemErr, assignErr string) {
 	item, err := h.Store.RunItemByID(r.Context(), run.ID, itemID)
 	if errors.Is(err, store.ErrRunItemNotFound) {
 		http.NotFound(w, r)
@@ -952,11 +818,23 @@ func (h *Runs) renderRunItemHTMXError(w http.ResponseWriter, r *http.Request, ru
 	h.renderRunItemHTMX(w, r, run, project, user, memberRole, *item, runItems, itemErr, assignErr, http.StatusBadRequest)
 }
 
-func (h *Runs) renderRunItemHTMX(w http.ResponseWriter, r *http.Request, run *store.ChecklistRun, project *store.Project, user *store.User, memberRole string, item store.RunItem, runItems []store.RunItem, itemErr, assignErr string, statusCode int) {
-	var members []store.ProjectMember
-	if CanAssign(user, memberRole) {
-		var err error
-		members, err = h.Store.ListProjectMembers(r.Context(), project.ID)
+func (h *Runs) renderRunItemHTMX(w http.ResponseWriter, r *http.Request, run *store.ChecklistRun, project *store.Subject, user *store.User, memberRole string, item store.RunItem, runItems []store.RunItem, itemErr, assignErr string, statusCode int) {
+	orgRole, orgMember, err := h.Store.OrganizationMemberRole(r.Context(), project.OrganizationID, user.ID)
+	if err != nil {
+		slog.Error("caller org role", "err", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	_, isMember, err := h.Store.MemberRole(r.Context(), project.ID, user.ID)
+	if err != nil {
+		slog.Error("member role", "err", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	var members []store.SubjectMember
+	if CanAssign(user, orgRole, orgMember) {
+		members, err = h.Store.ListSubjectMembers(r.Context(), project.ID)
 		if err != nil {
 			slog.Error("list project members for htmx", "err", err)
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -970,8 +848,8 @@ func (h *Runs) renderRunItemHTMX(w http.ResponseWriter, r *http.Request, run *st
 		Item:        item,
 		Members:     members,
 		CSRFToken:   h.PageData(r, "").CSRFToken,
-		CanCheck:    CanUpdate(user, memberRole),
-		CanAssign:   CanAssign(user, memberRole),
+		CanCheck:    CanUpdate(user, isMember),
+		CanAssign:   CanAssign(user, orgRole, orgMember),
 		ItemError:   itemErr,
 		AssignError: assignErr,
 	}

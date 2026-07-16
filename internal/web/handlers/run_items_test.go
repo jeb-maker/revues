@@ -2,14 +2,14 @@ package handlers_test
 
 import (
 	"context"
-	"database/sql"
-	"github.com/jeb-maker/revues/internal/testutil"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"strconv"
 	"strings"
 	"testing"
+
+	"github.com/jeb-maker/revues/internal/testutil"
 
 	"github.com/jeb-maker/revues/internal/auth"
 	runs "github.com/jeb-maker/revues/internal/features/runs"
@@ -36,7 +36,7 @@ func TestRunItem_NokRequiresComment(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateChecklistTemplate(): %v", err)
 	}
-	run, err := st.CreateChecklistRun(ctx, project.ID, template.ID, "Revue", lead.ID, sql.NullString{})
+	run, err := st.CreateChecklistRun(ctx, project.ID, template.ID, lead.ID)
 	if err != nil {
 		t.Fatalf("CreateChecklistRun(): %v", err)
 	}
@@ -93,7 +93,7 @@ func TestRunComplete_OptionalClosingNote(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateChecklistTemplate(): %v", err)
 	}
-	run, err := st.CreateChecklistRun(ctx, project.ID, template.ID, "Revue", lead.ID, sql.NullString{})
+	run, err := st.CreateChecklistRun(ctx, project.ID, template.ID, lead.ID)
 	if err != nil {
 		t.Fatalf("CreateChecklistRun(): %v", err)
 	}
@@ -125,7 +125,6 @@ func TestIDOR_CrossProjectRunItem(t *testing.T) {
 	handler, db := testRouter(t)
 	ctx := context.Background()
 	st := store.New(db)
-	ctx = testutil.DefaultOrgContext(ctx, st)
 
 	alice, err := st.UpsertGitHubUser(ctx, 50, "alice", "alice@example.com", "Alice", "", auth.RoleEditor)
 	if err != nil {
@@ -135,14 +134,11 @@ func TestIDOR_CrossProjectRunItem(t *testing.T) {
 	if err != nil {
 		t.Fatalf("UpsertGitHubUser(bob): %v", err)
 	}
+	ctx = testutil.SetupIsolatedOrg(ctx, st, "Alice Org", "alice-run-item", alice.ID)
 
 	projectA, err := st.CreateProject(ctx, "A", "", alice.ID, nil)
 	if err != nil {
 		t.Fatalf("CreateProject(): %v", err)
-	}
-	projectB, err := st.CreateProject(ctx, "B", "", bob.ID, nil)
-	if err != nil {
-		t.Fatalf("CreateProject(bob): %v", err)
 	}
 
 	templateA, _, err := st.CreateChecklistTemplate(ctx, "Modèle", alice.ID, nil, []store.TemplateItemInput{
@@ -151,7 +147,7 @@ func TestIDOR_CrossProjectRunItem(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateChecklistTemplate(): %v", err)
 	}
-	runA, err := st.CreateChecklistRun(ctx, projectA.ID, templateA.ID, "Revue A", alice.ID, sql.NullString{})
+	runA, err := st.CreateChecklistRun(ctx, projectA.ID, templateA.ID, alice.ID)
 	if err != nil {
 		t.Fatalf("CreateChecklistRun(): %v", err)
 	}
@@ -161,20 +157,6 @@ func TestIDOR_CrossProjectRunItem(t *testing.T) {
 	itemsA, err := st.ListRunItems(ctx, runA.ID)
 	if err != nil || len(itemsA) != 1 {
 		t.Fatalf("ListRunItems(): %v", err)
-	}
-
-	templateB, _, err := st.CreateChecklistTemplate(ctx, "Modèle B", bob.ID, nil, []store.TemplateItemInput{
-		{Label: "Point B", Required: true},
-	})
-	if err != nil {
-		t.Fatalf("CreateChecklistTemplate(): %v", err)
-	}
-	runB, err := st.CreateChecklistRun(ctx, projectB.ID, templateB.ID, "Revue B", bob.ID, sql.NullString{})
-	if err != nil {
-		t.Fatalf("CreateChecklistRun(): %v", err)
-	}
-	if err = st.StartRun(ctx, runB.ID); err != nil {
-		t.Fatalf("StartRun(): %v", err)
 	}
 
 	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}

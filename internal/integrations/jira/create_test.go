@@ -2,7 +2,6 @@ package jira_test
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -121,7 +120,7 @@ func TestDefaultIssueContent(t *testing.T) {
 		Section: "Infra",
 		Comment: "Port ouvert",
 	}, jira.RunItemContext{
-		ProjectName: "Alpha",
+		SubjectName: "Alpha",
 		RunTitle:    "Revue Q1",
 		ItemURL:     "https://revues.example/runs/1/items/2",
 	})
@@ -163,7 +162,7 @@ func TestCreateServiceRunItem(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateChecklistTemplate(): %v", err)
 	}
-	run, err := st.CreateChecklistRun(ctx, project.ID, template.ID, "Revue", lead.ID, sql.NullString{})
+	run, err := st.CreateChecklistRun(ctx, project.ID, template.ID, lead.ID)
 	if err != nil {
 		t.Fatalf("CreateChecklistRun(): %v", err)
 	}
@@ -195,8 +194,8 @@ func TestCreateServiceRunItem(t *testing.T) {
 		Client:        &jira.Client{HTTPClient: srv.Client()},
 	}
 	link, err := createSvc.CreateRunItem(ctx, run.ID, items[0].ID, jira.CreateInput{}, jira.RunItemContext{
-		ProjectName: project.Name,
-		RunTitle:    run.Title,
+		SubjectName: project.Name,
+		RunTitle:    store.RunDisplayLabel("Modèle", project.Name, run.CreatedAt, run.ID),
 		ItemURL:     "https://revues.example/runs/1/items/2",
 	})
 	if err != nil {

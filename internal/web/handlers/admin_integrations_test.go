@@ -42,6 +42,40 @@ func TestAdminIntegrations_ReaderForbidden(t *testing.T) {
 	}
 }
 
+func TestAdminIntegrations_OrgAdminOK(t *testing.T) {
+	handler, db := testRouter(t)
+	ctx := context.Background()
+	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
+
+	defaultOrg, err := st.OrganizationBySlug(ctx, "default")
+	if err != nil {
+		t.Fatalf("OrganizationBySlug(): %v", err)
+	}
+	orgAdmin, err := st.UpsertGitHubUser(ctx, 2, "orgadmin", "orgadmin@example.com", "OrgAdmin", "", auth.RoleEditor)
+	if err != nil {
+		t.Fatalf("UpsertGitHubUser(): %v", err)
+	}
+	if err = st.AddOrganizationMember(ctx, defaultOrg.ID, orgAdmin.ID, store.OrgRoleAdmin); err != nil {
+		t.Fatalf("AddOrganizationMember(): %v", err)
+	}
+
+	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
+	token, _, err := sessions.CreateLoginSession(ctx, orgAdmin.ID, defaultOrg.ID)
+	if err != nil {
+		t.Fatalf("CreateLoginSession(): %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/admin/integrations", nil)
+	req.AddCookie(&http.Cookie{Name: "revues_session", Value: token})
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Errorf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+}
+
 func TestAdminIntegrations_ShowStatus(t *testing.T) {
 	handler, db := testRouterWithEncryptionKey(t, config.TestEncryptionKey())
 	ctx := context.Background()
@@ -81,7 +115,7 @@ func TestAdminIntegrations_ShowStatus(t *testing.T) {
 		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
 	}
 	body := rec.Body.String()
-	for _, want := range []string{"SMTP", "Jira", "Notion", "Webhooks", "Activé", "Désactivé", "/admin/settings/smtp", "/admin/integrations/jira", "/admin/integrations/notion", "/admin/settings/webhooks"} {
+	for _, want := range []string{"organisation active", "SMTP", "Jira", "Notion", "Webhooks", "Activé", "Désactivé", "/admin/settings/smtp", "/admin/integrations/jira", "/admin/integrations/notion", "/admin/settings/webhooks"} {
 		if !strings.Contains(body, want) {
 			t.Errorf("body missing %q", want)
 		}

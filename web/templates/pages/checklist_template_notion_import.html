@@ -8,7 +8,7 @@
   <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
   <input type="hidden" name="action" value="fetch">
   <label>Base Notion<input name="database_ref" required value="{{.DatabaseRef}}"></label>
-  <label>Tags (optionnel)<input name="tags" maxlength="500" value="{{.Tags}}"></label>
+  <label>Domaines (optionnel)<input name="tags" maxlength="500" value="{{.Tags}}"></label>
   <button type="submit" class="button">Charger</button>
 </form>
 {{end}}

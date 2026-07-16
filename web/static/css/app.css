@@ -425,6 +425,7 @@ button:not(.button):not(.button-secondary):not(.button-ghost):not(.button-danger
 button:not(.button):not(.button-secondary):not(.button-ghost):not(.button-danger):hover {
   background: var(--surface-2);
 }
+.link-button{background:0;border:0;padding:0;font:inherit;color:var(--accent)}
 
 input, select, textarea {
   font-family: inherit;
@@ -506,7 +507,7 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--accent); }
 }
 
 .template-meta__actions,
-.project-meta__actions {
+.subject-meta__actions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -515,7 +516,7 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--accent); }
   flex-shrink: 0;
 }
 .template-meta__head,
-.project-meta__head {
+.subject-meta__head {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -524,17 +525,17 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--accent); }
   margin-bottom: 1rem;
 }
 .template-meta__title,
-.project-meta__title {
+.subject-meta__title {
   margin: 0;
   font-size: 1.5rem;
   flex: 1 1 auto;
   min-width: min(100%, 12rem);
 }
-.project-meta__description { margin-top: 0; font-size: 1.05rem; }
+.subject-meta__description { margin-top: 0; font-size: 1.05rem; }
 .template-meta__line,
-.project-meta__line { margin: 0.35rem 0 0; }
+.subject-meta__line { margin: 0.35rem 0 0; }
 .template-meta__line:first-of-type,
-.project-meta__line:first-of-type { margin-top: 0; }
+.subject-meta__line:first-of-type { margin-top: 0; }
 
 .form-danger-zone__text { margin: 0 0 0.75rem; font-size: 0.9rem; }
 
@@ -906,15 +907,10 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--accent); }
   border-color: transparent;
 }
 
-.status-select,
-.assign-select,
-.comment-inline {
-  padding: 0.3rem 0.5rem;
-  font-size: 0.85rem;
-}
-.status-select,
-.assign-select { width: auto; max-width: 9rem; }
-.comment-inline { width: 100%; max-width: 15rem; }
+.status-select,.assign-select,.comment-inline{padding:.3rem .5rem;font-size:.85rem}
+.data-table--run-items{table-layout:fixed;width:100%}
+.data-table--run-items textarea.comment-inline{height:4.5rem;resize:none;width:100%}
+.data-table--run-items .status-select,.data-table--run-items .assign-select{width:100%}
 
 .filter-form {
   display: flex;
@@ -953,7 +949,10 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--accent); }
 }
 .run-progress-label { margin: 0.35rem 0 0; font-size: 0.85rem; }
 
-/* --- Pièces jointes -------------------------------------------------------- */
+.run-section__head td{cursor:pointer;background:var(--accent-soft);border-top:2px var(--border-strong)}
+.run-section__label{display:flex;justify-content:space-between;align-items:baseline;gap:.5rem;font-weight:600}
+.run-section:first-of-type .run-section__head td{border-top:0}
+.run-section.is-collapsed tr:not(.run-section__head){display:none}
 
 .attachment-display { margin: 0.25rem 0; }
 .attachment-display-compact { margin: 0; }
@@ -1044,6 +1043,9 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--accent); }
   animation: spin 0.6s linear infinite;
   vertical-align: middle;
 }
+
+.htmx-indicator{display:none}
+.htmx-request .htmx-indicator,.htmx-request.htmx-indicator{display:inline-block}
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* --- Toolbars & onglets segmentés ------------------------------------------ */

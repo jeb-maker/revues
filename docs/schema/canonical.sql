@@ -29,7 +29,7 @@ CREATE TABLE sessions (
     id              INTEGER PRIMARY KEY,
     token_hash      TEXT NOT NULL UNIQUE,
     user_id         INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    organization_id INTEGER NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    organization_id INTEGER REFERENCES organizations(id) ON DELETE CASCADE,
     expires_at      TEXT NOT NULL,
     created_at      TEXT NOT NULL
 );
@@ -56,6 +56,8 @@ CREATE TABLE organizations (
     id              INTEGER PRIMARY KEY,
     name            TEXT NOT NULL,
     slug            TEXT NOT NULL UNIQUE,
+    ui_subject_label TEXT NOT NULL DEFAULT 'sujet'
+                    CHECK (ui_subject_label IN ('sujet', 'cible', 'entite', 'asset')),
     created_at      TEXT NOT NULL,
     created_by      INTEGER REFERENCES users(id) ON DELETE SET NULL
 );
@@ -71,11 +73,25 @@ CREATE TABLE organization_members (
 
 CREATE INDEX idx_organization_members_user ON organization_members(user_id);
 
+CREATE TABLE organization_invitations (
+    id              INTEGER PRIMARY KEY,
+    email           TEXT NOT NULL,
+    organization_id INTEGER NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    org_role        TEXT NOT NULL DEFAULT 'member'
+                    CHECK (org_role IN ('owner', 'admin', 'member')),
+    created_at      TEXT NOT NULL
+);
+
+CREATE INDEX idx_organization_invitations_email ON organization_invitations(email);
+
+CREATE UNIQUE INDEX idx_organization_invitations_unique
+    ON organization_invitations(organization_id, email);
+
 -- ---------------------------------------------------------------------------
--- Projets
+-- Sujets (remplace projets — v1 accès via membership org)
 -- ---------------------------------------------------------------------------
 
-CREATE TABLE projects (
+CREATE TABLE subjects (
     id              INTEGER PRIMARY KEY,
     organization_id INTEGER NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     name            TEXT NOT NULL,
@@ -85,18 +101,21 @@ CREATE TABLE projects (
     updated_at      TEXT NOT NULL
 );
 
-CREATE INDEX idx_projects_organization ON projects(organization_id);
+CREATE INDEX idx_subjects_organization ON subjects(organization_id);
 
-CREATE TABLE project_members (
-    project_id      INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-    user_id         INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    role            TEXT NOT NULL
-                    CHECK (role IN ('lead', 'contributor', 'viewer')),
-    created_at      TEXT NOT NULL,
-    PRIMARY KEY (project_id, user_id)
+-- Étiquettes descriptives (filtrer, retrouver — jamais accès)
+CREATE TABLE subject_tags (
+    subject_id INTEGER NOT NULL REFERENCES subjects(id) ON DELETE CASCADE,
+    tag        TEXT NOT NULL,
+    PRIMARY KEY (subject_id, tag)
 );
 
-CREATE INDEX idx_project_members_user ON project_members(user_id);
+-- Domaines de matching modèles ↔ sujet
+CREATE TABLE subject_domains (
+    subject_id INTEGER NOT NULL REFERENCES subjects(id) ON DELETE CASCADE,
+    tag        TEXT NOT NULL,
+    PRIMARY KEY (subject_id, tag)
+);
 
 -- ---------------------------------------------------------------------------
 -- Modèles de check-list (versionnés)
@@ -104,10 +123,18 @@ CREATE INDEX idx_project_members_user ON project_members(user_id);
 
 CREATE TABLE checklist_templates (
     id              INTEGER PRIMARY KEY,
-    project_id      INTEGER REFERENCES projects(id) ON DELETE SET NULL,
+    organization_id INTEGER NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     name            TEXT NOT NULL,
     archived_at     TEXT,
     created_at      TEXT NOT NULL
+);
+
+CREATE INDEX idx_checklist_templates_organization ON checklist_templates(organization_id);
+
+CREATE TABLE template_domains (
+    template_id INTEGER NOT NULL REFERENCES checklist_templates(id) ON DELETE CASCADE,
+    tag         TEXT NOT NULL,
+    PRIMARY KEY (template_id, tag)
 );
 
 CREATE TABLE template_versions (
@@ -140,9 +167,8 @@ CREATE INDEX idx_template_items_version ON template_items(version_id, position);
 
 CREATE TABLE checklist_runs (
     id                  INTEGER PRIMARY KEY,
-    project_id          INTEGER NOT NULL REFERENCES projects(id) ON DELETE RESTRICT,
+    subject_id          INTEGER NOT NULL REFERENCES subjects(id) ON DELETE RESTRICT,
     template_version_id INTEGER NOT NULL REFERENCES template_versions(id) ON DELETE RESTRICT,
-    title               TEXT NOT NULL,
     status              TEXT NOT NULL DEFAULT 'draft'
                         CHECK (status IN ('draft', 'in_progress', 'done', 'archived')),
     due_date            TEXT,  -- ISO 8601, optionnel
@@ -150,10 +176,11 @@ CREATE TABLE checklist_runs (
     created_by          INTEGER REFERENCES users(id) ON DELETE SET NULL,
     started_at          TEXT,
     completed_at        TEXT,
+    notion_url          TEXT NOT NULL DEFAULT '',
     created_at          TEXT NOT NULL
 );
 
-CREATE INDEX idx_runs_project ON checklist_runs(project_id, status);
+CREATE INDEX idx_runs_subject ON checklist_runs(subject_id, status);
 CREATE INDEX idx_runs_due ON checklist_runs(due_date);
 
 -- Snapshot immuable (structure) ; champs limités mutables

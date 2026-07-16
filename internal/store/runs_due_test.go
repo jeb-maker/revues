@@ -30,15 +30,15 @@ func TestListRunsDueOn(t *testing.T) {
 		t.Fatalf("CreateChecklistTemplate(): %v", err)
 	}
 
-	runDue, err := st.CreateChecklistRun(ctx, project.ID, template.ID, "Due tomorrow", lead.ID, sql.NullString{})
+	runDue, err := st.CreateChecklistRun(ctx, project.ID, template.ID, lead.ID)
 	if err != nil {
 		t.Fatalf("CreateChecklistRun(due): %v", err)
 	}
-	runOther, err := st.CreateChecklistRun(ctx, project.ID, template.ID, "Due later", lead.ID, sql.NullString{})
+	runOther, err := st.CreateChecklistRun(ctx, project.ID, template.ID, lead.ID)
 	if err != nil {
 		t.Fatalf("CreateChecklistRun(other): %v", err)
 	}
-	runDraft, err := st.CreateChecklistRun(ctx, project.ID, template.ID, "Draft", lead.ID, sql.NullString{})
+	runDraft, err := st.CreateChecklistRun(ctx, project.ID, template.ID, lead.ID)
 	if err != nil {
 		t.Fatalf("CreateChecklistRun(draft): %v", err)
 	}

@@ -3,12 +3,16 @@ package templates
 import "strconv"
 
 const (
-	PathRevues    = "/revues"
-	PathProjects  = "/projects"
-	PathTasks     = "/mes-taches"
-	PathTemplates = "/modeles"
-	PathAdmin     = "/admin/integrations"
-	PathRunsNew   = "/runs/new"
+	PathRevues         = "/revues"
+	PathSubjects       = "/subjects"
+	PathAdminOrg       = "/admin"
+	PathAdminSubjects  = "/admin/subjects"
+	PathProjects       = "/subjects" // deprecated alias
+	PathTasks          = "/mes-taches"
+	PathTemplates      = "/modeles"
+	PathAdmin          = "/admin/integrations"
+	PathRevuesNouvelle = "/revues/nouvelle"
+	PathRunsNew        = "/revues/nouvelle" // deprecated alias
 )
 
 // ApplyPageMeta sets breadcrumbs and derives the document title from the last crumb.
@@ -28,25 +32,70 @@ func current(label string) Breadcrumb {
 	return Breadcrumb{Label: label}
 }
 
-func projectPath(id int64) string {
-	return "/projects/" + strconv.FormatInt(id, 10)
+func subjectPath(id int64) string {
+	return "/subjects/" + strconv.FormatInt(id, 10)
 }
 
-func projectTemplatesPath(id int64) string {
-	return projectPath(id) + "/templates"
+func subjectModelesPath(id int64) string {
+	return subjectPath(id) + "/modeles"
 }
 
-func templatePath(projectID, templateID int64) string {
-	return projectTemplatesPath(projectID) + "/" + strconv.FormatInt(templateID, 10)
+func templatePath(subjectID, templateID int64) string {
+	return subjectModelesPath(subjectID) + "/" + strconv.FormatInt(templateID, 10)
 }
 
 func runPath(id int64) string {
 	return "/runs/" + strconv.FormatInt(id, 10)
 }
 
-// ProjectTemplatesForRunPath is the project template picker when launching a review.
+// RunWizardPath is step 1 of the run launch wizard, optionally with a preselected template.
+func RunWizardPath(templateID int64) string {
+	if templateID <= 0 {
+		return PathRevuesNouvelle
+	}
+	return PathRevuesNouvelle + "?template=" + strconv.FormatInt(templateID, 10)
+}
+
+// SubjectTemplatesForRunPath is the subject model picker when launching a review.
+func SubjectTemplatesForRunPath(subjectID int64, templateID ...int64) string {
+	path := subjectModelesPath(subjectID) + "?for_run=1"
+	if len(templateID) > 0 && templateID[0] > 0 {
+		path += "&template=" + strconv.FormatInt(templateID[0], 10)
+	}
+	return path
+}
+
+// SubjectModelesClearPath drops search filters while keeping launch context.
+func SubjectModelesClearPath(subjectID int64, forRun bool, templateID int64) string {
+	if forRun {
+		return SubjectTemplatesForRunPath(subjectID, templateID)
+	}
+	if templateID > 0 {
+		return subjectModelesPath(subjectID) + "?template=" + strconv.FormatInt(templateID, 10)
+	}
+	return subjectModelesPath(subjectID)
+}
+
+// ProjectTemplatesForRunPath is a deprecated alias for SubjectTemplatesForRunPath.
 func ProjectTemplatesForRunPath(projectID int64) string {
-	return projectTemplatesPath(projectID) + "?for_run=1"
+	return SubjectTemplatesForRunPath(projectID)
+}
+
+// SubjectModelesListPath builds the subject template list URL with optional wizard params.
+func SubjectModelesListPath(subjectID int64, forRun bool, templateID int64) string {
+	path := subjectModelesPath(subjectID)
+	if !forRun && templateID <= 0 {
+		return path
+	}
+	sep := "?"
+	if forRun {
+		path += sep + "for_run=1"
+		sep = "&"
+	}
+	if templateID > 0 {
+		path += sep + "template=" + strconv.FormatInt(templateID, 10)
+	}
+	return path
 }
 
 // BCRevues is the active runs index breadcrumb.
@@ -54,9 +103,14 @@ func BCRevues() []Breadcrumb {
 	return []Breadcrumb{current("Revues")}
 }
 
-// BCProjects is the projects index breadcrumb.
+// BCSubjects is the subjects index breadcrumb.
+func BCSubjects(labels SubjectUILabels) []Breadcrumb {
+	return []Breadcrumb{current(labels.Plural)}
+}
+
+// BCProjects is a deprecated alias for BCSubjects.
 func BCProjects() []Breadcrumb {
-	return []Breadcrumb{current("Projets")}
+	return BCSubjects(DefaultUILabels().Subject)
 }
 
 // BCTasks is the my tasks index breadcrumb.
@@ -94,19 +148,34 @@ func BCHome() []Breadcrumb {
 	return []Breadcrumb{current("Revues")}
 }
 
-// BCProjectNew is the create project form breadcrumb.
+// BCSubjectNew is the create subject form breadcrumb.
+func BCSubjectNew(labels SubjectUILabels) []Breadcrumb {
+	return []Breadcrumb{crumb(labels.Plural, PathSubjects), current("Nouveau")}
+}
+
+// BCProjectNew is a deprecated alias for BCSubjectNew.
 func BCProjectNew() []Breadcrumb {
-	return []Breadcrumb{crumb("Projets", PathProjects), current("Nouveau")}
+	return BCSubjectNew(DefaultUILabels().Subject)
 }
 
-// BCProjectShow is a project detail breadcrumb (title is shown in the page card).
+// BCSubjectShow is a subject detail breadcrumb (title is shown in the page card).
+func BCSubjectShow(labels SubjectUILabels) []Breadcrumb {
+	return []Breadcrumb{crumb(labels.Plural, PathSubjects)}
+}
+
+// BCProjectShow is a deprecated alias for BCSubjectShow.
 func BCProjectShow() []Breadcrumb {
-	return []Breadcrumb{crumb("Projets", PathProjects)}
+	return BCSubjectShow(DefaultUILabels().Subject)
 }
 
-// BCProjectEdit is the edit project form breadcrumb.
+// BCSubjectEdit is the edit subject form breadcrumb.
+func BCSubjectEdit(name string, id int64, labels SubjectUILabels) []Breadcrumb {
+	return []Breadcrumb{crumb(labels.Plural, PathSubjects), crumb(name, subjectPath(id)), current("Modifier")}
+}
+
+// BCProjectEdit is a deprecated alias for BCSubjectEdit.
 func BCProjectEdit(name string, id int64) []Breadcrumb {
-	return []Breadcrumb{crumb("Projets", PathProjects), crumb(name, projectPath(id)), current("Modifier")}
+	return BCSubjectEdit(name, id, DefaultUILabels().Subject)
 }
 
 // BCRunShow is a run detail breadcrumb.
@@ -119,26 +188,31 @@ func BCRunItemShow(runTitle string, runID int64, itemLabel string) []Breadcrumb 
 	return []Breadcrumb{crumb("Revues", PathRevues), crumb(runTitle, runPath(runID)), current(itemLabel)}
 }
 
-// BCRunWizardProjects is run wizard step 1.
-func BCRunWizardProjects() []Breadcrumb {
+// BCRunWizardSubjects is run wizard step 1.
+func BCRunWizardSubjects() []Breadcrumb {
 	return []Breadcrumb{crumb("Revues", PathRevues), current("Lancer une revue")}
 }
 
-// BCRunWizardTemplates is run wizard step 2 (project already chosen).
-func BCRunWizardTemplates(projectName string, projectID int64) []Breadcrumb {
+// BCRunWizardProjects is a deprecated alias for BCRunWizardSubjects.
+func BCRunWizardProjects() []Breadcrumb {
+	return BCRunWizardSubjects()
+}
+
+// BCRunWizardTemplates is run wizard step 2 (subject already chosen).
+func BCRunWizardTemplates(subjectName string, subjectID int64) []Breadcrumb {
 	return []Breadcrumb{
 		crumb("Revues", PathRevues),
-		crumb(projectName, projectPath(projectID)),
+		crumb(subjectName, subjectPath(subjectID)),
 		current("Lancer"),
 	}
 }
 
 // BCRunWizardLaunch is run wizard step 3 (confirm title and launch).
-func BCRunWizardLaunch(projectName string, projectID int64, templateName string, version, itemCount int) []Breadcrumb {
+func BCRunWizardLaunch(subjectName string, subjectID int64, templateName string, version, itemCount int) []Breadcrumb {
 	return []Breadcrumb{
 		crumb("Revues", PathRevues),
-		crumb(projectName, projectPath(projectID)),
-		crumb("Lancer", ProjectTemplatesForRunPath(projectID)),
+		crumb(subjectName, subjectPath(subjectID)),
+		crumb("Lancer", SubjectTemplatesForRunPath(subjectID)),
 		current(runLaunchTemplateLabel(templateName, version, itemCount)),
 	}
 }
@@ -178,55 +252,89 @@ func BCTemplateNotionImportGlobal() []Breadcrumb {
 	return []Breadcrumb{crumb("Modèles", PathTemplates), current("Importer depuis Notion")}
 }
 
-// BCProjectTemplatesList is a project's template list breadcrumb.
+// BCSubjectTemplatesList is a subject's template list breadcrumb.
+func BCSubjectTemplatesList(subjectName string, subjectID int64, labels SubjectUILabels) []Breadcrumb {
+	return []Breadcrumb{crumb(labels.Plural, PathSubjects), crumb(subjectName, subjectPath(subjectID)), current("Modèles")}
+}
+
+// BCProjectTemplatesList is a deprecated alias for BCSubjectTemplatesList.
 func BCProjectTemplatesList(projectName string, projectID int64) []Breadcrumb {
-	return []Breadcrumb{crumb("Projets", PathProjects), crumb(projectName, projectPath(projectID)), current("Modèles")}
+	return BCSubjectTemplatesList(projectName, projectID, DefaultUILabels().Subject)
 }
 
 // BCTemplateNew is the create template form breadcrumb.
-func BCTemplateNew(projectName string, projectID int64) []Breadcrumb {
+func BCTemplateNew(subjectName string, subjectID int64, labels SubjectUILabels) []Breadcrumb {
 	return []Breadcrumb{
-		crumb("Projets", PathProjects),
-		crumb(projectName, projectPath(projectID)),
-		crumb("Modèles", projectTemplatesPath(projectID)),
+		crumb(labels.Plural, PathSubjects),
+		crumb(subjectName, subjectPath(subjectID)),
+		crumb("Modèles", subjectModelesPath(subjectID)),
 		current("Nouveau"),
 	}
 }
 
 // BCTemplateShow is a template detail breadcrumb.
-func BCTemplateShow(projectName string, projectID int64, templateName string) []Breadcrumb {
+func BCTemplateShow(subjectName string, subjectID int64, templateName string, labels SubjectUILabels) []Breadcrumb {
 	return []Breadcrumb{
-		crumb("Projets", PathProjects),
-		crumb(projectName, projectPath(projectID)),
-		crumb("Modèles", projectTemplatesPath(projectID)),
+		crumb(labels.Plural, PathSubjects),
+		crumb(subjectName, subjectPath(subjectID)),
+		crumb("Modèles", subjectModelesPath(subjectID)),
 		current(templateName),
 	}
 }
 
 // BCTemplateEdit is the edit template form breadcrumb.
-func BCTemplateEdit(projectName string, projectID int64, templateName string, templateID int64) []Breadcrumb {
+func BCTemplateEdit(subjectName string, subjectID int64, templateName string, templateID int64, labels SubjectUILabels) []Breadcrumb {
 	return []Breadcrumb{
-		crumb("Projets", PathProjects),
-		crumb(projectName, projectPath(projectID)),
-		crumb("Modèles", projectTemplatesPath(projectID)),
-		crumb(templateName, templatePath(projectID, templateID)),
+		crumb(labels.Plural, PathSubjects),
+		crumb(subjectName, subjectPath(subjectID)),
+		crumb("Modèles", subjectModelesPath(subjectID)),
+		crumb(templateName, templatePath(subjectID, templateID)),
 		current("Modifier"),
 	}
 }
 
 // BCTemplateNotionImport is the Notion import wizard breadcrumb.
-func BCTemplateNotionImport(projectName string, projectID int64) []Breadcrumb {
+func BCTemplateNotionImport(subjectName string, subjectID int64, labels SubjectUILabels) []Breadcrumb {
 	return []Breadcrumb{
-		crumb("Projets", PathProjects),
-		crumb(projectName, projectPath(projectID)),
-		crumb("Modèles", projectTemplatesPath(projectID)),
+		crumb(labels.Plural, PathSubjects),
+		crumb(subjectName, subjectPath(subjectID)),
+		crumb("Modèles", subjectModelesPath(subjectID)),
 		current("Importer depuis Notion"),
 	}
 }
 
-// BCAdminUsers is the admin users page breadcrumb.
+// BCAdminOrgHub is the organisation admin landing page breadcrumb.
+func BCAdminOrgHub() []Breadcrumb {
+	return []Breadcrumb{current("Organisation")}
+}
+
+// BCAdminSubjectLabels is the org subject label preset breadcrumb.
+func BCAdminSubjectLabels(labels SubjectUILabels) []Breadcrumb {
+	return []Breadcrumb{crumb("Organisation", PathAdminOrg), current("Libellé " + LowerFirst(labels.Singular))}
+}
+
+// BCAdminSubjects is the org admin subjects list breadcrumb.
+func BCAdminSubjects(labels SubjectUILabels) []Breadcrumb {
+	return []Breadcrumb{crumb("Organisation", PathAdminOrg), current(labels.Plural)}
+}
+
+// BCAdminSubjectNew is the create subject form breadcrumb under Organisation.
+func BCAdminSubjectNew(labels SubjectUILabels) []Breadcrumb {
+	return []Breadcrumb{crumb("Organisation", PathAdminOrg), crumb(labels.Plural, PathAdminSubjects), current("Nouveau")}
+}
+
+// BCAdminSubjectEdit is the edit subject form breadcrumb under Organisation.
+func BCAdminSubjectEdit(name string, id int64, labels SubjectUILabels) []Breadcrumb {
+	return []Breadcrumb{
+		crumb("Organisation", PathAdminOrg),
+		crumb(labels.Plural, PathAdminSubjects),
+		crumb(name, subjectPath(id)),
+		current("Modifier"),
+	}
+}
+
 func BCAdminUsers() []Breadcrumb {
-	return []Breadcrumb{crumb("Admin", PathAdmin), current("Emails autorisés")}
+	return []Breadcrumb{crumb("Organisation", PathAdminOrg), current("Emails autorisés")}
 }
 
 // BCAdminIntegrations is the admin integrations overview breadcrumb.

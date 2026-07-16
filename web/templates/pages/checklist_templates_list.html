@@ -5,18 +5,26 @@
   {{if .Message}}<p class="success" role="status">{{.Message}}</p>{{end}}
   {{if .Error}}<p class="error" role="alert">{{.Error}}</p>{{end}}
   {{if .ForRun}}
-  <p class="muted">Projet <strong>{{.Project.Name}}</strong> — choisissez un modèle de revue.</p>
+  <p class="muted">{{.Labels.Subject.Singular}} <strong>{{.Subject.Name}}</strong> — choisissez un modèle de revue.</p>
+  {{if .SelectedTemplateName}}
+    {{if .SelectedTemplateCompatible}}
+    <p class="muted">Modèle <strong>{{.SelectedTemplateName}}</strong> présélectionné.</p>
+    {{else}}
+    <p class="muted">Le modèle <strong>{{.SelectedTemplateName}}</strong> n'est pas compatible avec les domaines de ce {{.Labels.Subject.Singular | lowerFirst}}.</p>
+    {{end}}
+  {{end}}
   {{else}}
   <h2>Modèles compatibles</h2>
-  <p class="muted">Modèles compatibles avec les tags de ce projet (lecture seule). Gérez les modèles depuis l'onglet <a href="/modeles">Modèles</a>.</p>
+  <p class="muted">Modèles compatibles avec les domaines de ce {{.Labels.Subject.Singular | lowerFirst}} (lecture seule). Gérez les modèles depuis l'onglet <a href="/modeles">Modèles</a>.</p>
   {{end}}
 
   <div class="list-toolbar">
-    <form method="get" action="/projects/{{.Project.ID}}/templates" class="list-toolbar__form filter-form filter-form--inline">
+    <form method="get" action="/subjects/{{.Subject.ID}}/modeles" class="list-toolbar__form filter-form filter-form--inline">
       {{if .ForRun}}<input type="hidden" name="for_run" value="1">{{end}}
-      <input class="list-toolbar__search toolbar-control" type="search" id="filter-query" name="q" value="{{.FilterQuery}}" placeholder="Rechercher un modèle ou un tag…" aria-label="Rechercher un modèle ou un tag">
+      {{if .SelectedTemplateID}}<input type="hidden" name="template" value="{{.SelectedTemplateID}}">{{end}}
+      <input class="list-toolbar__search toolbar-control" type="search" id="filter-query" name="q" value="{{.FilterQuery}}" placeholder="Rechercher un modèle ou un domaine…" aria-label="Rechercher un modèle ou un domaine">
       <button type="submit" class="button-secondary toolbar-control">Filtrer</button>
-      {{if .HasActiveFilters}}<a href="/projects/{{.Project.ID}}/templates{{if .ForRun}}?for_run=1{{end}}" class="button-ghost toolbar-control">Effacer</a>{{end}}
+      {{if .HasActiveFilters}}<a href="{{subjectModelesListPath .Subject.ID .ForRun .SelectedTemplateID}}" class="button-ghost toolbar-control">Effacer</a>{{end}}
     </form>
   </div>
 
@@ -24,19 +32,23 @@
   <div class="table-scroll">
   <table class="data-table">
     <thead>
-      <tr><th scope="col">Nom</th><th scope="col">Tags</th><th scope="col" class="data-table__col--center">Version</th><th scope="col" class="data-table__col--center">Points</th></tr>
+      <tr><th scope="col">Nom</th><th scope="col">Domaines</th><th scope="col" class="data-table__col--center">Version</th><th scope="col" class="data-table__col--center">Points</th></tr>
     </thead>
     <tbody>
       {{range .Templates}}
-      <tr>
+      <tr{{if and $.ForRun $.SelectedTemplateCompatible (eq .ID $.SelectedTemplateID)}} aria-current="true"{{end}}>
         <td>
           {{if $.ForRun}}
-          <a href="/runs/new/projects/{{$.Project.ID}}/templates/{{.ID}}">{{.Name}}</a>
+          <form method="post" action="/subjects/{{$.Subject.ID}}/revues" class="inline-form">
+            <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
+            <input type="hidden" name="template_id" value="{{.ID}}">
+            <button type="submit" class="link-button">{{.Name}}</button>
+          </form>
           {{else}}
           <a href="/modeles/{{.ID}}">{{.Name}}</a>
           {{end}}
         </td>
-        <td>{{if .Tags}}{{range $i, $tag := .Tags}}{{if $i}}, {{end}}<span class="tag">{{$tag}}</span>{{end}}{{else}}<span class="muted">tous projets</span>{{end}}</td>
+        <td>{{if .Tags}}{{range $i, $tag := .Tags}}{{if $i}}, {{end}}<span class="tag">{{$tag}}</span>{{end}}{{else}}<span class="muted">tous {{$.Labels.Subject.Plural | lowerFirst}}</span>{{end}}</td>
         <td class="data-table__col--center">v{{.LatestVersion}}</td>
         <td class="data-table__col--center">{{.ItemCount}}</td>
       </tr>
@@ -45,12 +57,12 @@
   </table>
   </div>
   {{else if .HasActiveFilters}}
-  <p class="muted">Aucun modèle pour cette recherche. <a href="/projects/{{.Project.ID}}/templates{{if .ForRun}}?for_run=1{{end}}">Effacer</a></p>
+  <p class="muted">Aucun modèle pour cette recherche. <a href="{{subjectModelesListPath .Subject.ID .ForRun .SelectedTemplateID}}">Effacer</a></p>
   {{else if .ForRun}}
-  <p class="muted">Aucun modèle actif ne correspond aux tags de ce projet.</p>
+  <p class="muted">Aucun modèle actif ne correspond aux domaines de ce {{.Labels.Subject.Singular | lowerFirst}}.</p>
   <p><a href="/modeles" class="button">Voir les modèles</a></p>
   {{else}}
-  <p class="muted">Aucun modèle actif ne correspond aux tags de ce projet.</p>
+  <p class="muted">Aucun modèle actif ne correspond aux domaines de ce {{.Labels.Subject.Singular | lowerFirst}}.</p>
   {{if .CanManage}}
   <p><a href="/modeles/new" class="button">{{icon "plus"}} Créer un modèle</a></p>
   {{end}}

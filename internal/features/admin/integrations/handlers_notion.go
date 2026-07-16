@@ -93,7 +93,7 @@ func (h *AdminNotion) pageData(r *http.Request) templates.AdminNotionData {
 		PageData:   templates.ApplyPageMeta(h.PageData(r, ""), templates.BCAdminNotion()),
 		CanEncrypt: len(h.EncryptionKey) > 0,
 	}
-	data.ActiveTab = "admin"
+	data.ActiveTab = "org"
 	data.AdminSection = "notion"
 	return data
 }

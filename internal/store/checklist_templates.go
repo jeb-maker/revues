@@ -15,7 +15,6 @@ var ErrChecklistTemplateNotFound = errors.New("checklist template not found")
 type ChecklistTemplate struct {
 	ID             int64
 	OrganizationID int64
-	ProjectID      sql.NullInt64
 	Name           string
 	ArchivedAt     sql.NullString
 	CreatedAt      string
@@ -76,8 +75,8 @@ func (s *Store) CreateChecklistTemplate(ctx context.Context, name string, create
 	}()
 
 	res, err := tx.ExecContext(ctx, `
-		INSERT INTO checklist_templates (project_id, organization_id, name, created_at)
-		VALUES (NULL, ?, ?, ?)
+		INSERT INTO checklist_templates (organization_id, name, created_at)
+		VALUES (?, ?, ?)
 	`, orgID, name, now)
 	if err != nil {
 		return nil, nil, fmt.Errorf("insert checklist template: %w", err)
@@ -88,7 +87,7 @@ func (s *Store) CreateChecklistTemplate(ctx context.Context, name string, create
 		return nil, nil, fmt.Errorf("template id: %w", err)
 	}
 
-	if err = setTemplateTagsTx(ctx, tx, templateID, tags); err != nil {
+	if err = setTemplateDomainsTx(ctx, tx, templateID, tags); err != nil {
 		return nil, nil, err
 	}
 
@@ -118,10 +117,10 @@ func (s *Store) ChecklistTemplateByID(ctx context.Context, id int64) (*Checklist
 
 	var t ChecklistTemplate
 	err = s.db.QueryRowContext(ctx, `
-		SELECT t.id, t.organization_id, t.project_id, t.name, t.archived_at, t.created_at
+		SELECT t.id, t.organization_id, t.name, t.archived_at, t.created_at
 		FROM checklist_templates t
 		WHERE t.id = ? AND t.organization_id = ?
-	`, id, orgID).Scan(&t.ID, &t.OrganizationID, &t.ProjectID, &t.Name, &t.ArchivedAt, &t.CreatedAt)
+	`, id, orgID).Scan(&t.ID, &t.OrganizationID, &t.Name, &t.ArchivedAt, &t.CreatedAt)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrChecklistTemplateNotFound
 	}
@@ -131,8 +130,8 @@ func (s *Store) ChecklistTemplateByID(ctx context.Context, id int64) (*Checklist
 	return &t, nil
 }
 
-// ListChecklistTemplates returns active templates matching a project's tags.
-func (s *Store) ListChecklistTemplates(ctx context.Context, projectID int64) ([]ChecklistTemplateSummary, error) {
+// ListChecklistTemplates returns active templates matching a subject's domains.
+func (s *Store) ListChecklistTemplates(ctx context.Context, subjectID int64) ([]ChecklistTemplateSummary, error) {
 	orgID, err := organizationIDFromContext(ctx)
 	if err != nil {
 		return nil, err
@@ -140,7 +139,7 @@ func (s *Store) ListChecklistTemplates(ctx context.Context, projectID int64) ([]
 
 	rows, err := s.db.QueryContext(ctx, `
 		SELECT
-			t.id, t.organization_id, t.project_id, t.name, t.archived_at, t.created_at,
+			t.id, t.organization_id, t.name, t.archived_at, t.created_at,
 			v.version,
 			COUNT(i.id) AS item_count
 		FROM checklist_templates t
@@ -151,16 +150,16 @@ func (s *Store) ListChecklistTemplates(ctx context.Context, projectID int64) ([]
 			SELECT MAX(v2.version) FROM template_versions v2 WHERE v2.template_id = t.id
 		  )
 		  AND (
-			NOT EXISTS (SELECT 1 FROM template_tags tt WHERE tt.template_id = t.id)
+			NOT EXISTS (SELECT 1 FROM template_domains td WHERE td.template_id = t.id)
 			OR EXISTS (
-				SELECT 1 FROM template_tags tt
-				INNER JOIN project_tags pt ON pt.tag = tt.tag AND pt.project_id = ?
-				WHERE tt.template_id = t.id
+				SELECT 1 FROM template_domains td
+				INNER JOIN subject_domains sd ON sd.tag = td.tag AND sd.subject_id = ?
+				WHERE td.template_id = t.id
 			)
 		  )
-		GROUP BY t.id, t.organization_id, t.project_id, t.name, t.archived_at, t.created_at, v.version
+		GROUP BY t.id, t.organization_id, t.name, t.archived_at, t.created_at, v.version
 		ORDER BY t.name
-	`, orgID, projectID)
+	`, orgID, subjectID)
 	if err != nil {
 		return nil, fmt.Errorf("list checklist templates: %w", err)
 	}
@@ -170,7 +169,7 @@ func (s *Store) ListChecklistTemplates(ctx context.Context, projectID int64) ([]
 	for rows.Next() {
 		var summary ChecklistTemplateSummary
 		if err := rows.Scan(
-			&summary.ID, &summary.OrganizationID, &summary.ProjectID, &summary.Name, &summary.ArchivedAt, &summary.CreatedAt,
+			&summary.ID, &summary.OrganizationID, &summary.Name, &summary.ArchivedAt, &summary.CreatedAt,
 			&summary.LatestVersion, &summary.ItemCount,
 		); err != nil {
 			return nil, fmt.Errorf("scan checklist template: %w", err)
@@ -182,7 +181,7 @@ func (s *Store) ListChecklistTemplates(ctx context.Context, projectID int64) ([]
 	}
 
 	for i := range templates {
-		tags, err := s.ListTemplateTags(ctx, templates[i].ID)
+		tags, err := s.ListTemplateDomains(ctx, templates[i].ID)
 		if err != nil {
 			return nil, err
 		}

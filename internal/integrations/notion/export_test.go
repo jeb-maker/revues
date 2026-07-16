@@ -2,7 +2,6 @@ package notion_test
 
 import (
 	"context"
-	"database/sql"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -42,7 +41,7 @@ func TestExportServiceExportRun(t *testing.T) {
 	lead, _ := storeSt.UpsertGitHubUser(ctx, 1, "lead", "lead@example.com", "Lead", "", "editor")
 	project, _ := storeSt.CreateProject(ctx, "Alpha", "", lead.ID, nil)
 	template, _, _ := storeSt.CreateChecklistTemplate(ctx, "Modèle", lead.ID, nil, []store.TemplateItemInput{{Label: "Backup", Required: true}})
-	run, _ := storeSt.CreateChecklistRun(ctx, project.ID, template.ID, "Revue Q1", lead.ID, sql.NullString{})
+	run, _ := storeSt.CreateChecklistRun(ctx, project.ID, template.ID, lead.ID)
 	_ = storeSt.StartRun(ctx, run.ID)
 	runItems, _ := storeSt.ListRunItems(ctx, run.ID)
 	_ = storeSt.UpdateRunItemStatus(ctx, run.ID, runItems[0].ID, lead.ID, runs.StatusOK, "")
@@ -64,7 +63,7 @@ func TestExportServiceAlreadyExported(t *testing.T) {
 	lead, _ := storeSt.UpsertGitHubUser(ctx, 2, "lead", "lead@example.com", "Lead", "", "editor")
 	project, _ := storeSt.CreateProject(ctx, "Alpha", "", lead.ID, nil)
 	template, _, _ := storeSt.CreateChecklistTemplate(ctx, "Modèle", lead.ID, nil, []store.TemplateItemInput{{Label: "P", Required: true}})
-	run, _ := storeSt.CreateChecklistRun(ctx, project.ID, template.ID, "Revue", lead.ID, sql.NullString{})
+	run, _ := storeSt.CreateChecklistRun(ctx, project.ID, template.ID, lead.ID)
 	_ = storeSt.StartRun(ctx, run.ID)
 	_ = storeSt.CompleteRun(ctx, run.ID, "Note")
 	_ = storeSt.SetRunNotionURL(ctx, run.ID, "https://notion.so/existing")

@@ -43,6 +43,9 @@ linters:
         linters:
           - errcheck
           - noctx
+      - path: cmd/seed/
+        linters:
+          - misspell
       - path: internal/auth/github\.go
         linters:
           - errcheck

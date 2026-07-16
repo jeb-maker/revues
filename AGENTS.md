@@ -46,7 +46,7 @@ Corps PR : Closes #<N>
 ### Sécurité (non négociable)
 
 - RBAC **côté serveur** sur chaque route sensible
-- Contrôle **IDOR** : vérifier appartenance projet/revue
+- Contrôle **IDOR** : vérifier appartenance sujet/revue org active
 - CSRF sur **tous** les POST (y compris HTMX via `hx-headers`)
 - Secrets en variables d'environnement, credentials chiffrés en base
 - Email GitHub **vérifié** avant whitelist
@@ -119,3 +119,4 @@ Contexte durable pour les agents Cloud (l'update script a déjà installé les d
 - **Gatekeeper** : `./scripts/check.sh` lance gofmt, `go vet`, `go test -race`, build, **`go mod tidy` puis échoue si `go.mod`/`go.sum` changent**, et `golangci-lint`. `golangci-lint` (v1.62, comme la CI) doit être sur le `PATH` ; il est installé dans `$(go env GOPATH)/bin`, déjà présent dans le `PATH` du login shell.
 - **Auth / démo locale** : toutes les pages métier sont derrière l'OAuth GitHub. Sans `REVUES_GITHUB_CLIENT_ID`/`REVUES_GITHUB_CLIENT_SECRET`, `/auth/github/start` redirige vers `/login?error=...` et on ne peut pas se connecter via l'UI. Pour exercer les fonctionnalités authentifiées en local sans OAuth : créer un user + session directement en base (réutiliser `store.UpsertGitHubUser` puis `store.CreateSession` avec le hash de `auth.RandomToken`), puis poser le cookie `revues_session`. Le jeton CSRF est dérivé de `session token + REVUES_SESSION_SECRET` et rendu dans les pages (`<meta name="csrf-token">` et champ caché `csrf_token`). `REVUES_BOOTSTRAP_ADMIN_EMAIL` donne le rôle admin au premier login de cet email.
 - **SQLite** : pool `REVUES_DB_MAX_OPEN_CONNS` (défaut 10) + WAL + `busy_timeout`, base `data/revues.db` (gitignored). Accès concurrent (serveur + script de seed) OK grâce au WAL.
+- **Reset base dev** : `./scripts/reset-db.sh` supprime `data/revues.db` ; relancer `go run ./cmd/revues` ou `./scripts/reset-db.sh --seed`. Schéma = une seule migration `00001_initial_schema.sql` (greenfield).

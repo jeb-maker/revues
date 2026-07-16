@@ -15,8 +15,8 @@ const (
 type ActiveRunSummary struct {
 	RunID       int64
 	Title       string
-	ProjectID   int64
-	ProjectName string
+	SubjectID   int64
+	SubjectName string
 	Status      string
 	DueDate     sql.NullString
 	Done        int
@@ -28,8 +28,8 @@ type ActiveRunSummary struct {
 type RunListSummary struct {
 	RunID          int64
 	Title          string
-	ProjectID      int64
-	ProjectName    string
+	SubjectID      int64
+	SubjectName    string
 	Status         string
 	DueDate        sql.NullString
 	CreatedAt      string
@@ -45,8 +45,8 @@ type RunListSummary struct {
 type CompletedRunSummary struct {
 	RunID       int64
 	Title       string
-	ProjectID   int64
-	ProjectName string
+	SubjectID   int64
+	SubjectName string
 	CompletedAt sql.NullString
 	Done        int
 	Total       int
@@ -56,13 +56,14 @@ type CompletedRunSummary struct {
 // RunWithProgress is a run row with item completion stats.
 type RunWithProgress struct {
 	ChecklistRun
-	Done    int
-	Total   int
-	Percent int
+	DisplayLabel string
+	Done         int
+	Total        int
+	Percent      int
 }
 
-// ProjectNokItemSummary is a blocking nok point on an active project run.
-type ProjectNokItemSummary struct {
+// SubjectNokItemSummary is a blocking nok point on an active subject run.
+type SubjectNokItemSummary struct {
 	RunItem
 	RunID    int64
 	RunTitle string
@@ -94,14 +95,14 @@ func (s *Store) ListActiveRunSummaries(ctx context.Context, userID int64, admin 
 	if admin {
 		rows, err = s.queryRows(ctx, activeRunSummariesSQL+`
 		WHERE r.status IN (?, ?) AND p.archived_at IS NULL AND p.organization_id = ?
-		GROUP BY r.id, r.title, r.project_id, p.name, r.due_date, r.status
+		GROUP BY r.id, t.name, r.subject_id, p.name, r.due_date, r.status, r.created_at
 		ORDER BY CASE r.status WHEN ? THEN 0 ELSE 1 END, COALESCE(r.started_at, r.created_at) DESC
 		`, RunStatusDraft, RunStatusInProgress, orgID, RunStatusInProgress)
 	} else {
 		rows, err = s.queryRows(ctx, activeRunSummariesSQL+`
-		INNER JOIN project_members pm ON pm.project_id = p.id AND pm.user_id = ?
+		INNER JOIN organization_members om ON om.organization_id = p.organization_id AND om.user_id = ?
 		WHERE r.status IN (?, ?) AND p.archived_at IS NULL AND p.organization_id = ?
-		GROUP BY r.id, r.title, r.project_id, p.name, r.due_date, r.status
+		GROUP BY r.id, t.name, r.subject_id, p.name, r.due_date, r.status, r.created_at
 		ORDER BY CASE r.status WHEN ? THEN 0 ELSE 1 END, COALESCE(r.started_at, r.created_at) DESC
 		`, userID, RunStatusDraft, RunStatusInProgress, orgID, RunStatusInProgress)
 	}
@@ -129,7 +130,7 @@ func (s *Store) ListFilteredRunSummaries(ctx context.Context, userID int64, admi
 		args = append(args, RunStatusArchived, orgID)
 	} else {
 		sqlQuery += `
-		INNER JOIN project_members pm ON pm.project_id = p.id AND pm.user_id = ?
+		INNER JOIN organization_members om ON om.organization_id = p.organization_id AND om.user_id = ?
 		WHERE r.status != ? AND p.archived_at IS NULL AND p.organization_id = ?`
 		args = append(args, userID, RunStatusArchived, orgID)
 	}
@@ -145,7 +146,7 @@ func (s *Store) ListFilteredRunSummaries(ctx context.Context, userID int64, admi
 	for _, term := range searchTerms(query) {
 		pattern := likeContainsPattern(term)
 		sqlQuery += ` AND (
-			r.title LIKE ? ESCAPE '\'
+			t.name LIKE ? ESCAPE '\'
 			OR p.name LIKE ? ESCAPE '\'
 			OR COALESCE(u.login, '') LIKE ? ESCAPE '\'
 		)`
@@ -153,7 +154,7 @@ func (s *Store) ListFilteredRunSummaries(ctx context.Context, userID int64, admi
 	}
 
 	sqlQuery += `
-		GROUP BY r.id, r.title, r.project_id, p.name, r.status, r.due_date,
+		GROUP BY r.id, t.name, r.subject_id, p.name, r.status, r.due_date,
 		         r.created_at, r.started_at, r.completed_at, u.login
 		ORDER BY COALESCE(r.completed_at, r.started_at, r.created_at) DESC, r.id DESC
 		LIMIT ?`
@@ -179,15 +180,15 @@ func (s *Store) ListRecentCompletedRunSummaries(ctx context.Context, userID int6
 	if admin {
 		rows, err = s.queryRows(ctx, completedRunSummariesSQL+`
 		WHERE r.status = ? AND p.archived_at IS NULL AND p.organization_id = ?
-		GROUP BY r.id, r.title, r.project_id, p.name, r.completed_at
+		GROUP BY r.id, t.name, r.subject_id, p.name, r.completed_at, r.created_at
 		ORDER BY r.completed_at DESC, r.id DESC
 		LIMIT ?
 		`, RunStatusDone, orgID, recentCompletedRunsLimit)
 	} else {
 		rows, err = s.queryRows(ctx, completedRunSummariesSQL+`
-		INNER JOIN project_members pm ON pm.project_id = p.id AND pm.user_id = ?
+		INNER JOIN organization_members om ON om.organization_id = p.organization_id AND om.user_id = ?
 		WHERE r.status = ? AND p.archived_at IS NULL AND p.organization_id = ?
-		GROUP BY r.id, r.title, r.project_id, p.name, r.completed_at
+		GROUP BY r.id, t.name, r.subject_id, p.name, r.completed_at, r.created_at
 		ORDER BY r.completed_at DESC, r.id DESC
 		LIMIT ?
 		`, userID, RunStatusDone, orgID, recentCompletedRunsLimit)
@@ -201,31 +202,37 @@ func (s *Store) ListRecentCompletedRunSummaries(ctx context.Context, userID int6
 }
 
 const activeRunSummariesSQL = `
-	SELECT r.id, r.title, r.project_id, p.name, r.due_date, r.status,
+	SELECT r.id, t.name, r.subject_id, p.name, r.due_date, r.status, r.created_at,
 	       COUNT(ri.id) AS total,
 	       SUM(CASE WHEN ri.status IN ('ok', 'na') THEN 1 ELSE 0 END) AS done
 	FROM checklist_runs r
-	INNER JOIN projects p ON p.id = r.project_id
+	INNER JOIN subjects p ON p.id = r.subject_id
+	INNER JOIN template_versions tv ON tv.id = r.template_version_id
+	INNER JOIN checklist_templates t ON t.id = tv.template_id
 	INNER JOIN run_items ri ON ri.run_id = r.id
 `
 
 const runListSummariesSQL = `
-	SELECT r.id, r.title, r.project_id, p.name, r.status, r.due_date,
+	SELECT r.id, t.name, r.subject_id, p.name, r.status, r.due_date,
 	       r.created_at, r.started_at, r.completed_at, u.login,
 	       COUNT(ri.id) AS total,
 	       SUM(CASE WHEN ri.status IN ('ok', 'na') THEN 1 ELSE 0 END) AS done
 	FROM checklist_runs r
-	INNER JOIN projects p ON p.id = r.project_id
+	INNER JOIN subjects p ON p.id = r.subject_id
+	INNER JOIN template_versions tv ON tv.id = r.template_version_id
+	INNER JOIN checklist_templates t ON t.id = tv.template_id
 	LEFT JOIN users u ON u.id = r.created_by
 	LEFT JOIN run_items ri ON ri.run_id = r.id
 `
 
 const completedRunSummariesSQL = `
-	SELECT r.id, r.title, r.project_id, p.name, r.completed_at,
+	SELECT r.id, t.name, r.subject_id, p.name, r.completed_at, r.created_at,
 	       COUNT(ri.id) AS total,
 	       SUM(CASE WHEN ri.status IN ('ok', 'na') THEN 1 ELSE 0 END) AS done
 	FROM checklist_runs r
-	INNER JOIN projects p ON p.id = r.project_id
+	INNER JOIN subjects p ON p.id = r.subject_id
+	INNER JOIN template_versions tv ON tv.id = r.template_version_id
+	INNER JOIN checklist_templates t ON t.id = tv.template_id
 	LEFT JOIN run_items ri ON ri.run_id = r.id
 `
 
@@ -237,13 +244,16 @@ func scanRunListSummaries(rows interface {
 	var summaries []RunListSummary
 	for rows.Next() {
 		var summary RunListSummary
+		var templateName, createdAt string
 		if err := rows.Scan(
-			&summary.RunID, &summary.Title, &summary.ProjectID, &summary.ProjectName, &summary.Status, &summary.DueDate,
-			&summary.CreatedAt, &summary.StartedAt, &summary.CompletedAt, &summary.CreatedByLogin,
+			&summary.RunID, &templateName, &summary.SubjectID, &summary.SubjectName, &summary.Status, &summary.DueDate,
+			&createdAt, &summary.StartedAt, &summary.CompletedAt, &summary.CreatedByLogin,
 			&summary.Total, &summary.Done,
 		); err != nil {
 			return nil, fmt.Errorf("scan run list summary: %w", err)
 		}
+		summary.Title = RunDisplayLabel(templateName, summary.SubjectName, createdAt, summary.RunID)
+		summary.CreatedAt = createdAt
 		summary.Percent = progressPercent(summary.Done, summary.Total)
 		summaries = append(summaries, summary)
 	}
@@ -261,12 +271,14 @@ func scanActiveRunSummaries(rows interface {
 	var summaries []ActiveRunSummary
 	for rows.Next() {
 		var summary ActiveRunSummary
+		var templateName, createdAt string
 		if err := rows.Scan(
-			&summary.RunID, &summary.Title, &summary.ProjectID, &summary.ProjectName, &summary.DueDate, &summary.Status,
+			&summary.RunID, &templateName, &summary.SubjectID, &summary.SubjectName, &summary.DueDate, &summary.Status, &createdAt,
 			&summary.Total, &summary.Done,
 		); err != nil {
 			return nil, fmt.Errorf("scan active run summary: %w", err)
 		}
+		summary.Title = RunDisplayLabel(templateName, summary.SubjectName, createdAt, summary.RunID)
 		summary.Percent = progressPercent(summary.Done, summary.Total)
 		summaries = append(summaries, summary)
 	}
@@ -284,12 +296,14 @@ func scanCompletedRunSummaries(rows interface {
 	var summaries []CompletedRunSummary
 	for rows.Next() {
 		var summary CompletedRunSummary
+		var templateName, createdAt string
 		if err := rows.Scan(
-			&summary.RunID, &summary.Title, &summary.ProjectID, &summary.ProjectName, &summary.CompletedAt,
+			&summary.RunID, &templateName, &summary.SubjectID, &summary.SubjectName, &summary.CompletedAt, &createdAt,
 			&summary.Total, &summary.Done,
 		); err != nil {
 			return nil, fmt.Errorf("scan completed run summary: %w", err)
 		}
+		summary.Title = RunDisplayLabel(templateName, summary.SubjectName, createdAt, summary.RunID)
 		summary.Percent = progressPercent(summary.Done, summary.Total)
 		summaries = append(summaries, summary)
 	}
@@ -299,20 +313,24 @@ func scanCompletedRunSummaries(rows interface {
 	return summaries, nil
 }
 
-// ListRunsWithProgressByProject returns non-archived runs with completion stats.
-func (s *Store) ListRunsWithProgressByProject(ctx context.Context, projectID int64) ([]RunWithProgress, error) {
+// ListRunsWithProgressBySubject returns non-archived runs with completion stats.
+func (s *Store) ListRunsWithProgressBySubject(ctx context.Context, subjectID int64) ([]RunWithProgress, error) {
 	rows, err := s.db.QueryContext(ctx, `
-		SELECT r.id, r.project_id, r.template_version_id, r.title, r.status, r.due_date, r.closing_note,
+		SELECT r.id, r.subject_id, r.template_version_id, r.status, r.due_date, r.closing_note,
 		       r.created_by, r.started_at, r.completed_at, r.notion_url, r.created_at,
+		       t.name, p.name,
 		       COUNT(ri.id) AS total,
 		       SUM(CASE WHEN ri.status IN ('ok', 'na') THEN 1 ELSE 0 END) AS done
 		FROM checklist_runs r
+		INNER JOIN subjects p ON p.id = r.subject_id
+		INNER JOIN template_versions tv ON tv.id = r.template_version_id
+		INNER JOIN checklist_templates t ON t.id = tv.template_id
 		LEFT JOIN run_items ri ON ri.run_id = r.id
-		WHERE r.project_id = ? AND r.status != ?
-		GROUP BY r.id, r.project_id, r.template_version_id, r.title, r.status, r.due_date, r.closing_note,
-		         r.created_by, r.started_at, r.completed_at, r.notion_url, r.created_at
+		WHERE r.subject_id = ? AND r.status != ?
+		GROUP BY r.id, r.subject_id, r.template_version_id, r.status, r.due_date, r.closing_note,
+		         r.created_by, r.started_at, r.completed_at, r.notion_url, r.created_at, t.name, p.name
 		ORDER BY r.created_at DESC
-	`, projectID, RunStatusArchived)
+	`, subjectID, RunStatusArchived)
 	if err != nil {
 		return nil, fmt.Errorf("list runs with progress: %w", err)
 	}
@@ -321,13 +339,16 @@ func (s *Store) ListRunsWithProgressByProject(ctx context.Context, projectID int
 	var runs []RunWithProgress
 	for rows.Next() {
 		var run RunWithProgress
+		var templateName, subjectName string
 		if err := rows.Scan(
-			&run.ID, &run.ProjectID, &run.TemplateVersionID, &run.Title, &run.Status, &run.DueDate, &run.ClosingNote,
+			&run.ID, &run.SubjectID, &run.TemplateVersionID, &run.Status, &run.DueDate, &run.ClosingNote,
 			&run.CreatedBy, &run.StartedAt, &run.CompletedAt, &run.NotionURL, &run.CreatedAt,
+			&templateName, &subjectName,
 			&run.Total, &run.Done,
 		); err != nil {
 			return nil, fmt.Errorf("scan run with progress: %w", err)
 		}
+		run.DisplayLabel = RunDisplayLabel(templateName, subjectName, run.CreatedAt, run.ID)
 		run.Percent = progressPercent(run.Done, run.Total)
 		runs = append(runs, run)
 	}
@@ -337,36 +358,42 @@ func (s *Store) ListRunsWithProgressByProject(ctx context.Context, projectID int
 	return runs, nil
 }
 
-// ListProjectNokItems returns nok points on in-progress runs for a project.
-func (s *Store) ListProjectNokItems(ctx context.Context, projectID int64) ([]ProjectNokItemSummary, error) {
+// ListSubjectNokItems returns nok points on in-progress runs for a subject.
+func (s *Store) ListSubjectNokItems(ctx context.Context, subjectID int64) ([]SubjectNokItemSummary, error) {
 	rows, err := s.db.QueryContext(ctx, `
 		SELECT ri.id, ri.run_id, ri.source_item_id, ri.section, ri.position, ri.label, ri.help_text, ri.required,
 		       ri.status, ri.comment, ri.assigned_to, u.login, ri.updated_at,
-		       r.title
+		       t.name, p.name, r.created_at, r.id
 		FROM run_items ri
 		INNER JOIN checklist_runs r ON r.id = ri.run_id
+		INNER JOIN subjects p ON p.id = r.subject_id
+		INNER JOIN template_versions tv ON tv.id = r.template_version_id
+		INNER JOIN checklist_templates t ON t.id = tv.template_id
 		LEFT JOIN users u ON u.id = ri.assigned_to
-		WHERE r.project_id = ? AND r.status = ? AND ri.status = 'nok'
+		WHERE r.subject_id = ? AND r.status = ? AND ri.status = 'nok'
 		ORDER BY r.created_at DESC, ri.position
-	`, projectID, RunStatusInProgress)
+	`, subjectID, RunStatusInProgress)
 	if err != nil {
-		return nil, fmt.Errorf("list project nok items: %w", err)
+		return nil, fmt.Errorf("list subject nok items: %w", err)
 	}
 	defer rows.Close()
 
-	var items []ProjectNokItemSummary
+	var items []SubjectNokItemSummary
 	for rows.Next() {
-		var item ProjectNokItemSummary
+		var item SubjectNokItemSummary
 		var required int
 		var assignedLogin sql.NullString
+		var templateName, subjectName, createdAt string
+		var runID int64
 		if err := rows.Scan(
 			&item.ID, &item.RunID, &item.SourceItemID, &item.Section, &item.Position,
 			&item.Label, &item.HelpText, &required, &item.Status, &item.Comment,
 			&item.AssignedTo, &assignedLogin, &item.UpdatedAt,
-			&item.RunTitle,
+			&templateName, &subjectName, &createdAt, &runID,
 		); err != nil {
-			return nil, fmt.Errorf("scan project nok item: %w", err)
+			return nil, fmt.Errorf("scan subject nok item: %w", err)
 		}
+		item.RunTitle = RunDisplayLabel(templateName, subjectName, createdAt, runID)
 		item.Required = required == 1
 		if assignedLogin.Valid {
 			item.AssignedLogin = assignedLogin.String
@@ -374,9 +401,19 @@ func (s *Store) ListProjectNokItems(ctx context.Context, projectID int64) ([]Pro
 		items = append(items, item)
 	}
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("iterate project nok items: %w", err)
+		return nil, fmt.Errorf("iterate subject nok items: %w", err)
 	}
 	return items, nil
+}
+
+type ProjectNokItemSummary = SubjectNokItemSummary // deprecated alias for tests
+
+func (s *Store) ListRunsWithProgressByProject(ctx context.Context, subjectID int64) ([]RunWithProgress, error) {
+	return s.ListRunsWithProgressBySubject(ctx, subjectID)
+}
+
+func (s *Store) ListProjectNokItems(ctx context.Context, subjectID int64) ([]ProjectNokItemSummary, error) {
+	return s.ListSubjectNokItems(ctx, subjectID)
 }
 
 // ListTemplateIndex returns all active templates for the global catalog.
@@ -391,7 +428,7 @@ func (s *Store) ListTemplateIndex(ctx context.Context, userID int64, admin bool,
 
 	sqlQuery := `
 		SELECT
-			t.id, t.organization_id, t.project_id, t.name, t.archived_at, t.created_at,
+			t.id, t.organization_id, t.name, t.archived_at, t.created_at,
 			v.version,
 			COUNT(i.id) AS item_count
 		FROM checklist_templates t
@@ -408,15 +445,15 @@ func (s *Store) ListTemplateIndex(ctx context.Context, userID int64, admin bool,
 		sqlQuery += ` AND (
 			t.name LIKE ? ESCAPE '\'
 			OR EXISTS (
-				SELECT 1 FROM template_tags tt
-				WHERE tt.template_id = t.id AND tt.tag LIKE ? ESCAPE '\'
+				SELECT 1 FROM template_domains td
+				WHERE td.template_id = t.id AND td.tag LIKE ? ESCAPE '\'
 			)
 		)`
 		args = append(args, pattern, pattern)
 	}
 
 	sqlQuery += `
-		GROUP BY t.id, t.organization_id, t.project_id, t.name, t.archived_at, t.created_at, v.version
+		GROUP BY t.id, t.organization_id, t.name, t.archived_at, t.created_at, v.version
 		ORDER BY t.name`
 
 	rows, err := s.queryRows(ctx, sqlQuery, args...)
@@ -429,7 +466,7 @@ func (s *Store) ListTemplateIndex(ctx context.Context, userID int64, admin bool,
 	for rows.Next() {
 		var row TemplateIndexRow
 		if err := rows.Scan(
-			&row.ID, &row.OrganizationID, &row.ProjectID, &row.Name, &row.ArchivedAt, &row.CreatedAt,
+			&row.ID, &row.OrganizationID, &row.Name, &row.ArchivedAt, &row.CreatedAt,
 			&row.LatestVersion, &row.ItemCount,
 		); err != nil {
 			return nil, fmt.Errorf("scan template index row: %w", err)
@@ -441,7 +478,7 @@ func (s *Store) ListTemplateIndex(ctx context.Context, userID int64, admin bool,
 	}
 
 	for i := range templates {
-		tags, err := s.ListTemplateTags(ctx, templates[i].ID)
+		tags, err := s.ListTemplateDomains(ctx, templates[i].ID)
 		if err != nil {
 			return nil, err
 		}

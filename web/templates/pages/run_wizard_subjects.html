@@ -1,0 +1,53 @@
+{{define "run_wizard_subjects"}}
+{{template "layout_start" .}}
+<div class="card">
+  <p class="muted">Choisissez un {{.Labels.Subject.Singular | lowerFirst}} ou créez-en un pour lancer la revue.</p>
+  {{if .Message}}<p class="success" role="status">{{.Message}}</p>{{end}}
+  {{if .Error}}<p class="error" role="alert">{{.Error}}</p>{{end}}
+
+  <div class="list-toolbar">
+    <form method="get" action="/revues/nouvelle" class="list-toolbar__form filter-form filter-form--inline">
+      {{if .SelectedTemplateID}}<input type="hidden" name="template" value="{{.SelectedTemplateID}}">{{end}}
+      <input class="list-toolbar__search toolbar-control" type="search" id="filter-query" name="q" value="{{.FilterQuery}}" placeholder="Rechercher un {{.Labels.Subject.Singular | lowerFirst}}…" aria-label="Rechercher un {{.Labels.Subject.Singular | lowerFirst}}">
+      <button type="submit" class="button-secondary toolbar-control">Filtrer</button>
+      {{if .FilterQuery}}<a href="{{runWizardPath .SelectedTemplateID}}" class="button-ghost toolbar-control">Effacer</a>{{end}}
+    </form>
+  </div>
+
+  {{if .Subjects}}
+  <ul class="item-list">
+    {{range .Subjects}}
+    <li><a href="{{subjectTemplatesForRunPath .ID $.SelectedTemplateID}}">{{.Name}}</a></li>
+    {{end}}
+  </ul>
+  {{else if .FilterQuery}}
+  <p class="muted">Aucun {{.Labels.Subject.Singular | lowerFirst}} pour cette recherche. <a href="{{runWizardPath .SelectedTemplateID}}">Effacer</a></p>
+  {{else}}
+  <div class="empty-state">
+    <p><strong>Aucun {{.Labels.Subject.Singular | lowerFirst}} disponible</strong></p>
+    <p class="muted">Créez un {{.Labels.Subject.Singular | lowerFirst}} ci-dessous pour lancer une revue.</p>
+  </div>
+  {{end}}
+
+  <form method="post" action="/revues/nouvelle" class="stack-form">
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+    {{if .SelectedTemplateID}}<input type="hidden" name="template" value="{{.SelectedTemplateID}}">{{end}}
+    <label>
+      Nouveau {{.Labels.Subject.Singular | lowerFirst}}
+      <input type="text" name="name" required maxlength="200" placeholder="Nom du {{.Labels.Subject.Singular | lowerFirst}}">
+    </label>
+    <details class="stack-form">
+      <summary>Options avancées</summary>
+      <label>
+        Domaines
+        <span class="field-hint">Séparez par des virgules. Facultatif — filtre les modèles proposés à l'étape suivante.</span>
+        <input type="text" name="domains" maxlength="500" placeholder="web, api">
+      </label>
+    </details>
+    <div class="form-actions">
+      <button type="submit" class="button">{{icon "plus"}} Créer et continuer</button>
+    </div>
+  </form>
+</div>
+{{template "layout_end" .}}
+{{end}}

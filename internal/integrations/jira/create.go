@@ -33,7 +33,7 @@ type CreateInput struct {
 
 // RunItemContext provides metadata for pre-filled issue content.
 type RunItemContext struct {
-	ProjectName string
+	SubjectName string
 	RunTitle    string
 	ItemURL     string
 }
@@ -46,8 +46,8 @@ func DefaultIssueContent(item *store.RunItem, ctx RunItemContext) (title, descri
 	}
 
 	var lines []string
-	if ctx.ProjectName != "" {
-		lines = append(lines, "Projet : "+ctx.ProjectName)
+	if ctx.SubjectName != "" {
+		lines = append(lines, "Sujet : "+ctx.SubjectName)
 	}
 	if ctx.RunTitle != "" {
 		lines = append(lines, "Revue : "+ctx.RunTitle)

@@ -1,6 +1,7 @@
 package store_test
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/jeb-maker/revues/internal/auth"
@@ -30,7 +31,7 @@ func TestListRunExportRows(t *testing.T) {
 	if len(rows) != 2 {
 		t.Fatalf("len(rows) = %d, want 2", len(rows))
 	}
-	if rows[0].ProjectName != "P" || rows[0].RunTitle != "Revue" {
+	if rows[0].SubjectName != "P" || !strings.Contains(rows[0].RunTitle, "Modèle") {
 		t.Fatalf("first row metadata = %+v", rows[0])
 	}
 	if rows[0].PointLabel != "Point 1" || rows[0].Status != runs.StatusOK || rows[0].AuthorLogin != "checker" {

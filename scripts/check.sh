@@ -91,8 +91,8 @@ fi
 # 4. Cohérence schéma
 # ---------------------------------------------------------------------------
 step "Vérification tables canoniques"
-for table in users sessions allowed_emails projects project_members \
-  checklist_templates template_versions template_items \
+for table in users sessions allowed_emails subjects subject_tags subject_domains \
+  checklist_templates template_domains template_versions template_items \
   checklist_runs run_items run_item_events; do
   grep -q "CREATE TABLE ${table}" docs/schema/canonical.sql || fail "Table manquante : $table"
 done

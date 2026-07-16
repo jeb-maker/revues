@@ -15,7 +15,7 @@
   {{if .Message}}<p class="success" role="status">{{.Message}}</p>{{end}}
   <div class="list-toolbar">
     <form method="get" action="/modeles" class="list-toolbar__form filter-form filter-form--inline">
-      <input class="list-toolbar__search toolbar-control" type="search" id="filter-query" name="q" value="{{.FilterQuery}}" placeholder="Rechercher un modèle ou un tag…" aria-label="Rechercher un modèle ou un tag">
+      <input class="list-toolbar__search toolbar-control" type="search" id="filter-query" name="q" value="{{.FilterQuery}}" placeholder="Rechercher un modèle ou un domaine…" aria-label="Rechercher un modèle ou un domaine">
       <button type="submit" class="button-secondary toolbar-control">Filtrer</button>
       {{if .HasActiveFilters}}<a href="/modeles" class="button-ghost toolbar-control">Effacer</a>{{end}}
     </form>
@@ -27,14 +27,14 @@
   <div class="table-scroll">
   <table class="data-table table-sticky">
     <thead>
-      <tr><th scope="col">Modèle</th><th scope="col">Tags</th><th scope="col" class="data-table__col--center">Version</th><th scope="col" class="data-table__col--center">Points</th></tr>
+      <tr><th scope="col">Modèle</th><th scope="col">Domaines</th><th scope="col" class="data-table__col--center">Version</th><th scope="col" class="data-table__col--center">Points</th></tr>
     </thead>
     <tbody>
       {{if .Templates}}
       {{range .Templates}}
       <tr>
         <td><a href="/modeles/{{.ID}}">{{.Name}}</a></td>
-        <td>{{if .Tags}}{{range $i, $tag := .Tags}}{{if $i}}, {{end}}<span class="tag">{{$tag}}</span>{{end}}{{else}}<span class="muted">tous projets</span>{{end}}</td>
+        <td>{{if .Tags}}{{range $i, $tag := .Tags}}{{if $i}}, {{end}}<span class="tag">{{$tag}}</span>{{end}}{{else}}<span class="muted">tous {{$.Labels.Subject.Plural | lowerFirst}}</span>{{end}}</td>
         <td class="data-table__col--center">v{{.LatestVersion}}</td>
         <td class="data-table__col--center">{{.ItemCount}}</td>
       </tr>

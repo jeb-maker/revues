@@ -2,10 +2,10 @@ package store_test
 
 import (
 	"context"
-	"database/sql"
 	"errors"
-	"github.com/jeb-maker/revues/internal/testutil"
 	"testing"
+
+	"github.com/jeb-maker/revues/internal/testutil"
 
 	"github.com/jeb-maker/revues/internal/auth"
 	runs "github.com/jeb-maker/revues/internal/features/runs"
@@ -34,7 +34,7 @@ func setupInProgressRun(t *testing.T) (context.Context, *store.Store, *store.Che
 	if err != nil {
 		t.Fatalf("CreateChecklistTemplate(): %v", err)
 	}
-	run, err := st.CreateChecklistRun(ctx, project.ID, template.ID, "Revue", lead.ID, sql.NullString{})
+	run, err := st.CreateChecklistRun(ctx, project.ID, template.ID, lead.ID)
 	if err != nil {
 		t.Fatalf("CreateChecklistRun(): %v", err)
 	}

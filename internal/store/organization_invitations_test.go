@@ -27,13 +27,12 @@ func TestOrganizationInvitations(t *testing.T) {
 		t.Fatalf("AddOrganizationMember(): %v", err)
 	}
 	orgCtx := orgctx.WithOrganizationID(ctx, org.ID)
-	project, err := st.CreateProject(orgCtx, "Portal", "desc", owner.ID, nil)
-	if err != nil {
-		t.Fatalf("CreateProject(): %v", err)
+	if _, err = st.CreateSubject(orgCtx, "Portal", "desc", owner.ID, nil); err != nil {
+		t.Fatalf("CreateSubject(): %v", err)
 	}
 
 	email := "invitee@example.com"
-	if err = st.CreateOrganizationInvitation(ctx, email, org.ID, project.ID, "contributor"); err != nil {
+	if err = st.CreateOrganizationInvitation(ctx, email, org.ID); err != nil {
 		t.Fatalf("CreateOrganizationInvitation(): %v", err)
 	}
 
@@ -46,9 +45,6 @@ func TestOrganizationInvitations(t *testing.T) {
 	}
 	if invites[0].OrganizationName != "Acme" {
 		t.Fatalf("org name = %q, want Acme", invites[0].OrganizationName)
-	}
-	if !invites[0].ProjectName.Valid || invites[0].ProjectName.String != "Portal" {
-		t.Fatalf("project name = %+v, want Portal", invites[0].ProjectName)
 	}
 
 	ok, err := st.HasPendingInvitationByEmail(ctx, email)

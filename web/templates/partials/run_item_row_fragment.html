@@ -1,16 +1,8 @@
 {{define "run_item_row_fragment"}}
 <tr id="run-item-{{.Item.ID}}">
-  <td>{{if .Item.Section}}{{.Item.Section}}{{else}}<span class="muted">—</span>{{end}}</td>
-  <td><a href="/runs/{{.RunID}}/items/{{.Item.ID}}">{{.Item.Label}}</a></td>
-  <td class="data-table__col--center">
-    {{if .JiraLink.ExternalKey}}
-    <a href="{{.JiraLink.ExternalURL}}" target="_blank" rel="noopener noreferrer">{{.JiraLink.ExternalKey}}</a>
-    {{else if and (eq .Item.Status "nok") .CanLinkJira .JiraConfigured}}
-    <form method="post" action="/runs/{{.RunID}}/items/{{.Item.ID}}/jira-create" class="inline-form">
-      <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
-      <button type="submit" class="button-secondary">Créer ticket Jira</button>
-    </form>
-    {{else}}<span class="muted">—</span>{{end}}
+  <td>
+    <a href="/runs/{{.RunID}}/items/{{.Item.ID}}">{{.Item.Label}}</a>
+    {{if .Item.HelpText}}<blockquote class="help-text">{{.Item.HelpText}}</blockquote>{{end}}
   </td>
   <td class="data-table__col--center">
     {{if and (eq .RunStatus "in_progress") .CanCheck}}
@@ -36,8 +28,8 @@
   </td>
   <td>
     {{if and (eq .RunStatus "in_progress") .CanCheck}}
-    <span class="visually-hidden" id="comment-hint-{{.Item.ID}}">Commentaire obligatoire si Non validé</span>
-    <input type="text" name="comment" form="item-form-{{.Item.ID}}" value="{{.Item.Comment}}" class="comment-inline" aria-label="Commentaire" aria-describedby="comment-hint-{{.Item.ID}}" hx-indicator="#spinner-{{.Item.ID}}">
+    <span class="visually-hidden" id="comment-hint-{{.Item.ID}}">Contexte + impact + prochaine action (obligatoire si Non validé)</span>
+    <textarea name="comment" form="item-form-{{.Item.ID}}" rows="3" class="comment-inline" aria-label="Commentaire" aria-describedby="comment-hint-{{.Item.ID}}" hx-indicator="#spinner-{{.Item.ID}}">{{.Item.Comment}}</textarea>
     {{else if .Item.Comment}}{{.Item.Comment}}{{else}}<span class="muted">—</span>{{end}}
   </td>
   <td class="data-table__col--center">
@@ -59,12 +51,12 @@
     {{if .ItemError}}<p class="error item-inline-error" role="alert">{{.ItemError}}</p>{{end}}
     {{if .AssignError}}<p class="error item-inline-error" role="alert">{{.AssignError}}</p>{{end}}
     {{if .CanCheck}}
-    <form id="item-form-{{.Item.ID}}" class="visually-hidden" hx-post="/runs/{{.RunID}}/items/{{.Item.ID}}" hx-target="#run-item-{{.Item.ID}}" hx-swap="outerHTML" hx-trigger="change from:select[name=status], blur from:input[name=comment], keydown[key=='Enter'] from:input[name=comment]">
+    <form id="item-form-{{.Item.ID}}" class="visually-hidden" hx-post="/runs/{{.RunID}}/items/{{.Item.ID}}" hx-target="#run-item-{{.Item.ID}}" hx-swap="outerHTML" hx-trigger="change from:#run-item-{{.Item.ID}} select[name=status], blur from:#run-item-{{.Item.ID}} textarea[name=comment], keydown[key=='Enter' && ctrlKey] from:#run-item-{{.Item.ID}} textarea[name=comment]">
       <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
     </form>
     {{end}}
     {{if .CanAssign}}
-    <form id="assign-form-{{.Item.ID}}" class="visually-hidden" hx-post="/runs/{{.RunID}}/items/{{.Item.ID}}/assign" hx-target="#run-item-{{.Item.ID}}" hx-swap="outerHTML" hx-trigger="change from:select[name=assignee_id]">
+    <form id="assign-form-{{.Item.ID}}" class="visually-hidden" hx-post="/runs/{{.RunID}}/items/{{.Item.ID}}/assign" hx-target="#run-item-{{.Item.ID}}" hx-swap="outerHTML" hx-trigger="change from:#run-item-{{.Item.ID}} select[name=assignee_id]">
       <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
     </form>
     {{end}}

@@ -2,13 +2,13 @@ package handlers_test
 
 import (
 	"context"
-	"database/sql"
-	"github.com/jeb-maker/revues/internal/testutil"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
 	"strings"
 	"testing"
+
+	"github.com/jeb-maker/revues/internal/testutil"
 
 	"github.com/jeb-maker/revues/internal/auth"
 	runs "github.com/jeb-maker/revues/internal/features/runs"
@@ -35,7 +35,7 @@ func TestRunItemShow_DisplaysAuditHistory(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateChecklistTemplate(): %v", err)
 	}
-	run, err := st.CreateChecklistRun(ctx, project.ID, template.ID, "Revue", lead.ID, sql.NullString{})
+	run, err := st.CreateChecklistRun(ctx, project.ID, template.ID, lead.ID)
 	if err != nil {
 		t.Fatalf("CreateChecklistRun(): %v", err)
 	}
@@ -74,7 +74,6 @@ func TestIDOR_CrossProjectRunItemShow(t *testing.T) {
 	handler, db := testRouter(t)
 	ctx := context.Background()
 	st := store.New(db)
-	ctx = testutil.DefaultOrgContext(ctx, st)
 
 	alice, err := st.UpsertGitHubUser(ctx, 91, "alice", "alice@example.com", "Alice", "", auth.RoleEditor)
 	if err != nil {
@@ -84,13 +83,11 @@ func TestIDOR_CrossProjectRunItemShow(t *testing.T) {
 	if err != nil {
 		t.Fatalf("UpsertGitHubUser(bob): %v", err)
 	}
+	ctx = testutil.SetupIsolatedOrg(ctx, st, "Alice Org", "alice-item-show", alice.ID)
+
 	projectA, err := st.CreateProject(ctx, "Secret", "", alice.ID, nil)
 	if err != nil {
 		t.Fatalf("CreateProject(): %v", err)
-	}
-	_, err = st.CreateProject(ctx, "Other", "", bob.ID, nil)
-	if err != nil {
-		t.Fatalf("CreateProject(bob): %v", err)
 	}
 	template, _, err := st.CreateChecklistTemplate(ctx, "Modèle", alice.ID, nil, []store.TemplateItemInput{
 		{Label: "Secret point", Required: true},
@@ -98,7 +95,7 @@ func TestIDOR_CrossProjectRunItemShow(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateChecklistTemplate(): %v", err)
 	}
-	run, err := st.CreateChecklistRun(ctx, projectA.ID, template.ID, "Revue", alice.ID, sql.NullString{})
+	run, err := st.CreateChecklistRun(ctx, projectA.ID, template.ID, alice.ID)
 	if err != nil {
 		t.Fatalf("CreateChecklistRun(): %v", err)
 	}

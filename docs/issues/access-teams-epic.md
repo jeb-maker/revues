@@ -13,6 +13,8 @@ Issues à créer sur GitHub (repo `jeb-maker/revues`). Ordre d'implémentation s
 
 **Labels** : `epic`, `vague-5`, `area:auth`, `area:data`
 
+> **Note (2026)** : l'épique accès/équipes doit être **rebasée sur `subjects`** (plus de `projects` / `project_members` / `project_tags`). Voir [subjects-epic.md](./subjects-epic.md) pour le modèle v1 en vigueur (accès org-scoped).
+
 ### Contexte
 
 Revues dispose déjà de :

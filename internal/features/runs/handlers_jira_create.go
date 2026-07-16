@@ -17,11 +17,11 @@ import (
 
 // CreateJiraItem creates a Jira issue from a nok run item.
 func (h *Runs) CreateJiraItem(w http.ResponseWriter, r *http.Request) {
-	run, project, user, memberRole, ok := h.loadRun(w, r)
+	run, project, user, memberRole, isMember, ok := h.loadRun(w, r)
 	if !ok {
 		return
 	}
-	if !CanLinkJira(user, memberRole) {
+	if !CanLinkJira(user, isMember) {
 		http.NotFound(w, r)
 		return
 	}
@@ -84,11 +84,11 @@ func (h *Runs) jiraCreateService() *jira.CreateService {
 	}
 }
 
-func (h *Runs) jiraRunItemContext(r *http.Request, run *store.ChecklistRun, project *store.Project, itemID int64) jira.RunItemContext {
+func (h *Runs) jiraRunItemContext(r *http.Request, run *store.ChecklistRun, subject *store.Subject, itemID int64) jira.RunItemContext {
 	baseURL := strings.TrimRight(h.baseURL(r), "/")
 	return jira.RunItemContext{
-		ProjectName: project.Name,
-		RunTitle:    run.Title,
+		SubjectName: subject.Name,
+		RunTitle:    h.runDisplayLabel(r.Context(), run, subject),
 		ItemURL:     baseURL + "/runs/" + strconv.FormatInt(run.ID, 10) + "/items/" + strconv.FormatInt(itemID, 10),
 	}
 }
@@ -128,10 +128,14 @@ func createErrorMessage(err error) string {
 	}
 }
 
-func (h *Runs) jiraCreateDefaults(ctx context.Context, run *store.ChecklistRun, project *store.Project, item *store.RunItem, itemURL string) (title, description string) {
+func (h *Runs) jiraCreateDefaults(ctx context.Context, run *store.ChecklistRun, subject *store.Subject, item *store.RunItem, itemURL string) (title, description string) {
+	runTitle := RunDisplayLabel("", subject.Name, run.CreatedAt, run.ID)
+	if versionInfo, err := h.Store.TemplateVersionInfo(ctx, run.TemplateVersionID); err == nil {
+		runTitle = RunDisplayLabel(versionInfo.Name, subject.Name, run.CreatedAt, run.ID)
+	}
 	return jira.DefaultIssueContent(item, jira.RunItemContext{
-		ProjectName: project.Name,
-		RunTitle:    run.Title,
+		SubjectName: subject.Name,
+		RunTitle:    runTitle,
 		ItemURL:     itemURL,
 	})
 }

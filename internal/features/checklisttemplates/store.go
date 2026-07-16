@@ -8,7 +8,7 @@ import (
 
 type ChecklistTemplateStore interface {
 	ChecklistTemplateByID(ctx context.Context, id int64) (*ChecklistTemplate, error)
-	ListChecklistTemplates(ctx context.Context, projectID int64) ([]ChecklistTemplateSummary, error)
+	ListChecklistTemplates(ctx context.Context, subjectID int64) ([]ChecklistTemplateSummary, error)
 	CreateChecklistTemplate(ctx context.Context, name string, createdBy int64, tags []string, items []TemplateItemInput) (*ChecklistTemplate, *TemplateVersion, error)
 	ArchiveChecklistTemplate(ctx context.Context, id int64) error
 	LatestTemplateVersion(ctx context.Context, templateID int64) (*TemplateVersion, error)
@@ -18,10 +18,10 @@ type ChecklistTemplateStore interface {
 	UpdateChecklistTemplateName(ctx context.Context, id int64, name string) error
 	SetTemplateTags(ctx context.Context, templateID int64, tags []string) error
 	ListTemplateTags(ctx context.Context, templateID int64) ([]string, error)
-	TemplateMatchesProject(ctx context.Context, projectID, templateID int64) (bool, error)
-	ListProjectTags(ctx context.Context, projectID int64) ([]string, error)
-	ProjectByID(ctx context.Context, id int64) (*Project, error)
-	MemberRole(ctx context.Context, projectID, userID int64) (string, bool, error)
+	TemplateMatchesSubject(ctx context.Context, subjectID, templateID int64) (bool, error)
+	ListSubjectDomains(ctx context.Context, subjectID int64) ([]string, error)
+	SubjectByID(ctx context.Context, id int64) (*store.Subject, error)
+	OrganizationMemberRole(ctx context.Context, organizationID, userID int64) (string, bool, error)
 }
 
 type ChecklistTemplate = store.ChecklistTemplate
@@ -29,7 +29,6 @@ type ChecklistTemplateSummary = store.ChecklistTemplateSummary
 type TemplateVersion = store.TemplateVersion
 type TemplateItem = store.TemplateItem
 type TemplateItemInput = store.TemplateItemInput
-type Project = store.Project
 type TemplateIndexRow = store.TemplateIndexRow
 
 var ErrChecklistTemplateNotFound = store.ErrChecklistTemplateNotFound

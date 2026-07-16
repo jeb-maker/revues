@@ -25,12 +25,47 @@
       var event = part.split(/\s+/)[0];
       var fromMatch = part.match(/from:([^\s]+)/);
       var keyMatch = part.match(/\[key==['"](.+?)['"]\]/);
+      var needsCtrl = part.indexOf("ctrlKey") !== -1;
       return {
         event: event,
         from: fromMatch ? fromMatch[1] : null,
         key: keyMatch ? keyMatch[1] : null,
+        ctrlKey: needsCtrl,
       };
     });
+  }
+
+  function appendField(fd, el) {
+    if (!el.name || el.disabled) {
+      return;
+    }
+    if ((el.type === "checkbox" || el.type === "radio") && !el.checked) {
+      return;
+    }
+    if (el.tagName === "SELECT") {
+      if (el.multiple) {
+        Array.prototype.forEach.call(el.selectedOptions, function (opt) {
+          fd.append(el.name, opt.value);
+        });
+      } else {
+        fd.append(el.name, el.value);
+      }
+      return;
+    }
+    fd.append(el.name, el.value);
+  }
+
+  function formDataFor(form) {
+    var fd = new FormData();
+    form.querySelectorAll("input,select,textarea").forEach(function (el) {
+      appendField(fd, el);
+    });
+    if (form.id) {
+      document.querySelectorAll('[form="' + form.id + '"]').forEach(function (el) {
+        appendField(fd, el);
+      });
+    }
+    return fd;
   }
 
   function swapTarget(target, html, mode) {
@@ -59,15 +94,24 @@
     });
   }
 
-  function request(form) {
+  function request(form, triggerEl) {
     var url = form.getAttribute("hx-post") || form.getAttribute("hx-get");
     if (!url) {
+      return;
+    }
+    var confirmMsg = (triggerEl && triggerEl.getAttribute("hx-confirm")) || form.getAttribute("hx-confirm");
+    if (confirmMsg && !window.confirm(confirmMsg)) {
+      if (triggerEl && triggerEl.tagName === "SELECT") {
+        triggerEl.dispatchEvent(new Event("htmx:confirm:cancelled"));
+      }
       return;
     }
     var method = form.getAttribute("hx-post") ? "POST" : "GET";
     var targetSel = form.getAttribute("hx-target");
     var swapMode = form.getAttribute("hx-swap") || "innerHTML";
     var target = targetSel ? document.querySelector(targetSel) : form;
+    var indicatorSel = (triggerEl && triggerEl.getAttribute("hx-indicator")) || form.getAttribute("hx-indicator");
+    var indicator = indicatorSel ? document.querySelector(indicatorSel) : null;
 
     var headers = Object.assign({}, baseHeaders);
     var extra = form.getAttribute("hx-headers");
@@ -83,11 +127,14 @@
       headers["X-CSRF-Token"] = token;
     }
 
-    var body = method === "POST" ? new FormData(form) : null;
+    if (indicator) {
+      indicator.classList.add("htmx-request");
+    }
+    var body = method === "POST" ? formDataFor(form) : null;
     fetch(url, { method: method, headers: headers, body: body, credentials: "same-origin" })
       .then(function (resp) {
         return resp.text().then(function (text) {
-          return { text: text };
+          return { ok: resp.ok, text: text };
         });
       })
       .then(function (result) {
@@ -101,6 +148,11 @@
           }
         }
         process(document);
+      })
+      .finally(function () {
+        if (indicator) {
+          indicator.classList.remove("htmx-request");
+        }
       });
   }
 
@@ -114,6 +166,9 @@
         return false;
       }
       if (spec.key && event.key !== spec.key) {
+        return false;
+      }
+      if (spec.ctrlKey && !event.ctrlKey) {
         return false;
       }
       return associatedWithForm(event.target, form);
@@ -131,7 +186,7 @@
         return;
       }
       event.preventDefault();
-      request(form);
+      request(form, event.submitter || null);
     });
   }
 
@@ -143,7 +198,7 @@
       if (event.type === "submit") {
         event.preventDefault();
       }
-      request(form);
+      request(form, event.target);
     });
   }
 

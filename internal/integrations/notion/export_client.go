@@ -21,7 +21,7 @@ type PageItem struct {
 }
 
 type CreatePageInput struct {
-	DatabaseID, Title, Project, Date, RevuesURL, ClosingNote string
+	DatabaseID, Title, Subject, Date, RevuesURL, ClosingNote string
 	Items                                                    []PageItem
 }
 
@@ -78,7 +78,7 @@ func (c *Client) CreateReviewPage(ctx context.Context, cfg Config, in CreatePage
 func buildCreatePagePayload(databaseID string, in CreatePageInput) map[string]any {
 	props := map[string]any{
 		"Name":        map[string]any{"title": []map[string]any{textSegment(in.Title)}},
-		"Projet":      map[string]any{"rich_text": []map[string]any{textSegment(in.Project)}},
+		"Sujet":       map[string]any{"rich_text": []map[string]any{textSegment(in.Subject)}},
 		"Lien Revues": map[string]any{"url": in.RevuesURL},
 	}
 	if date := strings.TrimSpace(in.Date); date != "" {

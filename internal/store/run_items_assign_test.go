@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	"github.com/jeb-maker/revues/internal/auth"
-	"github.com/jeb-maker/revues/internal/features/projects"
 	runs "github.com/jeb-maker/revues/internal/features/runs"
+	"github.com/jeb-maker/revues/internal/features/subjects"
 	"github.com/jeb-maker/revues/internal/store"
 )
 
@@ -17,7 +17,7 @@ func TestAssignRunItem(t *testing.T) {
 	if err != nil {
 		t.Fatalf("UpsertGitHubUser(contrib): %v", err)
 	}
-	if err = st.AddProjectMember(ctx, run.ProjectID, contrib.ID, projects.LocalRoleContributor); err != nil {
+	if err = st.AddProjectMember(ctx, run.SubjectID, contrib.ID, subjects.LocalRoleContributor); err != nil {
 		t.Fatalf("AddProjectMember(): %v", err)
 	}
 

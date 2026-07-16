@@ -2,8 +2,8 @@
 {{template "layout_start" .}}
 <div class="card">
   <p class="muted">
-    Projet : <a href="/projects/{{.Project.ID}}">{{.Project.Name}}</a>
-    · Revue : <a href="/runs/{{.Run.ID}}">{{.Run.Title}}</a>
+    {{.Labels.Subject.Singular}} : <a href="/subjects/{{.Subject.ID}}">{{.Subject.Name}}</a>
+    · Revue : <a href="/runs/{{.Run.ID}}">{{.RunDisplayLabel}}</a>
     · Statut : <span class="status-badge status-{{.Item.Status}}">{{formatItemStatus .Item.Status}}</span>
   </p>
 

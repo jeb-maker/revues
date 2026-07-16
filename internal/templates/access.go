@@ -1,20 +1,16 @@
 package templates
 
 import (
-	"github.com/jeb-maker/revues/internal/auth"
-	"github.com/jeb-maker/revues/internal/features/projects"
+	"github.com/jeb-maker/revues/internal/features/subjects"
 	"github.com/jeb-maker/revues/internal/store"
 )
 
-// CanView reports whether the user may view checklist templates on a project.
-func CanView(user *store.User, isMember bool) bool {
-	return projects.CanView(user, isMember)
+// CanView reports whether the user may view checklist templates on a subject.
+func CanView(user *store.User, orgMember bool) bool {
+	return subjects.CanViewSubject(user, orgMember)
 }
 
-// CanManage reports whether the user may create, edit or archive checklist templates.
-func CanManage(user *store.User, memberRole string) bool {
-	if auth.HasMinRole(user.Role, auth.RoleAdmin) {
-		return true
-	}
-	return auth.HasMinRole(user.Role, auth.RoleEditor) && memberRole == projects.LocalRoleLead
+// CanManage reports whether the user may create, edit or archive checklist templates on a subject.
+func CanManage(user *store.User, orgRole string, orgMember bool) bool {
+	return subjects.CanManageSubject(user, orgRole, orgMember)
 }
