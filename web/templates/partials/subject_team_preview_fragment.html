@@ -1,0 +1,7 @@
+{{define "subject_team_preview_fragment"}}
+{{if .Empty}}
+<p id="team-assign-preview" class="muted">Sélectionnez une équipe et un rôle.</p>
+{{else}}
+<p id="team-assign-preview" class="muted">Équipe {{.TeamName}} : {{.MemberCount}} membre{{if ne .MemberCount 1}}s{{end}} auront le rôle {{.RoleLabel}}</p>
+{{end}}
+{{end}}
