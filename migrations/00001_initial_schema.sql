@@ -49,6 +49,27 @@ CREATE INDEX idx_organization_invitations_email ON organization_invitations(emai
 CREATE UNIQUE INDEX idx_organization_invitations_unique
     ON organization_invitations(organization_id, email);
 
+CREATE TABLE organization_teams (
+    id              INTEGER PRIMARY KEY,
+    organization_id INTEGER NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    name            TEXT NOT NULL,
+    slug            TEXT NOT NULL,
+    description     TEXT NOT NULL DEFAULT '',
+    created_at      TEXT NOT NULL,
+    UNIQUE (organization_id, slug)
+);
+
+CREATE INDEX idx_organization_teams_org ON organization_teams(organization_id);
+
+CREATE TABLE team_members (
+    team_id     INTEGER NOT NULL REFERENCES organization_teams(id) ON DELETE CASCADE,
+    user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    created_at  TEXT NOT NULL,
+    PRIMARY KEY (team_id, user_id)
+);
+
+CREATE INDEX idx_team_members_user ON team_members(user_id);
+
 CREATE TABLE allowed_emails (
     organization_id INTEGER NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     email           TEXT NOT NULL,
@@ -84,6 +105,29 @@ CREATE TABLE subjects (
 );
 
 CREATE INDEX idx_subjects_organization ON subjects(organization_id);
+
+CREATE TABLE subject_members (
+    subject_id  INTEGER NOT NULL REFERENCES subjects(id) ON DELETE CASCADE,
+    user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    role        TEXT NOT NULL
+                CHECK (role IN ('lead', 'contributor', 'viewer')),
+    created_at  TEXT NOT NULL,
+    PRIMARY KEY (subject_id, user_id)
+);
+
+CREATE INDEX idx_subject_members_user ON subject_members(user_id);
+
+CREATE TABLE team_subject_roles (
+    team_id     INTEGER NOT NULL REFERENCES organization_teams(id) ON DELETE CASCADE,
+    subject_id  INTEGER NOT NULL REFERENCES subjects(id) ON DELETE CASCADE,
+    role        TEXT NOT NULL
+                CHECK (role IN ('lead', 'contributor', 'viewer')),
+    granted_by  INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    created_at  TEXT NOT NULL,
+    PRIMARY KEY (team_id, subject_id)
+);
+
+CREATE INDEX idx_team_subject_roles_subject ON team_subject_roles(subject_id);
 
 -- Étiquettes descriptives (filtrer, retrouver — jamais accès)
 
@@ -271,9 +315,13 @@ DROP TABLE IF EXISTS template_domains;
 DROP TABLE IF EXISTS checklist_templates;
 DROP TABLE IF EXISTS subject_domains;
 DROP TABLE IF EXISTS subject_tags;
+DROP TABLE IF EXISTS team_subject_roles;
+DROP TABLE IF EXISTS subject_members;
 DROP TABLE IF EXISTS subjects;
 DROP TABLE IF EXISTS sessions;
 DROP TABLE IF EXISTS allowed_emails;
+DROP TABLE IF EXISTS team_members;
+DROP TABLE IF EXISTS organization_teams;
 DROP TABLE IF EXISTS organization_invitations;
 DROP TABLE IF EXISTS organization_members;
 DROP TABLE IF EXISTS organizations;

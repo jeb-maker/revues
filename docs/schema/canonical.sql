@@ -88,7 +88,33 @@ CREATE UNIQUE INDEX idx_organization_invitations_unique
     ON organization_invitations(organization_id, email);
 
 -- ---------------------------------------------------------------------------
--- Sujets (remplace projets — v1 accès via membership org)
+-- Équipes org (accès collectif — épique access-teams)
+-- ---------------------------------------------------------------------------
+
+CREATE TABLE organization_teams (
+    id              INTEGER PRIMARY KEY,
+    organization_id INTEGER NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    name            TEXT NOT NULL,
+    slug            TEXT NOT NULL,
+    description     TEXT NOT NULL DEFAULT '',
+    created_at      TEXT NOT NULL,
+    UNIQUE (organization_id, slug)
+);
+
+CREATE INDEX idx_organization_teams_org ON organization_teams(organization_id);
+
+CREATE TABLE team_members (
+    team_id     INTEGER NOT NULL REFERENCES organization_teams(id) ON DELETE CASCADE,
+    user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    created_at  TEXT NOT NULL,
+    PRIMARY KEY (team_id, user_id)
+);
+
+CREATE INDEX idx_team_members_user ON team_members(user_id);
+
+-- ---------------------------------------------------------------------------
+-- Sujets (remplace projets — v1 accès via membership org ;
+--         v2 accès : subject_members + team_subject_roles)
 -- ---------------------------------------------------------------------------
 
 CREATE TABLE subjects (
@@ -102,6 +128,31 @@ CREATE TABLE subjects (
 );
 
 CREATE INDEX idx_subjects_organization ON subjects(organization_id);
+
+-- Membres directs d'un sujet (exception — prestataire, renfort)
+CREATE TABLE subject_members (
+    subject_id  INTEGER NOT NULL REFERENCES subjects(id) ON DELETE CASCADE,
+    user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    role        TEXT NOT NULL
+                CHECK (role IN ('lead', 'contributor', 'viewer')),
+    created_at  TEXT NOT NULL,
+    PRIMARY KEY (subject_id, user_id)
+);
+
+CREATE INDEX idx_subject_members_user ON subject_members(user_id);
+
+-- Rôle d'une équipe sur un sujet
+CREATE TABLE team_subject_roles (
+    team_id     INTEGER NOT NULL REFERENCES organization_teams(id) ON DELETE CASCADE,
+    subject_id  INTEGER NOT NULL REFERENCES subjects(id) ON DELETE CASCADE,
+    role        TEXT NOT NULL
+                CHECK (role IN ('lead', 'contributor', 'viewer')),
+    granted_by  INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    created_at  TEXT NOT NULL,
+    PRIMARY KEY (team_id, subject_id)
+);
+
+CREATE INDEX idx_team_subject_roles_subject ON team_subject_roles(subject_id);
 
 -- Étiquettes descriptives (filtrer, retrouver — jamais accès)
 CREATE TABLE subject_tags (
