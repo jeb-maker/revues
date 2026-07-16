@@ -73,7 +73,7 @@ ResolveSubjectAccess(user, subject) :
 ### Issues filles
 
 - [x] Spec RBAC.md (équipes, org admin, sujets privés) — vocabulaire `subjects`
-- [ ] Migration teams + store (`subject_members`, `team_subject_roles`, …)
+- [x] Migration teams + store (`organization_teams`, `team_members`, `subject_members`, `team_subject_roles`) — greenfield `00001` + `canonical.sql`
 - [ ] `ResolveSubjectAccess` + tests
 - [ ] Refactor handlers sur `ResolveSubjectAccess`
 - [ ] Org admin voit tout + TestIDOR
@@ -125,34 +125,31 @@ Mettre à jour `docs/RBAC.md` comme document normatif pour le modèle équipes +
 ## Issue 2 — `[data] Migration organization_teams + store`
 
 **Labels** : `area:data`, `vague-5`  
-**Bloqué par** : Issue 1
+**Bloqué par** : Issue 1  
+**Statut** : livré (greenfield — tables dans `00001_initial_schema.sql` + `canonical.sql`, store `teams.go`).
 
 ### Objectif
 
-Introduire les tables équipes et la couche store.
+Introduire les tables équipes / accès sujet et la couche store.
 
 ### Critères d'acceptation
 
-- [ ] Migration goose `00014_organization_teams.sql` :
-  - `organization_teams` : `id`, `organization_id` FK, `name`, `slug`, `description`, `created_at`, UNIQUE `(organization_id, slug)`
-  - `team_members` : `team_id`, `user_id`, `created_at`, PK `(team_id, user_id)`
-  - `team_project_roles` : `team_id`, `project_id`, `role` CHECK (`lead`,`contributor`,`viewer`), `granted_by` FK nullable, `created_at`, PK `(team_id, project_id)`
-  - Index : `team_members(user_id)`, `team_project_roles(project_id)`
-- [ ] Store `internal/store/teams.go` :
+- [x] Schéma (greenfield, pas `00014`) :
+  - `organization_teams`, `team_members`
+  - `subject_members` (chemin direct)
+  - `team_subject_roles` + index `subject_id` / `user_id`
+- [x] Store `internal/store/teams.go` :
   - `CreateTeam`, `TeamByID`, `ListOrganizationTeams`
-  - `AddTeamMember`, `RemoveTeamMember`, `ListTeamMembers`
-  - `GrantTeamProjectRole`, `RevokeTeamProjectRole`, `ListTeamProjects`, `ListProjectTeams`
-  - `ListUserTeams(ctx, orgID, userID)`
-- [ ] Slug équipe normalisé (lowercase, `[a-z0-9-]`, unique par org)
-- [ ] Toutes les requêtes filtrent par `organization_id` du contexte
-- [ ] Tests table-driven store
-- [ ] `./scripts/check.sh` vert
-- [ ] `docs/schema/canonical.sql` : issue `area:data` follow-up ou incluse si politique repo le permet
+  - `AddTeamMember`, `RemoveTeamMember`, `ListTeamMembers`, `ListUserTeams`
+  - `UpsertDirectSubjectMember`, `RemoveDirectSubjectMember`, `ListDirectSubjectMembers`
+  - `GrantTeamSubjectRole`, `RevokeTeamSubjectRole`, `ListTeamSubjects`, `ListSubjectTeams`
+- [x] Slug équipe normalisé ; requêtes scopées org active
+- [x] Tests store ; `canonical.sql` mis à jour
 
 ### Notes techniques
 
-- Ne pas toucher `ResolveProjectAccess` ni handlers dans cette issue.
-- Ne pas utiliser `project_tags` pour l'accès.
+- Ne pas toucher `ResolveSubjectAccess` ni handlers dans cette issue.
+- `ListSubjectMembers` (v1 = membres org pour assignation) **conservé** — distinct de `ListDirectSubjectMembers`.
 
 ---
 
