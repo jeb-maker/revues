@@ -158,9 +158,9 @@ func TestResolveSubjectAccess(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := st.ResolveSubjectAccess(tt.ctx, tt.userID, tt.subjectID, tt.globalRole)
-			if err != nil {
-				t.Fatalf("ResolveSubjectAccess(): %v", err)
+			got, resolveErr := st.ResolveSubjectAccess(tt.ctx, tt.userID, tt.subjectID, tt.globalRole)
+			if resolveErr != nil {
+				t.Fatalf("ResolveSubjectAccess(): %v", resolveErr)
 			}
 			if got.Visible != tt.wantVis {
 				t.Fatalf("Visible = %v, want %v (got=%+v)", got.Visible, tt.wantVis, got)
