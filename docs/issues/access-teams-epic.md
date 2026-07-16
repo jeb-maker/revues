@@ -13,33 +13,34 @@ Issues à créer sur GitHub (repo `jeb-maker/revues`). Ordre d'implémentation s
 
 **Labels** : `epic`, `vague-5`, `area:auth`, `area:data`
 
-> **Note (2026)** : l'épique accès/équipes doit être **rebasée sur `subjects`** (plus de `projects` / `project_members` / `project_tags`). Voir [subjects-epic.md](./subjects-epic.md) pour le modèle v1 en vigueur (accès org-scoped).
+> **Note (2026)** : épique **rebasée sur `subjects`** (plus de `projects` / `project_members` / `project_tags`).  
+> Voir [subjects-epic.md](./subjects-epic.md) pour le modèle v1 en vigueur (accès org-scoped) et [RBAC.md](../RBAC.md) § « Modèle cible équipes ».
 
 ### Contexte
 
 Revues dispose déjà de :
 
 - organisations multi-tenant (`organizations`, `organization_members`) ;
-- rôles projet (`project_members` : lead / contributor / viewer) ;
-- tags projet pour le **matching de modèles** (`project_tags`) — **pas** pour l'accès.
+- **sujets** (`subjects`) avec accès v1 = membre de l'org ;
+- domaines / étiquettes sujet pour **matching / classification** — **pas** pour l'accès.
 
 Les besoins identifiés :
 
-1. **Délimitation** — qui voit quels projets et revues ;
+1. **Délimitation** — qui voit quels sujets et revues ;
 2. **Autorisation** — ce que chacun peut faire (lecture vs contribution) ;
 3. **Allocation scalable** — affecter des accès via des **équipes**, pas uniquement N×M invitations ;
-4. **Mobilisation revue** — un lead ajoute une équipe existante sur son projet ;
+4. **Mobilisation revue** — un lead ajoute une équipe existante sur son sujet ;
 5. **Supervision org** — l'admin org voit toute l'activité de son organisation ;
-6. **Isolation** — projets privés si besoin intra-org.
+6. **Isolation** — sujets privés si besoin intra-org.
 
 Décisions produit (validées) :
 
 - **Équipes nommées** = chemin principal d'accès collectif (pattern GitHub teams / Jira groups) ;
-- **`project_members` direct** = exception (prestataire, renfort ponctuel) ;
-- **`project_tags`** = classification / modèles **uniquement** — jamais d'accès ;
-- **Org owner/admin** voit **tous** les projets et revues de l'org (supervision) ;
+- **`subject_members` direct** = exception (prestataire, renfort ponctuel) ;
+- **`subject_tags` / `subject_domains`** = classification / matching **uniquement** — jamais d'accès ;
+- **Org owner/admin** voit **tous** les sujets et revues de l'org (supervision) ;
 - **Org admin** gère membres et équipes ; actions métier (cocher, lancer) soumises au rôle **global** `editor` minimum ;
-- **Lead** peut ajouter une équipe à son projet si politique org `leads_may_assign_teams` ;
+- **Lead** peut ajouter une équipe à son sujet si politique org `leads_may_assign_teams` ;
 - **Création org** : inchangé (1ʳᵉ org self-service, suivantes par invitation).
 
 Hiérarchie cible :
@@ -48,21 +49,22 @@ Hiérarchie cible :
 Organisation
   ├── Équipes (organization_teams)
   │     └── Membres (team_members)
-  ├── Projets
-  │     ├── Membres directs (project_members) — exception
-  │     ├── Équipes + rôle (team_project_roles)
-  │     └── Tags (project_tags) — modèles seulement
+  ├── Sujets
+  │     ├── Membres directs (subject_members) — exception
+  │     ├── Équipes + rôle (team_subject_roles)
+  │     ├── Domaines (subject_domains) — matching modèles
+  │     └── Étiquettes (subject_tags) — descriptif seulement
   └── Revues → Points
 ```
 
 Règle d'accès (normative — voir `docs/RBAC.md`) :
 
 ```
-ResolveProjectAccess(user, project) :
+ResolveSubjectAccess(user, subject) :
   visible si admin global
-          OU org owner/admin (org du projet)
-          OU project_members direct
-          OU ∃ équipe T : user ∈ T ∧ T a un rôle sur project
+          OU org owner/admin (org du sujet)
+          OU subject_members direct
+          OU ∃ équipe T : user ∈ T ∧ T a un rôle sur subject
 
   rôle_effectif = max(rôle direct, max rôles via équipes)
   action permise = rôle_global suffisant ET rôle_effectif suffisant
@@ -70,19 +72,19 @@ ResolveProjectAccess(user, project) :
 
 ### Issues filles
 
-- [ ] #174 — Spec RBAC.md (équipes, org admin, projets privés)
-- [ ] #175 — Migration teams + store
-- [ ] #176 — ResolveProjectAccess + tests
-- [ ] #177 — Refactor handlers sur ResolveProjectAccess
-- [ ] #178 — Org admin voit tout + TestIDOR
-- [ ] #179 — UI admin équipes CRUD
-- [ ] #180 — UI projet — équipes + preview + sources
-- [ ] #181 — Projets privés (visibility)
-- [ ] #182 — Politiques org
+- [x] Spec RBAC.md (équipes, org admin, sujets privés) — vocabulaire `subjects`
+- [ ] Migration teams + store (`subject_members`, `team_subject_roles`, …)
+- [ ] `ResolveSubjectAccess` + tests
+- [ ] Refactor handlers sur `ResolveSubjectAccess`
+- [ ] Org admin voit tout + TestIDOR
+- [ ] UI admin équipes CRUD
+- [ ] UI sujet — équipes + preview + sources
+- [ ] Sujets privés (`visibility`)
+- [ ] Politiques org
 
 ### Hors scope épique
 
-- Tags projet = accès (ABAC) ;
+- Étiquettes / domaines sujet = accès (ABAC) ;
 - sync SCIM / LDAP / Google Groups ;
 - rôle « lead d'équipe » (gestion membres équipe réservée org admin en v1) ;
 - expiration automatique des accès ;
@@ -91,25 +93,26 @@ ResolveProjectAccess(user, project) :
 
 ---
 
-## Issue 1 — `[auth] Spec RBAC — équipes, org admin, projets privés`
+## Issue 1 — `[auth] Spec RBAC — équipes, org admin, sujets privés`
 
 **Labels** : `area:auth`, `vague-5`  
-**Dépendances** : aucune
+**Dépendances** : aucune  
+**Statut** : vocabulaire `subjects` appliqué dans `docs/RBAC.md` (modèle cible) + intro de cette épique.
 
 ### Objectif
 
-Mettre à jour `docs/RBAC.md` comme document normatif pour le modèle équipes + gouvernance org, **avant** toute migration ou code.
+Mettre à jour `docs/RBAC.md` comme document normatif pour le modèle équipes + gouvernance org sur **sujets**, **avant** toute migration ou code.
 
 ### Critères d'acceptation
 
-- [ ] `docs/RBAC.md` décrit les trois chemins d'accès : équipe→projet, membre direct, org admin ;
-- [ ] Matrice actions étendue : org owner/admin (visibilité vs action métier) ;
-- [ ] Règle `ResolveProjectAccess` documentée (visible, rôle effectif, sources) ;
-- [ ] Tags projet explicitement **hors** périmètre accès ;
-- [ ] Projets `private` : comportement documenté ;
-- [ ] Politiques org listées (`leads_may_assign_teams`, etc.) ;
-- [ ] Tests exigés listés : `TestRBAC_Matrix`, `TestIDOR_CrossProject`, `TestIDOR_TeamAccess`, `TestIDOR_OrgAdmin`, `TestIDOR_PrivateProject` ;
-- [ ] PR dédiée `area:auth` — seul fichier métier modifié : `docs/RBAC.md` ;
+- [x] `docs/RBAC.md` décrit les trois chemins d'accès : équipe→sujet, membre direct, org admin ;
+- [x] Matrice actions étendue : org owner/admin (visibilité vs action métier) ;
+- [x] Règle `ResolveSubjectAccess` documentée (visible, rôle effectif, sources) ;
+- [x] Étiquettes / domaines sujet explicitement **hors** périmètre accès ;
+- [x] Sujets `private` : comportement documenté ;
+- [x] Politiques org listées (`leads_may_assign_teams`, etc.) ;
+- [x] Tests exigés listés : `TestRBAC_Matrix`, `TestIDOR_CrossSubject`, `TestIDOR_TeamAccess`, `TestIDOR_OrgAdmin`, `TestIDOR_PrivateSubject` ;
+- [ ] Issues filles 2–9 encore à réécrire entièrement (détail migration / UI) ;
 - [ ] `./scripts/check.sh` vert.
 
 ### Notes

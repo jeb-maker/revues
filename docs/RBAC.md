@@ -42,7 +42,9 @@ Modèle actuel après migration `subjects` (épique [subjects-epic.md](./issues/
 
 ## Modèle cible équipes (épique access-teams — **non implémenté**)
 
-Les sections ci-dessous décrivent le modèle **futur** rebasé sur `subjects` (voir note en tête de [access-teams-epic.md](./issues/access-teams-epic.md)).
+Les sections ci-dessous décrivent le modèle **futur** sur `subjects` (plus de `projects`).  
+Spec : [access-teams-epic.md](./issues/access-teams-epic.md).  
+**En vigueur aujourd'hui** : section « Sujets v1 » ci-dessus (accès = membre org).
 
 ## Rôles
 
@@ -50,63 +52,64 @@ Les sections ci-dessous décrivent le modèle **futur** rebasé sur `subjects` (
 
 | Rôle | Description |
 |------|-------------|
-| `admin` | Tout + bypass org ; voit tous les projets de l'org active |
-| `editor` | Créer modèles, lancer revues, cocher (tous projets où accès projet) |
-| `reader` | Lecture seule (plafond — ne coche pas même si rôle projet contributor) |
+| `admin` | Tout + bypass org ; voit tous les sujets de l'org active |
+| `editor` | Créer modèles, lancer revues, cocher (sujets où accès sujet) |
+| `reader` | Lecture seule (plafond — ne coche pas même si rôle sujet contributor) |
 
 ### Organisation (`organization_members.role`)
 
 | Rôle | Description |
 |------|-------------|
-| `owner` | Gouvernance org : équipes, whitelist, politiques, **intégrations de l'org** (SMTP, Jira, Notion, webhooks) ; **voit tous** les projets/revues de l'org |
+| `owner` | Gouvernance org : équipes, whitelist, politiques, **intégrations de l'org** (SMTP, Jira, Notion, webhooks) ; **voit tous** les sujets/revues de l'org |
 | `admin` | Idem `owner` sauf actions réservées owner si ajoutées ultérieurement |
-| `member` | Membre org ; accès projet via équipe, membership direct, ou invitation |
+| `member` | Membre org ; accès sujet via équipe, membership direct, ou invitation |
 
-### Projet — direct (`project_members.role`)
+### Sujet — direct (`subject_members.role`)
 
 | Rôle | Description |
 |------|-------------|
-| `lead` | Gérer membres et équipes du projet (si politique org), tout faire sur le projet |
+| `lead` | Gérer membres et équipes du sujet (si politique org), tout faire sur le sujet |
 | `contributor` | Cocher, commenter, lancer revues |
-| `viewer` | Lecture seule sur ce projet |
+| `viewer` | Lecture seule sur ce sujet |
 
-### Projet — via équipe (`team_project_roles.role`)
+### Sujet — via équipe (`team_subject_roles.role`)
 
-Même sémantique que `project_members.role`. Une équipe se voit attribuer **un rôle** sur un projet ; chaque membre de l'équipe hérite de ce rôle pour ce projet.
+Même sémantique que `subject_members.role`. Une équipe se voit attribuer **un rôle** sur un sujet ; chaque membre de l'équipe hérite de ce rôle pour ce sujet.
 
 ---
 
-## Chemins d'accès à un projet
+## Chemins d'accès à un sujet
 
-Un utilisateur accède à un projet par **exactement l'un** des mécanismes suivants (évalués par `ResolveProjectAccess`) :
+Un utilisateur accède à un sujet par **exactement l'un** des mécanismes suivants (évalués par `ResolveSubjectAccess`) :
 
 | Chemin | Condition | Usage |
 |--------|-----------|-------|
-| **Global admin** | `users.role = admin` | Bypass org et projet |
-| **Org admin** | `organization_members.role ∈ {owner, admin}` dans l'org du projet | Supervision : voit tout dans l'org |
-| **Membre direct** | Ligne `project_members` | Exception : invité, prestataire, renfort |
-| **Équipe** | ∃ équipe T : user ∈ `team_members` ∧ (T, projet) ∈ `team_project_roles` | Cas nominal collectif |
+| **Global admin** | `users.role = admin` | Bypass org et sujet |
+| **Org admin** | `organization_members.role ∈ {owner, admin}` dans l'org du sujet | Supervision : voit tout dans l'org |
+| **Membre direct** | Ligne `subject_members` | Exception : invité, prestataire, renfort |
+| **Équipe** | ∃ équipe T : user ∈ `team_members` ∧ (T, sujet) ∈ `team_subject_roles` | Cas nominal collectif |
 
 ### Hors périmètre accès
 
-- **`project_tags`** : classification métier et matching de modèles **uniquement**. Un tag projet **ne donne jamais** d'accès.
-- **`template_tags`** : idem, matching modèles seulement.
+- **`subject_tags`** : classification descriptive **uniquement**. Une étiquette **ne donne jamais** d'accès.
+- **`subject_domains` / `template_domains`** : matching modèles ↔ sujet **uniquement** — jamais d'accès.
+- **`template_tags`** (si présents) : matching modèles seulement.
 
 ---
 
 ## Règle de composition
 
 ```
-ResolveProjectAccess(user, project) :
+ResolveSubjectAccess(user, subject) :
 
   1. Si admin global → Visible=true, bypass actions
 
-  2. Si org owner/admin (org du projet) → Visible=true
+  2. Si org owner/admin (org du sujet) → Visible=true
      (actions métier soumises au rôle global, pas de bypass lead implicite)
 
   3. Sinon calculer :
-     role_direct  = project_members.role ou ∅
-     role_teams   = max(team_project_roles.role) pour équipes du user
+     role_direct  = subject_members.role ou ∅
+     role_teams   = max(team_subject_roles.role) pour équipes du user
      role_effectif = max(role_direct, role_teams)   // lead > contributor > viewer
 
   4. Visible = (role_effectif ≠ ∅) OU org admin OU admin global
@@ -136,14 +139,14 @@ lead > contributor > viewer
 
 ---
 
-## Projets privés (`projects.visibility`)
+## Sujets privés (`subjects.visibility`)
 
 | Visibilité | Membre org sans accès direct/équipe | Org owner/admin | Admin global |
 |------------|-------------------------------------|-----------------|--------------|
 | `normal` | 404 | visible | visible |
 | `private` | 404 | visible | visible |
 
-Un projet privé n'apparaît pas aux org `member` sans chemin d'accès explicite. L'org admin le voit toujours (supervision).
+Un sujet privé n'apparaît pas aux org `member` sans chemin d'accès explicite. L'org admin le voit toujours (supervision).
 
 ---
 
@@ -151,7 +154,7 @@ Un projet privé n'apparaît pas aux org `member` sans chemin d'accès explicite
 
 | Clé | Défaut | Effet |
 |-----|--------|-------|
-| `leads_may_assign_teams` | `true` | Lead peut ajouter une équipe existante à son projet |
+| `leads_may_assign_teams` | `true` | Lead peut ajouter une équipe existante à son sujet |
 | `leads_may_invite_members` | `true` | Lead peut inviter un membre direct |
 | `leads_may_invite_externals` | `false` | Lead peut inviter une adresse hors org |
 
@@ -165,11 +168,11 @@ Seuls org `owner` / `admin` modifient ces politiques.
 |--------|--------------|-----------------|---------------|----------------------|-----------------|------------|
 | Admin users / SMTP / intégrations | ✓ | ✓ | — | — | — | — |
 | Gérer équipes org | ✓ | ✓ | — | — | — | — |
-| Créer projet | ✓ | ✓ | ✓ | ✓ | — | — |
-| Voir tous projets org | ✓ | ✓ | — | — | — | — |
-| Voir projet (accès direct/équipe) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| Gérer membres projet | ✓ | ✓ | ✓ (lead) | — | — | — |
-| Ajouter équipe au projet | ✓ | ✓ | ✓ (lead)* | — | — | — |
+| Créer sujet | ✓ | ✓ | ✓ | ✓ | — | — |
+| Voir tous sujets org | ✓ | ✓ | — | — | — | — |
+| Voir sujet (accès direct/équipe) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Gérer membres sujet | ✓ | ✓ | ✓ (lead) | — | — | — |
+| Ajouter équipe au sujet | ✓ | ✓ | ✓ (lead)* | — | — | — |
 | CRUD modèles | ✓ | ✓† | ✓ (membre) | — | — | — |
 | Lancer revue | ✓ | ✓† | ✓ (lead/contrib) | ✓ | — | — |
 | Cocher / commenter point | ✓ | ✓† | ✓ (lead/contrib) | ✓ | — | — |
@@ -188,19 +191,19 @@ Seuls org `owner` / `admin` modifient ces politiques.
 
 | Route | Contrôle |
 |-------|----------|
-| `GET /projects` | Auth ; liste selon `ResolveProjectAccess` ; org admin → tous projets org |
-| `GET /projects/{id}` | Auth + `Visible` |
-| `POST /projects/{id}/teams` | Auth + lead ou org admin ; politique `leads_may_assign_teams` |
-| `POST /projects/{id}/members` | Auth + lead ou org admin ; politique `leads_may_invite_members` |
+| `GET /subjects` | Auth ; liste selon `ResolveSubjectAccess` ; org admin → tous sujets org |
+| `GET /subjects/{id}` | Auth + `Visible` |
+| `POST /subjects/{id}/teams` | Auth + lead ou org admin ; politique `leads_may_assign_teams` |
+| `POST /subjects/{id}/members` | Auth + lead ou org admin ; politique `leads_may_invite_members` |
 | `GET /admin/teams` | Auth + org owner/admin |
-| `POST /projects/{id}/runs` | Auth + contributor+ effectif ou admin |
-| `GET /runs/{id}` | Auth + `Visible` sur projet de la revue |
-| `PATCH /runs/{id}/items/{itemId}` | Auth + contributor+ effectif ou admin |
-| `GET /attachments/{id}` | Auth + membre projet de la revue liée |
+| `POST /subjects/{id}/revues` | Auth + contributor+ effectif ou admin |
+| `GET /runs/{id}` | Auth + `Visible` sur sujet de la revue |
+| `POST /runs/{id}/items/{itemId}` | Auth + contributor+ effectif ou admin |
+| `GET /attachments/{id}` | Auth + membre sujet de la revue liée |
 | `GET\|POST /admin/integrations*` · `/admin/settings/smtp` · `/admin/settings/webhooks` | Auth + org owner/admin (ou admin global) |
 | `POST /admin/*` (autres) | Auth + admin global ou org admin selon route |
 
-Toutes les routes sensibles appellent `ResolveProjectAccess` (ou helper dérivé) — pas de `MemberRole` seul.
+Toutes les routes sensibles appellent `ResolveSubjectAccess` (ou helper dérivé) — pas de rôle sujet seul.
 
 ---
 
@@ -210,15 +213,15 @@ Chaque PR `area:auth` ou `area:core` ajoute ou maintient :
 
 ```go
 TestRBAC_Matrix          // table-driven : rôle global × org × équipe × direct × route → status
-TestIDOR_CrossProject    // user A n'accède pas ressources projet B
-TestIDOR_CrossOrg        // user org A n'accède pas projet org B
+TestIDOR_CrossSubject    // user A n'accède pas ressources sujet B
+TestIDOR_CrossOrg        // user org A n'accède pas sujet org B
 TestIDOR_TeamAccess      // accès via équipe ; retrait équipe → 404
 TestIDOR_OrgAdmin        // org admin voit sans membership ; member non
-TestIDOR_PrivateProject  // private invisible sauf accès explicite ou org admin
+TestIDOR_PrivateSubject  // private invisible sauf accès explicite ou org admin
 TestCSRF_MissingToken    // POST sans CSRF → 403
 ```
 
-Fichiers cibles : `internal/web/rbac_test.go`, `internal/store/project_access_test.go`.
+Fichiers cibles : `internal/web/rbac_test.go`, `internal/store/subject_access_test.go`.
 
 ---
 
