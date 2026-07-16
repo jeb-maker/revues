@@ -250,11 +250,10 @@ func seedV1(ctx context.Context, st *store.Store, admin *store.User) error {
 		return err
 	}
 
-	draftRun, err := st.CreateChecklistRun(ctx, api.ID, secTpl.ID, bob.ID)
-	if err != nil {
-		return fmt.Errorf("draft run: %w", err)
+	// Second in-progress run (no longer created as draft).
+	if _, err := st.CreateChecklistRun(ctx, api.ID, secTpl.ID, bob.ID); err != nil {
+		return fmt.Errorf("second run: %w", err)
 	}
-	_ = draftRun
 
 	doneRun, err := st.CreateChecklistRun(ctx, portail.ID, releaseTpl.ID, admin.ID)
 	if err != nil {

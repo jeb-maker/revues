@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/jeb-maker/revues/internal/crypto"
 )
@@ -21,6 +22,8 @@ type Config struct {
 	GitHubClientID      string
 	GitHubClientSecret  string
 	BootstrapAdminEmail string
+	DevAuth             bool
+	DevAuthEmail        string
 }
 
 // Load reads configuration from REVUES_* environment variables.
@@ -37,12 +40,19 @@ func Load() Config {
 		GitHubClientID:      os.Getenv("REVUES_GITHUB_CLIENT_ID"),
 		GitHubClientSecret:  os.Getenv("REVUES_GITHUB_CLIENT_SECRET"),
 		BootstrapAdminEmail: os.Getenv("REVUES_BOOTSTRAP_ADMIN_EMAIL"),
+		DevAuth:             envBool("REVUES_DEV_AUTH"),
+		DevAuthEmail:        envOr("REVUES_DEV_AUTH_EMAIL", "admin@example.com"),
 	}
 }
 
 // SecureCookies returns true when cookies must be Secure (production).
 func (c Config) SecureCookies() bool {
 	return c.Env == "production"
+}
+
+// DevAuthEnabled is true only for local demo login bypass (never in production).
+func (c Config) DevAuthEnabled() bool {
+	return c.DevAuth && c.Env != "production"
 }
 
 // EncryptionKeyBytes decodes REVUES_ENCRYPTION_KEY when configured.
@@ -70,6 +80,15 @@ func envIntOr(key string, fallback int) int {
 		return fallback
 	}
 	return n
+}
+
+func envBool(key string) bool {
+	switch strings.ToLower(strings.TrimSpace(os.Getenv(key))) {
+	case "1", "true", "yes", "on":
+		return true
+	default:
+		return false
+	}
 }
 
 // TestEncryptionKey returns a valid base64 key for tests.

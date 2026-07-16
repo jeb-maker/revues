@@ -107,19 +107,19 @@
     <table class="data-table data-table--run-items">
       {{if and (eq .Run.Status "in_progress") (or .CanCheck .CanAssign)}}
       <colgroup>
-        <col style="width:24%">
-        <col style="width:10%">
+        <col style="width:26%">
+        <col style="width:14%">
         <col style="width:12%">
-        <col style="width:38%">
+        <col style="width:32%">
         <col style="width:8%">
         <col style="width:8%">
       </colgroup>
       {{else}}
       <colgroup>
-        <col style="width:26%">
-        <col style="width:11%">
-        <col style="width:13%">
-        <col style="width:42%">
+        <col style="width:28%">
+        <col style="width:14%">
+        <col style="width:14%">
+        <col style="width:36%">
         <col style="width:8%">
       </colgroup>
       {{end}}
@@ -182,7 +182,11 @@
     </ul>
   </div>
   {{else}}
-  <p class="muted">Aucun point non validé — tous les points sont validés.</p>
+  {{if eq .Progress.Done .Progress.Total}}
+  <p class="muted">Aucun point non validé — tous les points sont traités.</p>
+  {{else}}
+  <p class="muted">Aucun point non validé. {{sub .Progress.Total .Progress.Done}} encore en attente.</p>
+  {{end}}
   {{end}}
   <form method="post" action="/runs/{{.Run.ID}}/complete" class="stack-form" hx-post="/runs/{{.Run.ID}}/complete" hx-target="#complete-section" hx-swap="outerHTML" hx-confirm="Confirmer la clôture de la revue ?">
     <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
@@ -190,7 +194,7 @@
       Note de clôture (optionnelle)
       <textarea name="closing_note" rows="4" placeholder="Note optionnelle…">{{.ClosingNote}}</textarea>
     </label>
-    <button type="submit" class="button-danger">{{icon "check"}} Terminer la revue</button>
+    <button type="submit" class="button">{{icon "check"}} Terminer la revue</button>
   </form>
 </div>
 {{end}}

@@ -6,7 +6,7 @@
     <a href="/admin/subjects"{{if eq .AdminSection "subjects"}} aria-current="page"{{end}}>{{.Labels.Subject.Plural}}</a>
     <a href="/admin/settings/labels"{{if eq .AdminSection "labels"}} aria-current="page"{{end}}>Libellé</a>
   </div>
-  {{if and .User (eq .User.Role "admin")}}
+  {{if .CanManageOrgUsers}}
   <div class="admin-nav__group">
     <span class="admin-nav__group-label">Intégrations</span>
     <a href="/admin/integrations"{{if eq .AdminSection "integrations"}} aria-current="page"{{end}}>Vue d'ensemble</a>

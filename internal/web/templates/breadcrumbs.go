@@ -158,14 +158,14 @@ func BCProjectNew() []Breadcrumb {
 	return BCSubjectNew(DefaultUILabels().Subject)
 }
 
-// BCSubjectShow is a subject detail breadcrumb (title is shown in the page card).
-func BCSubjectShow(labels SubjectUILabels) []Breadcrumb {
-	return []Breadcrumb{crumb(labels.Plural, PathSubjects)}
+// BCSubjectShow is a subject detail breadcrumb; the subject name is the page H1.
+func BCSubjectShow(name string, labels SubjectUILabels) []Breadcrumb {
+	return []Breadcrumb{crumb(labels.Plural, PathSubjects), current(name)}
 }
 
 // BCProjectShow is a deprecated alias for BCSubjectShow.
-func BCProjectShow() []Breadcrumb {
-	return BCSubjectShow(DefaultUILabels().Subject)
+func BCProjectShow(name string) []Breadcrumb {
+	return BCSubjectShow(name, DefaultUILabels().Subject)
 }
 
 // BCSubjectEdit is the edit subject form breadcrumb.
@@ -203,7 +203,7 @@ func BCRunWizardTemplates(subjectName string, subjectID int64) []Breadcrumb {
 	return []Breadcrumb{
 		crumb("Revues", PathRevues),
 		crumb(subjectName, subjectPath(subjectID)),
-		current("Lancer"),
+		current("Choisir un modèle"),
 	}
 }
 
@@ -212,7 +212,7 @@ func BCRunWizardLaunch(subjectName string, subjectID int64, templateName string,
 	return []Breadcrumb{
 		crumb("Revues", PathRevues),
 		crumb(subjectName, subjectPath(subjectID)),
-		crumb("Lancer", SubjectTemplatesForRunPath(subjectID)),
+		crumb("Choisir un modèle", SubjectTemplatesForRunPath(subjectID)),
 		current(runLaunchTemplateLabel(templateName, version, itemCount)),
 	}
 }
@@ -368,4 +368,13 @@ func BreadcrumbCurrent(crumbs []Breadcrumb) string {
 		return ""
 	}
 	return crumbs[len(crumbs)-1].Label
+}
+
+// BreadcrumbAncestors returns parent crumbs only (excludes the current page).
+// Empty when there is nothing useful to show above the H1.
+func BreadcrumbAncestors(crumbs []Breadcrumb) []Breadcrumb {
+	if len(crumbs) < 2 {
+		return nil
+	}
+	return crumbs[:len(crumbs)-1]
 }

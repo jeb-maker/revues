@@ -6,6 +6,7 @@ import (
 	"html/template"
 	"io/fs"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -121,6 +122,7 @@ type PageData struct {
 	User                *store.User
 	CSRFToken           string
 	LoginError          string
+	DevAuth             bool
 	ActiveTab           string
 	AdminSection        string
 	CanManageOrgUsers   bool
@@ -146,7 +148,6 @@ type AdminUsersData struct {
 type AdminOrgHubData struct {
 	PageData
 	OrganizationName string
-	ShowIntegrations bool
 }
 
 // AdminSubjectLabelsData is view data for the org subject label preset screen.
@@ -237,8 +238,53 @@ type RunsListData struct {
 	CanCreate         bool
 	CanLaunch         bool
 	CanManageOrgUsers bool
+	Pagination        Pagination
 	Message           string
 	Error             string
+}
+
+// Pagination holds list page navigation.
+type Pagination struct {
+	Page       int
+	PageSize   int
+	Total      int
+	TotalPages int
+	HasPrev    bool
+	HasNext    bool
+	PrevURL    string
+	NextURL    string
+}
+
+// NewPagination builds pagination links for a filtered list.
+func NewPagination(page, pageSize, total int, urlForPage func(page int) string) Pagination {
+	if pageSize <= 0 {
+		pageSize = 25
+	}
+	if page < 1 {
+		page = 1
+	}
+	totalPages := 0
+	if total > 0 {
+		totalPages = (total + pageSize - 1) / pageSize
+	}
+	if totalPages > 0 && page > totalPages {
+		page = totalPages
+	}
+	p := Pagination{
+		Page:       page,
+		PageSize:   pageSize,
+		Total:      total,
+		TotalPages: totalPages,
+		HasPrev:    page > 1 && totalPages > 0,
+		HasNext:    totalPages > 0 && page < totalPages,
+	}
+	if p.HasPrev {
+		p.PrevURL = urlForPage(page - 1)
+	}
+	if p.HasNext {
+		p.NextURL = urlForPage(page + 1)
+	}
+	return p
 }
 
 // SubjectsListData is view data for the subjects dashboard.
@@ -572,8 +618,12 @@ func Parse(assetVersion string) (*template.Template, error) {
 			}
 		},
 		"add": func(a, b int) int { return a + b },
+		"sub": func(a, b int) int { return a - b },
 		"breadcrumbCurrent": func(crumbs []Breadcrumb) string {
 			return BreadcrumbCurrent(crumbs)
+		},
+		"breadcrumbAncestors": func(crumbs []Breadcrumb) []Breadcrumb {
+			return BreadcrumbAncestors(crumbs)
 		},
 		"mul": func(a, b int) int { return a * b },
 		"div": func(a, b int) int {
@@ -591,11 +641,8 @@ func Parse(assetVersion string) (*template.Template, error) {
 		"formatDueDate":       formatDueDate,
 		"formatDateTime":      formatDateTime,
 		"dueDateInput":        dueDateInput,
-		"runsListURL": func(status, q string) string {
-			return listURL("/revues", url.Values{
-				"status": {status},
-				"q":      {strings.TrimSpace(q)},
-			})
+		"runsListURL": func(status, q string, page int) string {
+			return RunsListURL(status, q, page)
 		},
 		"listURL": func(path, q string) string {
 			return listURL(path, url.Values{"q": {strings.TrimSpace(q)}})
@@ -701,4 +748,16 @@ func listURL(path string, values url.Values) string {
 		return path + "?" + enc
 	}
 	return path
+}
+
+// RunsListURL builds the /revues list URL with optional filters and page.
+func RunsListURL(status, q string, page int) string {
+	values := url.Values{
+		"status": {status},
+		"q":      {strings.TrimSpace(q)},
+	}
+	if page > 1 {
+		values.Set("page", strconv.Itoa(page))
+	}
+	return listURL("/revues", values)
 }

@@ -81,11 +81,28 @@ func (h *Runs) List(w http.ResponseWriter, r *http.Request) {
 	}
 
 	filterStatus, filterQuery := parseRunListFilters(r)
-	runs, err := h.Store.ListFilteredRunSummaries(r.Context(), user.ID, admin, filterStatus, filterQuery)
+	page := parseListPage(r)
+	pageSize := store.FilteredRunsPageSize
+	offset := (page - 1) * pageSize
+	runs, total, err := h.Store.ListFilteredRunSummaries(r.Context(), user.ID, admin, filterStatus, filterQuery, pageSize, offset)
 	if err != nil {
 		slog.Error("list filtered runs", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
+	}
+	totalPages := 0
+	if total > 0 {
+		totalPages = (total + pageSize - 1) / pageSize
+	}
+	if totalPages > 0 && page > totalPages {
+		page = totalPages
+		offset = (page - 1) * pageSize
+		runs, total, err = h.Store.ListFilteredRunSummaries(r.Context(), user.ID, admin, filterStatus, filterQuery, pageSize, offset)
+		if err != nil {
+			slog.Error("list filtered runs", "err", err)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
 	}
 
 	orgRole, orgMember, _ := h.Store.OrganizationMemberRole(r.Context(), 0, user.ID)
@@ -95,6 +112,9 @@ func (h *Runs) List(w http.ResponseWriter, r *http.Request) {
 
 	hasSubjects := len(subjectItems) > 0
 	canLaunch := subjects.CanLaunchRun(user, orgMember) && (hasSubjects || subjects.CanCreateSubject(user))
+	pagination := viewtemplates.NewPagination(page, pageSize, total, func(p int) string {
+		return viewtemplates.RunsListURL(filterStatus, filterQuery, p)
+	})
 	data := viewtemplates.RunsListData{
 		PageData:          h.PageDataTab(r, "Revues", "runs"),
 		Runs:              runs,
@@ -105,6 +125,7 @@ func (h *Runs) List(w http.ResponseWriter, r *http.Request) {
 		CanCreate:         subjects.CanCreateSubject(user),
 		CanLaunch:         canLaunch,
 		CanManageOrgUsers: subjects.CanManageOrgUsers(user, orgRole, orgMember),
+		Pagination:        pagination,
 		Message:           r.URL.Query().Get("msg"),
 	}
 	data.Breadcrumbs = viewtemplates.BCRevues()
@@ -898,4 +919,12 @@ func parseRunListFilters(r *http.Request) (status, query string) {
 	}
 	query = strings.TrimSpace(q.Get("q"))
 	return status, query
+}
+
+func parseListPage(r *http.Request) int {
+	page, err := strconv.Atoi(strings.TrimSpace(r.URL.Query().Get("page")))
+	if err != nil || page < 1 {
+		return 1
+	}
+	return page
 }

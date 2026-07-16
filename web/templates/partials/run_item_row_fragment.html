@@ -1,12 +1,13 @@
 {{define "run_item_row_fragment"}}
 <tr id="run-item-{{.Item.ID}}">
   <td>
-    <a href="/runs/{{.RunID}}/items/{{.Item.ID}}">{{.Item.Label}}</a>
+    <span class="run-item-label">{{.Item.Label}}</span>
+    <a href="/runs/{{.RunID}}/items/{{.Item.ID}}" class="run-item-details">Détails</a>
     {{if .Item.HelpText}}<blockquote class="help-text">{{.Item.HelpText}}</blockquote>{{end}}
   </td>
   <td class="data-table__col--center">
     {{if and (eq .RunStatus "in_progress") .CanCheck}}
-    <select name="status" form="item-form-{{.Item.ID}}" required class="status-select" aria-label="Statut" hx-confirm="Confirmer le changement de statut ?">
+    <select name="status" form="item-form-{{.Item.ID}}" required class="status-select" aria-label="Statut">
       <option value="pending" {{if eq .Item.Status "pending"}}selected{{end}}>{{formatItemStatus "pending"}}</option>
       <option value="ok" {{if eq .Item.Status "ok"}}selected{{end}}>{{formatItemStatus "ok"}}</option>
       <option value="nok" {{if eq .Item.Status "nok"}}selected{{end}}>{{formatItemStatus "nok"}}</option>
@@ -29,7 +30,7 @@
   <td>
     {{if and (eq .RunStatus "in_progress") .CanCheck}}
     <span class="visually-hidden" id="comment-hint-{{.Item.ID}}">Contexte + impact + prochaine action (obligatoire si Non validé)</span>
-    <textarea name="comment" form="item-form-{{.Item.ID}}" rows="3" class="comment-inline" aria-label="Commentaire" aria-describedby="comment-hint-{{.Item.ID}}" hx-indicator="#spinner-{{.Item.ID}}">{{.Item.Comment}}</textarea>
+    <textarea name="comment" form="item-form-{{.Item.ID}}" rows="1" class="comment-inline{{if .Item.Comment}} is-filled{{end}}" aria-label="Commentaire" aria-describedby="comment-hint-{{.Item.ID}}" hx-indicator="#spinner-{{.Item.ID}}">{{.Item.Comment}}</textarea>
     {{else if .Item.Comment}}{{.Item.Comment}}{{else}}<span class="muted">—</span>{{end}}
   </td>
   <td class="data-table__col--center">

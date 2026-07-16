@@ -58,8 +58,8 @@ func TestRuns_CreateAndStart(t *testing.T) {
 	if err != nil || len(runs) != 1 {
 		t.Fatalf("ListRunsBySubject() = %v, %v", runs, err)
 	}
-	if runs[0].Status != store.RunStatusDraft {
-		t.Fatalf("status = %q, want draft", runs[0].Status)
+	if runs[0].Status != store.RunStatusInProgress {
+		t.Fatalf("status = %q, want in_progress", runs[0].Status)
 	}
 
 	items, err := st.ListRunItems(ctx, runs[0].ID)
@@ -67,6 +67,7 @@ func TestRuns_CreateAndStart(t *testing.T) {
 		t.Fatalf("ListRunItems() = %v, %v", items, err)
 	}
 
+	// Start remains available for legacy drafts; already started runs are a no-op.
 	startForm := url.Values{}
 	startForm.Set("csrf_token", csrf)
 	startReq := httptest.NewRequest(http.MethodPost, "/runs/"+strconv.FormatInt(runs[0].ID, 10)+"/start", strings.NewReader(startForm.Encode()))

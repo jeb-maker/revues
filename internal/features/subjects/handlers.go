@@ -620,7 +620,7 @@ func (h *Subjects) buildSubjectShowData(
 	}
 
 	pd := h.PageDataTab(r, subject.Name, "")
-	pd.Breadcrumbs = templates.BCSubjectShow(pd.Labels.Subject)
+	pd.Breadcrumbs = templates.BCSubjectShow(subject.Name, pd.Labels.Subject)
 
 	return templates.SubjectShowData{
 		PageData:         pd,

@@ -36,6 +36,7 @@ func (h *Auth) Login(w http.ResponseWriter, r *http.Request) {
 
 	data := templates.ApplyPageMeta(templates.PageData{
 		LoginError: auth.LoginErrorMessage(r.URL.Query().Get("error")),
+		DevAuth:    h.Config.DevAuthEnabled() && middleware.IsLocalDevRequest(r),
 	}, templates.BCLogin())
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")

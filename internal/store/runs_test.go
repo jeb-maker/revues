@@ -38,8 +38,11 @@ func TestCreateChecklistRunSnapshotsItems(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateChecklistRun(): %v", err)
 	}
-	if run.Status != store.RunStatusDraft {
-		t.Fatalf("status = %q, want draft", run.Status)
+	if run.Status != store.RunStatusInProgress {
+		t.Fatalf("status = %q, want in_progress", run.Status)
+	}
+	if !run.StartedAt.Valid {
+		t.Fatal("expected started_at on new run")
 	}
 	if run.TemplateVersionID != version.ID {
 		t.Fatalf("template_version_id = %d, want %d", run.TemplateVersionID, version.ID)
