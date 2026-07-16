@@ -15,6 +15,13 @@
   {{if .Subject.Description}}
   <p class="subject-meta__description">{{.Subject.Description}}</p>
   {{end}}
+  {{if .AccessSources}}
+  <p class="muted subject-meta__line">
+    Vos accès :
+    {{range $i, $src := .AccessSources}}{{if $i}} · {{end}}<span class="tag">{{$src}}</span>{{end}}
+    {{if .MemberRole}} — rôle effectif : {{formatRole .MemberRole}}{{end}}
+  </p>
+  {{end}}
   {{if or .Domains .Tags}}
   <details class="subject-meta__details stack-form">
     <summary>Détails</summary>
@@ -48,6 +55,108 @@
   </ul>
 </section>
 {{end}}
+
+<section class="card">
+  <h2>Équipes ({{len .Teams}})</h2>
+  {{if .Teams}}
+  <div class="table-scroll">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th scope="col">Équipe</th>
+        <th scope="col">Rôle</th>
+        <th scope="col" class="data-table__col--end">Membres</th>
+        {{if $.CanAssignTeams}}<th scope="col" class="data-table__col--end"></th>{{end}}
+      </tr>
+    </thead>
+    <tbody>
+      {{range .Teams}}
+      <tr>
+        <td>{{.TeamName}}</td>
+        <td>{{formatRole .Role}}</td>
+        <td class="data-table__col--end muted">{{.MemberCount}}</td>
+        {{if $.CanAssignTeams}}
+        <td class="data-table__col--end">
+          <form method="post" action="/subjects/{{$.Subject.ID}}/teams/remove" class="inline-form" onsubmit="return confirm('Retirer cette équipe du sujet ?');">
+            <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
+            <input type="hidden" name="team_id" value="{{.TeamID}}">
+            <button type="submit" class="button-ghost button-sm">Retirer</button>
+          </form>
+        </td>
+        {{end}}
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+  </div>
+  {{else}}
+  <p class="muted">Aucune équipe affectée à ce {{.Labels.Subject.Singular | lowerFirst}}.</p>
+  {{end}}
+
+  {{if .CanAssignTeams}}
+  <h3>Ajouter une équipe</h3>
+  {{if .AvailableTeams}}
+  <form method="post" action="/subjects/{{.Subject.ID}}/teams" class="stack-form"
+        hx-get="/subjects/{{.Subject.ID}}/teams/preview"
+        hx-trigger="change"
+        hx-target="#team-assign-preview"
+        hx-swap="outerHTML">
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+    <label>
+      Équipe
+      <select name="team_id" required>
+        <option value="">Choisir…</option>
+        {{range .AvailableTeams}}
+        <option value="{{.ID}}"{{if eq $.AddTeamID .ID}} selected{{end}}>{{.Name}} ({{.MemberCount}} membre{{if ne .MemberCount 1}}s{{end}})</option>
+        {{end}}
+      </select>
+    </label>
+    <label>
+      Rôle
+      <select name="role" required>
+        <option value="viewer"{{if eq .AddTeamRole "viewer"}} selected{{end}}>Observateur</option>
+        <option value="contributor"{{if eq .AddTeamRole "contributor"}} selected{{end}}>Contributeur</option>
+        <option value="lead"{{if eq .AddTeamRole "lead"}} selected{{end}}>Responsable</option>
+      </select>
+    </label>
+    <p id="team-assign-preview" class="muted">Sélectionnez une équipe et un rôle.</p>
+    <div class="form-actions">
+      <button type="submit" class="button">Ajouter</button>
+    </div>
+  </form>
+  {{else}}
+  <p class="muted">Toutes les équipes de l'organisation sont déjà affectées.{{if eq (len .Teams) 0}} <a href="/admin/teams">Créer une équipe</a>.{{end}}</p>
+  {{end}}
+  {{end}}
+</section>
+
+<section class="card">
+  <h2>Membres directs ({{len .DirectMembers}})</h2>
+  {{if .DirectMembers}}
+  <div class="table-scroll">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th scope="col">Membre</th>
+        <th scope="col">Rôle</th>
+        <th scope="col">Source</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{range .DirectMembers}}
+      <tr>
+        <td>{{.Login}} <span class="muted">{{.Email}}</span></td>
+        <td>{{formatRole .Role}}</td>
+        <td><span class="tag">direct</span></td>
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+  </div>
+  {{else}}
+  <p class="muted">Aucun membre direct — l'accès passe par les équipes ou la supervision org.</p>
+  {{end}}
+</section>
 
 <section class="card">
   <h2>Revues ({{len .Runs}})</h2>

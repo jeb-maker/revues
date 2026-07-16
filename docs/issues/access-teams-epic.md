@@ -78,7 +78,7 @@ ResolveSubjectAccess(user, subject) :
 - [x] Refactor handlers sur `ResolveSubjectAccess` (transition legacy ungated)
 - [x] Org admin voit tout + TestIDOR
 - [x] UI admin équipes CRUD
-- [ ] UI sujet — équipes + preview + sources
+- [x] UI sujet — équipes + preview + sources
 - [ ] Sujets privés (`visibility`)
 - [ ] Politiques org
 
@@ -247,24 +247,25 @@ Interface org admin pour gérer les équipes et leurs membres.
 
 ---
 
-## Issue 7 — `[ui] Projet — équipes, preview, sources d'accès`
+## Issue 7 — `[ui] Sujet — équipes, preview, sources d'accès`
 
 **Labels** : `area:ui`, `area:core`, `vague-5`  
-**Bloqué par** : Issue 4, Issue 6
+**Bloqué par** : Issue 4, Issue 6  
+**Statut** : livré (fiche sujet — section Équipes + preview HTMX + sources d'accès).
 
 ### Objectif
 
-Sur la fiche projet, gérer les équipes affectées et afficher les sources d'accès.
+Sur la fiche sujet, gérer les équipes affectées et afficher les sources d'accès.
 
 ### Critères d'acceptation
 
-- [ ] Section « Équipes » : liste équipes + rôle sur ce projet ; formulaire ajout équipe + rôle
-- [ ] Preview avant ajout : « Équipe X : N membres auront le rôle Y »
-- [ ] Section « Membres directs » : inchangée fonctionnellement, badge source (`direct` vs `via équipe …` en lecture seule sur fiche user)
-- [ ] RBAC ajout équipe : lead projet OU org owner/admin ; politique `leads_may_assign_teams` (stub true si Issue 9 pas merge)
-- [ ] Retrait équipe du projet : org admin ou lead
-- [ ] CSRF, tests handlers
-- [ ] `./scripts/check.sh` vert
+- [x] Section « Équipes » : liste équipes + rôle sur ce sujet ; formulaire ajout équipe + rôle
+- [x] Preview avant ajout : « Équipe X : N membres auront le rôle Y »
+- [x] Section « Membres directs » : lecture seule + badge source (`direct`) ; sources d'accès viewer via `ResolveSubjectAccess`
+- [x] RBAC ajout équipe : lead sujet OU org owner/admin ; politique `leads_may_assign_teams` (stub true — Issue 9)
+- [x] Retrait équipe du sujet : org admin ou lead
+- [x] CSRF, tests handlers
+- [x] `./scripts/check.sh` vert
 
 ---
 

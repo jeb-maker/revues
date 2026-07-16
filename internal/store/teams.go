@@ -40,6 +40,7 @@ type OrganizationTeam struct {
 	Slug           string
 	Description    string
 	CreatedAt      string
+	MemberCount    int // filled by ListOrganizationTeams
 }
 
 // TeamMember links a user to a team (with display fields from users).
@@ -54,19 +55,24 @@ type TeamMember struct {
 
 // DirectSubjectMember is a row in subject_members (exception path — not org listing).
 type DirectSubjectMember struct {
-	SubjectID int64
-	UserID    int64
-	Role      string
-	CreatedAt string
+	SubjectID   int64
+	UserID      int64
+	Role        string
+	Login       string
+	Email       string
+	DisplayName string
+	CreatedAt   string
 }
 
 // TeamSubjectRole assigns a team a role on a subject.
 type TeamSubjectRole struct {
-	TeamID    int64
-	SubjectID int64
-	Role      string
-	GrantedBy sql.NullInt64
-	CreatedAt string
+	TeamID      int64
+	TeamName    string
+	SubjectID   int64
+	Role        string
+	MemberCount int // filled by ListSubjectTeams
+	GrantedBy   sql.NullInt64
+	CreatedAt   string
 }
 
 // NormalizeTeamSlug reuses the organization slug rules.
@@ -139,10 +145,11 @@ func (s *Store) ListOrganizationTeams(ctx context.Context) ([]OrganizationTeam, 
 		return nil, err
 	}
 	rows, err := s.db.QueryContext(ctx, `
-		SELECT id, organization_id, name, slug, description, created_at
-		FROM organization_teams
-		WHERE organization_id = ?
-		ORDER BY name COLLATE NOCASE, id
+		SELECT t.id, t.organization_id, t.name, t.slug, t.description, t.created_at,
+			(SELECT COUNT(*) FROM team_members tm WHERE tm.team_id = t.id)
+		FROM organization_teams t
+		WHERE t.organization_id = ?
+		ORDER BY t.name COLLATE NOCASE, t.id
 	`, orgID)
 	if err != nil {
 		return nil, fmt.Errorf("list organization teams: %w", err)
@@ -152,7 +159,9 @@ func (s *Store) ListOrganizationTeams(ctx context.Context) ([]OrganizationTeam, 
 	var teams []OrganizationTeam
 	for rows.Next() {
 		var team OrganizationTeam
-		if scanErr := rows.Scan(&team.ID, &team.OrganizationID, &team.Name, &team.Slug, &team.Description, &team.CreatedAt); scanErr != nil {
+		if scanErr := rows.Scan(
+			&team.ID, &team.OrganizationID, &team.Name, &team.Slug, &team.Description, &team.CreatedAt, &team.MemberCount,
+		); scanErr != nil {
 			return nil, fmt.Errorf("scan organization team: %w", scanErr)
 		}
 		teams = append(teams, team)
@@ -312,10 +321,11 @@ func (s *Store) ListDirectSubjectMembers(ctx context.Context, subjectID int64) (
 		return nil, err
 	}
 	rows, err := s.db.QueryContext(ctx, `
-		SELECT subject_id, user_id, role, created_at
-		FROM subject_members
-		WHERE subject_id = ?
-		ORDER BY user_id
+		SELECT sm.subject_id, sm.user_id, sm.role, u.login, u.email, u.display_name, sm.created_at
+		FROM subject_members sm
+		INNER JOIN users u ON u.id = sm.user_id
+		WHERE sm.subject_id = ?
+		ORDER BY u.login, sm.user_id
 	`, subjectID)
 	if err != nil {
 		return nil, fmt.Errorf("list direct subject members: %w", err)
@@ -325,7 +335,7 @@ func (s *Store) ListDirectSubjectMembers(ctx context.Context, subjectID int64) (
 	var members []DirectSubjectMember
 	for rows.Next() {
 		var m DirectSubjectMember
-		if scanErr := rows.Scan(&m.SubjectID, &m.UserID, &m.Role, &m.CreatedAt); scanErr != nil {
+		if scanErr := rows.Scan(&m.SubjectID, &m.UserID, &m.Role, &m.Login, &m.Email, &m.DisplayName, &m.CreatedAt); scanErr != nil {
 			return nil, fmt.Errorf("scan direct subject member: %w", scanErr)
 		}
 		members = append(members, m)
@@ -400,8 +410,9 @@ func (s *Store) ListTeamSubjects(ctx context.Context, teamID int64) ([]TeamSubje
 		return nil, err
 	}
 	rows, err := s.db.QueryContext(ctx, `
-		SELECT r.team_id, r.subject_id, r.role, r.granted_by, r.created_at
+		SELECT r.team_id, t.name, r.subject_id, r.role, r.granted_by, r.created_at
 		FROM team_subject_roles r
+		INNER JOIN organization_teams t ON t.id = r.team_id
 		INNER JOIN subjects s ON s.id = r.subject_id
 		WHERE r.team_id = ? AND s.organization_id = ?
 		ORDER BY r.subject_id
@@ -414,7 +425,7 @@ func (s *Store) ListTeamSubjects(ctx context.Context, teamID int64) ([]TeamSubje
 	var roles []TeamSubjectRole
 	for rows.Next() {
 		var r TeamSubjectRole
-		if scanErr := rows.Scan(&r.TeamID, &r.SubjectID, &r.Role, &r.GrantedBy, &r.CreatedAt); scanErr != nil {
+		if scanErr := rows.Scan(&r.TeamID, &r.TeamName, &r.SubjectID, &r.Role, &r.GrantedBy, &r.CreatedAt); scanErr != nil {
 			return nil, fmt.Errorf("scan team subject role: %w", scanErr)
 		}
 		roles = append(roles, r)
@@ -435,11 +446,13 @@ func (s *Store) ListSubjectTeams(ctx context.Context, subjectID int64) ([]TeamSu
 		return nil, err
 	}
 	rows, err := s.db.QueryContext(ctx, `
-		SELECT r.team_id, r.subject_id, r.role, r.granted_by, r.created_at
+		SELECT r.team_id, t.name, r.subject_id, r.role,
+			(SELECT COUNT(*) FROM team_members tm WHERE tm.team_id = r.team_id),
+			r.granted_by, r.created_at
 		FROM team_subject_roles r
 		INNER JOIN organization_teams t ON t.id = r.team_id
 		WHERE r.subject_id = ? AND t.organization_id = ?
-		ORDER BY r.team_id
+		ORDER BY t.name COLLATE NOCASE, r.team_id
 	`, subjectID, orgID)
 	if err != nil {
 		return nil, fmt.Errorf("list subject teams: %w", err)
@@ -449,7 +462,9 @@ func (s *Store) ListSubjectTeams(ctx context.Context, subjectID int64) ([]TeamSu
 	var roles []TeamSubjectRole
 	for rows.Next() {
 		var r TeamSubjectRole
-		if scanErr := rows.Scan(&r.TeamID, &r.SubjectID, &r.Role, &r.GrantedBy, &r.CreatedAt); scanErr != nil {
+		if scanErr := rows.Scan(
+			&r.TeamID, &r.TeamName, &r.SubjectID, &r.Role, &r.MemberCount, &r.GrantedBy, &r.CreatedAt,
+		); scanErr != nil {
 			return nil, fmt.Errorf("scan subject team role: %w", scanErr)
 		}
 		roles = append(roles, r)

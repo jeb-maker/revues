@@ -91,3 +91,41 @@ func TestCanManageAccess_OrgAdminReaderDenied(t *testing.T) {
 		t.Fatal("global admin may manage subjects")
 	}
 }
+
+func TestCanAssignSubjectTeams(t *testing.T) {
+	admin := &User{Role: auth.RoleAdmin}
+	editor := &User{Role: auth.RoleEditor}
+	reader := &User{Role: auth.RoleReader}
+
+	orgAdminOnly := store.SubjectAccess{Visible: true, Sources: []string{store.AccessSourceOrgAdmin}}
+	leadDirect := store.SubjectAccess{
+		Visible: true,
+		Role:    store.SubjectRoleLead,
+		Sources: []string{store.AccessSourceDirect},
+	}
+	contributor := store.SubjectAccess{
+		Visible: true,
+		Role:    store.SubjectRoleContributor,
+		Sources: []string{store.AccessSourceDirect},
+	}
+	hidden := store.SubjectAccess{}
+
+	if !CanAssignSubjectTeams(admin, orgAdminOnly) {
+		t.Fatal("global admin may assign teams")
+	}
+	if !CanAssignSubjectTeams(editor, orgAdminOnly) {
+		t.Fatal("org admin may assign teams without subject lead")
+	}
+	if !CanAssignSubjectTeams(reader, orgAdminOnly) {
+		t.Fatal("org admin reader may assign teams (supervision, not métier write)")
+	}
+	if !CanAssignSubjectTeams(editor, leadDirect) {
+		t.Fatal("subject lead may assign teams when policy allows")
+	}
+	if CanAssignSubjectTeams(editor, contributor) {
+		t.Fatal("contributor must not assign teams")
+	}
+	if CanAssignSubjectTeams(editor, hidden) {
+		t.Fatal("invisible subject: no team assign")
+	}
+}

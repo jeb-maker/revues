@@ -130,8 +130,21 @@
     if (indicator) {
       indicator.classList.add("htmx-request");
     }
-    var body = method === "POST" ? formDataFor(form) : null;
-    fetch(url, { method: method, headers: headers, body: body, credentials: "same-origin" })
+    var body = null;
+    var fetchUrl = url;
+    if (method === "POST") {
+      body = formDataFor(form);
+    } else {
+      var params = new URLSearchParams();
+      formDataFor(form).forEach(function (value, key) {
+        params.append(key, value);
+      });
+      var qs = params.toString();
+      if (qs) {
+        fetchUrl += (url.indexOf("?") >= 0 ? "&" : "?") + qs;
+      }
+    }
+    fetch(fetchUrl, { method: method, headers: headers, body: body, credentials: "same-origin" })
       .then(function (resp) {
         return resp.text().then(function (text) {
           return { ok: resp.ok, text: text };

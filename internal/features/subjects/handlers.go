@@ -191,9 +191,23 @@ func (h *Subjects) Show(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	members, err := h.Store.ListSubjectMembers(r.Context(), subject.ID)
+	directMembers, err := h.Store.ListDirectSubjectMembers(r.Context(), subject.ID)
 	if err != nil {
-		slog.Error("list subject members", "err", err)
+		slog.Error("list direct subject members", "err", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	subjectTeams, err := h.Store.ListSubjectTeams(r.Context(), subject.ID)
+	if err != nil {
+		slog.Error("list subject teams", "err", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	orgTeams, err := h.Store.ListOrganizationTeams(r.Context())
+	if err != nil {
+		slog.Error("list organization teams", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
@@ -227,7 +241,7 @@ func (h *Subjects) Show(w http.ResponseWriter, r *http.Request) {
 	}
 
 	callerOrgRole, callerOrgMember, _ := h.Store.OrganizationMemberRole(r.Context(), subject.OrganizationID, user.ID)
-	data, err := h.buildSubjectShowData(r, subject, user, access, callerOrgRole, callerOrgMember, domains, tags, members, subjectRuns, nokItems, subjectShowExtras{
+	data, err := h.buildSubjectShowData(r, subject, user, access, callerOrgRole, callerOrgMember, domains, tags, nil, directMembers, subjectTeams, orgTeams, subjectRuns, nokItems, subjectShowExtras{
 		message: r.URL.Query().Get("msg"),
 	})
 	if err != nil {
@@ -240,6 +254,146 @@ func (h *Subjects) Show(w http.ResponseWriter, r *http.Request) {
 	if err := h.Templates.ExecuteTemplate(w, "subject_show", data); err != nil {
 		slog.Error("render subject show", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+	}
+}
+
+// AddTeam grants an organization team a role on the subject.
+func (h *Subjects) AddTeam(w http.ResponseWriter, r *http.Request) {
+	subject, user, access, ok := h.loadSubject(w, r)
+	if !ok {
+		return
+	}
+	if !CanAssignSubjectTeams(user, access) {
+		http.NotFound(w, r)
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
+
+	teamID, err := strconv.ParseInt(strings.TrimSpace(r.FormValue("team_id")), 10, 64)
+	if err != nil || teamID <= 0 {
+		h.renderShowError(w, r, subject, user, access, "Équipe invalide.")
+		return
+	}
+	role := strings.TrimSpace(r.FormValue("role"))
+	if role == "" {
+		role = store.SubjectRoleViewer
+	}
+
+	if err = h.Store.GrantTeamSubjectRole(r.Context(), teamID, subject.ID, role, user.ID); err != nil {
+		if errors.Is(err, ErrTeamNotFound) || errors.Is(err, ErrSubjectNotFound) {
+			http.NotFound(w, r)
+			return
+		}
+		if errors.Is(err, ErrInvalidSubjectRole) {
+			h.renderShowError(w, r, subject, user, access, "Rôle invalide.")
+			return
+		}
+		slog.Error("grant team subject role", "err", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	http.Redirect(w, r, "/subjects/"+strconv.FormatInt(subject.ID, 10)+"?msg=%C3%89quipe+ajout%C3%A9e", http.StatusSeeOther)
+}
+
+// RemoveTeam revokes a team's role on the subject.
+func (h *Subjects) RemoveTeam(w http.ResponseWriter, r *http.Request) {
+	subject, user, access, ok := h.loadSubject(w, r)
+	if !ok {
+		return
+	}
+	if !CanAssignSubjectTeams(user, access) {
+		http.NotFound(w, r)
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
+
+	teamID, err := strconv.ParseInt(strings.TrimSpace(r.FormValue("team_id")), 10, 64)
+	if err != nil || teamID <= 0 {
+		h.renderShowError(w, r, subject, user, access, "Équipe invalide.")
+		return
+	}
+
+	if err = h.Store.RevokeTeamSubjectRole(r.Context(), teamID, subject.ID); err != nil {
+		if errors.Is(err, ErrTeamNotFound) || errors.Is(err, ErrSubjectNotFound) {
+			http.NotFound(w, r)
+			return
+		}
+		if errors.Is(err, ErrTeamSubjectRoleNotFound) {
+			h.renderShowError(w, r, subject, user, access, "Cette équipe n'est pas affectée à ce sujet.")
+			return
+		}
+		slog.Error("revoke team subject role", "err", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	http.Redirect(w, r, "/subjects/"+strconv.FormatInt(subject.ID, 10)+"?msg=%C3%89quipe+retir%C3%A9e", http.StatusSeeOther)
+}
+
+// PreviewTeam returns an HTMX fragment describing the team assignment impact.
+func (h *Subjects) PreviewTeam(w http.ResponseWriter, r *http.Request) {
+	_, user, access, ok := h.loadSubject(w, r)
+	if !ok {
+		return
+	}
+	if !CanAssignSubjectTeams(user, access) {
+		http.NotFound(w, r)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	teamID, err := strconv.ParseInt(strings.TrimSpace(r.URL.Query().Get("team_id")), 10, 64)
+	if err != nil || teamID <= 0 {
+		if execErr := h.Templates.ExecuteTemplate(w, "subject_team_preview_fragment", templates.SubjectTeamPreviewData{Empty: true}); execErr != nil {
+			slog.Error("render team preview empty", "err", execErr)
+		}
+		return
+	}
+	role := strings.TrimSpace(r.URL.Query().Get("role"))
+	if role == "" {
+		role = store.SubjectRoleViewer
+	}
+	switch role {
+	case store.SubjectRoleLead, store.SubjectRoleContributor, store.SubjectRoleViewer:
+	default:
+		if execErr := h.Templates.ExecuteTemplate(w, "subject_team_preview_fragment", templates.SubjectTeamPreviewData{Empty: true}); execErr != nil {
+			slog.Error("render team preview invalid role", "err", execErr)
+		}
+		return
+	}
+
+	team, err := h.Store.TeamByID(r.Context(), teamID)
+	if err != nil {
+		if errors.Is(err, ErrTeamNotFound) {
+			http.NotFound(w, r)
+			return
+		}
+		slog.Error("team by id for preview", "err", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	members, err := h.Store.ListTeamMembers(r.Context(), teamID)
+	if err != nil {
+		slog.Error("list team members for preview", "err", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	data := templates.SubjectTeamPreviewData{
+		TeamName:    team.Name,
+		MemberCount: len(members),
+		RoleLabel:   templates.FormatRole(role),
+	}
+	if execErr := h.Templates.ExecuteTemplate(w, "subject_team_preview_fragment", data); execErr != nil {
+		slog.Error("render team preview", "err", execErr)
 	}
 }
 
@@ -574,6 +728,9 @@ func (h *Subjects) renderWizardError(w http.ResponseWriter, r *http.Request, mes
 
 type subjectShowExtras struct {
 	message string
+	errMsg  string
+	addTeam int64
+	addRole string
 }
 
 func (h *Subjects) buildSubjectShowData(
@@ -585,15 +742,43 @@ func (h *Subjects) buildSubjectShowData(
 	callerOrgMember bool,
 	domains, tags []string,
 	members []SubjectMember,
+	directMembers []DirectSubjectMember,
+	subjectTeams []TeamSubjectRole,
+	orgTeams []OrganizationTeam,
 	subjectRuns []RunWithProgress,
 	nokItems []SubjectNokItemSummary,
 	extras subjectShowExtras,
 ) (templates.SubjectShowData, error) {
 	canManage := CanManageAccess(user, access)
 	canLaunch := CanContributeAccess(user, access)
+	canAssignTeams := CanAssignSubjectTeams(user, access)
 	editPath := templates.PathSubjects + "/" + strconv.FormatInt(subject.ID, 10) + "/edit"
 	if CanManageOrgUsers(user, callerOrgRole, callerOrgMember) {
 		editPath = templates.PathAdminSubjects + "/" + strconv.FormatInt(subject.ID, 10) + "/edit"
+	}
+
+	assigned := make(map[int64]struct{}, len(subjectTeams))
+	teamNames := make(map[int64]string, len(orgTeams)+len(subjectTeams))
+	for _, t := range subjectTeams {
+		assigned[t.TeamID] = struct{}{}
+		teamNames[t.TeamID] = t.TeamName
+	}
+	var available []OrganizationTeam
+	for _, t := range orgTeams {
+		teamNames[t.ID] = t.Name
+		if _, ok := assigned[t.ID]; !ok {
+			available = append(available, t)
+		}
+	}
+
+	accessSources := make([]string, 0, len(access.Sources))
+	for _, src := range access.Sources {
+		accessSources = append(accessSources, templates.FormatAccessSource(src, teamNames))
+	}
+
+	addRole := extras.addRole
+	if addRole == "" {
+		addRole = store.SubjectRoleViewer
 	}
 
 	pd := h.PageDataTab(r, subject.Name, "")
@@ -605,13 +790,85 @@ func (h *Subjects) buildSubjectShowData(
 		Domains:          domains,
 		Tags:             tags,
 		Members:          members,
+		DirectMembers:    directMembers,
+		Teams:            subjectTeams,
+		AvailableTeams:   available,
+		AccessSources:    accessSources,
 		Runs:             subjectRuns,
 		NokItems:         nokItems,
 		MemberRole:       DisplayRole(access),
 		CanManage:        canManage,
 		CanManageMembers: false,
+		CanAssignTeams:   canAssignTeams,
 		CanLaunch:        canLaunch,
 		EditPath:         editPath,
+		AddTeamID:        extras.addTeam,
+		AddTeamRole:      addRole,
 		Message:          extras.message,
+		Error:            extras.errMsg,
 	}, nil
+}
+
+func (h *Subjects) renderShowError(w http.ResponseWriter, r *http.Request, subject *Subject, user *store.User, access store.SubjectAccess, message string) {
+	directMembers, err := h.Store.ListDirectSubjectMembers(r.Context(), subject.ID)
+	if err != nil {
+		slog.Error("list direct subject members", "err", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	subjectTeams, err := h.Store.ListSubjectTeams(r.Context(), subject.ID)
+	if err != nil {
+		slog.Error("list subject teams", "err", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	orgTeams, err := h.Store.ListOrganizationTeams(r.Context())
+	if err != nil {
+		slog.Error("list organization teams", "err", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	subjectRuns, err := h.Store.ListRunsWithProgressBySubject(r.Context(), subject.ID)
+	if err != nil {
+		slog.Error("list subject runs", "err", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	nokItems, err := h.Store.ListSubjectNokItems(r.Context(), subject.ID)
+	if err != nil {
+		slog.Error("list subject nok items", "err", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	domains, err := h.Store.ListSubjectDomains(r.Context(), subject.ID)
+	if err != nil {
+		slog.Error("list subject domains", "err", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	tags, err := h.Store.ListSubjectTags(r.Context(), subject.ID)
+	if err != nil {
+		slog.Error("list subject tags", "err", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	teamID, _ := strconv.ParseInt(strings.TrimSpace(r.FormValue("team_id")), 10, 64)
+	callerOrgRole, callerOrgMember, _ := h.Store.OrganizationMemberRole(r.Context(), subject.OrganizationID, user.ID)
+	data, err := h.buildSubjectShowData(r, subject, user, access, callerOrgRole, callerOrgMember, domains, tags, nil, directMembers, subjectTeams, orgTeams, subjectRuns, nokItems, subjectShowExtras{
+		errMsg:  message,
+		addTeam: teamID,
+		addRole: strings.TrimSpace(r.FormValue("role")),
+	})
+	if err != nil {
+		slog.Error("build subject show data", "err", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.WriteHeader(http.StatusBadRequest)
+	if err := h.Templates.ExecuteTemplate(w, "subject_show", data); err != nil {
+		slog.Error("render subject show error", "err", err)
+	}
 }

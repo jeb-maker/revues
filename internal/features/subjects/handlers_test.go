@@ -707,3 +707,262 @@ func TestSubjects_ShowEditLink_ByOrgRole(t *testing.T) {
 		})
 	}
 }
+
+func TestSubjectTeams_AddPreviewRemove_RBAC(t *testing.T) {
+	handler, db := testRouter(t)
+	ctx := context.Background()
+	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
+	defaultOrg, err := st.OrganizationBySlug(ctx, "default")
+	if err != nil {
+		t.Fatalf("OrganizationBySlug(): %v", err)
+	}
+
+	owner, err := st.UpsertGitHubUser(ctx, 200, "owner", "owner-teams@example.com", "Owner", "", auth.RoleEditor)
+	if err != nil {
+		t.Fatalf("UpsertGitHubUser(owner): %v", err)
+	}
+	lead, err := st.UpsertGitHubUser(ctx, 201, "lead", "lead-teams@example.com", "Lead", "", auth.RoleEditor)
+	if err != nil {
+		t.Fatalf("UpsertGitHubUser(lead): %v", err)
+	}
+	member, err := st.UpsertGitHubUser(ctx, 202, "member", "member-teams@example.com", "Member", "", auth.RoleEditor)
+	if err != nil {
+		t.Fatalf("UpsertGitHubUser(member): %v", err)
+	}
+	outsider, err := st.UpsertGitHubUser(ctx, 203, "outsider", "outsider-teams@example.com", "Outsider", "", auth.RoleEditor)
+	if err != nil {
+		t.Fatalf("UpsertGitHubUser(outsider): %v", err)
+	}
+
+	if err = st.AddOrganizationMember(ctx, defaultOrg.ID, owner.ID, store.OrgRoleOwner); err != nil {
+		t.Fatalf("AddOrganizationMember(owner): %v", err)
+	}
+	if err = st.AddOrganizationMember(ctx, defaultOrg.ID, lead.ID, store.OrgRoleMember); err != nil {
+		t.Fatalf("AddOrganizationMember(lead): %v", err)
+	}
+	if err = st.AddOrganizationMember(ctx, defaultOrg.ID, member.ID, store.OrgRoleMember); err != nil {
+		t.Fatalf("AddOrganizationMember(member): %v", err)
+	}
+
+	subject, err := st.CreateSubject(ctx, "Sujet équipes", "", owner.ID, nil)
+	if err != nil {
+		t.Fatalf("CreateSubject(): %v", err)
+	}
+	if err = st.UpsertDirectSubjectMember(ctx, subject.ID, lead.ID, store.SubjectRoleLead); err != nil {
+		t.Fatalf("UpsertDirectSubjectMember(lead): %v", err)
+	}
+	if err = st.UpsertDirectSubjectMember(ctx, subject.ID, member.ID, store.SubjectRoleContributor); err != nil {
+		t.Fatalf("UpsertDirectSubjectMember(member): %v", err)
+	}
+
+	team, err := st.CreateTeam(ctx, "Qualité", "qualite", "")
+	if err != nil {
+		t.Fatalf("CreateTeam(): %v", err)
+	}
+	if err = st.AddTeamMember(ctx, team.ID, member.ID); err != nil {
+		t.Fatalf("AddTeamMember(): %v", err)
+	}
+
+	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
+	ownerToken, _, err := sessions.CreateLoginSession(ctx, owner.ID, defaultOrg.ID)
+	if err != nil {
+		t.Fatalf("CreateLoginSession(owner): %v", err)
+	}
+	leadToken, _, err := sessions.CreateLoginSession(ctx, lead.ID, defaultOrg.ID)
+	if err != nil {
+		t.Fatalf("CreateLoginSession(lead): %v", err)
+	}
+	memberToken, _, err := sessions.CreateLoginSession(ctx, member.ID, defaultOrg.ID)
+	if err != nil {
+		t.Fatalf("CreateLoginSession(member): %v", err)
+	}
+	outsiderToken, _, err := sessions.CreateLoginSession(ctx, outsider.ID, 0)
+	if err != nil {
+		t.Fatalf("CreateLoginSession(outsider): %v", err)
+	}
+	ownerCSRF := auth.CSRFToken(ownerToken, "test-secret-at-least-thirty-two-bytes")
+	leadCSRF := auth.CSRFToken(leadToken, "test-secret-at-least-thirty-two-bytes")
+	memberCSRF := auth.CSRFToken(memberToken, "test-secret-at-least-thirty-two-bytes")
+
+	subjectPath := "/subjects/" + strconv.FormatInt(subject.ID, 10)
+	teamIDStr := strconv.FormatInt(team.ID, 10)
+
+	showReq := httptest.NewRequest(http.MethodGet, subjectPath, nil)
+	showReq.AddCookie(&http.Cookie{Name: "revues_session", Value: leadToken})
+	showRec := httptest.NewRecorder()
+	handler.ServeHTTP(showRec, showReq)
+	if showRec.Code != http.StatusOK {
+		t.Fatalf("show status = %d, want %d", showRec.Code, http.StatusOK)
+	}
+	showBody := showRec.Body.String()
+	if !strings.Contains(showBody, "Équipes") || !strings.Contains(showBody, "Membres directs") {
+		t.Fatalf("show missing teams/direct members sections")
+	}
+	if !strings.Contains(showBody, `tag">direct`) && !strings.Contains(showBody, ">direct<") {
+		t.Fatalf("show missing direct access source badge")
+	}
+
+	previewURL := subjectPath + "/teams/preview?team_id=" + teamIDStr + "&role=contributor"
+	previewReq := httptest.NewRequest(http.MethodGet, previewURL, nil)
+	previewReq.AddCookie(&http.Cookie{Name: "revues_session", Value: leadToken})
+	previewRec := httptest.NewRecorder()
+	handler.ServeHTTP(previewRec, previewReq)
+	if previewRec.Code != http.StatusOK {
+		t.Fatalf("preview status = %d, want %d", previewRec.Code, http.StatusOK)
+	}
+	if !strings.Contains(previewRec.Body.String(), "Équipe Qualité : 1 membre") ||
+		!strings.Contains(previewRec.Body.String(), "Contributeur") {
+		t.Fatalf("preview body = %q, want containing team/count/role", previewRec.Body.String())
+	}
+
+	memberForm := url.Values{}
+	memberForm.Set("csrf_token", memberCSRF)
+	memberForm.Set("team_id", teamIDStr)
+	memberForm.Set("role", "viewer")
+	memberAdd := httptest.NewRequest(http.MethodPost, subjectPath+"/teams", strings.NewReader(memberForm.Encode()))
+	memberAdd.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	memberAdd.AddCookie(&http.Cookie{Name: "revues_session", Value: memberToken})
+	memberRec := httptest.NewRecorder()
+	handler.ServeHTTP(memberRec, memberAdd)
+	if memberRec.Code != http.StatusNotFound {
+		t.Fatalf("contributor add status = %d, want %d", memberRec.Code, http.StatusNotFound)
+	}
+
+	outsiderForm := url.Values{}
+	outsiderForm.Set("csrf_token", auth.CSRFToken(outsiderToken, "test-secret-at-least-thirty-two-bytes"))
+	outsiderForm.Set("team_id", teamIDStr)
+	outsiderForm.Set("role", "viewer")
+	outsiderAdd := httptest.NewRequest(http.MethodPost, subjectPath+"/teams", strings.NewReader(outsiderForm.Encode()))
+	outsiderAdd.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	outsiderAdd.AddCookie(&http.Cookie{Name: "revues_session", Value: outsiderToken})
+	outsiderRec := httptest.NewRecorder()
+	handler.ServeHTTP(outsiderRec, outsiderAdd)
+	if outsiderRec.Code != http.StatusNotFound {
+		t.Fatalf("outsider add status = %d, want %d", outsiderRec.Code, http.StatusNotFound)
+	}
+
+	leadForm := url.Values{}
+	leadForm.Set("csrf_token", leadCSRF)
+	leadForm.Set("team_id", teamIDStr)
+	leadForm.Set("role", "contributor")
+	leadAdd := httptest.NewRequest(http.MethodPost, subjectPath+"/teams", strings.NewReader(leadForm.Encode()))
+	leadAdd.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	leadAdd.AddCookie(&http.Cookie{Name: "revues_session", Value: leadToken})
+	leadRec := httptest.NewRecorder()
+	handler.ServeHTTP(leadRec, leadAdd)
+	if leadRec.Code != http.StatusSeeOther {
+		t.Fatalf("lead add status = %d, want %d", leadRec.Code, http.StatusSeeOther)
+	}
+
+	teams, err := st.ListSubjectTeams(ctx, subject.ID)
+	if err != nil || len(teams) != 1 || teams[0].Role != store.SubjectRoleContributor {
+		t.Fatalf("ListSubjectTeams() = %+v, %v", teams, err)
+	}
+
+	showAfter := httptest.NewRequest(http.MethodGet, subjectPath, nil)
+	showAfter.AddCookie(&http.Cookie{Name: "revues_session", Value: ownerToken})
+	showAfterRec := httptest.NewRecorder()
+	handler.ServeHTTP(showAfterRec, showAfter)
+	if showAfterRec.Code != http.StatusOK {
+		t.Fatalf("show after add status = %d", showAfterRec.Code)
+	}
+	if !strings.Contains(showAfterRec.Body.String(), "Qualité") {
+		t.Fatalf("expected assigned team name in show body")
+	}
+
+	noCSRF := url.Values{}
+	noCSRF.Set("team_id", teamIDStr)
+	noCSRFReq := httptest.NewRequest(http.MethodPost, subjectPath+"/teams/remove", strings.NewReader(noCSRF.Encode()))
+	noCSRFReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	noCSRFReq.AddCookie(&http.Cookie{Name: "revues_session", Value: ownerToken})
+	noCSRFRec := httptest.NewRecorder()
+	handler.ServeHTTP(noCSRFRec, noCSRFReq)
+	if noCSRFRec.Code != http.StatusForbidden && noCSRFRec.Code != http.StatusBadRequest {
+		t.Fatalf("missing CSRF status = %d, want 403 or 400", noCSRFRec.Code)
+	}
+
+	removeForm := url.Values{}
+	removeForm.Set("csrf_token", ownerCSRF)
+	removeForm.Set("team_id", teamIDStr)
+	removeReq := httptest.NewRequest(http.MethodPost, subjectPath+"/teams/remove", strings.NewReader(removeForm.Encode()))
+	removeReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	removeReq.AddCookie(&http.Cookie{Name: "revues_session", Value: ownerToken})
+	removeRec := httptest.NewRecorder()
+	handler.ServeHTTP(removeRec, removeReq)
+	if removeRec.Code != http.StatusSeeOther {
+		t.Fatalf("remove status = %d, want %d", removeRec.Code, http.StatusSeeOther)
+	}
+	teams, err = st.ListSubjectTeams(ctx, subject.ID)
+	if err != nil || len(teams) != 0 {
+		t.Fatalf("teams after remove = %+v, %v", teams, err)
+	}
+}
+
+func TestSubjectTeams_IDOR_CrossOrg(t *testing.T) {
+	handler, db := testRouter(t)
+	ctx := context.Background()
+	st := store.New(db)
+
+	alice, err := st.UpsertGitHubUser(ctx, 210, "alice-t", "alice-t@example.com", "Alice", "", auth.RoleEditor)
+	if err != nil {
+		t.Fatalf("UpsertGitHubUser(alice): %v", err)
+	}
+	bob, err := st.UpsertGitHubUser(ctx, 211, "bob-t", "bob-t@example.com", "Bob", "", auth.RoleEditor)
+	if err != nil {
+		t.Fatalf("UpsertGitHubUser(bob): %v", err)
+	}
+
+	orgA, err := st.CreateOrganization(ctx, "Org A Teams", "org-a-teams", alice.ID)
+	if err != nil {
+		t.Fatalf("CreateOrganization(A): %v", err)
+	}
+	orgB, err := st.CreateOrganization(ctx, "Org B Teams", "org-b-teams", bob.ID)
+	if err != nil {
+		t.Fatalf("CreateOrganization(B): %v", err)
+	}
+	if err = st.AddOrganizationMember(ctx, orgA.ID, alice.ID, store.OrgRoleOwner); err != nil {
+		t.Fatalf("AddOrganizationMember(alice): %v", err)
+	}
+	if err = st.AddOrganizationMember(ctx, orgB.ID, bob.ID, store.OrgRoleOwner); err != nil {
+		t.Fatalf("AddOrganizationMember(bob): %v", err)
+	}
+
+	ctxA := orgctx.WithOrganizationID(ctx, orgA.ID)
+	subject, err := st.CreateSubject(ctxA, "Secret teams", "", alice.ID, nil)
+	if err != nil {
+		t.Fatalf("CreateSubject(): %v", err)
+	}
+	team, err := st.CreateTeam(ctxA, "Alpha", "alpha", "")
+	if err != nil {
+		t.Fatalf("CreateTeam(): %v", err)
+	}
+
+	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
+	bobToken, _, err := sessions.CreateLoginSession(ctx, bob.ID, orgB.ID)
+	if err != nil {
+		t.Fatalf("CreateLoginSession(bob): %v", err)
+	}
+	csrf := auth.CSRFToken(bobToken, "test-secret-at-least-thirty-two-bytes")
+
+	form := url.Values{}
+	form.Set("csrf_token", csrf)
+	form.Set("team_id", strconv.FormatInt(team.ID, 10))
+	form.Set("role", "viewer")
+	req := httptest.NewRequest(http.MethodPost, "/subjects/"+strconv.FormatInt(subject.ID, 10)+"/teams", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.AddCookie(&http.Cookie{Name: "revues_session", Value: bobToken})
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("cross-org add status = %d, want %d", rec.Code, http.StatusNotFound)
+	}
+
+	preview := httptest.NewRequest(http.MethodGet, "/subjects/"+strconv.FormatInt(subject.ID, 10)+"/teams/preview?team_id="+strconv.FormatInt(team.ID, 10)+"&role=viewer", nil)
+	preview.AddCookie(&http.Cookie{Name: "revues_session", Value: bobToken})
+	previewRec := httptest.NewRecorder()
+	handler.ServeHTTP(previewRec, preview)
+	if previewRec.Code != http.StatusNotFound {
+		t.Fatalf("cross-org preview status = %d, want %d", previewRec.Code, http.StatusNotFound)
+	}
+}

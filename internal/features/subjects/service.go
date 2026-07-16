@@ -113,6 +113,31 @@ func CanManageOrgUsers(user *User, orgRole string, orgMember bool) bool {
 	return orgRole == store.OrgRoleOwner || orgRole == store.OrgRoleAdmin
 }
 
+// LeadsMayAssignTeams reports whether subject leads may grant team access.
+// Stubbed true until Issue 9 (org policies) lands.
+func LeadsMayAssignTeams() bool {
+	return true
+}
+
+// CanAssignSubjectTeams reports whether the user may add/remove teams on a subject.
+// Org owner/admin and global admin always may; subject leads require LeadsMayAssignTeams.
+// Org admin visibility alone is enough (no subject lead required — unlike CanLeadAccess).
+func CanAssignSubjectTeams(user *User, access store.SubjectAccess) bool {
+	if !access.Visible {
+		return false
+	}
+	if auth.HasMinRole(user.Role, auth.RoleAdmin) {
+		return true
+	}
+	if access.HasSource(store.AccessSourceOrgAdmin) {
+		return true
+	}
+	if !LeadsMayAssignTeams() {
+		return false
+	}
+	return CanLeadAccess(user, access)
+}
+
 const (
 	LocalRoleLead        = "lead"
 	LocalRoleContributor = "contributor"

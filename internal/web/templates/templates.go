@@ -108,6 +108,40 @@ func FormatRole(s string) string {
 	}
 }
 
+// FormatAccessSource returns a French badge label for a ResolveSubjectAccess source.
+// teamNames maps team id → name for "team:{id}" sources.
+func FormatAccessSource(source string, teamNames map[int64]string) string {
+	switch {
+	case source == store.AccessSourceDirect:
+		return "direct"
+	case source == store.AccessSourceOrgAdmin:
+		return "admin organisation"
+	case source == store.AccessSourceGlobalAdmin:
+		return "admin global"
+	case source == store.AccessSourceOrgMemberLegacy:
+		return "membre organisation"
+	case strings.HasPrefix(source, "team:"):
+		id, err := strconv.ParseInt(strings.TrimPrefix(source, "team:"), 10, 64)
+		if err == nil {
+			if name, ok := teamNames[id]; ok && name != "" {
+				return "via équipe " + name
+			}
+		}
+		return "via équipe"
+	default:
+		return source
+	}
+}
+
+// TeamAssignPreview formats the pre-add team assignment message.
+func TeamAssignPreview(teamName string, memberCount int, role string) string {
+	roleLabel := FormatRole(role)
+	if memberCount == 1 {
+		return fmt.Sprintf("Équipe %s : 1 membre aura le rôle %s", teamName, roleLabel)
+	}
+	return fmt.Sprintf("Équipe %s : %d membres auront le rôle %s", teamName, memberCount, roleLabel)
+}
+
 // RunItemTableColspan returns the column count for the run items table empty row.
 func RunItemTableColspan(runStatus string, canCheck, canAssign bool) int {
 	if runStatus == store.RunStatusInProgress && (canCheck || canAssign) {
@@ -345,6 +379,14 @@ type OrgSelectData struct {
 	Error         string
 }
 
+// SubjectTeamPreviewData is the HTMX fragment for team assignment preview.
+type SubjectTeamPreviewData struct {
+	Empty       bool
+	TeamName    string
+	MemberCount int
+	RoleLabel   string
+}
+
 // SubjectShowData is view data for subject detail.
 type SubjectShowData struct {
 	PageData
@@ -352,15 +394,22 @@ type SubjectShowData struct {
 	Domains          []string
 	Tags             []string
 	Members          []store.SubjectMember
+	DirectMembers    []store.DirectSubjectMember
+	Teams            []store.TeamSubjectRole
+	AvailableTeams   []store.OrganizationTeam
+	AccessSources    []string
 	Runs             []store.RunWithProgress
 	NokItems         []store.SubjectNokItemSummary
 	MemberRole       string
 	CanManage        bool
 	CanManageMembers bool
+	CanAssignTeams   bool
 	CanLaunch        bool
 	EditPath         string
 	AddMemberEmail   string
 	AddMemberRole    string
+	AddTeamID        int64
+	AddTeamRole      string
 	Message          string
 	Error            string
 }
@@ -655,6 +704,8 @@ func Parse(assetVersion string) (*template.Template, error) {
 		"formatItemStatus":    FormatItemStatus,
 		"formatRunStatus":     FormatRunStatus,
 		"formatRole":          FormatRole,
+		"formatAccessSource":  FormatAccessSource,
+		"teamAssignPreview":   TeamAssignPreview,
 		"lowerFirst":          LowerFirst,
 		"launchActionTitle":   LaunchActionTitle,
 		"runItemTableColspan": RunItemTableColspan,
