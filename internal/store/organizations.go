@@ -8,6 +8,9 @@ import (
 	"regexp"
 	"strings"
 	"time"
+	"unicode"
+
+	"golang.org/x/text/unicode/norm"
 )
 
 // ErrOrganizationNotFound is returned when an organization lookup fails.
@@ -113,9 +116,25 @@ type OrganizationMemberUser struct {
 	JoinedAt    string
 }
 
-// NormalizeOrganizationSlug lowercases and restricts a slug to [a-z0-9-].
+// foldSlugDiacritics lowercases and strips combining marks (é→e, ç→c).
+// Ligatures œ/æ become oe/ae before decomposition.
+func foldSlugDiacritics(s string) string {
+	s = strings.ToLower(strings.TrimSpace(s))
+	s = strings.ReplaceAll(s, "œ", "oe")
+	s = strings.ReplaceAll(s, "æ", "ae")
+	var b strings.Builder
+	for _, r := range norm.NFD.String(s) {
+		if unicode.Is(unicode.Mn, r) {
+			continue
+		}
+		b.WriteRune(r)
+	}
+	return b.String()
+}
+
+// NormalizeOrganizationSlug lowercases, folds accents, and restricts a slug to [a-z0-9-].
 func NormalizeOrganizationSlug(slug string) (string, error) {
-	slug = strings.ToLower(strings.TrimSpace(slug))
+	slug = foldSlugDiacritics(slug)
 	if slug == "" {
 		return "", ErrInvalidOrganizationSlug
 	}

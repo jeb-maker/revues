@@ -20,6 +20,9 @@ func TestNormalizeOrganizationSlug(t *testing.T) {
 		{name: "lowercase trim", input: "  Acme Corp  ", want: "acme-corp"},
 		{name: "underscores", input: "my_org", want: "my-org"},
 		{name: "already valid", input: "acme-42", want: "acme-42"},
+		{name: "french accents", input: "Squad Qualité", want: "squad-qualite"},
+		{name: "cedilla and grave", input: "École Française", want: "ecole-francaise"},
+		{name: "ligature oe", input: "Cœur", want: "coeur"},
 		{name: "empty", input: "   ", wantErr: store.ErrInvalidOrganizationSlug},
 		{name: "invalid only symbols", input: "!!!", wantErr: store.ErrInvalidOrganizationSlug},
 	}

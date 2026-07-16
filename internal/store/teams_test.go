@@ -19,6 +19,13 @@ func TestNormalizeTeamSlug(t *testing.T) {
 	if got != "qa-squad" {
 		t.Fatalf("slug = %q, want qa-squad", got)
 	}
+	got, err = store.NormalizeTeamSlug("Squad Qualité")
+	if err != nil {
+		t.Fatalf("NormalizeTeamSlug(accents): %v", err)
+	}
+	if got != "squad-qualite" {
+		t.Fatalf("slug = %q, want squad-qualite", got)
+	}
 }
 
 func TestTeamsStore(t *testing.T) {
