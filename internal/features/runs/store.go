@@ -13,7 +13,7 @@ type RunStore interface {
 	ListActiveRunSummaries(ctx context.Context, userID int64, admin bool) ([]store.ActiveRunSummary, error)
 	ListRecentCompletedRunSummaries(ctx context.Context, userID int64, admin bool) ([]store.CompletedRunSummary, error)
 	OrganizationMemberRole(ctx context.Context, organizationID, userID int64) (string, bool, error)
-	MemberRole(ctx context.Context, subjectID, userID int64) (string, bool, error)
+	ResolveSubjectAccess(ctx context.Context, userID, subjectID int64, globalRole string) (store.SubjectAccess, error)
 	ListSubjectMembers(ctx context.Context, subjectID int64) ([]store.SubjectMember, error)
 	ChecklistTemplateByID(ctx context.Context, id int64) (*store.ChecklistTemplate, error)
 	ListChecklistTemplates(ctx context.Context, subjectID int64) ([]store.ChecklistTemplateSummary, error)

@@ -14,9 +14,14 @@ import (
 
 // --- Access (formerly internal/runs/access.go) ---
 
-// CanView reports whether the user may view a run on a subject.
+// CanView reports whether the user may view a run on a subject (v1 flag).
 func CanView(user *store.User, orgMember bool) bool {
 	return subjects.CanViewSubject(user, orgMember)
+}
+
+// CanViewAccess reports whether resolved access allows viewing a run.
+func CanViewAccess(access store.SubjectAccess) bool {
+	return subjects.CanViewAccess(access)
 }
 
 // CanLaunch reports whether the user may create or start a run.
@@ -24,9 +29,19 @@ func CanLaunch(user *store.User, orgMember bool) bool {
 	return subjects.CanLaunchRun(user, orgMember)
 }
 
+// CanLaunchAccess reports whether resolved access allows launching a run.
+func CanLaunchAccess(user *store.User, access store.SubjectAccess) bool {
+	return subjects.CanContributeAccess(user, access)
+}
+
 // CanComplete reports whether the user may close a run (in_progress → done).
 func CanComplete(user *store.User, orgRole string, orgMember bool) bool {
 	return subjects.CanManageSubject(user, orgRole, orgMember)
+}
+
+// CanCompleteAccess reports whether resolved access allows closing a run.
+func CanCompleteAccess(user *store.User, access store.SubjectAccess) bool {
+	return subjects.CanLeadAccess(user, access)
 }
 
 // --- Due date (formerly internal/runs/due_date.go) ---
@@ -92,14 +107,29 @@ func CanUpdate(user *store.User, orgMember bool) bool {
 	return subjects.CanLaunchRun(user, orgMember)
 }
 
+// CanUpdateAccess reports whether resolved access allows item edits.
+func CanUpdateAccess(user *store.User, access store.SubjectAccess) bool {
+	return subjects.CanContributeAccess(user, access)
+}
+
 // CanLinkJira reports whether the user may link Jira issues to run items.
 func CanLinkJira(user *store.User, orgMember bool) bool {
 	return CanUpdate(user, orgMember)
 }
 
+// CanLinkJiraAccess reports whether resolved access allows Jira linking.
+func CanLinkJiraAccess(user *store.User, access store.SubjectAccess) bool {
+	return CanUpdateAccess(user, access)
+}
+
 // CanAssign reports whether the user may assign run items to members.
 func CanAssign(user *store.User, orgRole string, orgMember bool) bool {
 	return subjects.CanManageSubject(user, orgRole, orgMember)
+}
+
+// CanAssignAccess reports whether resolved access allows assigning items.
+func CanAssignAccess(user *store.User, access store.SubjectAccess) bool {
+	return subjects.CanLeadAccess(user, access)
 }
 
 // --- Item progress (formerly internal/items/progress.go) ---

@@ -10,6 +10,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
+	"github.com/jeb-maker/revues/internal/features/subjects"
 	"github.com/jeb-maker/revues/internal/integrations/jira"
 	"github.com/jeb-maker/revues/internal/store"
 	viewtemplates "github.com/jeb-maker/revues/internal/web/templates"
@@ -17,11 +18,11 @@ import (
 
 // LinkJiraItem associates a Jira issue with a run item.
 func (h *Runs) LinkJiraItem(w http.ResponseWriter, r *http.Request) {
-	run, project, user, memberRole, isMember, ok := h.loadRun(w, r)
+	run, project, user, access, ok := h.loadRun(w, r)
 	if !ok {
 		return
 	}
-	if !CanLinkJira(user, isMember) {
+	if !CanLinkJiraAccess(user, access) {
 		http.NotFound(w, r)
 		return
 	}
@@ -49,7 +50,7 @@ func (h *Runs) LinkJiraItem(w http.ResponseWriter, r *http.Request) {
 	input := strings.TrimSpace(r.FormValue("jira_issue"))
 	linkSvc := h.jiraLinkService()
 	if _, err := linkSvc.LinkRunItem(r.Context(), itemID, input); err != nil {
-		h.renderRunItemShow(w, r, run, project, user, memberRole, itemID, viewtemplates.RunItemShowData{
+		h.renderRunItemShow(w, r, run, project, user, access, itemID, viewtemplates.RunItemShowData{
 			LinkError:      linkErrorMessage(err),
 			JiraIssueInput: input,
 		})
@@ -103,7 +104,7 @@ func (h *Runs) loadJiraLinksForItems(ctx context.Context, runItems []store.RunIt
 	return links
 }
 
-func (h *Runs) renderRunItemShow(w http.ResponseWriter, r *http.Request, run *store.ChecklistRun, subject *store.Subject, user *store.User, memberRole string, itemID int64, extra viewtemplates.RunItemShowData) {
+func (h *Runs) renderRunItemShow(w http.ResponseWriter, r *http.Request, run *store.ChecklistRun, subject *store.Subject, user *store.User, access store.SubjectAccess, itemID int64, extra viewtemplates.RunItemShowData) {
 	item, err := h.Store.RunItemByID(r.Context(), run.ID, itemID)
 	if errors.Is(err, store.ErrRunItemNotFound) {
 		http.NotFound(w, r)
@@ -111,13 +112,6 @@ func (h *Runs) renderRunItemShow(w http.ResponseWriter, r *http.Request, run *st
 	}
 	if err != nil {
 		slog.Error("load run item", "err", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
-	}
-
-	_, isMember, err := h.Store.MemberRole(r.Context(), subject.ID, user.ID)
-	if err != nil {
-		slog.Error("member role", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
@@ -149,10 +143,10 @@ func (h *Runs) renderRunItemShow(w http.ResponseWriter, r *http.Request, run *st
 		Events:          events,
 		JiraLink:        jiraLink,
 		Attachment:      attachment,
-		MemberRole:      memberRole,
-		CanCheck:        CanUpdate(user, isMember),
-		CanUpload:       CanUpdate(user, isMember) && run.Status == store.RunStatusInProgress,
-		CanLinkJira:     CanLinkJira(user, isMember),
+		MemberRole:      subjects.DisplayRole(access),
+		CanCheck:        CanUpdateAccess(user, access),
+		CanUpload:       CanUpdateAccess(user, access) && run.Status == store.RunStatusInProgress,
+		CanLinkJira:     CanLinkJiraAccess(user, access),
 		JiraConfigured:  h.jiraConfigured(r.Context()),
 		Message:         extra.Message,
 		LinkError:       extra.LinkError,

@@ -124,26 +124,47 @@ func (s *Store) SubjectByIDUnscoped(ctx context.Context, id int64) (*Subject, er
 }
 
 // ListSubjects returns active subjects visible to the user in the active organization.
+// Visibility matches ResolveSubjectAccess (org admin / global admin / grants / legacy ungated).
 func (s *Store) ListSubjects(ctx context.Context, userID int64, admin bool, query string) ([]Subject, error) {
 	orgID, err := organizationIDFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
 
+	orgRole, isMember, err := s.OrganizationMemberRole(ctx, orgID, userID)
+	if err != nil {
+		return nil, err
+	}
+	orgAdmin := isMember && (orgRole == OrgRoleOwner || orgRole == OrgRoleAdmin)
+
 	sqlQuery := `
 		SELECT s.id, s.organization_id, s.name, s.description, s.archived_at, s.created_at, s.updated_at
-		FROM subjects s`
-	var args []any
-
-	if admin {
-		sqlQuery += `
+		FROM subjects s
 		WHERE s.organization_id = ? AND s.archived_at IS NULL`
-		args = append(args, orgID)
-	} else {
+	args := []any{orgID}
+
+	if !admin && !orgAdmin {
+		if !isMember {
+			return nil, nil
+		}
 		sqlQuery += `
-		INNER JOIN organization_members om ON om.organization_id = s.organization_id
-		WHERE s.organization_id = ? AND om.user_id = ? AND s.archived_at IS NULL`
-		args = append(args, orgID, userID)
+		AND (
+			(
+				NOT EXISTS (SELECT 1 FROM subject_members sm0 WHERE sm0.subject_id = s.id)
+				AND NOT EXISTS (SELECT 1 FROM team_subject_roles tsr0 WHERE tsr0.subject_id = s.id)
+			)
+			OR EXISTS (
+				SELECT 1 FROM subject_members sm
+				WHERE sm.subject_id = s.id AND sm.user_id = ?
+			)
+			OR EXISTS (
+				SELECT 1 FROM team_subject_roles tsr
+				INNER JOIN team_members tm ON tm.team_id = tsr.team_id
+				INNER JOIN organization_teams ot ON ot.id = tsr.team_id
+				WHERE tsr.subject_id = s.id AND tm.user_id = ? AND ot.organization_id = ?
+			)
+		)`
+		args = append(args, userID, userID, orgID)
 	}
 
 	for _, term := range searchTerms(query) {

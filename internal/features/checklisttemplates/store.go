@@ -22,6 +22,7 @@ type ChecklistTemplateStore interface {
 	ListSubjectDomains(ctx context.Context, subjectID int64) ([]string, error)
 	SubjectByID(ctx context.Context, id int64) (*store.Subject, error)
 	OrganizationMemberRole(ctx context.Context, organizationID, userID int64) (string, bool, error)
+	ResolveSubjectAccess(ctx context.Context, userID, subjectID int64, globalRole string) (store.SubjectAccess, error)
 }
 
 type ChecklistTemplate = store.ChecklistTemplate

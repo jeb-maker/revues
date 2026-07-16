@@ -74,8 +74,8 @@ ResolveSubjectAccess(user, subject) :
 
 - [x] Spec RBAC.md (équipes, org admin, sujets privés) — vocabulaire `subjects`
 - [x] Migration teams + store (`organization_teams`, `team_members`, `subject_members`, `team_subject_roles`) — greenfield `00001` + `canonical.sql`
-- [x] `ResolveSubjectAccess` + tests (`internal/store/subject_access.go`) — `ListSubjects` reste v1 org-wide jusqu’au refactor handlers
-- [ ] Refactor handlers sur `ResolveSubjectAccess`
+- [x] `ResolveSubjectAccess` + tests (`internal/store/subject_access.go`)
+- [x] Refactor handlers sur `ResolveSubjectAccess` (transition legacy ungated)
 - [ ] Org admin voit tout + TestIDOR
 - [ ] UI admin équipes CRUD
 - [ ] UI sujet — équipes + preview + sources
@@ -157,7 +157,7 @@ Introduire les tables équipes / accès sujet et la couche store.
 
 **Labels** : `area:auth`, `area:data`, `vague-5`  
 **Bloqué par** : Issue 2  
-**Statut** : livré (`subject_access.go`) — listing sujets toujours v1 jusqu’à l’issue handlers.
+**Statut** : livré (`subject_access.go` + listing aligné handlers).
 
 ### Objectif
 
@@ -170,35 +170,37 @@ Implémenter la fonction unique de résolution d'accès sujet conforme à `docs/
 - [x] Org owner/admin → `Visible=true`, `Role` vide (actions en service)
 - [x] Admin global → visible + source `global_admin`
 - [x] Étiquettes / domaines **ignorés** pour l'accès
-- [ ] `ListSubjects` filtré via accès — **reporté** à l’issue refactor handlers (évite de casser v1)
-- [x] Tests table-driven : direct, équipe, max rôle, hors périmètre, org admin, cross-org
+- [x] `ListSubjects` filtré via accès (+ legacy ungated)
+- [x] Tests table-driven : direct, équipe, max rôle, hors périmètre, org admin, cross-org, legacy
 
 ---
 
-## Issue 4 — `[auth] Refactor handlers — ResolveProjectAccess`
+## Issue 4 — `[auth] Refactor handlers — ResolveSubjectAccess`
 
 **Labels** : `area:auth`, `area:core`, `vague-5`  
-**Bloqué par** : Issue 3
+**Bloqué par** : Issue 3  
+**Statut** : livré (transition legacy : sujets sans grants restent visibles aux membres org)
 
 ### Objectif
 
-Remplacer les appels dispersés à `MemberRole` + branche `admin` par `ResolveProjectAccess` sur toutes les routes sensibles.
+Remplacer les appels dispersés à `MemberRole` + branche `admin` par `ResolveSubjectAccess` sur toutes les routes sensibles.
 
 ### Critères d'acceptation
 
-- [ ] Handlers `projects`, `runs`, `mytasks`, `attachments`, exports, Jira, Notion utilisent `ResolveProjectAccess`
-- [ ] Suppression des checks ad hoc `MemberRole` redondants (garder `MemberRole` store si utile en interne)
-- [ ] 404 uniforme si `Visible=false` (pas 403)
-- [ ] `internal/web/rbac_test.go` : matrice étendue équipes
-- [ ] `./scripts/check.sh` vert
+- [x] Handlers `subjects`, `runs`, `checklisttemplates`, attachments, exports, Jira, Notion utilisent `ResolveSubjectAccess`
+- [x] Suppression des checks ad hoc `MemberRole` redondants (garder `MemberRole` store si utile en interne)
+- [x] 404 uniforme si `Visible=false` (pas 403)
+- [x] Listings revues (`ListFiltered` / active / completed) alignés sur la visibilité sujet
+- [x] `internal/web/rbac_test.go` : matrice étendue équipes (sujet gated)
+- [x] `./scripts/check.sh` vert
 
 ### Fichiers cibles indicatifs
 
-- `internal/features/projects/handlers.go`
-- `internal/features/runs/handlers.go`
-- `internal/features/mytasks/handlers.go`
-- `internal/web/handlers/*` (runs, attachments, export, jira, notion)
-- `internal/features/projects/service.go` (helpers CanView, CanLaunch, …)
+- `internal/features/subjects/handlers.go`
+- `internal/features/runs/handlers*.go`
+- `internal/features/checklisttemplates/handlers.go`
+- `internal/store/dashboard.go` (filtres listing)
+- `internal/features/subjects/service.go` (helpers CanViewAccess, CanContributeAccess, …)
 
 ---
 

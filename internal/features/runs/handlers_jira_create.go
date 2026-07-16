@@ -17,11 +17,11 @@ import (
 
 // CreateJiraItem creates a Jira issue from a nok run item.
 func (h *Runs) CreateJiraItem(w http.ResponseWriter, r *http.Request) {
-	run, project, user, memberRole, isMember, ok := h.loadRun(w, r)
+	run, project, user, access, ok := h.loadRun(w, r)
 	if !ok {
 		return
 	}
-	if !CanLinkJira(user, isMember) {
+	if !CanLinkJiraAccess(user, access) {
 		http.NotFound(w, r)
 		return
 	}
@@ -64,7 +64,7 @@ func (h *Runs) CreateJiraItem(w http.ResponseWriter, r *http.Request) {
 		if description == "" {
 			description = defaultDesc
 		}
-		h.renderRunItemShow(w, r, run, project, user, memberRole, itemID, viewtemplates.RunItemShowData{
+		h.renderRunItemShow(w, r, run, project, user, access, itemID, viewtemplates.RunItemShowData{
 			CreateError:     createErrorMessage(err),
 			JiraCreateTitle: title,
 			JiraCreateDesc:  description,

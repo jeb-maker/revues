@@ -9,23 +9,48 @@ import (
 )
 
 const (
-	AccessSourceDirect      = "direct"
-	AccessSourceOrgAdmin    = "org_admin"
-	AccessSourceGlobalAdmin = "global_admin"
-	accessSourceTeamPrefix  = "team:"
+	AccessSourceDirect          = "direct"
+	AccessSourceOrgAdmin        = "org_admin"
+	AccessSourceGlobalAdmin     = "global_admin"
+	AccessSourceOrgMemberLegacy = "org_member_legacy"
+	accessSourceTeamPrefix      = "team:"
 )
 
 // SubjectAccess is the resolved visibility and effective role for a subject.
 type SubjectAccess struct {
 	Visible bool
 	Role    string   // lead | contributor | viewer | ""
-	Sources []string // "direct", "team:{id}", "org_admin", "global_admin"
+	Sources []string // "direct", "team:{id}", "org_admin", "global_admin", "org_member_legacy"
+}
+
+// HasSource reports whether Sources contains source.
+func (a SubjectAccess) HasSource(source string) bool {
+	for _, s := range a.Sources {
+		if s == source {
+			return true
+		}
+	}
+	return false
+}
+
+// IsSupervisor is true for global admin or org owner/admin (visible without subject role).
+func (a SubjectAccess) IsSupervisor() bool {
+	return a.HasSource(AccessSourceGlobalAdmin) || a.HasSource(AccessSourceOrgAdmin)
+}
+
+// RoleAtLeast reports whether the effective subject role is at least want.
+func (a SubjectAccess) RoleAtLeast(want string) bool {
+	if a.IsSupervisor() {
+		return true
+	}
+	return subjectRoleRank(a.Role) >= subjectRoleRank(want)
 }
 
 // ResolveSubjectAccess computes access for userID on subjectID in the active org.
 // globalRole is users.role (admin | editor | reader).
-// Org owner/admin and global admin are Visible without an effective subject Role
-// (action gates remain in the service layer).
+//
+// Transition: when a subject has no subject_members and no team_subject_roles,
+// org members keep v1 visibility (source org_member_legacy, role contributor).
 func (s *Store) ResolveSubjectAccess(ctx context.Context, userID, subjectID int64, globalRole string) (SubjectAccess, error) {
 	orgID, err := organizationIDFromContext(ctx)
 	if err != nil {
@@ -80,13 +105,42 @@ func (s *Store) ResolveSubjectAccess(ctx context.Context, userID, subjectID int6
 		access.Sources = append(access.Sources, accessSourceTeamPrefix+strconv.FormatInt(tr.TeamID, 10))
 	}
 
-	access.Visible = access.Role != ""
-	return access, nil
+	if access.Role != "" {
+		access.Visible = true
+		return access, nil
+	}
+
+	hasGrants, err := s.subjectHasAccessGrants(ctx, subjectID)
+	if err != nil {
+		return SubjectAccess{}, err
+	}
+	if !hasGrants && isMember {
+		return SubjectAccess{
+			Visible: true,
+			Role:    SubjectRoleContributor,
+			Sources: []string{AccessSourceOrgMemberLegacy},
+		}, nil
+	}
+
+	return SubjectAccess{}, nil
 }
 
 type teamSubjectRoleRow struct {
 	TeamID int64
 	Role   string
+}
+
+func (s *Store) subjectHasAccessGrants(ctx context.Context, subjectID int64) (bool, error) {
+	var n int
+	err := s.db.QueryRowContext(ctx, `
+		SELECT
+			(SELECT COUNT(*) FROM subject_members WHERE subject_id = ?) +
+			(SELECT COUNT(*) FROM team_subject_roles WHERE subject_id = ?)
+	`, subjectID, subjectID).Scan(&n)
+	if err != nil {
+		return false, fmt.Errorf("subject has access grants: %w", err)
+	}
+	return n > 0, nil
 }
 
 func (s *Store) directSubjectMemberRole(ctx context.Context, subjectID, userID int64) (string, error) {
@@ -131,6 +185,30 @@ func (s *Store) userTeamSubjectRoles(ctx context.Context, orgID, userID, subject
 		return nil, fmt.Errorf("user team subject roles rows: %w", err)
 	}
 	return out, nil
+}
+
+// subjectVisibleToOrgMemberSQL is an AND fragment for runs/dashboard listings.
+// subjectAlias is the subjects table alias (e.g. "p"). Requires organization_members
+// joined as "om". Bind args after the fragment: userID, userID, orgID.
+func subjectVisibleToOrgMemberSQL(subjectAlias string) string {
+	return `
+		AND (
+			om.role IN ('` + OrgRoleOwner + `', '` + OrgRoleAdmin + `')
+			OR (
+				NOT EXISTS (SELECT 1 FROM subject_members sm0 WHERE sm0.subject_id = ` + subjectAlias + `.id)
+				AND NOT EXISTS (SELECT 1 FROM team_subject_roles tsr0 WHERE tsr0.subject_id = ` + subjectAlias + `.id)
+			)
+			OR EXISTS (
+				SELECT 1 FROM subject_members sm
+				WHERE sm.subject_id = ` + subjectAlias + `.id AND sm.user_id = ?
+			)
+			OR EXISTS (
+				SELECT 1 FROM team_subject_roles tsr
+				INNER JOIN team_members tm ON tm.team_id = tsr.team_id
+				INNER JOIN organization_teams ot ON ot.id = tsr.team_id
+				WHERE tsr.subject_id = ` + subjectAlias + `.id AND tm.user_id = ? AND ot.organization_id = ?
+			)
+		)`
 }
 
 func subjectRoleRank(role string) int {

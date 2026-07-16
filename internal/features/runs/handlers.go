@@ -139,14 +139,11 @@ func (h *Runs) List(w http.ResponseWriter, r *http.Request) {
 
 // Create stores a new run with item snapshot.
 func (h *Runs) Create(w http.ResponseWriter, r *http.Request) {
-	project, user, _, isMember, ok := h.loadSubjectForLaunch(w, r)
+	project, user, access, ok := h.loadSubjectForLaunch(w, r)
 	if !ok {
 		return
 	}
-	if !CanLaunch(user, isMember) {
-		http.NotFound(w, r)
-		return
-	}
+	_ = access
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
@@ -196,12 +193,12 @@ func (h *Runs) Create(w http.ResponseWriter, r *http.Request) {
 
 // Show displays run detail and snapshot items.
 func (h *Runs) Show(w http.ResponseWriter, r *http.Request) {
-	run, project, user, memberRole, isMember, ok := h.loadRun(w, r)
+	run, project, user, access, ok := h.loadRun(w, r)
 	if !ok {
 		return
 	}
 
-	h.renderRunShow(w, r, run, project, user, memberRole, isMember, viewtemplates.RunShowData{
+	h.renderRunShow(w, r, run, project, user, access, viewtemplates.RunShowData{
 		Message:   r.URL.Query().Get("msg"),
 		ItemError: r.URL.Query().Get("item_error"),
 	})
@@ -209,11 +206,11 @@ func (h *Runs) Show(w http.ResponseWriter, r *http.Request) {
 
 // UpdateItem changes status and comment on a run item.
 func (h *Runs) UpdateItem(w http.ResponseWriter, r *http.Request) {
-	run, project, user, memberRole, isMember, ok := h.loadRun(w, r)
+	run, project, user, access, ok := h.loadRun(w, r)
 	if !ok {
 		return
 	}
-	if !CanUpdate(user, isMember) {
+	if !CanUpdateAccess(user, access) {
 		http.NotFound(w, r)
 		return
 	}
@@ -248,18 +245,18 @@ func (h *Runs) UpdateItem(w http.ResponseWriter, r *http.Request) {
 		switch {
 		case errors.Is(err, ErrCommentRequired):
 			if h.isHTMX(r) {
-				h.renderRunItemHTMXError(w, r, run, project, user, memberRole, itemID, "Un commentaire est obligatoire pour le statut Non validé.", "")
+				h.renderRunItemHTMXError(w, r, run, project, user, access, itemID, "Un commentaire est obligatoire pour le statut Non validé.", "")
 				return
 			}
-			h.renderRunShow(w, r, run, project, user, memberRole, isMember, viewtemplates.RunShowData{
+			h.renderRunShow(w, r, run, project, user, access, viewtemplates.RunShowData{
 				ItemError: "Un commentaire est obligatoire pour le statut Non validé.",
 			})
 		case errors.Is(err, ErrInvalidStatus):
 			if h.isHTMX(r) {
-				h.renderRunItemHTMXError(w, r, run, project, user, memberRole, itemID, "Statut invalide.", "")
+				h.renderRunItemHTMXError(w, r, run, project, user, access, itemID, "Statut invalide.", "")
 				return
 			}
-			h.renderRunShow(w, r, run, project, user, memberRole, isMember, viewtemplates.RunShowData{
+			h.renderRunShow(w, r, run, project, user, access, viewtemplates.RunShowData{
 				ItemError: "Statut invalide.",
 			})
 		default:
@@ -282,7 +279,7 @@ func (h *Runs) UpdateItem(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if h.isHTMX(r) {
-		h.renderRunItemHTMXSuccess(w, r, run, project, user, memberRole, itemID, "", "")
+		h.renderRunItemHTMXSuccess(w, r, run, project, user, access, itemID, "", "")
 		return
 	}
 
@@ -291,7 +288,7 @@ func (h *Runs) UpdateItem(w http.ResponseWriter, r *http.Request) {
 
 // ShowItem displays a run item and its status change history.
 func (h *Runs) ShowItem(w http.ResponseWriter, r *http.Request) {
-	run, project, user, memberRole, _, ok := h.loadRun(w, r)
+	run, project, user, access, ok := h.loadRun(w, r)
 	if !ok {
 		return
 	}
@@ -302,22 +299,16 @@ func (h *Runs) ShowItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.renderRunItemShow(w, r, run, project, user, memberRole, itemID, viewtemplates.RunItemShowData{})
+	h.renderRunItemShow(w, r, run, project, user, access, itemID, viewtemplates.RunItemShowData{})
 }
 
 // AssignItem sets or clears assignee on a run item.
 func (h *Runs) AssignItem(w http.ResponseWriter, r *http.Request) {
-	run, project, user, memberRole, isMember, ok := h.loadRun(w, r)
+	run, project, user, access, ok := h.loadRun(w, r)
 	if !ok {
 		return
 	}
-	orgRole, orgMember, err := h.Store.OrganizationMemberRole(r.Context(), project.OrganizationID, user.ID)
-	if err != nil {
-		slog.Error("caller org role", "err", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
-	}
-	if !CanAssign(user, orgRole, orgMember) {
+	if !CanAssignAccess(user, access) {
 		http.NotFound(w, r)
 		return
 	}
@@ -325,7 +316,7 @@ func (h *Runs) AssignItem(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
 	}
-	if err = r.ParseForm(); err != nil {
+	if err := r.ParseForm(); err != nil {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
 	}
@@ -341,10 +332,10 @@ func (h *Runs) AssignItem(w http.ResponseWriter, r *http.Request) {
 		id, parseErr := strconv.ParseInt(raw, 10, 64)
 		if parseErr != nil {
 			if h.isHTMX(r) {
-				h.renderRunItemHTMXError(w, r, run, project, user, memberRole, itemID, "", "Assigné invalide.")
+				h.renderRunItemHTMXError(w, r, run, project, user, access, itemID, "", "Assigné invalide.")
 				return
 			}
-			h.renderRunShow(w, r, run, project, user, memberRole, isMember, viewtemplates.RunShowData{
+			h.renderRunShow(w, r, run, project, user, access, viewtemplates.RunShowData{
 				AssignError: "Assigné invalide.",
 			})
 			return
@@ -355,10 +346,10 @@ func (h *Runs) AssignItem(w http.ResponseWriter, r *http.Request) {
 	if err := h.Store.AssignRunItem(r.Context(), run.ID, itemID, assigneeID); err != nil {
 		if errors.Is(err, store.ErrInvalidAssignee) {
 			if h.isHTMX(r) {
-				h.renderRunItemHTMXError(w, r, run, project, user, memberRole, itemID, "", "Le membre doit appartenir à l'organisation.")
+				h.renderRunItemHTMXError(w, r, run, project, user, access, itemID, "", "Le membre doit appartenir à l'organisation.")
 				return
 			}
-			h.renderRunShow(w, r, run, project, user, memberRole, isMember, viewtemplates.RunShowData{
+			h.renderRunShow(w, r, run, project, user, access, viewtemplates.RunShowData{
 				AssignError: "Le membre doit appartenir au sujet.",
 			})
 			return
@@ -377,7 +368,7 @@ func (h *Runs) AssignItem(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if h.isHTMX(r) {
-		h.renderRunItemHTMXSuccess(w, r, run, project, user, memberRole, itemID, "", "")
+		h.renderRunItemHTMXSuccess(w, r, run, project, user, access, itemID, "", "")
 		return
 	}
 
@@ -386,11 +377,11 @@ func (h *Runs) AssignItem(w http.ResponseWriter, r *http.Request) {
 
 // Start moves a run from draft to in_progress.
 func (h *Runs) Start(w http.ResponseWriter, r *http.Request) {
-	run, _, user, _, isMember, ok := h.loadRun(w, r)
+	run, _, user, access, ok := h.loadRun(w, r)
 	if !ok {
 		return
 	}
-	if !CanLaunch(user, isMember) {
+	if !CanLaunchAccess(user, access) {
 		http.NotFound(w, r)
 		return
 	}
@@ -410,17 +401,11 @@ func (h *Runs) Start(w http.ResponseWriter, r *http.Request) {
 
 // Complete moves a run from in_progress to done.
 func (h *Runs) Complete(w http.ResponseWriter, r *http.Request) {
-	run, project, user, _, _, ok := h.loadRun(w, r)
+	run, _, user, access, ok := h.loadRun(w, r)
 	if !ok {
 		return
 	}
-	orgRole, orgMember, err := h.Store.OrganizationMemberRole(r.Context(), project.OrganizationID, user.ID)
-	if err != nil {
-		slog.Error("caller org role", "err", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
-	}
-	if !CanComplete(user, orgRole, orgMember) {
+	if !CanCompleteAccess(user, access) {
 		http.NotFound(w, r)
 		return
 	}
@@ -459,7 +444,7 @@ func (h *Runs) Complete(w http.ResponseWriter, r *http.Request) {
 
 // ExportCSV downloads a CSV export for a completed run.
 func (h *Runs) ExportCSV(w http.ResponseWriter, r *http.Request) {
-	run, project, _, _, _, ok := h.loadRun(w, r)
+	run, project, _, _, ok := h.loadRun(w, r)
 	if !ok {
 		return
 	}
@@ -507,7 +492,7 @@ func exportCSVFilename(displayLabel string, runID int64) string {
 	return safe + ".csv"
 }
 
-func (h *Runs) renderRunShow(w http.ResponseWriter, r *http.Request, run *store.ChecklistRun, project *store.Subject, user *store.User, memberRole string, isMember bool, extra viewtemplates.RunShowData) {
+func (h *Runs) renderRunShow(w http.ResponseWriter, r *http.Request, run *store.ChecklistRun, project *store.Subject, user *store.User, access store.SubjectAccess, extra viewtemplates.RunShowData) {
 	runItems, err := h.Store.ListRunItems(r.Context(), run.ID)
 	if err != nil {
 		slog.Error("list run items", "err", err)
@@ -529,15 +514,8 @@ func (h *Runs) renderRunShow(w http.ResponseWriter, r *http.Request, run *store.
 		return
 	}
 
-	orgRole, orgMember, err := h.Store.OrganizationMemberRole(r.Context(), project.OrganizationID, user.ID)
-	if err != nil {
-		slog.Error("caller org role", "err", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
-	}
-
 	var members []store.SubjectMember
-	if CanAssign(user, orgRole, orgMember) {
+	if CanAssignAccess(user, access) {
 		members, err = h.Store.ListSubjectMembers(r.Context(), project.ID)
 		if err != nil {
 			slog.Error("list project members", "err", err)
@@ -596,15 +574,15 @@ func (h *Runs) renderRunShow(w http.ResponseWriter, r *http.Request, run *store.
 		Members:           members,
 		TemplateName:      versionInfo.Name,
 		VersionNum:        versionInfo.Version,
-		MemberRole:        memberRole,
-		CanLaunch:         CanLaunch(user, isMember),
-		CanCheck:          CanUpdate(user, isMember),
-		CanAssign:         CanAssign(user, orgRole, orgMember),
-		CanLinkJira:       CanLinkJira(user, isMember),
+		MemberRole:        subjects.DisplayRole(access),
+		CanLaunch:         CanLaunchAccess(user, access),
+		CanCheck:          CanUpdateAccess(user, access),
+		CanAssign:         CanAssignAccess(user, access),
+		CanLinkJira:       CanLinkJiraAccess(user, access),
 		JiraConfigured:    h.jiraConfigured(r.Context()),
-		CanComplete:       CanComplete(user, orgRole, orgMember),
+		CanComplete:       CanCompleteAccess(user, access),
 		NotionConfigured:  h.notionConfigured(r.Context()),
-		CanExportNotion:   CanComplete(user, orgRole, orgMember) && run.Status == store.RunStatusDone && strings.TrimSpace(run.NotionURL) == "",
+		CanExportNotion:   CanCompleteAccess(user, access) && run.Status == store.RunStatusDone && strings.TrimSpace(run.NotionURL) == "",
 		Progress:          h.progressData(run.ID, runItems),
 		Message:           extra.Message,
 		ItemError:         extra.ItemError,
@@ -673,93 +651,93 @@ func buildRunItemSections(items []store.RunItem) []viewtemplates.RunItemSectionD
 	return out
 }
 
-func (h *Runs) loadSubjectForLaunch(w http.ResponseWriter, r *http.Request) (*store.Subject, *store.User, string, bool, bool) {
+func (h *Runs) loadSubjectForLaunch(w http.ResponseWriter, r *http.Request) (*store.Subject, *store.User, store.SubjectAccess, bool) {
 	user, ok := middleware.UserFromContext(r.Context())
 	if !ok {
 		http.Redirect(w, r, "/login", http.StatusFound)
-		return nil, nil, "", false, false
+		return nil, nil, store.SubjectAccess{}, false
 	}
 
 	projectID, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
 	if err != nil {
 		http.NotFound(w, r)
-		return nil, nil, "", false, false
+		return nil, nil, store.SubjectAccess{}, false
 	}
 
 	project, err := h.Store.SubjectByID(r.Context(), projectID)
 	if errors.Is(err, store.ErrSubjectNotFound) {
 		http.NotFound(w, r)
-		return nil, nil, "", false, false
+		return nil, nil, store.SubjectAccess{}, false
 	}
 	if err != nil {
 		slog.Error("load project", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return nil, nil, "", false, false
+		return nil, nil, store.SubjectAccess{}, false
 	}
 
-	memberRole, isMember, err := h.Store.MemberRole(r.Context(), projectID, user.ID)
+	access, err := h.Store.ResolveSubjectAccess(r.Context(), user.ID, projectID, user.Role)
 	if err != nil {
-		slog.Error("member role", "err", err)
+		slog.Error("resolve subject access", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return nil, nil, "", false, false
+		return nil, nil, store.SubjectAccess{}, false
 	}
 
-	if !CanLaunch(user, isMember) {
+	if !CanLaunchAccess(user, access) {
 		http.NotFound(w, r)
-		return nil, nil, "", false, false
+		return nil, nil, store.SubjectAccess{}, false
 	}
 
-	return project, user, memberRole, isMember, true
+	return project, user, access, true
 }
 
-func (h *Runs) loadRun(w http.ResponseWriter, r *http.Request) (*store.ChecklistRun, *store.Subject, *store.User, string, bool, bool) {
+func (h *Runs) loadRun(w http.ResponseWriter, r *http.Request) (*store.ChecklistRun, *store.Subject, *store.User, store.SubjectAccess, bool) {
 	user, ok := middleware.UserFromContext(r.Context())
 	if !ok {
 		http.Redirect(w, r, "/login", http.StatusFound)
-		return nil, nil, nil, "", false, false
+		return nil, nil, nil, store.SubjectAccess{}, false
 	}
 
 	runID, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
 	if err != nil {
 		http.NotFound(w, r)
-		return nil, nil, nil, "", false, false
+		return nil, nil, nil, store.SubjectAccess{}, false
 	}
 
 	run, err := h.Store.RunByID(r.Context(), runID)
 	if errors.Is(err, store.ErrRunNotFound) {
 		http.NotFound(w, r)
-		return nil, nil, nil, "", false, false
+		return nil, nil, nil, store.SubjectAccess{}, false
 	}
 	if err != nil {
 		slog.Error("load run", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return nil, nil, nil, "", false, false
+		return nil, nil, nil, store.SubjectAccess{}, false
 	}
 
 	project, err := h.Store.SubjectByID(r.Context(), run.SubjectID)
 	if errors.Is(err, store.ErrSubjectNotFound) {
 		http.NotFound(w, r)
-		return nil, nil, nil, "", false, false
+		return nil, nil, nil, store.SubjectAccess{}, false
 	}
 	if err != nil {
 		slog.Error("load run project", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return nil, nil, nil, "", false, false
+		return nil, nil, nil, store.SubjectAccess{}, false
 	}
 
-	memberRole, isMember, err := h.Store.MemberRole(r.Context(), project.ID, user.ID)
+	access, err := h.Store.ResolveSubjectAccess(r.Context(), user.ID, project.ID, user.Role)
 	if err != nil {
-		slog.Error("member role", "err", err)
+		slog.Error("resolve subject access", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return nil, nil, nil, "", false, false
+		return nil, nil, nil, store.SubjectAccess{}, false
 	}
 
-	if !CanView(user, isMember) {
+	if !CanViewAccess(access) {
 		http.NotFound(w, r)
-		return nil, nil, nil, "", false, false
+		return nil, nil, nil, store.SubjectAccess{}, false
 	}
 
-	return run, project, user, memberRole, isMember, true
+	return run, project, user, access, true
 }
 
 func (h *Runs) runDisplayLabel(ctx context.Context, run *store.ChecklistRun, subject *store.Subject) string {
@@ -800,7 +778,7 @@ func uniqueSections(items []store.RunItem) []string {
 	return sections
 }
 
-func (h *Runs) renderRunItemHTMXSuccess(w http.ResponseWriter, r *http.Request, run *store.ChecklistRun, project *store.Subject, user *store.User, memberRole string, itemID int64, itemErr, assignErr string) {
+func (h *Runs) renderRunItemHTMXSuccess(w http.ResponseWriter, r *http.Request, run *store.ChecklistRun, project *store.Subject, user *store.User, access store.SubjectAccess, itemID int64, itemErr, assignErr string) {
 	runItems, err := h.Store.ListRunItems(r.Context(), run.ID)
 	if err != nil {
 		slog.Error("list run items for htmx", "err", err)
@@ -814,10 +792,10 @@ func (h *Runs) renderRunItemHTMXSuccess(w http.ResponseWriter, r *http.Request, 
 		return
 	}
 
-	h.renderRunItemHTMX(w, r, run, project, user, memberRole, item, runItems, itemErr, assignErr, http.StatusOK)
+	h.renderRunItemHTMX(w, r, run, project, user, access, item, runItems, itemErr, assignErr, http.StatusOK)
 }
 
-func (h *Runs) renderRunItemHTMXError(w http.ResponseWriter, r *http.Request, run *store.ChecklistRun, project *store.Subject, user *store.User, memberRole string, itemID int64, itemErr, assignErr string) {
+func (h *Runs) renderRunItemHTMXError(w http.ResponseWriter, r *http.Request, run *store.ChecklistRun, project *store.Subject, user *store.User, access store.SubjectAccess, itemID int64, itemErr, assignErr string) {
 	item, err := h.Store.RunItemByID(r.Context(), run.ID, itemID)
 	if errors.Is(err, store.ErrRunItemNotFound) {
 		http.NotFound(w, r)
@@ -836,25 +814,13 @@ func (h *Runs) renderRunItemHTMXError(w http.ResponseWriter, r *http.Request, ru
 		return
 	}
 
-	h.renderRunItemHTMX(w, r, run, project, user, memberRole, *item, runItems, itemErr, assignErr, http.StatusBadRequest)
+	h.renderRunItemHTMX(w, r, run, project, user, access, *item, runItems, itemErr, assignErr, http.StatusBadRequest)
 }
 
-func (h *Runs) renderRunItemHTMX(w http.ResponseWriter, r *http.Request, run *store.ChecklistRun, project *store.Subject, user *store.User, memberRole string, item store.RunItem, runItems []store.RunItem, itemErr, assignErr string, statusCode int) {
-	orgRole, orgMember, err := h.Store.OrganizationMemberRole(r.Context(), project.OrganizationID, user.ID)
-	if err != nil {
-		slog.Error("caller org role", "err", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
-	}
-	_, isMember, err := h.Store.MemberRole(r.Context(), project.ID, user.ID)
-	if err != nil {
-		slog.Error("member role", "err", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
-	}
-
+func (h *Runs) renderRunItemHTMX(w http.ResponseWriter, r *http.Request, run *store.ChecklistRun, project *store.Subject, user *store.User, access store.SubjectAccess, item store.RunItem, runItems []store.RunItem, itemErr, assignErr string, statusCode int) {
 	var members []store.SubjectMember
-	if CanAssign(user, orgRole, orgMember) {
+	var err error
+	if CanAssignAccess(user, access) {
 		members, err = h.Store.ListSubjectMembers(r.Context(), project.ID)
 		if err != nil {
 			slog.Error("list project members for htmx", "err", err)
@@ -869,8 +835,8 @@ func (h *Runs) renderRunItemHTMX(w http.ResponseWriter, r *http.Request, run *st
 		Item:        item,
 		Members:     members,
 		CSRFToken:   h.PageData(r, "").CSRFToken,
-		CanCheck:    CanUpdate(user, isMember),
-		CanAssign:   CanAssign(user, orgRole, orgMember),
+		CanCheck:    CanUpdateAccess(user, access),
+		CanAssign:   CanAssignAccess(user, access),
 		ItemError:   itemErr,
 		AssignError: assignErr,
 	}

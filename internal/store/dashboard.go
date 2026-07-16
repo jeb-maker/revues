@@ -103,9 +103,10 @@ func (s *Store) ListActiveRunSummaries(ctx context.Context, userID int64, admin 
 		rows, err = s.queryRows(ctx, activeRunSummariesSQL+`
 		INNER JOIN organization_members om ON om.organization_id = p.organization_id AND om.user_id = ?
 		WHERE r.status IN (?, ?) AND p.archived_at IS NULL AND p.organization_id = ?
+		`+subjectVisibleToOrgMemberSQL("p")+`
 		GROUP BY r.id, t.name, r.subject_id, p.name, r.due_date, r.status, r.created_at
 		ORDER BY CASE r.status WHEN ? THEN 0 ELSE 1 END, COALESCE(r.started_at, r.created_at) DESC
-		`, userID, RunStatusDraft, RunStatusInProgress, orgID, RunStatusInProgress)
+		`, userID, RunStatusDraft, RunStatusInProgress, orgID, userID, userID, orgID, RunStatusInProgress)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("list active run summaries: %w", err)
@@ -176,8 +177,8 @@ func filteredRunSummariesFilterSQL(userID int64, admin bool, orgID int64, status
 	} else {
 		sqlQuery = `
 		INNER JOIN organization_members om ON om.organization_id = p.organization_id AND om.user_id = ?
-		WHERE r.status != ? AND p.archived_at IS NULL AND p.organization_id = ?`
-		args = append(args, userID, RunStatusArchived, orgID)
+		WHERE r.status != ? AND p.archived_at IS NULL AND p.organization_id = ?` + subjectVisibleToOrgMemberSQL("p")
+		args = append(args, userID, RunStatusArchived, orgID, userID, userID, orgID)
 	}
 
 	if status != "" {
@@ -220,10 +221,11 @@ func (s *Store) ListRecentCompletedRunSummaries(ctx context.Context, userID int6
 		rows, err = s.queryRows(ctx, completedRunSummariesSQL+`
 		INNER JOIN organization_members om ON om.organization_id = p.organization_id AND om.user_id = ?
 		WHERE r.status = ? AND p.archived_at IS NULL AND p.organization_id = ?
+		`+subjectVisibleToOrgMemberSQL("p")+`
 		GROUP BY r.id, t.name, r.subject_id, p.name, r.completed_at, r.created_at
 		ORDER BY r.completed_at DESC, r.id DESC
 		LIMIT ?
-		`, userID, RunStatusDone, orgID, recentCompletedRunsLimit)
+		`, userID, RunStatusDone, orgID, userID, userID, orgID, recentCompletedRunsLimit)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("list recent completed run summaries: %w", err)

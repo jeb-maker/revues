@@ -186,7 +186,7 @@ func (h *Subjects) Create(w http.ResponseWriter, r *http.Request) {
 
 // Show displays subject details.
 func (h *Subjects) Show(w http.ResponseWriter, r *http.Request) {
-	subject, user, memberRole, orgMember, ok := h.loadSubject(w, r)
+	subject, user, access, ok := h.loadSubject(w, r)
 	if !ok {
 		return
 	}
@@ -227,7 +227,7 @@ func (h *Subjects) Show(w http.ResponseWriter, r *http.Request) {
 	}
 
 	callerOrgRole, callerOrgMember, _ := h.Store.OrganizationMemberRole(r.Context(), subject.OrganizationID, user.ID)
-	data, err := h.buildSubjectShowData(r, subject, user, memberRole, callerOrgRole, callerOrgMember, orgMember, domains, tags, members, subjectRuns, nokItems, subjectShowExtras{
+	data, err := h.buildSubjectShowData(r, subject, user, access, callerOrgRole, callerOrgMember, domains, tags, members, subjectRuns, nokItems, subjectShowExtras{
 		message: r.URL.Query().Get("msg"),
 	})
 	if err != nil {
@@ -245,17 +245,11 @@ func (h *Subjects) Show(w http.ResponseWriter, r *http.Request) {
 
 // EditForm renders the edit subject form.
 func (h *Subjects) EditForm(w http.ResponseWriter, r *http.Request) {
-	subject, user, _, _, ok := h.loadSubject(w, r)
+	subject, user, access, ok := h.loadSubject(w, r)
 	if !ok {
 		return
 	}
-	callerOrgRole, callerOrgMember, err := h.Store.OrganizationMemberRole(r.Context(), subject.OrganizationID, user.ID)
-	if err != nil {
-		slog.Error("caller org role", "err", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
-	}
-	if !CanManageSubject(user, callerOrgRole, callerOrgMember) {
+	if !CanManageAccess(user, access) {
 		http.NotFound(w, r)
 		return
 	}
@@ -295,17 +289,11 @@ func (h *Subjects) EditForm(w http.ResponseWriter, r *http.Request) {
 
 // Update saves subject fields.
 func (h *Subjects) Update(w http.ResponseWriter, r *http.Request) {
-	subject, user, _, _, ok := h.loadSubject(w, r)
+	subject, user, access, ok := h.loadSubject(w, r)
 	if !ok {
 		return
 	}
-	callerOrgRole, callerOrgMember, err := h.Store.OrganizationMemberRole(r.Context(), subject.OrganizationID, user.ID)
-	if err != nil {
-		slog.Error("caller org role", "err", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
-	}
-	if !CanManageSubject(user, callerOrgRole, callerOrgMember) {
+	if !CanManageAccess(user, access) {
 		http.NotFound(w, r)
 		return
 	}
@@ -344,17 +332,11 @@ func (h *Subjects) Update(w http.ResponseWriter, r *http.Request) {
 
 // Archive marks the subject archived.
 func (h *Subjects) Archive(w http.ResponseWriter, r *http.Request) {
-	subject, user, _, _, ok := h.loadSubject(w, r)
+	subject, user, access, ok := h.loadSubject(w, r)
 	if !ok {
 		return
 	}
-	callerOrgRole, callerOrgMember, err := h.Store.OrganizationMemberRole(r.Context(), subject.OrganizationID, user.ID)
-	if err != nil {
-		slog.Error("caller org role", "err", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
-	}
-	if !CanManageSubject(user, callerOrgRole, callerOrgMember) {
+	if !CanManageAccess(user, access) {
 		http.NotFound(w, r)
 		return
 	}
@@ -388,13 +370,13 @@ func (h *Subjects) WizardNouvelle(w http.ResponseWriter, r *http.Request) {
 
 	var launchSubjects []Subject
 	for _, subject := range allSubjects {
-		_, orgMember, err := h.Store.OrganizationMemberRole(r.Context(), subject.OrganizationID, user.ID)
+		access, err := h.Store.ResolveSubjectAccess(r.Context(), user.ID, subject.ID, user.Role)
 		if err != nil {
-			slog.Error("org member role", "err", err)
+			slog.Error("resolve subject access", "err", err)
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}
-		if CanLaunchRun(user, orgMember) {
+		if CanContributeAccess(user, access) {
 			launchSubjects = append(launchSubjects, subject)
 		}
 	}
@@ -449,15 +431,14 @@ func (h *Subjects) WizardNouvelleCreate(w http.ResponseWriter, r *http.Request) 
 			h.renderWizardError(w, r, "Sujet invalide.")
 			return
 		}
-		subject, _, _, orgMember, ok := h.loadSubjectByID(w, r, subjectID)
+		_, _, access, ok := h.loadSubjectByID(w, r, subjectID)
 		if !ok {
 			return
 		}
-		if !CanLaunchRun(user, orgMember) {
+		if !CanContributeAccess(user, access) {
 			http.NotFound(w, r)
 			return
 		}
-		_ = subject
 		http.Redirect(w, r, templates.SubjectTemplatesForRunPath(subjectID, templateID), http.StatusSeeOther)
 		return
 	}
@@ -495,51 +476,46 @@ func parseWizardTemplateID(r *http.Request) int64 {
 	return id
 }
 
-func (h *Subjects) loadSubject(w http.ResponseWriter, r *http.Request) (*Subject, *store.User, string, bool, bool) {
+func (h *Subjects) loadSubject(w http.ResponseWriter, r *http.Request) (*Subject, *store.User, store.SubjectAccess, bool) {
 	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
 	if err != nil {
 		http.NotFound(w, r)
-		return nil, nil, "", false, false
+		return nil, nil, store.SubjectAccess{}, false
 	}
 	return h.loadSubjectByID(w, r, id)
 }
 
-func (h *Subjects) loadSubjectByID(w http.ResponseWriter, r *http.Request, id int64) (*Subject, *store.User, string, bool, bool) {
+func (h *Subjects) loadSubjectByID(w http.ResponseWriter, r *http.Request, id int64) (*Subject, *store.User, store.SubjectAccess, bool) {
 	user, ok := middleware.UserFromContext(r.Context())
 	if !ok {
 		http.Redirect(w, r, "/login", http.StatusFound)
-		return nil, nil, "", false, false
+		return nil, nil, store.SubjectAccess{}, false
 	}
 
 	subject, err := h.Store.SubjectByID(r.Context(), id)
 	if errors.Is(err, ErrSubjectNotFound) {
 		http.NotFound(w, r)
-		return nil, nil, "", false, false
+		return nil, nil, store.SubjectAccess{}, false
 	}
 	if err != nil {
 		slog.Error("load subject", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return nil, nil, "", false, false
+		return nil, nil, store.SubjectAccess{}, false
 	}
 
-	_, orgMember, err := h.Store.OrganizationMemberRole(r.Context(), subject.OrganizationID, user.ID)
+	access, err := h.Store.ResolveSubjectAccess(r.Context(), user.ID, subject.ID, user.Role)
 	if err != nil {
-		slog.Error("org member role", "err", err)
+		slog.Error("resolve subject access", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return nil, nil, "", false, false
+		return nil, nil, store.SubjectAccess{}, false
 	}
 
-	if !CanViewSubject(user, orgMember) {
+	if !CanViewAccess(access) {
 		http.NotFound(w, r)
-		return nil, nil, "", false, false
+		return nil, nil, store.SubjectAccess{}, false
 	}
 
-	memberRole := "lead"
-	if orgMember {
-		memberRole = "lead"
-	}
-
-	return subject, user, memberRole, orgMember, true
+	return subject, user, access, true
 }
 
 func subjectFormAction(r *http.Request, id int64) string {
@@ -604,16 +580,17 @@ func (h *Subjects) buildSubjectShowData(
 	r *http.Request,
 	subject *Subject,
 	user *store.User,
-	memberRole, callerOrgRole string,
-	callerOrgMember, orgMember bool,
+	access store.SubjectAccess,
+	callerOrgRole string,
+	callerOrgMember bool,
 	domains, tags []string,
 	members []SubjectMember,
 	subjectRuns []RunWithProgress,
 	nokItems []SubjectNokItemSummary,
 	extras subjectShowExtras,
 ) (templates.SubjectShowData, error) {
-	canManage := CanManageSubject(user, callerOrgRole, callerOrgMember)
-	canLaunch := CanLaunchRun(user, orgMember)
+	canManage := CanManageAccess(user, access)
+	canLaunch := CanContributeAccess(user, access)
 	editPath := templates.PathSubjects + "/" + strconv.FormatInt(subject.ID, 10) + "/edit"
 	if CanManageOrgUsers(user, callerOrgRole, callerOrgMember) {
 		editPath = templates.PathAdminSubjects + "/" + strconv.FormatInt(subject.ID, 10) + "/edit"
@@ -630,7 +607,7 @@ func (h *Subjects) buildSubjectShowData(
 		Members:          members,
 		Runs:             subjectRuns,
 		NokItems:         nokItems,
-		MemberRole:       memberRole,
+		MemberRole:       DisplayRole(access),
 		CanManage:        canManage,
 		CanManageMembers: false,
 		CanLaunch:        canLaunch,

@@ -20,6 +20,7 @@ type SubjectStore interface {
 	ListRunsWithProgressBySubject(ctx context.Context, subjectID int64) ([]RunWithProgress, error)
 	ListSubjectNokItems(ctx context.Context, subjectID int64) ([]SubjectNokItemSummary, error)
 	OrganizationMemberRole(ctx context.Context, organizationID, userID int64) (string, bool, error)
+	ResolveSubjectAccess(ctx context.Context, userID, subjectID int64, globalRole string) (store.SubjectAccess, error)
 }
 
 type Subject = store.Subject

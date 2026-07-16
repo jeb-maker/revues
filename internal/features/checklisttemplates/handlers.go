@@ -96,20 +96,14 @@ func (h *ChecklistTemplates) IndexAll(w http.ResponseWriter, r *http.Request) {
 // List shows compatible checklist templates for a subject (read-only).
 // With ?for_run=1, lists templates as step 2 of the run launch wizard.
 func (h *ChecklistTemplates) List(w http.ResponseWriter, r *http.Request) {
-	subject, user, memberRole, ok := h.loadSubject(w, r)
+	subject, user, access, ok := h.loadSubject(w, r)
 	if !ok {
 		return
 	}
 
 	forRun := r.URL.Query().Get(queryForRun) == "1"
 	if forRun {
-		_, orgMember, err := h.Store.OrganizationMemberRole(r.Context(), subject.OrganizationID, user.ID)
-		if err != nil {
-			slog.Error("org member role", "err", err)
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-			return
-		}
-		if !subjects.CanLaunchRun(user, orgMember) {
+		if !subjects.CanContributeAccess(user, access) {
 			http.NotFound(w, r)
 			return
 		}
@@ -147,7 +141,7 @@ func (h *ChecklistTemplates) List(w http.ResponseWriter, r *http.Request) {
 		PageData:                   pd,
 		Subject:                    subject,
 		Templates:                  items,
-		MemberRole:                 memberRole,
+		MemberRole:                 subjects.DisplayRole(access),
 		CanManage:                  CanManageGlobal(user),
 		ForRun:                     forRun,
 		SelectedTemplateID:         selectedTemplateID,
@@ -386,44 +380,43 @@ func (h *ChecklistTemplates) Archive(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/modeles?msg=Mod%C3%A8le+archiv%C3%A9", http.StatusSeeOther)
 }
 
-func (h *ChecklistTemplates) loadSubject(w http.ResponseWriter, r *http.Request) (*store.Subject, *store.User, string, bool) {
+func (h *ChecklistTemplates) loadSubject(w http.ResponseWriter, r *http.Request) (*store.Subject, *store.User, store.SubjectAccess, bool) {
 	user, ok := middleware.UserFromContext(r.Context())
 	if !ok {
 		http.Redirect(w, r, "/login", http.StatusFound)
-		return nil, nil, "", false
+		return nil, nil, store.SubjectAccess{}, false
 	}
 
 	subjectID, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
 	if err != nil {
 		http.NotFound(w, r)
-		return nil, nil, "", false
+		return nil, nil, store.SubjectAccess{}, false
 	}
 
 	subject, err := h.Store.SubjectByID(r.Context(), subjectID)
 	if errors.Is(err, store.ErrSubjectNotFound) {
 		http.NotFound(w, r)
-		return nil, nil, "", false
+		return nil, nil, store.SubjectAccess{}, false
 	}
 	if err != nil {
 		slog.Error("load subject", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return nil, nil, "", false
+		return nil, nil, store.SubjectAccess{}, false
 	}
 
-	_, orgMember, err := h.Store.OrganizationMemberRole(r.Context(), subject.OrganizationID, user.ID)
+	access, err := h.Store.ResolveSubjectAccess(r.Context(), user.ID, subject.ID, user.Role)
 	if err != nil {
-		slog.Error("org member role", "err", err)
+		slog.Error("resolve subject access", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return nil, nil, "", false
+		return nil, nil, store.SubjectAccess{}, false
 	}
 
-	if !CanView(user, orgMember) {
+	if !subjects.CanViewAccess(access) {
 		http.NotFound(w, r)
-		return nil, nil, "", false
+		return nil, nil, store.SubjectAccess{}, false
 	}
 
-	memberRole := "lead"
-	return subject, user, memberRole, true
+	return subject, user, access, true
 }
 
 func filterChecklistTemplates(items []store.ChecklistTemplateSummary, query string) []store.ChecklistTemplateSummary {

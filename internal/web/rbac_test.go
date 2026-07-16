@@ -375,6 +375,59 @@ func TestIDOR_CrossSubject(t *testing.T) {
 	}
 }
 
+// TestIDOR_GatedSubjectWithoutGrant ensures org members without subject/team grant get 404.
+func TestIDOR_GatedSubjectWithoutGrant(t *testing.T) {
+	f := newRBACFixture(t)
+
+	gated, err := f.st.CreateSubject(f.ctx, "Gated", "", f.lead.ID, nil)
+	if err != nil {
+		t.Fatalf("CreateSubject(gated): %v", err)
+	}
+	if err = f.st.UpsertDirectSubjectMember(f.ctx, gated.ID, f.lead.ID, store.SubjectRoleLead); err != nil {
+		t.Fatalf("UpsertDirectSubjectMember(): %v", err)
+	}
+	team, err := f.st.CreateTeam(f.ctx, "Alpha Team", "alpha-team", "")
+	if err != nil {
+		t.Fatalf("CreateTeam(): %v", err)
+	}
+	if err = f.st.AddTeamMember(f.ctx, team.ID, f.viewer.ID); err != nil {
+		t.Fatalf("AddTeamMember(): %v", err)
+	}
+	if err = f.st.GrantTeamSubjectRole(f.ctx, team.ID, gated.ID, store.SubjectRoleViewer, f.lead.ID); err != nil {
+		t.Fatalf("GrantTeamSubjectRole(): %v", err)
+	}
+
+	run, err := f.st.CreateChecklistRun(f.ctx, gated.ID, f.template.ID, f.lead.ID)
+	if err != nil {
+		t.Fatalf("CreateChecklistRun(): %v", err)
+	}
+
+	gatedSubjectPath := "/subjects/" + strconv.FormatInt(gated.ID, 10)
+	gatedRunPath := "/runs/" + strconv.FormatInt(run.ID, 10)
+
+	tests := []struct {
+		name       string
+		tokenKey   string
+		path       string
+		wantStatus int
+	}{
+		{"lead sees gated subject", "lead", gatedSubjectPath, http.StatusOK},
+		{"team viewer sees gated subject", "viewer", gatedSubjectPath, http.StatusOK},
+		{"org member without grant 404 subject", "contributor", gatedSubjectPath, http.StatusNotFound},
+		{"org member without grant 404 run", "contributor", gatedRunPath, http.StatusNotFound},
+		{"team viewer sees gated run", "viewer", gatedRunPath, http.StatusOK},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rec := f.do(http.MethodGet, tt.path, tt.tokenKey, "")
+			if rec.Code != tt.wantStatus {
+				t.Errorf("status = %d, want %d", rec.Code, tt.wantStatus)
+			}
+		})
+	}
+}
+
 // TestCSRF_MissingToken rejects mutating requests without a valid CSRF token.
 func TestCSRF_MissingToken(t *testing.T) {
 	f := newRBACFixture(t)

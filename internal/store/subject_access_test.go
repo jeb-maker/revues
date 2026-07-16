@@ -99,6 +99,11 @@ func TestResolveSubjectAccess(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	ungated, err := st.CreateSubject(ctx, "LegacyOpen", "", lead.ID, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	tests := []struct {
 		name       string
 		ctx        context.Context
@@ -130,8 +135,12 @@ func TestResolveSubjectAccess(t *testing.T) {
 			wantVis: true, wantRole: store.SubjectRoleContributor, wantSource: store.AccessSourceDirect,
 		},
 		{
-			name: "org member without grant", ctx: ctx, userID: outsider.ID, subjectID: subject.ID, globalRole: auth.RoleEditor,
+			name: "org member without grant on gated subject", ctx: ctx, userID: outsider.ID, subjectID: subject.ID, globalRole: auth.RoleEditor,
 			wantVis: false,
+		},
+		{
+			name: "org member legacy ungated subject", ctx: ctx, userID: outsider.ID, subjectID: ungated.ID, globalRole: auth.RoleEditor,
+			wantVis: true, wantRole: store.SubjectRoleContributor, wantSource: store.AccessSourceOrgMemberLegacy,
 		},
 		{
 			name: "cross org subject", ctx: ctx, userID: lead.ID, subjectID: otherSubject.ID, globalRole: auth.RoleEditor,

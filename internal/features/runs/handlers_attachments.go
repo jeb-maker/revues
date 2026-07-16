@@ -21,11 +21,11 @@ import (
 const multipartMaxMemory = 6 << 20
 
 func (h *Runs) UploadAttachment(w http.ResponseWriter, r *http.Request) {
-	run, project, user, memberRole, isMember, ok := h.loadRun(w, r)
+	run, project, user, access, ok := h.loadRun(w, r)
 	if !ok {
 		return
 	}
-	if !CanUpdate(user, isMember) {
+	if !CanUpdateAccess(user, access) {
 		http.NotFound(w, r)
 		return
 	}
@@ -53,17 +53,17 @@ func (h *Runs) UploadAttachment(w http.ResponseWriter, r *http.Request) {
 	}
 	file, header, err := r.FormFile("attachment")
 	if err != nil {
-		h.renderRunItemShow(w, r, run, project, user, memberRole, itemID, viewtemplates.RunItemShowData{UploadError: "Fichier manquant."})
+		h.renderRunItemShow(w, r, run, project, user, access, itemID, viewtemplates.RunItemShowData{UploadError: "Fichier manquant."})
 		return
 	}
 	defer func() { _ = file.Close() }()
 	data, err := attachments.ReadAllLimited(file, attachments.MaxUploadBytes)
 	if err != nil {
-		h.renderRunItemShow(w, r, run, project, user, memberRole, itemID, viewtemplates.RunItemShowData{UploadError: uploadErrorMessage(err)})
+		h.renderRunItemShow(w, r, run, project, user, access, itemID, viewtemplates.RunItemShowData{UploadError: uploadErrorMessage(err)})
 		return
 	}
 	if _, err := h.attachmentService().Save(r.Context(), itemID, header.Filename, data); err != nil {
-		h.renderRunItemShow(w, r, run, project, user, memberRole, itemID, viewtemplates.RunItemShowData{UploadError: uploadErrorMessage(err)})
+		h.renderRunItemShow(w, r, run, project, user, access, itemID, viewtemplates.RunItemShowData{UploadError: uploadErrorMessage(err)})
 		return
 	}
 	http.Redirect(w, r, "/runs/"+strconv.FormatInt(run.ID, 10)+"/items/"+strconv.FormatInt(itemID, 10)+"?msg=Pi%C3%A8ce+jointe+enregistr%C3%A9e", http.StatusSeeOther)
@@ -100,13 +100,13 @@ func (h *Runs) DownloadAttachment(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
-	_, isMember, err := h.Store.MemberRole(r.Context(), run.SubjectID, user.ID)
+	access, err := h.Store.ResolveSubjectAccess(r.Context(), user.ID, run.SubjectID, user.Role)
 	if err != nil {
-		slog.Error("member role for attachment download", "err", err)
+		slog.Error("resolve subject access for attachment download", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
-	if !CanView(user, isMember) {
+	if !CanViewAccess(access) {
 		http.NotFound(w, r)
 		return
 	}
