@@ -1,7 +1,7 @@
 {{define "admin_webhooks"}}
 {{template "layout_start" .}}
 <section class="card">
-  <p class="muted">Notifications JSON signées HMAC-SHA256. Voir <code>docs/WEBHOOKS.md</code>.</p>
+  <p class="muted">Webhooks de l'organisation active — JSON signé HMAC-SHA256. Voir <code>docs/WEBHOOKS.md</code>.</p>
 </section>
 {{template "admin_nav" .}}
 {{if not .CanEncrypt}}<p class="error content-inset" role="alert">REVUES_ENCRYPTION_KEY requise pour enregistrer.</p>{{end}}

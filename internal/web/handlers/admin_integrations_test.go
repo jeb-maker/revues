@@ -115,7 +115,7 @@ func TestAdminIntegrations_ShowStatus(t *testing.T) {
 		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
 	}
 	body := rec.Body.String()
-	for _, want := range []string{"SMTP", "Jira", "Notion", "Webhooks", "Activé", "Désactivé", "/admin/settings/smtp", "/admin/integrations/jira", "/admin/integrations/notion", "/admin/settings/webhooks"} {
+	for _, want := range []string{"organisation active", "SMTP", "Jira", "Notion", "Webhooks", "Activé", "Désactivé", "/admin/settings/smtp", "/admin/integrations/jira", "/admin/integrations/notion", "/admin/settings/webhooks"} {
 		if !strings.Contains(body, want) {
 			t.Errorf("body missing %q", want)
 		}
