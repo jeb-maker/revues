@@ -116,7 +116,7 @@ erDiagram
 |------|--------|
 | `reader` | Consulter |
 | `editor` | Créer modèles, lancer revues, cocher |
-| `admin` | Tout + utilisateurs, SMTP, intégrations |
+| `admin` | Tout + bypass org (intégrations : aussi org owner/admin) |
 
 ### Rôles par projet
 

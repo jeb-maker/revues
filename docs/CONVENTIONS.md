@@ -65,7 +65,7 @@ GET|POST /admin/settings/smtp
 GET|POST /admin/integrations/...
 ```
 
-- Admin sous `/admin/` — `RequireRole("admin")`
+- Admin org sous `/admin/` — `RequireOrgAdmin` (owner/admin org ou admin global)
 - IDs dans URL : valider existence **et** permission
 
 ## Templates HTML

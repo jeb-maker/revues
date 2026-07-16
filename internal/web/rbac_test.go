@@ -29,6 +29,7 @@ type rbacFixture struct {
 	sessions *auth.SessionManager
 
 	admin       *store.User
+	orgAdmin    *store.User
 	lead        *store.User
 	contributor *store.User
 	viewer      *store.User
@@ -69,6 +70,10 @@ func newRBACFixture(t *testing.T) *rbacFixture {
 	if err != nil {
 		t.Fatalf("UpsertGitHubUser(admin): %v", err)
 	}
+	orgAdmin, err := st.UpsertGitHubUser(ctx, 7, "orgadmin", "orgadmin@example.com", "OrgAdmin", "", auth.RoleEditor)
+	if err != nil {
+		t.Fatalf("UpsertGitHubUser(orgAdmin): %v", err)
+	}
 	lead, err := st.UpsertGitHubUser(ctx, 2, "lead", "lead@example.com", "Lead", "", auth.RoleEditor)
 	if err != nil {
 		t.Fatalf("UpsertGitHubUser(lead): %v", err)
@@ -99,6 +104,7 @@ func newRBACFixture(t *testing.T) *rbacFixture {
 		role   string
 	}{
 		{admin.ID, store.OrgRoleMember},
+		{orgAdmin.ID, store.OrgRoleAdmin},
 		{lead.ID, store.OrgRoleMember},
 		{contributor.ID, store.OrgRoleMember},
 		{viewer.ID, store.OrgRoleMember},
@@ -136,6 +142,7 @@ func newRBACFixture(t *testing.T) *rbacFixture {
 	tokens := map[string]string{}
 	for key, user := range map[string]*store.User{
 		"admin":       admin,
+		"orgAdmin":    orgAdmin,
 		"lead":        lead,
 		"contributor": contributor,
 		"viewer":      viewer,
@@ -160,6 +167,7 @@ func newRBACFixture(t *testing.T) *rbacFixture {
 		ctx:         teamCtx,
 		sessions:    sessions,
 		admin:       admin,
+		orgAdmin:    orgAdmin,
 		lead:        lead,
 		contributor: contributor,
 		viewer:      viewer,
@@ -287,14 +295,16 @@ func TestRBAC_Matrix(t *testing.T) {
 		{"POST run item outsider denied", http.MethodPost, f.runItemPath(), "outsider", outsiderItem.Encode(), http.StatusNotFound},
 		{"POST run item reader denied", http.MethodPost, f.runItemPath(), "reader", readerItem.Encode(), http.StatusNotFound},
 
-		// POST /admin/* — auth + org admin (except /admin/integrations → global admin).
+		// POST /admin/* — auth + org owner/admin (ou admin global).
 		{"GET /admin editor denied", http.MethodGet, "/admin", "lead", "", http.StatusForbidden},
 		{"GET /admin admin ok", http.MethodGet, "/admin", "admin", "", http.StatusOK},
 		{"GET /admin/users editor denied", http.MethodGet, "/admin/users", "lead", "", http.StatusForbidden},
 		{"GET /admin/users reader denied", http.MethodGet, "/admin/users", "reader", "", http.StatusForbidden},
 		{"GET /admin/users admin ok", http.MethodGet, "/admin/users", "admin", "", http.StatusOK},
-		{"GET /admin/integrations editor denied", http.MethodGet, "/admin/integrations", "lead", "", http.StatusForbidden},
+		{"GET /admin/integrations member denied", http.MethodGet, "/admin/integrations", "lead", "", http.StatusForbidden},
 		{"GET /admin/integrations admin ok", http.MethodGet, "/admin/integrations", "admin", "", http.StatusOK},
+		{"GET /admin/integrations org admin ok", http.MethodGet, "/admin/integrations", "orgAdmin", "", http.StatusOK},
+		{"GET /admin/settings/smtp org admin ok", http.MethodGet, "/admin/settings/smtp", "orgAdmin", "", http.StatusOK},
 		{"POST /admin/users editor denied", http.MethodPost, "/admin/users", "lead", "email=x@example.com&role=editor", http.StatusForbidden},
 	}
 

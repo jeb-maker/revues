@@ -27,8 +27,13 @@ func RequireOrgAdmin(st *store.Store) func(http.Handler) http.Handler {
 	}
 }
 
-// CanManageOrgUsers reports whether user can manage the org email whitelist.
-func CanManageOrgUsers(ctx context.Context, st *store.Store, user *store.User) bool {
+// OrgRoleLookup looks up a user's role in an organization.
+type OrgRoleLookup interface {
+	OrganizationMemberRole(ctx context.Context, organizationID, userID int64) (string, bool, error)
+}
+
+// CanManageOrgUsers reports whether user can manage org settings (whitelist, integrations).
+func CanManageOrgUsers(ctx context.Context, st OrgRoleLookup, user *store.User) bool {
 	if auth.HasMinRole(user.Role, auth.RoleAdmin) {
 		return true
 	}

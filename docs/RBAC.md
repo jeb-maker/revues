@@ -50,7 +50,7 @@ Les sections ci-dessous décrivent le modèle **futur** rebasé sur `subjects` (
 
 | Rôle | Description |
 |------|-------------|
-| `admin` | Tout + admin système (users, SMTP, intégrations) ; voit tous les projets de l'org active |
+| `admin` | Tout + bypass org ; voit tous les projets de l'org active |
 | `editor` | Créer modèles, lancer revues, cocher (tous projets où accès projet) |
 | `reader` | Lecture seule (plafond — ne coche pas même si rôle projet contributor) |
 
@@ -58,7 +58,7 @@ Les sections ci-dessous décrivent le modèle **futur** rebasé sur `subjects` (
 
 | Rôle | Description |
 |------|-------------|
-| `owner` | Gouvernance org : équipes, whitelist, politiques ; **voit tous** les projets/revues de l'org |
+| `owner` | Gouvernance org : équipes, whitelist, politiques, **intégrations de l'org** (SMTP, Jira, Notion, webhooks) ; **voit tous** les projets/revues de l'org |
 | `admin` | Idem `owner` sauf actions réservées owner si ajoutées ultérieurement |
 | `member` | Membre org ; accès projet via équipe, membership direct, ou invitation |
 
@@ -163,7 +163,7 @@ Seuls org `owner` / `admin` modifient ces politiques.
 
 | Action | admin global | org owner/admin | editor + lead | editor + contributor | editor + viewer | reader + * |
 |--------|--------------|-----------------|---------------|----------------------|-----------------|------------|
-| Admin users/SMTP/intégrations | ✓ | — | — | — | — | — |
+| Admin users / SMTP / intégrations | ✓ | ✓ | — | — | — | — |
 | Gérer équipes org | ✓ | ✓ | — | — | — | — |
 | Créer projet | ✓ | ✓ | ✓ | ✓ | — | — |
 | Voir tous projets org | ✓ | ✓ | — | — | — | — |
@@ -177,7 +177,7 @@ Seuls org `owner` / `admin` modifient ces politiques.
 | Clôturer revue | ✓ | ✓† | ✓ (lead) | — | — | — |
 | Lire revue / export CSV | ✓ | ✓ | ✓ (membre) | ✓ | ✓ | ✓ (membre) |
 | Lier / créer ticket Jira | ✓ | ✓† | ✓ (lead/contrib) | ✓ | — | — |
-| Config intégrations | ✓ | — | — | — | — | — |
+| Config intégrations (org active) | ✓ | ✓ | — | — | — | — |
 
 \* Si politique `leads_may_assign_teams`.  
 † Org admin : seulement si rôle global `editor` minimum pour les actions d'écriture ; lecture/export sans restriction.
@@ -197,7 +197,8 @@ Seuls org `owner` / `admin` modifient ces politiques.
 | `GET /runs/{id}` | Auth + `Visible` sur projet de la revue |
 | `PATCH /runs/{id}/items/{itemId}` | Auth + contributor+ effectif ou admin |
 | `GET /attachments/{id}` | Auth + membre projet de la revue liée |
-| `POST /admin/*` | Auth + admin global ou org admin selon route |
+| `GET\|POST /admin/integrations*` · `/admin/settings/smtp` · `/admin/settings/webhooks` | Auth + org owner/admin (ou admin global) |
+| `POST /admin/*` (autres) | Auth + admin global ou org admin selon route |
 
 Toutes les routes sensibles appellent `ResolveProjectAccess` (ou helper dérivé) — pas de `MemberRole` seul.
 

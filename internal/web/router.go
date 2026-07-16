@@ -256,11 +256,6 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, error) {
 		r.Post("/admin/subjects/{id}/archive", subjectsHandler.Archive)
 		r.Get("/admin/settings/labels", orgsHandler.SubjectLabelsShow)
 		r.Post("/admin/settings/labels", orgsHandler.SubjectLabelsSave)
-	})
-
-	r.Group(func(r chi.Router) {
-		r.Use(appmiddleware.RequireAuth)
-		r.Use(appmiddleware.RequireRole(auth.RoleAdmin))
 		r.Get("/admin/integrations", adminIntegrations.Show)
 		r.Get("/admin/settings/smtp", adminSMTP.Show)
 		r.Post("/admin/settings/smtp", adminSMTP.Save)

@@ -43,6 +43,6 @@ Stockage chiffré dans la table `integrations` (`type = 'notion'`), même schém
 
 ## Sécurité
 
-- RBAC : routes `/admin/integrations/notion` réservées au rôle `admin`.
+- RBAC : routes `/admin/integrations/notion` réservées aux org owner/admin (ou admin global).
 - CSRF obligatoire sur tous les POST.
 - Token chiffré avec `REVUES_ENCRYPTION_KEY`.

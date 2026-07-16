@@ -100,11 +100,10 @@ func TestAdminHub_RBAC(t *testing.T) {
 			wantBody:   []string{"Inviter", "/admin/users", "Mes sujets", "/admin/subjects", "Libellé sujet", "/admin/settings/labels", "Intégrations", "/admin/integrations"},
 		},
 		{
-			name:       "org admin ok without integrations link",
+			name:       "org admin ok with integrations link",
 			tokenKey:   "orgAdmin",
 			wantStatus: http.StatusOK,
-			wantBody:   []string{"Inviter", "/admin/users", "Mes sujets", "/admin/subjects", "Libellé sujet", "/admin/settings/labels"},
-			notWant:    []string{`href="/admin/integrations"`},
+			wantBody:   []string{"Inviter", "/admin/users", "Mes sujets", "/admin/subjects", "Libellé sujet", "/admin/settings/labels", "Intégrations", "/admin/integrations"},
 		},
 		{
 			name:       "org member denied",

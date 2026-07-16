@@ -42,6 +42,40 @@ func TestAdminIntegrations_ReaderForbidden(t *testing.T) {
 	}
 }
 
+func TestAdminIntegrations_OrgAdminOK(t *testing.T) {
+	handler, db := testRouter(t)
+	ctx := context.Background()
+	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
+
+	defaultOrg, err := st.OrganizationBySlug(ctx, "default")
+	if err != nil {
+		t.Fatalf("OrganizationBySlug(): %v", err)
+	}
+	orgAdmin, err := st.UpsertGitHubUser(ctx, 2, "orgadmin", "orgadmin@example.com", "OrgAdmin", "", auth.RoleEditor)
+	if err != nil {
+		t.Fatalf("UpsertGitHubUser(): %v", err)
+	}
+	if err = st.AddOrganizationMember(ctx, defaultOrg.ID, orgAdmin.ID, store.OrgRoleAdmin); err != nil {
+		t.Fatalf("AddOrganizationMember(): %v", err)
+	}
+
+	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
+	token, _, err := sessions.CreateLoginSession(ctx, orgAdmin.ID, defaultOrg.ID)
+	if err != nil {
+		t.Fatalf("CreateLoginSession(): %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/admin/integrations", nil)
+	req.AddCookie(&http.Cookie{Name: "revues_session", Value: token})
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Errorf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+}
+
 func TestAdminIntegrations_ShowStatus(t *testing.T) {
 	handler, db := testRouterWithEncryptionKey(t, config.TestEncryptionKey())
 	ctx := context.Background()

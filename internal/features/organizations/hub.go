@@ -4,7 +4,6 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/jeb-maker/revues/internal/auth"
 	"github.com/jeb-maker/revues/internal/web/middleware"
 	"github.com/jeb-maker/revues/internal/web/templates"
 )
@@ -17,7 +16,7 @@ func (h *Organizations) AdminHub(w http.ResponseWriter, r *http.Request) {
 	data.ActiveTab = "org"
 
 	if user, ok := middleware.UserFromContext(r.Context()); ok {
-		data.ShowIntegrations = auth.HasMinRole(user.Role, auth.RoleAdmin)
+		data.ShowIntegrations = middleware.CanManageOrgUsers(r.Context(), h.Store, user)
 	}
 	if org, ok := middleware.OrganizationFromContext(r.Context()); ok {
 		data.OrganizationName = org.Name
