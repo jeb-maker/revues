@@ -113,6 +113,14 @@ func (h *Subjects) List(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (h *Subjects) orgMembership(r *http.Request, userID int64) (orgRole string, orgMember bool) {
+	orgRole, orgMember, _ = h.Store.OrganizationMemberRole(r.Context(), 0, userID)
+	if org, ok := middleware.OrganizationFromContext(r.Context()); ok {
+		orgRole, orgMember, _ = h.Store.OrganizationMemberRole(r.Context(), org.ID, userID)
+	}
+	return orgRole, orgMember
+}
+
 // NewForm renders the create subject form.
 func (h *Subjects) NewForm(w http.ResponseWriter, r *http.Request) {
 	user, ok := middleware.UserFromContext(r.Context())
@@ -125,6 +133,7 @@ func (h *Subjects) NewForm(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	orgRole, orgMember := h.orgMembership(r, user.ID)
 	pd := h.subjectsPageData(r, "Nouveau "+strings.ToLower(templates.DefaultUILabels().Subject.Singular))
 	if adminSubjectsRoute(r) {
 		pd.Breadcrumbs = templates.BCAdminSubjectNew(pd.Labels.Subject)
@@ -132,8 +141,9 @@ func (h *Subjects) NewForm(w http.ResponseWriter, r *http.Request) {
 		pd.Breadcrumbs = templates.BCSubjectNew(pd.Labels.Subject)
 	}
 	data := templates.SubjectFormData{
-		PageData:   pd,
-		FormAction: subjectsListPath(r),
+		PageData:         pd,
+		FormAction:       subjectsListPath(r),
+		CanSetVisibility: CanSetSubjectVisibility(user, orgRole, orgMember, store.SubjectAccess{}),
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -159,16 +169,27 @@ func (h *Subjects) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	orgRole, orgMember := h.orgMembership(r, user.ID)
+	canSetVisibility := CanSetSubjectVisibility(user, orgRole, orgMember, store.SubjectAccess{})
 	name := strings.TrimSpace(r.FormValue("name"))
 	if name == "" {
-		h.renderFormError(w, r, nil, subjectsListPath(r), "Le nom est obligatoire.")
+		h.renderFormError(w, r, nil, store.SubjectAccess{}, subjectsListPath(r), "Le nom est obligatoire.")
 		return
 	}
 	description := strings.TrimSpace(r.FormValue("description"))
 	domains := store.ParseTagsCSV(r.FormValue("domains"))
 	tags := store.ParseTagsCSV(r.FormValue("tags"))
+	visibility := store.SubjectVisibilityNormal
+	if canSetVisibility {
+		var normErr error
+		visibility, normErr = store.NormalizeSubjectVisibility(strings.TrimSpace(r.FormValue("visibility")))
+		if normErr != nil {
+			h.renderFormError(w, r, nil, store.SubjectAccess{}, subjectsListPath(r), "Visibilité invalide.")
+			return
+		}
+	}
 
-	subject, err := h.Store.CreateSubject(r.Context(), name, description, user.ID, domains)
+	subject, err := h.Store.CreateSubjectWithVisibility(r.Context(), name, description, user.ID, domains, visibility)
 	if err != nil {
 		slog.Error("create subject", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -414,10 +435,12 @@ func (h *Subjects) EditForm(w http.ResponseWriter, r *http.Request) {
 	} else {
 		pd.Breadcrumbs = templates.BCSubjectEdit(subject.Name, subject.ID, pd.Labels.Subject)
 	}
+	orgRole, orgMember := h.orgMembership(r, user.ID)
 	data := templates.SubjectFormData{
-		PageData:   pd,
-		Subject:    subject,
-		FormAction: subjectFormAction(r, subject.ID),
+		PageData:         pd,
+		Subject:          subject,
+		FormAction:       subjectFormAction(r, subject.ID),
+		CanSetVisibility: CanSetSubjectVisibility(user, orgRole, orgMember, access),
 	}
 	if domains, err := h.Store.ListSubjectDomains(r.Context(), subject.ID); err != nil {
 		slog.Error("list subject domains", "err", err)
@@ -456,19 +479,37 @@ func (h *Subjects) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	orgRole, orgMember := h.orgMembership(r, user.ID)
+	canSetVisibility := CanSetSubjectVisibility(user, orgRole, orgMember, access)
 	name := strings.TrimSpace(r.FormValue("name"))
 	if name == "" {
-		h.renderFormError(w, r, subject, subjectFormAction(r, subject.ID), "Le nom est obligatoire.")
+		h.renderFormError(w, r, subject, access, subjectFormAction(r, subject.ID), "Le nom est obligatoire.")
 		return
 	}
 	description := strings.TrimSpace(r.FormValue("description"))
 	domains := store.ParseTagsCSV(r.FormValue("domains"))
 	tags := store.ParseTagsCSV(r.FormValue("tags"))
+	visibility := subject.Visibility
+	if canSetVisibility {
+		var normErr error
+		visibility, normErr = store.NormalizeSubjectVisibility(strings.TrimSpace(r.FormValue("visibility")))
+		if normErr != nil {
+			h.renderFormError(w, r, subject, access, subjectFormAction(r, subject.ID), "Visibilité invalide.")
+			return
+		}
+	}
 
-	if err := h.Store.UpdateSubject(r.Context(), subject.ID, name, description, domains); err != nil {
+	if err := h.Store.UpdateSubjectWithVisibility(r.Context(), subject.ID, name, description, domains, visibility); err != nil {
 		slog.Error("update subject", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
+	}
+	if visibility == store.SubjectVisibilityPrivate && !access.IsSupervisor() {
+		if err := h.Store.UpsertDirectSubjectMember(r.Context(), subject.ID, user.ID, store.SubjectRoleLead); err != nil {
+			slog.Error("ensure lead on private subject", "err", err)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
 	}
 	if err := h.Store.SetSubjectTags(r.Context(), subject.ID, tags); err != nil {
 		slog.Error("set subject tags", "err", err)
@@ -679,7 +720,7 @@ func subjectFormAction(r *http.Request, id int64) string {
 	return templates.PathSubjects + "/" + strconv.FormatInt(id, 10)
 }
 
-func (h *Subjects) renderFormError(w http.ResponseWriter, r *http.Request, subject *Subject, action, message string) {
+func (h *Subjects) renderFormError(w http.ResponseWriter, r *http.Request, subject *Subject, access store.SubjectAccess, action, message string) {
 	title := "Nouveau " + strings.ToLower(templates.DefaultUILabels().Subject.Singular)
 	if subject != nil {
 		title = "Modifier " + subject.Name
@@ -696,11 +737,28 @@ func (h *Subjects) renderFormError(w http.ResponseWriter, r *http.Request, subje
 	} else {
 		pd.Breadcrumbs = templates.BCSubjectNew(pd.Labels.Subject)
 	}
+	user, _ := middleware.UserFromContext(r.Context())
+	orgRole, orgMember := "", false
+	if user != nil {
+		orgRole, orgMember = h.orgMembership(r, user.ID)
+	}
 	data := templates.SubjectFormData{
-		PageData:   pd,
-		Subject:    subject,
-		FormAction: action,
-		Error:      message,
+		PageData:         pd,
+		Subject:          subject,
+		FormAction:       action,
+		CanSetVisibility: user != nil && CanSetSubjectVisibility(user, orgRole, orgMember, access),
+		Error:            message,
+	}
+	if subject != nil {
+		if domains, err := h.Store.ListSubjectDomains(r.Context(), subject.ID); err == nil {
+			data.Domains = store.FormatTagsCSV(domains)
+		}
+		if tags, err := h.Store.ListSubjectTags(r.Context(), subject.ID); err == nil {
+			data.Tags = store.FormatTagsCSV(tags)
+		}
+	} else {
+		data.Domains = store.FormatTagsCSV(store.ParseTagsCSV(r.FormValue("domains")))
+		data.Tags = store.FormatTagsCSV(store.ParseTagsCSV(r.FormValue("tags")))
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(http.StatusBadRequest)

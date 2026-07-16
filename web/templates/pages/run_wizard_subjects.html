@@ -17,7 +17,10 @@
   {{if .Subjects}}
   <ul class="item-list">
     {{range .Subjects}}
-    <li><a href="{{subjectTemplatesForRunPath .ID $.SelectedTemplateID}}">{{.Name}}</a></li>
+    <li>
+      <a href="{{subjectTemplatesForRunPath .ID $.SelectedTemplateID}}">{{.Name}}</a>
+      {{if eq .Visibility "private"}} <span class="status-badge status-na">Privé</span>{{end}}
+    </li>
     {{end}}
   </ul>
   {{else if .FilterQuery}}

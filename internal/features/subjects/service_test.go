@@ -92,6 +92,34 @@ func TestCanManageAccess_OrgAdminReaderDenied(t *testing.T) {
 	}
 }
 
+func TestCanSetSubjectVisibility(t *testing.T) {
+	admin := &User{Role: auth.RoleAdmin}
+	editor := &User{Role: auth.RoleEditor}
+	reader := &User{Role: auth.RoleReader}
+	lead := store.SubjectAccess{Visible: true, Role: store.SubjectRoleLead, Sources: []string{store.AccessSourceDirect}}
+	legacy := store.SubjectAccess{Visible: true, Role: store.SubjectRoleContributor, Sources: []string{store.AccessSourceOrgMemberLegacy}}
+	empty := store.SubjectAccess{}
+
+	if !CanSetSubjectVisibility(admin, store.OrgRoleMember, true, empty) {
+		t.Fatal("global admin may set visibility on create")
+	}
+	if !CanSetSubjectVisibility(editor, store.OrgRoleAdmin, true, empty) {
+		t.Fatal("org admin may set visibility on create")
+	}
+	if CanSetSubjectVisibility(editor, store.OrgRoleMember, true, empty) {
+		t.Fatal("plain org member editor must not set visibility on create")
+	}
+	if !CanSetSubjectVisibility(editor, store.OrgRoleMember, true, lead) {
+		t.Fatal("subject lead may set visibility on edit")
+	}
+	if CanSetSubjectVisibility(editor, store.OrgRoleMember, true, legacy) {
+		t.Fatal("legacy ungated must not set visibility")
+	}
+	if CanSetSubjectVisibility(reader, store.OrgRoleAdmin, true, empty) {
+		t.Fatal("reader must not set visibility")
+	}
+}
+
 func TestCanAssignSubjectTeams(t *testing.T) {
 	admin := &User{Role: auth.RoleAdmin}
 	editor := &User{Role: auth.RoleEditor}

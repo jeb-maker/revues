@@ -11,15 +11,41 @@ import (
 // ErrSubjectNotFound is returned when a subject id does not exist.
 var ErrSubjectNotFound = errors.New("subject not found")
 
+// ErrInvalidSubjectVisibility is returned when visibility is not normal|private.
+var ErrInvalidSubjectVisibility = errors.New("invalid subject visibility")
+
+const (
+	SubjectVisibilityNormal  = "normal"
+	SubjectVisibilityPrivate = "private"
+)
+
 // Subject is a review subject container (site, asset, app, etc.).
 type Subject struct {
 	ID             int64
 	OrganizationID int64
 	Name           string
 	Description    string
+	Visibility     string
 	ArchivedAt     sql.NullString
 	CreatedAt      string
 	UpdatedAt      string
+}
+
+// NormalizeSubjectVisibility returns normal|private, defaulting empty to normal.
+func NormalizeSubjectVisibility(visibility string) (string, error) {
+	switch visibility {
+	case "", SubjectVisibilityNormal:
+		return SubjectVisibilityNormal, nil
+	case SubjectVisibilityPrivate:
+		return SubjectVisibilityPrivate, nil
+	default:
+		return "", ErrInvalidSubjectVisibility
+	}
+}
+
+// IsPrivate reports whether the subject uses private visibility.
+func (sub *Subject) IsPrivate() bool {
+	return sub != nil && sub.Visibility == SubjectVisibilityPrivate
 }
 
 // SubjectMember links a user to a subject's organization with a display role (v1 org-scoped access).
@@ -32,9 +58,19 @@ type SubjectMember struct {
 	CreatedAt   string
 }
 
-// CreateSubject inserts a subject, matching domains and ensures the creator belongs to the org.
+// CreateSubject inserts a subject with normal visibility, matching domains, and ensures the creator belongs to the org.
 func (s *Store) CreateSubject(ctx context.Context, name, description string, creatorID int64, domains []string) (*Subject, error) {
+	return s.CreateSubjectWithVisibility(ctx, name, description, creatorID, domains, SubjectVisibilityNormal)
+}
+
+// CreateSubjectWithVisibility inserts a subject with the given visibility (normal|private).
+// Private subjects grant the creator a direct lead membership so they remain accessible.
+func (s *Store) CreateSubjectWithVisibility(ctx context.Context, name, description string, creatorID int64, domains []string, visibility string) (*Subject, error) {
 	orgID, err := organizationIDFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	visibility, err = NormalizeSubjectVisibility(visibility)
 	if err != nil {
 		return nil, err
 	}
@@ -51,9 +87,9 @@ func (s *Store) CreateSubject(ctx context.Context, name, description string, cre
 	}()
 
 	res, err := tx.ExecContext(ctx, `
-		INSERT INTO subjects (organization_id, name, description, created_at, updated_at)
-		VALUES (?, ?, ?, ?, ?)
-	`, orgID, name, description, now, now)
+		INSERT INTO subjects (organization_id, name, description, visibility, created_at, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?)
+	`, orgID, name, description, visibility, now, now)
 	if err != nil {
 		return nil, fmt.Errorf("insert subject: %w", err)
 	}
@@ -70,6 +106,17 @@ func (s *Store) CreateSubject(ctx context.Context, name, description string, cre
 	`, orgID, creatorID, OrgRoleMember, now)
 	if err != nil {
 		return nil, fmt.Errorf("ensure org member: %w", err)
+	}
+
+	if visibility == SubjectVisibilityPrivate {
+		_, err = tx.ExecContext(ctx, `
+			INSERT INTO subject_members (subject_id, user_id, role, created_at)
+			VALUES (?, ?, ?, ?)
+			ON CONFLICT(subject_id, user_id) DO UPDATE SET role = excluded.role
+		`, subjectID, creatorID, SubjectRoleLead, now)
+		if err != nil {
+			return nil, fmt.Errorf("grant creator lead on private subject: %w", err)
+		}
 	}
 
 	if err := setSubjectDomainsTx(ctx, tx, subjectID, domains); err != nil {
@@ -95,9 +142,12 @@ func (s *Store) SubjectByID(ctx context.Context, id int64) (*Subject, error) {
 func (s *Store) subjectByID(ctx context.Context, id, orgID int64) (*Subject, error) {
 	var sub Subject
 	err := s.db.QueryRowContext(ctx, `
-		SELECT id, organization_id, name, description, archived_at, created_at, updated_at
+		SELECT id, organization_id, name, description, visibility, archived_at, created_at, updated_at
 		FROM subjects WHERE id = ? AND organization_id = ?
-	`, id, orgID).Scan(&sub.ID, &sub.OrganizationID, &sub.Name, &sub.Description, &sub.ArchivedAt, &sub.CreatedAt, &sub.UpdatedAt)
+	`, id, orgID).Scan(
+		&sub.ID, &sub.OrganizationID, &sub.Name, &sub.Description, &sub.Visibility,
+		&sub.ArchivedAt, &sub.CreatedAt, &sub.UpdatedAt,
+	)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrSubjectNotFound
 	}
@@ -111,9 +161,12 @@ func (s *Store) subjectByID(ctx context.Context, id, orgID int64) (*Subject, err
 func (s *Store) SubjectByIDUnscoped(ctx context.Context, id int64) (*Subject, error) {
 	var sub Subject
 	err := s.db.QueryRowContext(ctx, `
-		SELECT id, organization_id, name, description, archived_at, created_at, updated_at
+		SELECT id, organization_id, name, description, visibility, archived_at, created_at, updated_at
 		FROM subjects WHERE id = ?
-	`, id).Scan(&sub.ID, &sub.OrganizationID, &sub.Name, &sub.Description, &sub.ArchivedAt, &sub.CreatedAt, &sub.UpdatedAt)
+	`, id).Scan(
+		&sub.ID, &sub.OrganizationID, &sub.Name, &sub.Description, &sub.Visibility,
+		&sub.ArchivedAt, &sub.CreatedAt, &sub.UpdatedAt,
+	)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrSubjectNotFound
 	}
@@ -138,7 +191,7 @@ func (s *Store) ListSubjects(ctx context.Context, userID int64, admin bool, quer
 	orgAdmin := isMember && (orgRole == OrgRoleOwner || orgRole == OrgRoleAdmin)
 
 	sqlQuery := `
-		SELECT s.id, s.organization_id, s.name, s.description, s.archived_at, s.created_at, s.updated_at
+		SELECT s.id, s.organization_id, s.name, s.description, s.visibility, s.archived_at, s.created_at, s.updated_at
 		FROM subjects s
 		WHERE s.organization_id = ? AND s.archived_at IS NULL`
 	args := []any{orgID}
@@ -147,10 +200,12 @@ func (s *Store) ListSubjects(ctx context.Context, userID int64, admin bool, quer
 		if !isMember {
 			return nil, nil
 		}
+		// Legacy ungated applies only to normal subjects without grants.
 		sqlQuery += `
 		AND (
 			(
-				NOT EXISTS (SELECT 1 FROM subject_members sm0 WHERE sm0.subject_id = s.id)
+				s.visibility = '` + SubjectVisibilityNormal + `'
+				AND NOT EXISTS (SELECT 1 FROM subject_members sm0 WHERE sm0.subject_id = s.id)
 				AND NOT EXISTS (SELECT 1 FROM team_subject_roles tsr0 WHERE tsr0.subject_id = s.id)
 			)
 			OR EXISTS (
@@ -184,7 +239,10 @@ func (s *Store) ListSubjects(ctx context.Context, userID int64, admin bool, quer
 	var subjects []Subject
 	for rows.Next() {
 		var sub Subject
-		if err := rows.Scan(&sub.ID, &sub.OrganizationID, &sub.Name, &sub.Description, &sub.ArchivedAt, &sub.CreatedAt, &sub.UpdatedAt); err != nil {
+		if err := rows.Scan(
+			&sub.ID, &sub.OrganizationID, &sub.Name, &sub.Description, &sub.Visibility,
+			&sub.ArchivedAt, &sub.CreatedAt, &sub.UpdatedAt,
+		); err != nil {
 			return nil, fmt.Errorf("scan subject: %w", err)
 		}
 		subjects = append(subjects, sub)
@@ -196,9 +254,22 @@ func (s *Store) ListSubjects(ctx context.Context, userID int64, admin bool, quer
 	return subjects, nil
 }
 
-// UpdateSubject changes name, description and matching domains.
+// UpdateSubject changes name, description and matching domains (visibility unchanged).
 func (s *Store) UpdateSubject(ctx context.Context, id int64, name, description string, domains []string) error {
+	sub, err := s.SubjectByID(ctx, id)
+	if err != nil {
+		return err
+	}
+	return s.UpdateSubjectWithVisibility(ctx, id, name, description, domains, sub.Visibility)
+}
+
+// UpdateSubjectWithVisibility changes name, description, visibility and matching domains.
+func (s *Store) UpdateSubjectWithVisibility(ctx context.Context, id int64, name, description string, domains []string, visibility string) error {
 	orgID, err := organizationIDFromContext(ctx)
+	if err != nil {
+		return err
+	}
+	visibility, err = NormalizeSubjectVisibility(visibility)
 	if err != nil {
 		return err
 	}
@@ -215,9 +286,9 @@ func (s *Store) UpdateSubject(ctx context.Context, id int64, name, description s
 	}()
 
 	res, err := tx.ExecContext(ctx, `
-		UPDATE subjects SET name = ?, description = ?, updated_at = ?
+		UPDATE subjects SET name = ?, description = ?, visibility = ?, updated_at = ?
 		WHERE id = ? AND organization_id = ? AND archived_at IS NULL
-	`, name, description, now, id, orgID)
+	`, name, description, visibility, now, id, orgID)
 	if err != nil {
 		return fmt.Errorf("update subject: %w", err)
 	}

@@ -122,6 +122,8 @@ CREATE TABLE subjects (
     organization_id INTEGER NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     name            TEXT NOT NULL,
     description     TEXT NOT NULL DEFAULT '',
+    visibility      TEXT NOT NULL DEFAULT 'normal'
+                    CHECK (visibility IN ('normal', 'private')),
     archived_at     TEXT,
     created_at      TEXT NOT NULL,
     updated_at      TEXT NOT NULL

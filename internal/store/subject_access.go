@@ -48,8 +48,10 @@ func (a SubjectAccess) RoleAtLeast(want string) bool {
 // ResolveSubjectAccess computes access for userID on subjectID in the active org.
 // globalRole is users.role (admin | editor | reader).
 //
-// Transition: when a subject has no subject_members and no team_subject_roles,
+// Transition: when a normal subject has no subject_members and no team_subject_roles,
 // org members keep v1 visibility (source org_member_legacy, role contributor).
+// Private subjects never use that legacy path — they require an explicit grant,
+// org owner/admin, or global admin.
 func (s *Store) ResolveSubjectAccess(ctx context.Context, userID, subjectID int64, globalRole string) (SubjectAccess, error) {
 	orgID, err := organizationIDFromContext(ctx)
 	if err != nil {
@@ -109,6 +111,10 @@ func (s *Store) ResolveSubjectAccess(ctx context.Context, userID, subjectID int6
 	if access.Role != "" {
 		access.Visible = true
 		return access, nil
+	}
+
+	if subject.Visibility == SubjectVisibilityPrivate {
+		return SubjectAccess{}, nil
 	}
 
 	hasGrants, err := s.subjectHasAccessGrants(ctx, subjectID)
@@ -196,7 +202,8 @@ func subjectVisibleToOrgMemberSQL(subjectAlias string) string {
 		AND (
 			om.role IN ('` + OrgRoleOwner + `', '` + OrgRoleAdmin + `')
 			OR (
-				NOT EXISTS (SELECT 1 FROM subject_members sm0 WHERE sm0.subject_id = ` + subjectAlias + `.id)
+				` + subjectAlias + `.visibility = '` + SubjectVisibilityNormal + `'
+				AND NOT EXISTS (SELECT 1 FROM subject_members sm0 WHERE sm0.subject_id = ` + subjectAlias + `.id)
 				AND NOT EXISTS (SELECT 1 FROM team_subject_roles tsr0 WHERE tsr0.subject_id = ` + subjectAlias + `.id)
 			)
 			OR EXISTS (

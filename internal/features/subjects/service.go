@@ -102,6 +102,22 @@ func CanCreateSubject(user *User) bool {
 	return auth.HasMinRole(user.Role, auth.RoleEditor)
 }
 
+// CanSetSubjectVisibility reports whether the user may set subjects.visibility.
+// Global admin and org owner/admin may set it on create/edit; subject leads on edit.
+// Legacy ungated editors may not.
+func CanSetSubjectVisibility(user *User, orgRole string, orgMember bool, access store.SubjectAccess) bool {
+	if auth.HasMinRole(user.Role, auth.RoleAdmin) {
+		return true
+	}
+	if !auth.HasMinRole(user.Role, auth.RoleEditor) {
+		return false
+	}
+	if orgMember && (orgRole == store.OrgRoleOwner || orgRole == store.OrgRoleAdmin) {
+		return true
+	}
+	return access.Visible && access.Role == store.SubjectRoleLead
+}
+
 // CanManageOrgUsers is true for global admin or org owner/admin.
 func CanManageOrgUsers(user *User, orgRole string, orgMember bool) bool {
 	if auth.HasMinRole(user.Role, auth.RoleAdmin) {

@@ -196,3 +196,147 @@ func TestResolveSubjectAccess(t *testing.T) {
 		t.Fatalf("org admin gated access = %+v, want Visible Role=\"\" org_admin", got)
 	}
 }
+
+func TestResolveSubjectAccess_PrivateNoLegacy(t *testing.T) {
+	ctx := context.Background()
+	db := openMemoryDB(t)
+	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
+
+	orgAdmin, err := st.UpsertGitHubUser(ctx, 1, "orgadmin", "orgadmin@example.com", "OrgAdmin", "", auth.RoleEditor)
+	if err != nil {
+		t.Fatal(err)
+	}
+	member, err := st.UpsertGitHubUser(ctx, 2, "member", "member@example.com", "Member", "", auth.RoleEditor)
+	if err != nil {
+		t.Fatal(err)
+	}
+	lead, err := st.UpsertGitHubUser(ctx, 3, "lead", "lead@example.com", "Lead", "", auth.RoleEditor)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defaultOrg, err := st.OrganizationBySlug(ctx, "default")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, m := range []struct {
+		id   int64
+		role string
+	}{
+		{orgAdmin.ID, store.OrgRoleAdmin},
+		{member.ID, store.OrgRoleMember},
+		{lead.ID, store.OrgRoleMember},
+	} {
+		if err = st.AddOrganizationMember(ctx, defaultOrg.ID, m.id, m.role); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	private, err := st.CreateSubjectWithVisibility(ctx, "Private", "", lead.ID, nil, store.SubjectVisibilityPrivate)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = st.RemoveDirectSubjectMember(ctx, private.ID, lead.ID); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := st.ResolveSubjectAccess(ctx, member.ID, private.ID, auth.RoleEditor)
+	if err != nil {
+		t.Fatalf("ResolveSubjectAccess(member): %v", err)
+	}
+	if got.Visible {
+		t.Fatalf("private without grants must not use legacy; got %+v", got)
+	}
+
+	got, err = st.ResolveSubjectAccess(ctx, orgAdmin.ID, private.ID, auth.RoleEditor)
+	if err != nil {
+		t.Fatalf("ResolveSubjectAccess(orgAdmin): %v", err)
+	}
+	if !got.Visible || !got.HasSource(store.AccessSourceOrgAdmin) {
+		t.Fatalf("org admin must see private; got %+v", got)
+	}
+
+	if err = st.UpsertDirectSubjectMember(ctx, private.ID, member.ID, store.SubjectRoleViewer); err != nil {
+		t.Fatal(err)
+	}
+	got, err = st.ResolveSubjectAccess(ctx, member.ID, private.ID, auth.RoleEditor)
+	if err != nil {
+		t.Fatalf("ResolveSubjectAccess(member granted): %v", err)
+	}
+	if !got.Visible || got.Role != store.SubjectRoleViewer {
+		t.Fatalf("granted member must see private; got %+v", got)
+	}
+}
+
+func TestListSubjects_PrivateFilter(t *testing.T) {
+	ctx := context.Background()
+	db := openMemoryDB(t)
+	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
+
+	owner, err := st.UpsertGitHubUser(ctx, 1, "owner", "owner@example.com", "Owner", "", auth.RoleEditor)
+	if err != nil {
+		t.Fatal(err)
+	}
+	member, err := st.UpsertGitHubUser(ctx, 2, "member", "member@example.com", "Member", "", auth.RoleEditor)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defaultOrg, err := st.OrganizationBySlug(ctx, "default")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = st.AddOrganizationMember(ctx, defaultOrg.ID, owner.ID, store.OrgRoleOwner); err != nil {
+		t.Fatal(err)
+	}
+	if err = st.AddOrganizationMember(ctx, defaultOrg.ID, member.ID, store.OrgRoleMember); err != nil {
+		t.Fatal(err)
+	}
+
+	normal, err := st.CreateSubject(ctx, "NormalOpen", "", owner.ID, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	private, err := st.CreateSubjectWithVisibility(ctx, "PrivateClosed", "", owner.ID, nil, store.SubjectVisibilityPrivate)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if private.Visibility != store.SubjectVisibilityPrivate {
+		t.Fatalf("Visibility = %q, want private", private.Visibility)
+	}
+
+	listed, err := st.ListSubjects(ctx, member.ID, false, "")
+	if err != nil {
+		t.Fatalf("ListSubjects(member): %v", err)
+	}
+	var sawNormal, sawPrivate bool
+	for _, s := range listed {
+		if s.ID == normal.ID {
+			sawNormal = true
+		}
+		if s.ID == private.ID {
+			sawPrivate = true
+		}
+	}
+	if !sawNormal {
+		t.Fatal("member must see normal ungated subject")
+	}
+	if sawPrivate {
+		t.Fatal("member must not see private subject without grant")
+	}
+
+	ownerListed, err := st.ListSubjects(ctx, owner.ID, false, "")
+	if err != nil {
+		t.Fatalf("ListSubjects(owner): %v", err)
+	}
+	sawPrivate = false
+	for _, s := range ownerListed {
+		if s.ID == private.ID {
+			sawPrivate = true
+			break
+		}
+	}
+	if !sawPrivate {
+		t.Fatal("org owner must see private subject")
+	}
+}

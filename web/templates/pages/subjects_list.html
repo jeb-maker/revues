@@ -50,7 +50,10 @@
       {{if .Subjects}}
       {{range .Subjects}}
       <tr>
-        <td><a href="/subjects/{{.ID}}">{{.Name}}</a></td>
+        <td>
+          <a href="/subjects/{{.ID}}">{{.Name}}</a>
+          {{if eq .Visibility "private"}} <span class="status-badge status-na">Privé</span>{{end}}
+        </td>
       </tr>
       {{end}}
       {{else}}

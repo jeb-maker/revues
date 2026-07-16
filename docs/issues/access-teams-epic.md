@@ -79,7 +79,7 @@ ResolveSubjectAccess(user, subject) :
 - [x] Org admin voit tout + TestIDOR
 - [x] UI admin équipes CRUD
 - [x] UI sujet — équipes + preview + sources
-- [ ] Sujets privés (`visibility`)
+- [x] Sujets privés (`visibility`)
 - [ ] Politiques org
 
 ### Hors scope épique
@@ -269,23 +269,25 @@ Sur la fiche sujet, gérer les équipes affectées et afficher les sources d'acc
 
 ---
 
-## Issue 8 — `[data][auth] Projets privés (visibility)`
+## Issue 8 — `[data][auth] Sujets privés (visibility)`
 
 **Labels** : `area:data`, `area:auth`, `vague-5`  
-**Bloqué par** : Issue 3
+**Bloqué par** : Issue 3  
+**Statut** : livré (`subjects.visibility` greenfield + ResolveSubjectAccess / listings / UI).
 
 ### Objectif
 
-Permettre d'isoler un projet au sein d'une org.
+Permettre d'isoler un sujet au sein d'une org.
 
 ### Critères d'acceptation
 
-- [ ] Migration : `projects.visibility` TEXT `normal`|`private`, défaut `normal`
-- [ ] Projet `private` : inaccessible aux org `member` sans direct/équipe ; org owner/admin et admin global voient toujours
-- [ ] Formulaire création/édition projet : champ visibilité (org admin ou lead)
-- [ ] Badge « Privé » sur fiche projet et listes admin
-- [ ] Tests `TestIDOR_PrivateProject`
-- [ ] `./scripts/check.sh` vert
+- [x] Schéma (greenfield) : `subjects.visibility` TEXT `normal`|`private`, défaut `normal` — `00001` + `canonical.sql`
+- [x] Sujet `private` : inaccessible aux org `member` sans direct/équipe ; org owner/admin et admin global voient toujours
+- [x] Legacy ungated **ne s'applique pas** aux sujets privés (même sans grants)
+- [x] Formulaire création/édition sujet : champ visibilité (org admin ou lead)
+- [x] Badge « Privé » sur fiche sujet et listes pertinentes
+- [x] Tests `TestIDOR_PrivateSubject` (+ store resolve/list)
+- [x] `./scripts/check.sh` vert
 
 ---
 

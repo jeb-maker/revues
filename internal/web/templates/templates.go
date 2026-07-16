@@ -356,11 +356,12 @@ type SubjectsListData struct {
 // SubjectFormData is view data for create/edit subject forms.
 type SubjectFormData struct {
 	PageData
-	Subject    *store.Subject
-	Domains    string
-	Tags       string
-	FormAction string
-	Error      string
+	Subject          *store.Subject
+	Domains          string
+	Tags             string
+	FormAction       string
+	CanSetVisibility bool
+	Error            string
 }
 
 // OrgNewData is view data for the organization creation form.

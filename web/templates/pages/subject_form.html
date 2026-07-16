@@ -16,6 +16,16 @@
       Description
       <textarea name="description" rows="4">{{if .Subject}}{{.Subject.Description}}{{end}}</textarea>
     </label>
+    {{if .CanSetVisibility}}
+    <label>
+      Visibilité
+      <span class="field-hint">Privé : visible uniquement avec un accès direct ou via une équipe (les admins org voient toujours).</span>
+      <select name="visibility">
+        <option value="normal" {{if or (not .Subject) (eq .Subject.Visibility "normal") (eq .Subject.Visibility "")}}selected{{end}}>Normale</option>
+        <option value="private" {{if and .Subject (eq .Subject.Visibility "private")}}selected{{end}}>Privée</option>
+      </select>
+    </label>
+    {{end}}
     <details class="stack-form">
       <summary>Options avancées</summary>
       <label>

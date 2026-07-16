@@ -579,6 +579,115 @@ func TestIDOR_OrgAdmin(t *testing.T) {
 	}
 }
 
+// TestIDOR_PrivateSubject ensures private subjects are invisible to plain org members
+// without a direct/team grant, even when there are no grants (no legacy ungated path).
+// Org owner/admin and global admin still see them; grantees see them.
+func TestIDOR_PrivateSubject(t *testing.T) {
+	f := newRBACFixture(t)
+
+	privateUngated, err := f.st.CreateSubjectWithVisibility(f.ctx, "PrivateUngated", "", f.lead.ID, nil, store.SubjectVisibilityPrivate)
+	if err != nil {
+		t.Fatalf("CreateSubjectWithVisibility(ungated): %v", err)
+	}
+	// Creator is auto-lead; remove grants to simulate private with zero grants.
+	if err = f.st.RemoveDirectSubjectMember(f.ctx, privateUngated.ID, f.lead.ID); err != nil {
+		t.Fatalf("RemoveDirectSubjectMember(creator): %v", err)
+	}
+
+	privateGated, err := f.st.CreateSubjectWithVisibility(f.ctx, "PrivateGated", "", f.lead.ID, nil, store.SubjectVisibilityPrivate)
+	if err != nil {
+		t.Fatalf("CreateSubjectWithVisibility(gated): %v", err)
+	}
+	if err = f.st.UpsertDirectSubjectMember(f.ctx, privateGated.ID, f.viewer.ID, store.SubjectRoleViewer); err != nil {
+		t.Fatalf("UpsertDirectSubjectMember(viewer): %v", err)
+	}
+
+	run, err := f.st.CreateChecklistRun(f.ctx, privateGated.ID, f.template.ID, f.lead.ID)
+	if err != nil {
+		t.Fatalf("CreateChecklistRun(): %v", err)
+	}
+
+	ungatedPath := "/subjects/" + strconv.FormatInt(privateUngated.ID, 10)
+	gatedPath := "/subjects/" + strconv.FormatInt(privateGated.ID, 10)
+	runPath := "/runs/" + strconv.FormatInt(run.ID, 10)
+
+	tests := []struct {
+		name       string
+		path       string
+		tokenKey   string
+		wantStatus int
+	}{
+		{"org member 404 private without grants", ungatedPath, "contributor", http.StatusNotFound},
+		{"org admin sees private without grants", ungatedPath, "orgAdmin", http.StatusOK},
+		{"global admin sees private without grants", ungatedPath, "admin", http.StatusOK},
+		{"creator without grant 404 private ungated", ungatedPath, "lead", http.StatusNotFound},
+		{"org member 404 private gated without grant", gatedPath, "contributor", http.StatusNotFound},
+		{"direct viewer sees private gated", gatedPath, "viewer", http.StatusOK},
+		{"lead creator sees private gated", gatedPath, "lead", http.StatusOK},
+		{"org admin sees private gated", gatedPath, "orgAdmin", http.StatusOK},
+		{"org member 404 run on private gated", runPath, "contributor", http.StatusNotFound},
+		{"viewer sees run on private gated", runPath, "viewer", http.StatusOK},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rec := f.do(http.MethodGet, tt.path, tt.tokenKey, "")
+			if rec.Code != tt.wantStatus {
+				t.Errorf("status = %d, want %d", rec.Code, tt.wantStatus)
+			}
+		})
+	}
+
+	memberListed, err := f.st.ListSubjects(f.ctx, f.contributor.ID, false, "")
+	if err != nil {
+		t.Fatalf("ListSubjects(contributor): %v", err)
+	}
+	for _, s := range memberListed {
+		if s.ID == privateUngated.ID || s.ID == privateGated.ID {
+			t.Fatalf("ListSubjects: plain org member must not see private subject %d", s.ID)
+		}
+	}
+
+	orgAdminListed, err := f.st.ListSubjects(f.ctx, f.orgAdmin.ID, false, "")
+	if err != nil {
+		t.Fatalf("ListSubjects(orgAdmin): %v", err)
+	}
+	foundUngated, foundGated := false, false
+	for _, s := range orgAdminListed {
+		if s.ID == privateUngated.ID {
+			foundUngated = true
+		}
+		if s.ID == privateGated.ID {
+			foundGated = true
+		}
+	}
+	if !foundUngated || !foundGated {
+		t.Fatal("ListSubjects: org admin must see private subjects")
+	}
+
+	viewerListed, err := f.st.ListSubjects(f.ctx, f.viewer.ID, false, "")
+	if err != nil {
+		t.Fatalf("ListSubjects(viewer): %v", err)
+	}
+	foundViewerGated := false
+	for _, s := range viewerListed {
+		if s.ID == privateUngated.ID {
+			t.Fatal("ListSubjects: viewer must not see private subject without grant")
+		}
+		if s.ID == privateGated.ID {
+			foundViewerGated = true
+		}
+	}
+	if !foundViewerGated {
+		t.Fatal("ListSubjects: direct viewer must see private gated subject")
+	}
+
+	body := f.do(http.MethodGet, gatedPath, "viewer", "").Body.String()
+	if !strings.Contains(body, "Privé") {
+		t.Fatal("subject show must render Privé badge for private subject")
+	}
+}
+
 // TestCSRF_MissingToken rejects mutating requests without a valid CSRF token.
 func TestCSRF_MissingToken(t *testing.T) {
 	f := newRBACFixture(t)
