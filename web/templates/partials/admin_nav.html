@@ -3,6 +3,7 @@
   <div class="admin-nav__group">
     <span class="admin-nav__group-label">Gestion</span>
     <a href="/admin/users"{{if eq .AdminSection "users"}} aria-current="page"{{end}}>Emails autorisés</a>
+    <a href="/admin/teams"{{if eq .AdminSection "teams"}} aria-current="page"{{end}}>Équipes</a>
     <a href="/admin/subjects"{{if eq .AdminSection "subjects"}} aria-current="page"{{end}}>{{.Labels.Subject.Plural}}</a>
     <a href="/admin/settings/labels"{{if eq .AdminSection "labels"}} aria-current="page"{{end}}>Libellé</a>
   </div>

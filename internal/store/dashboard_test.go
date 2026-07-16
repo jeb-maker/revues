@@ -164,8 +164,8 @@ func TestListFilteredRunSummaries_Pagination(t *testing.T) {
 		t.Fatalf("CreateChecklistTemplate(): %v", err)
 	}
 	for i := 0; i < 3; i++ {
-		if _, err := st.CreateChecklistRun(ctx, subject.ID, tmpl.ID, user.ID); err != nil {
-			t.Fatalf("CreateChecklistRun(%d): %v", i, err)
+		if _, runErr := st.CreateChecklistRun(ctx, subject.ID, tmpl.ID, user.ID); runErr != nil {
+			t.Fatalf("CreateChecklistRun(%d): %v", i, runErr)
 		}
 	}
 

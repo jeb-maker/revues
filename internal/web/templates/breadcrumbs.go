@@ -7,6 +7,7 @@ const (
 	PathSubjects       = "/subjects"
 	PathAdminOrg       = "/admin"
 	PathAdminSubjects  = "/admin/subjects"
+	PathAdminTeams     = "/admin/teams"
 	PathProjects       = "/subjects" // deprecated alias
 	PathTasks          = "/mes-taches"
 	PathTemplates      = "/modeles"
@@ -335,6 +336,20 @@ func BCAdminSubjectEdit(name string, id int64, labels SubjectUILabels) []Breadcr
 
 func BCAdminUsers() []Breadcrumb {
 	return []Breadcrumb{crumb("Organisation", PathAdminOrg), current("Emails autorisés")}
+}
+
+// BCAdminTeams is the admin teams list breadcrumb.
+func BCAdminTeams() []Breadcrumb {
+	return []Breadcrumb{crumb("Organisation", PathAdminOrg), current("Équipes")}
+}
+
+// BCAdminTeam is the admin team detail breadcrumb.
+func BCAdminTeam(name string) []Breadcrumb {
+	return []Breadcrumb{
+		crumb("Organisation", PathAdminOrg),
+		crumb("Équipes", PathAdminTeams),
+		current(name),
+	}
 }
 
 // BCAdminIntegrations is the admin integrations overview breadcrumb.

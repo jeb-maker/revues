@@ -301,11 +301,15 @@ func TestRBAC_Matrix(t *testing.T) {
 		{"GET /admin/users editor denied", http.MethodGet, "/admin/users", "lead", "", http.StatusForbidden},
 		{"GET /admin/users reader denied", http.MethodGet, "/admin/users", "reader", "", http.StatusForbidden},
 		{"GET /admin/users admin ok", http.MethodGet, "/admin/users", "admin", "", http.StatusOK},
+		{"GET /admin/teams member denied", http.MethodGet, "/admin/teams", "lead", "", http.StatusForbidden},
+		{"GET /admin/teams admin ok", http.MethodGet, "/admin/teams", "admin", "", http.StatusOK},
+		{"GET /admin/teams org admin ok", http.MethodGet, "/admin/teams", "orgAdmin", "", http.StatusOK},
 		{"GET /admin/integrations member denied", http.MethodGet, "/admin/integrations", "lead", "", http.StatusForbidden},
 		{"GET /admin/integrations admin ok", http.MethodGet, "/admin/integrations", "admin", "", http.StatusOK},
 		{"GET /admin/integrations org admin ok", http.MethodGet, "/admin/integrations", "orgAdmin", "", http.StatusOK},
 		{"GET /admin/settings/smtp org admin ok", http.MethodGet, "/admin/settings/smtp", "orgAdmin", "", http.StatusOK},
 		{"POST /admin/users editor denied", http.MethodPost, "/admin/users", "lead", "email=x@example.com&role=editor", http.StatusForbidden},
+		{"POST /admin/teams member denied", http.MethodPost, "/admin/teams", "lead", "name=QA&slug=qa", http.StatusForbidden},
 	}
 
 	for _, tt := range tests {

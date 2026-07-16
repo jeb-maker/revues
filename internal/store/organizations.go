@@ -72,6 +72,16 @@ type OrganizationMembership struct {
 	JoinedAt     string
 }
 
+// OrganizationMemberUser is an org member with user display fields.
+type OrganizationMemberUser struct {
+	UserID      int64
+	Login       string
+	Email       string
+	DisplayName string
+	Role        string
+	JoinedAt    string
+}
+
 // NormalizeOrganizationSlug lowercases and restricts a slug to [a-z0-9-].
 func NormalizeOrganizationSlug(slug string) (string, error) {
 	slug = strings.ToLower(strings.TrimSpace(slug))
@@ -306,6 +316,38 @@ func (s *Store) CountOrganizationMembers(ctx context.Context, organizationID int
 		return 0, fmt.Errorf("count organization members: %w", err)
 	}
 	return count, nil
+}
+
+// ListOrganizationMembers lists members of the active organization ordered by login.
+func (s *Store) ListOrganizationMembers(ctx context.Context) ([]OrganizationMemberUser, error) {
+	orgID, err := organizationIDFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	rows, err := s.db.QueryContext(ctx, `
+		SELECT u.id, u.login, u.email, u.display_name, om.role, om.created_at
+		FROM organization_members om
+		INNER JOIN users u ON u.id = om.user_id
+		WHERE om.organization_id = ?
+		ORDER BY u.login COLLATE NOCASE, u.id
+	`, orgID)
+	if err != nil {
+		return nil, fmt.Errorf("list organization members: %w", err)
+	}
+	defer rows.Close()
+
+	var members []OrganizationMemberUser
+	for rows.Next() {
+		var m OrganizationMemberUser
+		if scanErr := rows.Scan(&m.UserID, &m.Login, &m.Email, &m.DisplayName, &m.Role, &m.JoinedAt); scanErr != nil {
+			return nil, fmt.Errorf("scan organization member: %w", scanErr)
+		}
+		members = append(members, m)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("list organization members rows: %w", err)
+	}
+	return members, nil
 }
 
 func isUniqueViolation(err error) bool {

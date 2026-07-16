@@ -143,7 +143,7 @@ func (s *Store) ListFilteredRunSummaries(ctx context.Context, userID int64, admi
 		` + filterSQL + `
 		GROUP BY r.id
 	)`
-	if err := s.db.QueryRowContext(ctx, countSQL, args...).Scan(&total); err != nil {
+	if err = s.db.QueryRowContext(ctx, countSQL, args...).Scan(&total); err != nil {
 		return nil, 0, fmt.Errorf("count filtered run summaries: %w", err)
 	}
 
@@ -261,9 +261,6 @@ const runListSummariesFrom = `
 	LEFT JOIN users u ON u.id = r.created_by
 	LEFT JOIN run_items ri ON ri.run_id = r.id
 `
-
-// Deprecated: kept for any remaining references; prefer runListSummariesSelect + From.
-const runListSummariesSQL = runListSummariesSelect + runListSummariesFrom
 
 const completedRunSummariesSQL = `
 	SELECT r.id, t.name, r.subject_id, p.name, r.completed_at, r.created_at,

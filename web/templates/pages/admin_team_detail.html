@@ -1,0 +1,76 @@
+{{define "admin_team_detail"}}
+{{template "layout_start" .}}
+<section class="card">
+  <p class="muted"><a href="/admin/teams">← Équipes</a></p>
+  <h2>{{.Team.Name}}</h2>
+  <p class="muted"><code>{{.Team.Slug}}</code>{{if .Team.Description}} — {{.Team.Description}}{{end}}</p>
+</section>
+
+{{template "admin_nav" .}}
+
+{{if .Message}}
+<p class="success content-inset" role="status">{{.Message}}</p>
+{{end}}
+{{if .Error}}
+<p class="error content-inset" role="alert">{{.Error}}</p>
+{{end}}
+
+<section class="card">
+  <h2>Ajouter un membre</h2>
+  {{if .Candidates}}
+  <form method="post" action="/admin/teams/{{.Team.ID}}/members" class="stack-form">
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+    <label>
+      Membre de l'organisation
+      <select name="user_id" required>
+        <option value="">Choisir…</option>
+        {{range .Candidates}}
+        <option value="{{.UserID}}">{{.Login}} — {{.Email}}</option>
+        {{end}}
+      </select>
+    </label>
+    <div class="form-actions">
+      <button type="submit" class="button">Ajouter</button>
+    </div>
+  </form>
+  {{else}}
+  <p class="muted">Tous les membres de l'organisation sont déjà dans cette équipe.</p>
+  {{end}}
+</section>
+
+<section class="card">
+  <h2>Membres ({{len .Members}})</h2>
+  {{if .Members}}
+  <div class="table-scroll">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th scope="col">Login</th>
+        <th scope="col">Email</th>
+        <th scope="col" class="data-table__col--end"></th>
+      </tr>
+    </thead>
+    <tbody>
+      {{range .Members}}
+      <tr>
+        <td>{{.Login}}</td>
+        <td>{{.Email}}</td>
+        <td class="data-table__col--end">
+          <form method="post" action="/admin/teams/{{$.Team.ID}}/members/remove" class="inline-form" onsubmit="return confirm('Retirer ce membre de l\'équipe ?');">
+            <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
+            <input type="hidden" name="user_id" value="{{.UserID}}">
+            <button type="submit" class="button-ghost button-sm">Retirer</button>
+          </form>
+        </td>
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+  </div>
+  {{else}}
+  <p class="muted">Aucun membre dans cette équipe.</p>
+  {{end}}
+</section>
+{{template "layout_end" .}}
+{{end}}
+{{define "main_class"}} site-main--wide{{end}}
