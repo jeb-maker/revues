@@ -1,6 +1,9 @@
 package templates
 
-import "strconv"
+import (
+	"strconv"
+	"strings"
+)
 
 const (
 	PathRevues         = "/revues"
@@ -149,9 +152,13 @@ func BCHome() []Breadcrumb {
 	return []Breadcrumb{current("Revues")}
 }
 
+func newSubjectCrumbLabel(labels SubjectUILabels) string {
+	return "Nouveau " + strings.ToLower(labels.Singular)
+}
+
 // BCSubjectNew is the create subject form breadcrumb.
 func BCSubjectNew(labels SubjectUILabels) []Breadcrumb {
-	return []Breadcrumb{crumb(labels.Plural, PathSubjects), current("Nouveau")}
+	return []Breadcrumb{crumb(labels.Plural, PathSubjects), current(newSubjectCrumbLabel(labels))}
 }
 
 // BCProjectNew is a deprecated alias for BCSubjectNew.
@@ -326,7 +333,7 @@ func BCAdminSubjects(labels SubjectUILabels) []Breadcrumb {
 
 // BCAdminSubjectNew is the create subject form breadcrumb under Organisation.
 func BCAdminSubjectNew(labels SubjectUILabels) []Breadcrumb {
-	return []Breadcrumb{crumb("Organisation", PathAdminOrg), crumb(labels.Plural, PathAdminSubjects), current("Nouveau")}
+	return []Breadcrumb{crumb("Organisation", PathAdminOrg), crumb(labels.Plural, PathAdminSubjects), current(newSubjectCrumbLabel(labels))}
 }
 
 // BCAdminSubjectEdit is the edit subject form breadcrumb under Organisation.

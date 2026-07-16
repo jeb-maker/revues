@@ -429,6 +429,7 @@ func (h *Subjects) PreviewTeam(w http.ResponseWriter, r *http.Request) {
 	data := templates.SubjectTeamPreviewData{
 		TeamName:    team.Name,
 		MemberCount: len(members),
+		Role:        role,
 		RoleLabel:   templates.FormatRole(role),
 	}
 	if execErr := h.Templates.ExecuteTemplate(w, "subject_team_preview_fragment", data); execErr != nil {

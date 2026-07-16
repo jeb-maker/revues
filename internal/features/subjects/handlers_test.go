@@ -811,9 +811,8 @@ func TestSubjectTeams_AddPreviewRemove_RBAC(t *testing.T) {
 	if previewRec.Code != http.StatusOK {
 		t.Fatalf("preview status = %d, want %d", previewRec.Code, http.StatusOK)
 	}
-	if !strings.Contains(previewRec.Body.String(), "Équipe Qualité : 1 membre") ||
-		!strings.Contains(previewRec.Body.String(), "Contributeur") {
-		t.Fatalf("preview body = %q, want containing team/count/role", previewRec.Body.String())
+	if !strings.Contains(previewRec.Body.String(), "Équipe Qualité : 1 membre aura le rôle Contributeur") {
+		t.Fatalf("preview body = %q, want singular aura + role", previewRec.Body.String())
 	}
 
 	memberForm := url.Values{}

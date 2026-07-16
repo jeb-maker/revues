@@ -393,6 +393,7 @@ type SubjectTeamPreviewData struct {
 	Empty       bool
 	TeamName    string
 	MemberCount int
+	Role        string // lead | contributor | viewer
 	RoleLabel   string
 }
 

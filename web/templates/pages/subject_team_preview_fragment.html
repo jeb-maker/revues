@@ -2,6 +2,6 @@
 {{if .Empty}}
 <p id="team-assign-preview" class="muted">Sélectionnez une équipe et un rôle.</p>
 {{else}}
-<p id="team-assign-preview" class="muted" role="status">Équipe {{.TeamName}} : {{.MemberCount}} membre{{if ne .MemberCount 1}}s{{end}} auront le rôle {{.RoleLabel}}</p>
+<p id="team-assign-preview" class="muted" role="status">{{teamAssignPreview .TeamName .MemberCount .Role}}</p>
 {{end}}
 {{end}}

@@ -8,8 +8,8 @@ import (
 
 func TestApplyPageMeta_SetsTitleFromLastCrumb(t *testing.T) {
 	data := templates.ApplyPageMeta(templates.PageData{}, templates.BCProjectNew())
-	if data.Title != "Nouveau" {
-		t.Fatalf("Title = %q, want Nouveau", data.Title)
+	if data.Title != "Nouveau sujet" {
+		t.Fatalf("Title = %q, want Nouveau sujet", data.Title)
 	}
 	if len(data.Breadcrumbs) != 2 {
 		t.Fatalf("len(Breadcrumbs) = %d, want 2", len(data.Breadcrumbs))
