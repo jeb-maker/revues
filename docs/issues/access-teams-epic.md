@@ -74,7 +74,7 @@ ResolveSubjectAccess(user, subject) :
 
 - [x] Spec RBAC.md (équipes, org admin, sujets privés) — vocabulaire `subjects`
 - [x] Migration teams + store (`organization_teams`, `team_members`, `subject_members`, `team_subject_roles`) — greenfield `00001` + `canonical.sql`
-- [ ] `ResolveSubjectAccess` + tests
+- [x] `ResolveSubjectAccess` + tests (`internal/store/subject_access.go`) — `ListSubjects` reste v1 org-wide jusqu’au refactor handlers
 - [ ] Refactor handlers sur `ResolveSubjectAccess`
 - [ ] Org admin voit tout + TestIDOR
 - [ ] UI admin équipes CRUD
@@ -153,33 +153,25 @@ Introduire les tables équipes / accès sujet et la couche store.
 
 ---
 
-## Issue 3 — `[store][auth] ResolveProjectAccess + tests`
+## Issue 3 — `[store][auth] ResolveSubjectAccess + tests`
 
 **Labels** : `area:auth`, `area:data`, `vague-5`  
-**Bloqué par** : Issue 2
+**Bloqué par** : Issue 2  
+**Statut** : livré (`subject_access.go`) — listing sujets toujours v1 jusqu’à l’issue handlers.
 
 ### Objectif
 
-Implémenter la fonction unique de résolution d'accès projet conforme à `docs/RBAC.md`.
+Implémenter la fonction unique de résolution d'accès sujet conforme à `docs/RBAC.md`.
 
 ### Critères d'acceptation
 
-- [ ] `internal/store/project_access.go` :
-  ```go
-  type ProjectAccess struct {
-      Visible bool
-      Role    string // lead | contributor | viewer | "" 
-      Sources []string // "direct", "team:42", "org_admin", "global_admin"
-  }
-  func (s *Store) ResolveProjectAccess(ctx, userID, projectID int64, globalRole string) (ProjectAccess, error)
-  ```
-- [ ] Rôle effectif = `max(direct, équipes)` avec ordre lead > contributor > viewer
-- [ ] Org owner/admin → `Visible=true`, `Role` vide ou `viewer` pour action (action gérée couche service)
-- [ ] Admin global → visible + bypass action (inchangé)
-- [ ] Tags projet **ignorés** pour l'accès
-- [ ] `ListProjects` refactoré pour utiliser `ResolveProjectAccess` ou requête équivalente performante
-- [ ] Tests table-driven : direct seul, équipe seule, direct+équipe (max rôle), hors périmètre, org admin, cross-org IDOR
-- [ ] `./scripts/check.sh` vert
+- [x] `internal/store/subject_access.go` : `SubjectAccess` + `ResolveSubjectAccess`
+- [x] Rôle effectif = `max(direct, équipes)` lead > contributor > viewer
+- [x] Org owner/admin → `Visible=true`, `Role` vide (actions en service)
+- [x] Admin global → visible + source `global_admin`
+- [x] Étiquettes / domaines **ignorés** pour l'accès
+- [ ] `ListSubjects` filtré via accès — **reporté** à l’issue refactor handlers (évite de casser v1)
+- [x] Tests table-driven : direct, équipe, max rôle, hors périmètre, org admin, cross-org
 
 ---
 
