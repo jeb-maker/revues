@@ -143,10 +143,11 @@ lead > contributor > viewer
 
 | Visibilité | Membre org sans accès direct/équipe | Org owner/admin | Admin global |
 |------------|-------------------------------------|-----------------|--------------|
-| `normal` | 404 | visible | visible |
-| `private` | 404 | visible | visible |
+| `normal` (sans grants) | visible via legacy `org_member_legacy` | visible | visible |
+| `normal` (avec grants) | 404 sauf grant | visible | visible |
+| `private` | 404 sauf grant | visible | visible |
 
-Un sujet privé n'apparaît pas aux org `member` sans chemin d'accès explicite. L'org admin le voit toujours (supervision).
+Un sujet privé n'apparaît **jamais** via le chemin legacy ungated : il exige un accès direct/équipe, ou la supervision org/global admin.
 
 ---
 
