@@ -4,7 +4,7 @@
    Budget : ≤ 30 Ko brut, ≤ 12 Ko gzip (check.sh).
    ========================================================================== */
 
-/* --- Tokens ---------------------------------------------------------------- */
+/* Tokens */
 
 :root {
   color-scheme: light dark;
@@ -68,7 +68,7 @@
   }
 }
 
-/* --- Base ------------------------------------------------------------------ */
+/* Base */
 
 *, *::before, *::after { box-sizing: border-box; }
 
@@ -137,7 +137,7 @@ pre {
 }
 .skip-link:focus { top: 0.5rem; }
 
-/* --- Shell : header, nav, footer ------------------------------------------- */
+/* Shell : header, nav, footer */
 
 .site-header {
   flex-shrink: 0;
@@ -282,7 +282,7 @@ pre {
 }
 .site-footer p { margin: 0; }
 
-/* --- Page chrome : breadcrumb, actions ------------------------------------ */
+/* Page chrome : breadcrumb, actions */
 
 .breadcrumb {
   display: flex;
@@ -362,7 +362,7 @@ pre {
 .breadcrumb [aria-current="page"] { color: var(--text); font-weight: 500; }
 .breadcrumb__sep { color: var(--border-strong); user-select: none; }
 
-/* --- Boutons & formulaires ------------------------------------------------- */
+/* Boutons & formulaires */
 
 .button,
 .button-secondary,
@@ -502,7 +502,7 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--accent); }
   margin-top: 1rem;
 }
 
-/* --- Cartes & tableaux ----------------------------------------------------- */
+/* Cartes & tableaux */
 
 .card {
   margin: 1.5rem 0;
@@ -630,7 +630,7 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--accent); }
   z-index: 1;
 }
 
-/* --- Listes, texte, feedback ----------------------------------------------- */
+/* Listes, texte, feedback */
 
 .item-list { margin: 0.5rem 0 1rem; padding-left: 1.1rem; }
 .item-list li { margin-bottom: 0.35rem; }
@@ -698,7 +698,7 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--accent); }
 
 .onboarding-hint code { background: transparent; padding: 0; }
 
-/* --- Admin nav ------------------------------------------------------------- */
+/* Admin nav */
 
 .admin-nav {
   display: flex;
@@ -751,7 +751,7 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--accent); }
 }
 .user-bar p { color: var(--muted); margin-bottom: 0.4rem; }
 
-/* --- Éditeur de modèle ----------------------------------------------------- */
+/* Éditeur de modèle */
 
 .template-section-block {
   margin-top: 1.25rem;
@@ -878,7 +878,7 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--accent); }
   .template-editor__point-actions .button-sm[data-action="move-down"] { display: none; }
 }
 
-/* --- Statuts & filtres revue ----------------------------------------------- */
+/* Statuts & filtres revue */
 
 .status-badge {
   display: inline-block;
@@ -1024,7 +1024,7 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--accent); }
   gap: 1rem;
 }
 
-/* --- Icônes, a11y, feedback HTMX ------------------------------------------- */
+/* Icônes, a11y, feedback HTMX */
 
 .icon {
   display: inline-block;
@@ -1087,7 +1087,7 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--accent); }
 .htmx-request .htmx-indicator,.htmx-request.htmx-indicator{display:inline-block}
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* --- Toolbars & onglets segmentés ------------------------------------------ */
+/* Toolbars & onglets segmentés */
 
 .list-toolbar {
   display: flex;
@@ -1165,7 +1165,7 @@ button.toolbar-control.button-secondary {
   font-weight: 600;
 }
 
-/* --- Clôture revue & détail point ------------------------------------------ */
+/* Clôture revue & détail point */
 
 .closing-note {
   margin: 1rem 0;
@@ -1251,7 +1251,7 @@ button.toolbar-control.button-secondary {
   border-radius: var(--r-xs);
 }
 
-/* --- Responsive & motion --------------------------------------------------- */
+/* Responsive & motion */
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

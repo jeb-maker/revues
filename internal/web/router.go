@@ -14,6 +14,7 @@ import (
 	adminintegrations "github.com/jeb-maker/revues/internal/features/admin/integrations"
 	adminsettings "github.com/jeb-maker/revues/internal/features/admin/settings"
 	adminsmtp "github.com/jeb-maker/revues/internal/features/admin/smtp"
+	adminteams "github.com/jeb-maker/revues/internal/features/admin/teams"
 	adminusers "github.com/jeb-maker/revues/internal/features/admin/users"
 	adminwebhooks "github.com/jeb-maker/revues/internal/features/admin/webhooks"
 	authhandler "github.com/jeb-maker/revues/internal/features/auth"
@@ -88,6 +89,11 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, error) {
 	}
 	webhookDispatcher := &webhooks.Dispatcher{Settings: settingsSvc, Store: st, Runs: st, DevMode: deps.Config.Env == "development"}
 	adminUsers := &adminusers.AdminUsers{Deps: adminusers.Deps{
+		Templates:     tpl,
+		Store:         st,
+		SessionSecret: deps.Config.SessionSecret,
+	}}
+	adminTeams := &adminteams.AdminTeams{Deps: adminteams.Deps{
 		Templates:     tpl,
 		Store:         st,
 		SessionSecret: deps.Config.SessionSecret,
@@ -250,6 +256,11 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, error) {
 		r.Get("/admin/users", adminUsers.List)
 		r.Post("/admin/users", adminUsers.Add)
 		r.Post("/admin/users/remove", adminUsers.Remove)
+		r.Get("/admin/teams", adminTeams.List)
+		r.Post("/admin/teams", adminTeams.Create)
+		r.Get("/admin/teams/{id}", adminTeams.Show)
+		r.Post("/admin/teams/{id}/members", adminTeams.AddMember)
+		r.Post("/admin/teams/{id}/members/remove", adminTeams.RemoveMember)
 		r.Get("/admin/subjects", subjectsHandler.List)
 		r.Get("/admin/subjects/new", subjectsHandler.NewForm)
 		r.Post("/admin/subjects", subjectsHandler.Create)

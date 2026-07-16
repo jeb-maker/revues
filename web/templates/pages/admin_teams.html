@@ -1,0 +1,71 @@
+{{define "admin_teams"}}
+{{template "layout_start" .}}
+<section class="card">
+  {{if .OrganizationName}}
+  <p class="muted">Gérez les équipes de <strong>{{.OrganizationName}}</strong> et leurs membres.</p>
+  {{else}}
+  <p class="muted">Gérez les équipes de l'organisation et leurs membres.</p>
+  {{end}}
+</section>
+
+{{template "admin_nav" .}}
+
+{{if .Message}}
+<p class="success content-inset" role="status">{{.Message}}</p>
+{{end}}
+{{if .Error}}
+<p class="error content-inset" role="alert">{{.Error}}</p>
+{{end}}
+
+<section class="card">
+  <h2>Créer une équipe</h2>
+  <form method="post" action="/admin/teams" class="stack-form">
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+    <label>
+      Nom
+      <input type="text" name="name" required maxlength="120" autocomplete="off">
+    </label>
+    <label>
+      Slug <span class="muted">(optionnel — dérivé du nom si vide)</span>
+      <input type="text" name="slug" maxlength="80" autocomplete="off" pattern="[a-zA-Z0-9 _\-]*">
+    </label>
+    <label>
+      Description
+      <textarea name="description" rows="2" maxlength="500"></textarea>
+    </label>
+    <div class="form-actions">
+      <button type="submit" class="button">Créer</button>
+    </div>
+  </form>
+</section>
+
+<section class="card">
+  <h2>Équipes ({{len .Teams}})</h2>
+  {{if .Teams}}
+  <div class="table-scroll">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th scope="col">Nom</th>
+        <th scope="col">Slug</th>
+        <th scope="col">Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{range .Teams}}
+      <tr>
+        <td><a href="/admin/teams/{{.ID}}">{{.Name}}</a></td>
+        <td><code>{{.Slug}}</code></td>
+        <td class="muted">{{if .Description}}{{.Description}}{{else}}—{{end}}</td>
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+  </div>
+  {{else}}
+  <p class="muted">Aucune équipe pour cette organisation.</p>
+  {{end}}
+</section>
+{{template "layout_end" .}}
+{{end}}
+{{define "main_class"}} site-main--wide{{end}}

@@ -144,6 +144,26 @@ type AdminUsersData struct {
 	Error            string
 }
 
+// AdminTeamsData is view data for the org teams list / create screen.
+type AdminTeamsData struct {
+	PageData
+	OrganizationName string
+	Teams            []store.OrganizationTeam
+	Message          string
+	Error            string
+}
+
+// AdminTeamDetailData is view data for a single team and its members.
+type AdminTeamDetailData struct {
+	PageData
+	OrganizationName string
+	Team             store.OrganizationTeam
+	Members          []store.TeamMember
+	Candidates       []store.OrganizationMemberUser
+	Message          string
+	Error            string
+}
+
 // AdminOrgHubData is view data for the organisation admin landing page.
 type AdminOrgHubData struct {
 	PageData

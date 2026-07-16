@@ -77,7 +77,7 @@ ResolveSubjectAccess(user, subject) :
 - [x] `ResolveSubjectAccess` + tests (`internal/store/subject_access.go`)
 - [x] Refactor handlers sur `ResolveSubjectAccess` (transition legacy ungated)
 - [ ] Org admin voit tout + TestIDOR
-- [ ] UI admin équipes CRUD
+- [x] UI admin équipes CRUD
 - [ ] UI sujet — équipes + preview + sources
 - [ ] Sujets privés (`visibility`)
 - [ ] Politiques org
@@ -227,7 +227,8 @@ Org owner/admin voit tous les projets et revues de l'organisation active sans me
 ## Issue 6 — `[ui] Admin équipes — CRUD`
 
 **Labels** : `area:ui`, `area:admin`, `vague-5`  
-**Bloqué par** : Issue 2
+**Bloqué par** : Issue 2  
+**Statut** : livré (`internal/features/admin/teams/`, routes `/admin/teams`).
 
 ### Objectif
 
@@ -235,13 +236,13 @@ Interface org admin pour gérer les équipes et leurs membres.
 
 ### Critères d'acceptation
 
-- [ ] Routes : `GET/POST /admin/teams`, `GET /admin/teams/{id}`, `POST /admin/teams/{id}/members`, `POST /admin/teams/{id}/members/remove`
-- [ ] RBAC : org owner/admin uniquement (+ admin global)
-- [ ] CSRF sur tous les POST
-- [ ] Pages sobres HTMX, budget éco respecté
-- [ ] Liste membres équipe avec login/email
-- [ ] Tests handlers RBAC
-- [ ] `./scripts/check.sh` vert
+- [x] Routes : `GET/POST /admin/teams`, `GET /admin/teams/{id}`, `POST /admin/teams/{id}/members`, `POST /admin/teams/{id}/members/remove`
+- [x] RBAC : org owner/admin uniquement (+ admin global)
+- [x] CSRF sur tous les POST
+- [x] Pages sobres HTMX, budget éco respecté
+- [x] Liste membres équipe avec login/email
+- [x] Tests handlers RBAC
+- [x] `./scripts/check.sh` vert
 
 ---
 

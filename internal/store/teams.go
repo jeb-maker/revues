@@ -42,11 +42,14 @@ type OrganizationTeam struct {
 	CreatedAt      string
 }
 
-// TeamMember links a user to a team.
+// TeamMember links a user to a team (with display fields from users).
 type TeamMember struct {
-	TeamID    int64
-	UserID    int64
-	CreatedAt string
+	TeamID      int64
+	UserID      int64
+	Login       string
+	Email       string
+	DisplayName string
+	CreatedAt   string
 }
 
 // DirectSubjectMember is a row in subject_members (exception path — not org listing).
@@ -198,16 +201,17 @@ func (s *Store) RemoveTeamMember(ctx context.Context, teamID, userID int64) erro
 	return nil
 }
 
-// ListTeamMembers lists members of a team in the active organization.
+// ListTeamMembers lists members of a team in the active organization (login/email).
 func (s *Store) ListTeamMembers(ctx context.Context, teamID int64) ([]TeamMember, error) {
 	if _, err := s.TeamByID(ctx, teamID); err != nil {
 		return nil, err
 	}
 	rows, err := s.db.QueryContext(ctx, `
-		SELECT team_id, user_id, created_at
-		FROM team_members
-		WHERE team_id = ?
-		ORDER BY user_id
+		SELECT m.team_id, m.user_id, u.login, u.email, u.display_name, m.created_at
+		FROM team_members m
+		INNER JOIN users u ON u.id = m.user_id
+		WHERE m.team_id = ?
+		ORDER BY u.login COLLATE NOCASE, m.user_id
 	`, teamID)
 	if err != nil {
 		return nil, fmt.Errorf("list team members: %w", err)
@@ -217,7 +221,7 @@ func (s *Store) ListTeamMembers(ctx context.Context, teamID int64) ([]TeamMember
 	var members []TeamMember
 	for rows.Next() {
 		var m TeamMember
-		if scanErr := rows.Scan(&m.TeamID, &m.UserID, &m.CreatedAt); scanErr != nil {
+		if scanErr := rows.Scan(&m.TeamID, &m.UserID, &m.Login, &m.Email, &m.DisplayName, &m.CreatedAt); scanErr != nil {
 			return nil, fmt.Errorf("scan team member: %w", scanErr)
 		}
 		members = append(members, m)

@@ -94,6 +94,16 @@ func TestTeamsStore(t *testing.T) {
 		if len(members) != 2 {
 			t.Fatalf("len(members) = %d, want 2", len(members))
 		}
+		if members[0].Login == "" || members[0].Email == "" {
+			t.Fatalf("ListTeamMembers missing login/email: %+v", members[0])
+		}
+		orgMembers, err := st.ListOrganizationMembers(ctx)
+		if err != nil {
+			t.Fatalf("ListOrganizationMembers(): %v", err)
+		}
+		if len(orgMembers) < 3 {
+			t.Fatalf("ListOrganizationMembers len = %d, want >= 3", len(orgMembers))
+		}
 		userTeams, err := st.ListUserTeams(ctx, alice.ID)
 		if err != nil {
 			t.Fatalf("ListUserTeams(): %v", err)
