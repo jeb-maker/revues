@@ -396,27 +396,27 @@ func BCAdminTeam(name string) []Breadcrumb {
 
 // BCAdminIntegrations is the admin integrations overview breadcrumb.
 func BCAdminIntegrations() []Breadcrumb {
-	return []Breadcrumb{crumb("Admin", PathAdmin), current("Intégrations")}
+	return []Breadcrumb{crumb("Organisation", PathAdminOrg), current("Intégrations")}
 }
 
 // BCAdminSMTP is the admin SMTP settings breadcrumb.
 func BCAdminSMTP() []Breadcrumb {
-	return []Breadcrumb{crumb("Admin", PathAdmin), current("SMTP")}
+	return []Breadcrumb{crumb("Organisation", PathAdminOrg), crumb("Intégrations", PathAdmin), current("SMTP")}
 }
 
 // BCAdminWebhooks is the admin webhooks settings breadcrumb.
 func BCAdminWebhooks() []Breadcrumb {
-	return []Breadcrumb{crumb("Admin", PathAdmin), current("Webhooks")}
+	return []Breadcrumb{crumb("Organisation", PathAdminOrg), crumb("Intégrations", PathAdmin), current("Webhooks")}
 }
 
 // BCAdminJira is the admin Jira settings breadcrumb.
 func BCAdminJira() []Breadcrumb {
-	return []Breadcrumb{crumb("Admin", PathAdmin), current("Jira")}
+	return []Breadcrumb{crumb("Organisation", PathAdminOrg), crumb("Intégrations", PathAdmin), current("Jira")}
 }
 
 // BCAdminNotion is the admin Notion settings breadcrumb.
 func BCAdminNotion() []Breadcrumb {
-	return []Breadcrumb{crumb("Admin", PathAdmin), current("Notion")}
+	return []Breadcrumb{crumb("Organisation", PathAdminOrg), crumb("Intégrations", PathAdmin), current("Notion")}
 }
 
 // BreadcrumbCurrent returns the label of the last breadcrumb.

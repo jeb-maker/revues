@@ -1003,6 +1003,7 @@ func (h *Subjects) buildSubjectShowData(
 		CanManage:           canManage,
 		CanManageMembers:    canManageMembers,
 		CanAssignTeams:      canAssignTeams,
+		CanManageOrgUsers:   CanManageOrgUsers(user, callerOrgRole, callerOrgMember),
 		TeamsPolicyDenied:   leadBlockedByAssignTeamsPolicy(user, access, policies),
 		MembersPolicyDenied: CanLeadAccess(user, access) && !canManageMembers && !auth.HasMinRole(user.Role, auth.RoleAdmin) && !access.HasSource(store.AccessSourceOrgAdmin),
 		CanLaunch:           canLaunch,

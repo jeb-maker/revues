@@ -175,7 +175,11 @@
     </div>
   </form>
   {{else}}
-  <p class="muted">Toutes les équipes de l'organisation sont déjà affectées.{{if eq (len .Teams) 0}} <a href="/admin/teams">Créer une équipe</a>.{{end}}</p>
+  {{if eq (len .Teams) 0}}
+  <p class="muted">Aucune équipe n'existe encore dans l'organisation.{{if .CanManageOrgUsers}} <a href="/admin/teams">Créer une équipe</a>.{{else}} Demandez à un administrateur d'en créer une.{{end}}</p>
+  {{else}}
+  <p class="muted">Toutes les équipes de l'organisation sont déjà affectées à ce sujet.</p>
+  {{end}}
   {{end}}
   {{end}}
 </section>

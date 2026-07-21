@@ -506,6 +506,7 @@ type SubjectShowData struct {
 	CanManage           bool
 	CanManageMembers    bool
 	CanAssignTeams      bool
+	CanManageOrgUsers   bool
 	TeamsPolicyDenied   bool
 	MembersPolicyDenied bool
 	CanLaunch           bool
@@ -737,26 +738,27 @@ type MyTasksData struct {
 // RunItemShowData is view data for run item detail with audit history.
 type RunItemShowData struct {
 	PageData
-	Subject         *store.Subject
-	Run             *store.ChecklistRun
-	RunDisplayLabel string
-	Item            *store.RunItem
-	Events          []store.RunItemEvent
-	JiraLink        *store.IntegrationLink
-	MemberRole      string
-	CanCheck        bool
-	CanLinkJira     bool
-	JiraConfigured  bool
-	JiraIssueInput  string
-	Message         string
-	LinkError       string
-	CreateError     string
-	ShowJiraCreate  bool
-	JiraCreateTitle string
-	JiraCreateDesc  string
-	Attachment      *store.Attachment
-	CanUpload       bool
-	UploadError     string
+	Subject               *store.Subject
+	Run                   *store.ChecklistRun
+	RunDisplayLabel       string
+	Item                  *store.RunItem
+	Events                []store.RunItemEvent
+	JiraLink              *store.IntegrationLink
+	MemberRole            string
+	CanCheck              bool
+	CanLinkJira           bool
+	JiraConfigured        bool
+	CanManageIntegrations bool
+	JiraIssueInput        string
+	Message               string
+	LinkError             string
+	CreateError           string
+	ShowJiraCreate        bool
+	JiraCreateTitle       string
+	JiraCreateDesc        string
+	Attachment            *store.Attachment
+	CanUpload             bool
+	UploadError           string
 }
 
 // Parse loads layout and page templates from the embedded filesystem.

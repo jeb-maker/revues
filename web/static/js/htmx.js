@@ -1,14 +1,11 @@
-/* Minimal HTMX client — subset of htmx.org within the 15 Ko eco budget. */
+/* Minimal HTMX client (15 Ko budget). */
 (function () {
   "use strict";
-
   var baseHeaders = { "HX-Request": "true" };
-
   function csrfToken() {
     var meta = document.querySelector('meta[name="csrf-token"]');
     return meta ? meta.getAttribute("content") : "";
   }
-
   function associatedWithForm(el, form) {
     if (!el || !form) {
       return false;
@@ -18,7 +15,6 @@
     }
     return form.id && el.getAttribute("form") === form.id;
   }
-
   function parseTriggers(raw) {
     return raw.split(",").map(function (part) {
       part = part.trim();
@@ -34,7 +30,6 @@
       };
     });
   }
-
   function fromMatches(eventTarget, fromSel) {
     if (!fromSel) return true;
     if (!eventTarget || !eventTarget.matches) return false;
@@ -49,7 +44,6 @@
     }
     return false;
   }
-
   function appendField(fd, el) {
     if (!el.name || el.disabled) {
       return;
@@ -69,7 +63,6 @@
     }
     fd.append(el.name, el.value);
   }
-
   function formDataFor(form) {
     var fd = new FormData();
     form.querySelectorAll("input,select,textarea").forEach(function (el) {
@@ -82,7 +75,6 @@
     }
     return fd;
   }
-
   function swapTarget(target, html, mode) {
     if (!target) {
       return null;
@@ -94,7 +86,6 @@
     target.innerHTML = html;
     return target;
   }
-
   function applyOOB(container) {
     container.querySelectorAll("[hx-swap-oob]").forEach(function (el) {
       if (!el.id) {
@@ -108,14 +99,11 @@
       swapTarget(existing, el.outerHTML, mode === "true" ? "outerHTML" : mode);
     });
   }
-
-  // <template> preserves <tr>/<td>; <div>.innerHTML does not (desktop row vanish).
   function parseFragment(html) {
     var tpl = document.createElement("template");
     tpl.innerHTML = html;
     return tpl.content;
   }
-
   function firstMainElement(frag) {
     var nodes = frag.children || frag.childNodes;
     for (var i = 0; i < nodes.length; i++) {
@@ -126,7 +114,6 @@
     }
     return null;
   }
-
   function request(form, triggerEl) {
     var url = form.getAttribute("hx-post") || form.getAttribute("hx-get");
     if (!url) {
@@ -145,7 +132,6 @@
     var target = targetSel ? document.querySelector(targetSel) : form;
     var indicatorSel = (triggerEl && triggerEl.getAttribute("hx-indicator")) || form.getAttribute("hx-indicator");
     var indicator = indicatorSel ? document.querySelector(indicatorSel) : null;
-
     var headers = Object.assign({}, baseHeaders);
     var extra = form.getAttribute("hx-headers");
     if (extra) {
@@ -159,7 +145,6 @@
     if (token) {
       headers["X-CSRF-Token"] = token;
     }
-
     if (indicator) {
       indicator.classList.add("htmx-request");
     }
@@ -209,7 +194,6 @@
         }
       });
   }
-
   function matchesTrigger(form, event) {
     var trigger = form.getAttribute("hx-trigger") || "submit";
     return parseTriggers(trigger).some(function (spec) {
@@ -228,13 +212,11 @@
       return associatedWithForm(event.target, form);
     });
   }
-
   function bindForm(form) {
     if (form.dataset.hxBound === "1") {
       return;
     }
     form.dataset.hxBound = "1";
-
     form.addEventListener("submit", function (event) {
       if (!form.getAttribute("hx-post")) {
         return;
@@ -243,7 +225,6 @@
       request(form, event.submitter || null);
     });
   }
-
   function handleDocumentEvent(event) {
     document.querySelectorAll("form[hx-post],form[hx-get]").forEach(function (form) {
       if (!matchesTrigger(form, event)) {
@@ -255,11 +236,9 @@
       request(form, event.target);
     });
   }
-
   function process(root) {
     root.querySelectorAll("form[hx-post],form[hx-get]").forEach(bindForm);
   }
-
   window.htmx = { process: process };
   document.addEventListener("DOMContentLoaded", function () {
     process(document);
