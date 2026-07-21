@@ -16,12 +16,12 @@
     <label>Secret HMAC<input type="password" name="secret" placeholder="{{if .HasSecret}}Laisser vide pour conserver{{end}}"></label>
     <label class="checkbox-label"><input type="checkbox" name="review_completed" value="on" {{if .ReviewCompleted}}checked{{end}}> review.completed</label>
     <label class="checkbox-label"><input type="checkbox" name="review_item_nok" value="on" {{if .ReviewItemNOK}}checked{{end}}> review.item.nok</label>
-    <button type="submit" {{if not .CanEncrypt}}disabled{{end}}>Enregistrer</button>
+    <button type="submit" class="button" {{if not .CanEncrypt}}disabled{{end}}>Enregistrer</button>
   </form>
 </section>
 <section class="card">
   <h2>Test</h2>
-  <form method="post" action="/admin/settings/webhooks"><input type="hidden" name="csrf_token" value="{{.CSRFToken}}"><input type="hidden" name="action" value="test"><button type="submit" {{if not .Configured}}disabled{{end}}>Envoyer un webhook de test</button></form>
+  <form method="post" action="/admin/settings/webhooks"><input type="hidden" name="csrf_token" value="{{.CSRFToken}}"><input type="hidden" name="action" value="test"><button type="submit" class="button-secondary" {{if not .Configured}}disabled{{end}}>Envoyer un webhook de test</button></form>
 </section>
 {{template "layout_end" .}}
 {{end}}

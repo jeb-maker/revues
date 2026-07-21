@@ -157,6 +157,41 @@ func (h *Runs) attachmentService() *attachments.Service {
 	return &attachments.Service{Store: s, Dir: h.AttachmentsDir}
 }
 
+// evidenceAttachmentRefs lists attachment metadata + content hashes (no binaries in the ZIP).
+func (h *Runs) evidenceAttachmentRefs(ctx context.Context, runID int64) []EvidenceAttachmentRef {
+	items, err := h.Store.ListRunItems(ctx, runID)
+	if err != nil || len(items) == 0 {
+		return nil
+	}
+	ids := make([]int64, len(items))
+	for i, it := range items {
+		ids[i] = it.ID
+	}
+	byItem, err := h.Store.ListAttachmentsByRunItemIDs(ctx, ids)
+	if err != nil || len(byItem) == 0 {
+		return nil
+	}
+	baseDir := filepath.Clean(h.AttachmentsDir)
+	refs := make([]EvidenceAttachmentRef, 0, len(byItem))
+	for itemID, att := range byItem {
+		if att == nil {
+			continue
+		}
+		ref := EvidenceAttachmentRef{
+			RunItemID:   itemID,
+			Filename:    att.Filename,
+			StoragePath: att.StoragePath,
+			SizeBytes:   att.SizeBytes,
+		}
+		full := filepath.Join(baseDir, filepath.Base(att.StoragePath))
+		if data, readErr := os.ReadFile(full); readErr == nil {
+			ref.SHA256 = SHA256Hex(data)
+		}
+		refs = append(refs, ref)
+	}
+	return refs
+}
+
 func uploadErrorMessage(err error) string {
 	switch {
 	case errors.Is(err, attachments.ErrTooLarge):

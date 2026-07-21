@@ -1,0 +1,41 @@
+/* Full token bundle: variables + display fonts + optional document baseline.
+   Hosts that already style html/body should import tokens-core.css instead
+   (and optionally typography.css for .mb-* utility classes / fonts). */
+@import "./tokens-core.css";
+@import "./typography.css";
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  overflow-x: clip;
+  max-inline-size: 100%;
+}
+
+html,
+body {
+  background: var(--mb-color-bg);
+  color: var(--mb-color-fg);
+  font-family: var(--mb-font-body);
+  line-height: var(--mb-line-height);
+  margin: 0;
+  max-inline-size: 100%;
+  overflow-wrap: anywhere;
+}
+
+img,
+svg,
+video,
+canvas {
+  max-inline-size: 100%;
+  block-size: auto;
+}
+
+pre,
+code {
+  max-inline-size: 100%;
+  overflow-x: auto;
+}

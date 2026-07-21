@@ -11,37 +11,39 @@ import (
 
 // Config holds runtime settings loaded from the environment.
 type Config struct {
-	Addr                string
-	BaseURL             string
-	DatabasePath        string
-	DBMaxOpenConns      int
-	AttachmentsDir      string
-	Env                 string
-	SessionSecret       string
-	EncryptionKey       string
-	GitHubClientID      string
-	GitHubClientSecret  string
-	BootstrapAdminEmail string
-	DevAuth             bool
-	DevAuthEmail        string
+	Addr                  string
+	BaseURL               string
+	DatabasePath          string
+	DBMaxOpenConns        int
+	AttachmentsDir        string
+	Env                   string
+	SessionSecret         string
+	EncryptionKey         string
+	GitHubClientID        string
+	GitHubClientSecret    string
+	BootstrapAdminEmail   string
+	LoginRequireWhitelist bool
+	DevAuth               bool
+	DevAuthEmail          string
 }
 
 // Load reads configuration from REVUES_* environment variables.
 func Load() Config {
 	return Config{
-		Addr:                envOr("REVUES_ADDR", ":8080"),
-		BaseURL:             envOr("REVUES_BASE_URL", "http://localhost:8080"),
-		DatabasePath:        envOr("REVUES_DATABASE_PATH", "data/revues.db"),
-		DBMaxOpenConns:      envIntOr("REVUES_DB_MAX_OPEN_CONNS", 10),
-		AttachmentsDir:      envOr("REVUES_ATTACHMENTS_DIR", "data/attachments"),
-		Env:                 envOr("REVUES_ENV", "development"),
-		SessionSecret:       envOr("REVUES_SESSION_SECRET", "change-me-32-random-bytes-minimum"),
-		EncryptionKey:       os.Getenv("REVUES_ENCRYPTION_KEY"),
-		GitHubClientID:      os.Getenv("REVUES_GITHUB_CLIENT_ID"),
-		GitHubClientSecret:  os.Getenv("REVUES_GITHUB_CLIENT_SECRET"),
-		BootstrapAdminEmail: os.Getenv("REVUES_BOOTSTRAP_ADMIN_EMAIL"),
-		DevAuth:             envBool("REVUES_DEV_AUTH"),
-		DevAuthEmail:        envOr("REVUES_DEV_AUTH_EMAIL", "admin@example.com"),
+		Addr:                  envOr("REVUES_ADDR", ":8080"),
+		BaseURL:               envOr("REVUES_BASE_URL", "http://localhost:8080"),
+		DatabasePath:          envOr("REVUES_DATABASE_PATH", "data/revues.db"),
+		DBMaxOpenConns:        envIntOr("REVUES_DB_MAX_OPEN_CONNS", 10),
+		AttachmentsDir:        envOr("REVUES_ATTACHMENTS_DIR", "data/attachments"),
+		Env:                   envOr("REVUES_ENV", "development"),
+		SessionSecret:         envOr("REVUES_SESSION_SECRET", "change-me-32-random-bytes-minimum"),
+		EncryptionKey:         os.Getenv("REVUES_ENCRYPTION_KEY"),
+		GitHubClientID:        os.Getenv("REVUES_GITHUB_CLIENT_ID"),
+		GitHubClientSecret:    os.Getenv("REVUES_GITHUB_CLIENT_SECRET"),
+		BootstrapAdminEmail:   os.Getenv("REVUES_BOOTSTRAP_ADMIN_EMAIL"),
+		LoginRequireWhitelist: envBool("REVUES_LOGIN_REQUIRE_WHITELIST"),
+		DevAuth:               envBool("REVUES_DEV_AUTH"),
+		DevAuthEmail:          envOr("REVUES_DEV_AUTH_EMAIL", "admin@example.com"),
 	}
 }
 

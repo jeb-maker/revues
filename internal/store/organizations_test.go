@@ -175,6 +175,9 @@ func TestDefaultOrganizationExistsAfterMigrate(t *testing.T) {
 	if defaultOrg.UISubjectLabel != store.UISubjectLabelSujet {
 		t.Fatalf("default ui_subject_label = %q, want %q", defaultOrg.UISubjectLabel, store.UISubjectLabelSujet)
 	}
+	if defaultOrg.UIRunLabel != store.UIRunLabelRevues {
+		t.Fatalf("default ui_run_label = %q, want %q", defaultOrg.UIRunLabel, store.UIRunLabelRevues)
+	}
 	if !defaultOrg.LeadsMayAssignTeams || !defaultOrg.LeadsMayInviteMembers || defaultOrg.LeadsMayInviteExternals {
 		t.Fatalf("default lead policies = assign=%v invite=%v externals=%v, want true/true/false",
 			defaultOrg.LeadsMayAssignTeams, defaultOrg.LeadsMayInviteMembers, defaultOrg.LeadsMayInviteExternals)
@@ -250,5 +253,38 @@ func TestUpdateOrganizationUISubjectLabel(t *testing.T) {
 
 	if err = st.UpdateOrganizationUISubjectLabel(ctx, org.ID, "inconnu"); !errors.Is(err, store.ErrInvalidUISubjectLabel) {
 		t.Fatalf("invalid label error = %v, want %v", err, store.ErrInvalidUISubjectLabel)
+	}
+}
+
+func TestUpdateOrganizationUIRunLabel(t *testing.T) {
+	ctx := context.Background()
+	db := openMemoryDB(t)
+	st := store.New(db)
+
+	creator, err := st.UpsertGitHubUser(ctx, 1, "owner", "owner@example.com", "Owner", "", auth.RoleAdmin)
+	if err != nil {
+		t.Fatalf("UpsertGitHubUser(): %v", err)
+	}
+	org, err := st.CreateOrganization(ctx, "Acme", "acme-run-label", creator.ID)
+	if err != nil {
+		t.Fatalf("CreateOrganization(): %v", err)
+	}
+	if org.UIRunLabel != store.UIRunLabelRevues {
+		t.Fatalf("UIRunLabel = %q, want %q", org.UIRunLabel, store.UIRunLabelRevues)
+	}
+
+	if err = st.UpdateOrganizationUIRunLabel(ctx, org.ID, store.UIRunLabelListesEnCours); err != nil {
+		t.Fatalf("UpdateOrganizationUIRunLabel(): %v", err)
+	}
+	got, err := st.OrganizationByID(ctx, org.ID)
+	if err != nil {
+		t.Fatalf("OrganizationByID(): %v", err)
+	}
+	if got.UIRunLabel != store.UIRunLabelListesEnCours {
+		t.Fatalf("UIRunLabel = %q, want %q", got.UIRunLabel, store.UIRunLabelListesEnCours)
+	}
+
+	if err = st.UpdateOrganizationUIRunLabel(ctx, org.ID, "inconnu"); !errors.Is(err, store.ErrInvalidUIRunLabel) {
+		t.Fatalf("invalid label error = %v, want %v", err, store.ErrInvalidUIRunLabel)
 	}
 }

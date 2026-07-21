@@ -1,6 +1,7 @@
 package web_test
 
 import (
+	"bytes"
 	"io/fs"
 	"net/http"
 	"net/http/httptest"
@@ -55,6 +56,73 @@ func TestStaticHandlerSetsCacheControl(t *testing.T) {
 			t.Fatalf("Cache-Control = %q", got)
 		}
 	})
+}
+
+func TestSplitCSSAssetsPresent(t *testing.T) {
+	staticFS, err := fs.Sub(webassets.Static, "static")
+	if err != nil {
+		t.Fatalf("fs.Sub(): %v", err)
+	}
+	for _, path := range []string{"css/app.css", "css/run.css", "css/editor.css"} {
+		data, readErr := fs.ReadFile(staticFS, path)
+		if readErr != nil {
+			t.Fatalf("ReadFile(%s): %v", path, readErr)
+		}
+		if len(data) == 0 {
+			t.Fatalf("%s empty", path)
+		}
+	}
+}
+
+func TestVendoredReportsBundlePresent(t *testing.T) {
+	staticFS, err := fs.Sub(webassets.Static, "static")
+	if err != nil {
+		t.Fatalf("fs.Sub(): %v", err)
+	}
+	for _, path := range []string{
+		"vendor/jeb-maker-reports/reports.min.js",
+		"vendor/jeb-maker-reports/init.js",
+	} {
+		data, readErr := fs.ReadFile(staticFS, path)
+		if readErr != nil {
+			t.Fatalf("ReadFile(%s): %v", path, readErr)
+		}
+		if len(data) == 0 {
+			t.Fatalf("%s empty", path)
+		}
+	}
+}
+
+func TestVendoredMBBundlePresent(t *testing.T) {
+	staticFS, err := fs.Sub(webassets.Static, "static")
+	if err != nil {
+		t.Fatalf("fs.Sub(): %v", err)
+	}
+	for _, path := range []string{
+		"vendor/jeb-maker-mb/mb-boot.js",
+		"vendor/jeb-maker-mb/mb-bridge.css",
+		"vendor/jeb-maker-mb/tokens/tokens-core.css",
+		"vendor/jeb-maker-mb/components/button.js",
+		"vendor/jeb-maker-mb/components/select.js",
+		"vendor/jeb-maker-mb/components/progress.js",
+	} {
+		data, readErr := fs.ReadFile(staticFS, path)
+		if readErr != nil {
+			t.Fatalf("ReadFile(%s): %v", path, readErr)
+		}
+		if len(data) == 0 {
+			t.Fatalf("%s empty", path)
+		}
+	}
+	boot, err := fs.ReadFile(staticFS, "vendor/jeb-maker-mb/mb-boot.js")
+	if err != nil {
+		t.Fatalf("ReadFile(mb-boot): %v", err)
+	}
+	for _, tag := range []string{"mb-button", "mb-select", "mb-progress", "mb-empty-state", "mb-segmented-control", "mb-pagination"} {
+		if !bytes.Contains(boot, []byte(tag)) {
+			t.Fatalf("mb-boot.js missing registration for %s", tag)
+		}
+	}
 }
 
 func TestServeServiceWorkerKill(t *testing.T) {

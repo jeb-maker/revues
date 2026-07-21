@@ -1,0 +1,24 @@
+{{define "run_complete_status_inner"}}
+{{if .NokItems}}
+<div class="warning-panel closing-nok">
+  <h3>{{icon "alert"}} Points non validés ({{len .NokItems}})</h3>
+  <ul class="item-list">
+    {{range .NokItems}}
+    <li><a href="/runs/{{$.Run.ID}}/items/{{.ID}}"><strong>{{.Label}}</strong></a>{{if .Comment}} — {{.Comment}}{{end}}</li>
+    {{end}}
+  </ul>
+</div>
+{{else}}
+{{if eq .Progress.Done .Progress.Total}}
+<p class="muted">Aucun point non validé — tous les points sont traités.</p>
+{{else}}
+<p class="muted">Aucun point non validé. {{sub .Progress.Total .Progress.Done}} encore en attente.</p>
+{{end}}
+{{end}}
+{{end}}
+
+{{define "run_complete_status_oob_fragment"}}
+<div id="complete-section-status" hx-swap-oob="true">
+{{template "run_complete_status_inner" .}}
+</div>
+{{end}}

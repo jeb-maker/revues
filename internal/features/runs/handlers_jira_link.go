@@ -132,7 +132,7 @@ func (h *Runs) renderRunItemShow(w http.ResponseWriter, r *http.Request, run *st
 	}
 
 	pd := h.PageData(r, item.Label)
-	pd.Breadcrumbs = viewtemplates.BCRunItemShow(h.runDisplayLabel(r.Context(), run, subject), run.ID, item.Label)
+	pd.Breadcrumbs = viewtemplates.BCRunItemShow(h.runDisplayLabel(r.Context(), run, subject), run.ID, item.Label, pd.Labels.Run)
 	pd.ActiveTab = "runs"
 	data := viewtemplates.RunItemShowData{
 		PageData:        pd,

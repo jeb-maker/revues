@@ -77,8 +77,14 @@ func TestUpdateItem_HTMXReturnsFragment(t *testing.T) {
 	if !strings.Contains(body, `id="run-progress"`) {
 		t.Fatal("expected progress oob fragment")
 	}
-	if !strings.Contains(body, "1 / 2 points traités") {
+	if !strings.Contains(body, "1 / 2") {
 		t.Fatal("expected updated progress label")
+	}
+	if !strings.Contains(body, `id="complete-section-status"`) {
+		t.Fatal("expected complete-section status oob fragment")
+	}
+	if !strings.Contains(body, "1 encore en attente") {
+		t.Fatal("expected updated complete-section pending copy")
 	}
 	if strings.Contains(body, "<!DOCTYPE html>") {
 		t.Fatal("expected partial HTML, not full page")

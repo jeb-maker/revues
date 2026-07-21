@@ -29,15 +29,17 @@ func (h *ChecklistTemplates) NotionImportForm(w http.ResponseWriter, r *http.Req
 		http.NotFound(w, r)
 		return
 	}
+	if !h.notionImportReady(r) {
+		http.Redirect(w, r, "/modeles?msg=Notion+n%27est+pas+configur%C3%A9", http.StatusSeeOther)
+		return
+	}
 	data := h.notionImportBaseData(r)
 	data.Step = notionImportStepSource
+	data.NotionConfigured = true
 	if cfg, configured, err := h.notionConfigured(r); err != nil {
 		data.Error = "Impossible de charger la configuration Notion."
-	} else {
-		data.NotionConfigured = configured && cfg.Configured()
-		if data.NotionConfigured && cfg.DefaultDatabaseID != "" {
-			data.DatabaseRef = cfg.DefaultDatabaseID
-		}
+	} else if configured && cfg.DefaultDatabaseID != "" {
+		data.DatabaseRef = cfg.DefaultDatabaseID
 	}
 	h.renderNotionImport(w, data)
 }
@@ -72,11 +74,13 @@ func (h *ChecklistTemplates) NotionImport(w http.ResponseWriter, r *http.Request
 		return
 	}
 	if !configured || !cfg.Configured() {
+		data.NotionConfigured = false
 		data.Error = "Notion n'est pas configuré. Demandez à un administrateur de configurer l'intégration."
 		data.Step = notionImportStepSource
 		h.renderNotionImport(w, data)
 		return
 	}
+	data.NotionConfigured = true
 	switch strings.TrimSpace(r.FormValue("action")) {
 	case "fetch":
 		h.notionImportFetch(w, r, cfg, data)
@@ -197,7 +201,7 @@ func (h *ChecklistTemplates) loadNotionPreview(r *http.Request, cfg notion.Confi
 
 func (h *ChecklistTemplates) notionImportBaseData(r *http.Request) viewtemplates.ChecklistTemplateNotionImportData {
 	pd := h.PageDataTab(r, "Importer depuis Notion", "templates")
-	pd.Breadcrumbs = viewtemplates.BCTemplateNotionImportGlobal()
+	pd.Breadcrumbs = viewtemplates.BCTemplateNotionImportGlobal(!pd.ShowSubjectColumn)
 	return viewtemplates.ChecklistTemplateNotionImportData{
 		PageData:   pd,
 		CanManage:  true,
@@ -225,6 +229,12 @@ func (h *ChecklistTemplates) notionConfigured(r *http.Request) (notion.Config, b
 		return notion.Config{}, false, nil
 	}
 	return (&notion.Service{Store: st, EncryptionKey: h.EncryptionKey}).Load(r.Context())
+}
+
+// notionImportReady reports whether Notion import UI/actions may be offered.
+func (h *ChecklistTemplates) notionImportReady(r *http.Request) bool {
+	cfg, configured, err := h.notionConfigured(r)
+	return err == nil && configured && cfg.Configured()
 }
 
 func (h *ChecklistTemplates) notionClient() *notion.Client {

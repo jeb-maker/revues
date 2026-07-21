@@ -115,8 +115,9 @@ func (h *Runs) List(w http.ResponseWriter, r *http.Request) {
 	pagination := viewtemplates.NewPagination(page, pageSize, total, func(p int) string {
 		return viewtemplates.RunsListURL(filterStatus, filterQuery, p)
 	})
+	pd := h.PageDataTab(r, "", "runs")
 	data := viewtemplates.RunsListData{
-		PageData:          h.PageDataTab(r, "Revues", "runs"),
+		PageData:          viewtemplates.ApplyPageMeta(pd, viewtemplates.BCRevues(pd.Labels.Run)),
 		Runs:              runs,
 		FilterQuery:       filterQuery,
 		FilterStatus:      filterStatus,
@@ -128,7 +129,6 @@ func (h *Runs) List(w http.ResponseWriter, r *http.Request) {
 		Pagination:        pagination,
 		Message:           r.URL.Query().Get("msg"),
 	}
-	data.Breadcrumbs = viewtemplates.BCRevues()
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	if err := h.Templates.ExecuteTemplate(w, "runs_list", data); err != nil {
@@ -188,7 +188,7 @@ func (h *Runs) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.Redirect(w, r, "/runs/"+strconv.FormatInt(run.ID, 10)+"?msg=Revue+cr%C3%A9%C3%A9e", http.StatusSeeOther)
+	http.Redirect(w, r, "/runs/"+strconv.FormatInt(run.ID, 10), http.StatusSeeOther)
 }
 
 // Show displays run detail and snapshot items.
@@ -425,6 +425,24 @@ func (h *Runs) Complete(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
+
+	rows, err := h.Store.ListRunExportRows(r.Context(), run.ID)
+	if err != nil {
+		slog.Error("list run export rows for evidence", "err", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	csvData, err := BuildRunCSV(rows)
+	if err != nil {
+		slog.Error("build run csv for evidence", "err", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	if err := h.Store.SealRunEvidenceHash(r.Context(), run.ID, SHA256Hex(csvData)); err != nil {
+		slog.Error("seal run evidence hash", "err", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
 	if h.Webhooks != nil {
 		h.Webhooks.EmitReviewCompleted(r.Context(), run.ID)
 	}
@@ -475,6 +493,79 @@ func (h *Runs) ExportCSV(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// ExportEvidence downloads a sealed evidence ZIP for a completed run.
+func (h *Runs) ExportEvidence(w http.ResponseWriter, r *http.Request) {
+	run, project, _, _, ok := h.loadRun(w, r)
+	if !ok {
+		return
+	}
+	if run.Status != store.RunStatusDone || strings.TrimSpace(run.EvidenceCSVSHA256) == "" {
+		http.NotFound(w, r)
+		return
+	}
+
+	rows, err := h.Store.ListRunExportRows(r.Context(), run.ID)
+	if err != nil {
+		slog.Error("list run export rows for evidence zip", "err", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	csvData, err := BuildRunCSV(rows)
+	if err != nil {
+		slog.Error("build run csv for evidence zip", "err", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	if got := SHA256Hex(csvData); got != run.EvidenceCSVSHA256 {
+		slog.Error("evidence csv hash mismatch", "run_id", run.ID, "sealed", run.EvidenceCSVSHA256, "got", got)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	versionInfo, err := h.Store.TemplateVersionInfo(r.Context(), run.TemplateVersionID)
+	if err != nil {
+		slog.Error("template version info for evidence", "err", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	completedAt := ""
+	if run.CompletedAt.Valid {
+		completedAt = run.CompletedAt.String
+	}
+	closedBy := ""
+	if run.CreatedBy.Valid {
+		if u, userErr := h.Store.UserByID(r.Context(), run.CreatedBy.Int64); userErr == nil && u != nil {
+			closedBy = u.Login
+		}
+	}
+
+	manifest := EvidenceManifest{
+		RunID:        run.ID,
+		SubjectName:  project.Name,
+		TemplateName: versionInfo.Name,
+		Version:      versionInfo.Version,
+		Status:       store.RunStatusDone,
+		CompletedAt:  completedAt,
+		ClosedBy:     closedBy,
+		CSVSHA256:    run.EvidenceCSVSHA256,
+		GeneratedAt:  completedAt,
+		Attachments:  h.evidenceAttachmentRefs(r.Context(), run.ID),
+	}
+	zipData, err := BuildEvidenceZIP(run.ID, csvData, manifest)
+	if err != nil {
+		slog.Error("build evidence zip", "err", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	filename := fmt.Sprintf("preuve-revue-%d.zip", run.ID)
+	w.Header().Set("Content-Type", "application/zip")
+	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, filename))
+	if _, writeErr := w.Write(zipData); writeErr != nil {
+		slog.Error("write evidence zip", "err", writeErr)
+	}
+}
+
 func exportCSVFilename(displayLabel string, runID int64) string {
 	safe := strings.Map(func(r rune) rune {
 		switch {
@@ -514,8 +605,12 @@ func (h *Runs) renderRunShow(w http.ResponseWriter, r *http.Request, run *store.
 		return
 	}
 
+	displayLabel := h.runDisplayLabel(r.Context(), run, project)
+	pd := h.PageData(r, displayLabel)
+	showAssign := pd.ShowAssign
+
 	var members []store.SubjectMember
-	if CanAssignAccess(user, access) {
+	if showAssign && CanAssignAccess(user, access) {
 		members, err = h.Store.ListSubjectMembers(r.Context(), project.ID)
 		if err != nil {
 			slog.Error("list project members", "err", err)
@@ -554,9 +649,16 @@ func (h *Runs) renderRunShow(w http.ResponseWriter, r *http.Request, run *store.
 
 	sectionGroups := buildRunItemSections(items)
 
-	displayLabel := h.runDisplayLabel(r.Context(), run, project)
-	pd := h.PageData(r, displayLabel)
-	pd.Breadcrumbs = viewtemplates.BCRunShow(displayLabel)
+	// Page H1: no #id; in SimpleUI drop subject (already obvious / single-subject).
+	pageTitle := store.RunDisplayLabel(versionInfo.Name, project.Name, run.CreatedAt, 0)
+	if pd.SimpleUI {
+		pageTitle = store.RunDisplayLabel(versionInfo.Name, "", run.CreatedAt, 0)
+	}
+	if pageTitle == "" {
+		pageTitle = displayLabel
+	}
+	pd.Title = pageTitle
+	pd.Breadcrumbs = viewtemplates.BCRunShow(pageTitle, pd.Labels.Run)
 	pd.ActiveTab = "runs"
 	data := viewtemplates.RunShowData{
 		PageData:          pd,
@@ -577,12 +679,13 @@ func (h *Runs) renderRunShow(w http.ResponseWriter, r *http.Request, run *store.
 		MemberRole:        subjects.DisplayRole(access),
 		CanLaunch:         CanLaunchAccess(user, access),
 		CanCheck:          CanUpdateAccess(user, access),
-		CanAssign:         CanAssignAccess(user, access),
+		CanAssign:         showAssign && CanAssignAccess(user, access),
 		CanLinkJira:       CanLinkJiraAccess(user, access),
 		JiraConfigured:    h.jiraConfigured(r.Context()),
 		CanComplete:       CanCompleteAccess(user, access),
 		NotionConfigured:  h.notionConfigured(r.Context()),
 		CanExportNotion:   CanCompleteAccess(user, access) && run.Status == store.RunStatusDone && strings.TrimSpace(run.NotionURL) == "",
+		CanExportEvidence: run.Status == store.RunStatusDone && strings.TrimSpace(run.EvidenceCSVSHA256) != "",
 		Progress:          h.progressData(run.ID, runItems),
 		Message:           extra.Message,
 		ItemError:         extra.ItemError,
@@ -818,9 +921,13 @@ func (h *Runs) renderRunItemHTMXError(w http.ResponseWriter, r *http.Request, ru
 }
 
 func (h *Runs) renderRunItemHTMX(w http.ResponseWriter, r *http.Request, run *store.ChecklistRun, project *store.Subject, user *store.User, access store.SubjectAccess, item store.RunItem, runItems []store.RunItem, itemErr, assignErr string, statusCode int) {
+	pd := h.PageData(r, "")
+	showAssign := pd.ShowAssign
+	canAssign := showAssign && CanAssignAccess(user, access)
+
 	var members []store.SubjectMember
 	var err error
-	if CanAssignAccess(user, access) {
+	if canAssign {
 		members, err = h.Store.ListSubjectMembers(r.Context(), project.ID)
 		if err != nil {
 			slog.Error("list project members for htmx", "err", err)
@@ -834,9 +941,10 @@ func (h *Runs) renderRunItemHTMX(w http.ResponseWriter, r *http.Request, run *st
 		RunStatus:   run.Status,
 		Item:        item,
 		Members:     members,
-		CSRFToken:   h.PageData(r, "").CSRFToken,
+		CSRFToken:   pd.CSRFToken,
 		CanCheck:    CanUpdateAccess(user, access),
-		CanAssign:   CanAssignAccess(user, access),
+		CanAssign:   canAssign,
+		ShowAssign:  showAssign,
 		ItemError:   itemErr,
 		AssignError: assignErr,
 	}
@@ -866,6 +974,26 @@ func (h *Runs) renderRunItemHTMX(w http.ResponseWriter, r *http.Request, run *st
 	if err := h.Templates.ExecuteTemplate(w, "run_progress_oob_fragment", progress); err != nil {
 		slog.Error("render run progress oob fragment", "err", err)
 	}
+	if run.Status == store.RunStatusInProgress && CanCompleteAccess(user, access) {
+		completeStatus := viewtemplates.RunCompleteStatusData{
+			Run:      run,
+			NokItems: nokItemsFromRunItems(runItems),
+			Progress: progress,
+		}
+		if err := h.Templates.ExecuteTemplate(w, "run_complete_status_oob_fragment", completeStatus); err != nil {
+			slog.Error("render run complete status oob fragment", "err", err)
+		}
+	}
+}
+
+func nokItemsFromRunItems(runItems []store.RunItem) []store.RunItem {
+	var nok []store.RunItem
+	for _, item := range runItems {
+		if item.Status == store.RunItemStatusNOK {
+			nok = append(nok, item)
+		}
+	}
+	return nok
 }
 
 func findRunItem(runItems []store.RunItem, itemID int64) (store.RunItem, bool) {

@@ -1,0 +1,50 @@
+/* Self-hosted via @fontsource packages resolved by the bundler / copied for consumers.
+   For plain CSS consumers, fonts load from the same origin when packages are installed. */
+
+@font-face {
+  font-family: "Fraunces";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 600;
+  src: url("./fonts/fraunces-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: "Source Sans 3";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url("./fonts/source-sans-3-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+.mb-title {
+  font-family: var(--mb-font-display);
+  font-size: clamp(1.5rem, 4vw + 1rem, var(--mb-font-size-2xl));
+  font-weight: 650;
+  line-height: var(--mb-line-height-tight);
+  letter-spacing: -0.02em;
+  color: var(--mb-color-fg);
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.mb-body {
+  font-family: var(--mb-font-body);
+  font-size: var(--mb-font-size-md);
+  font-weight: 400;
+  line-height: var(--mb-line-height);
+  color: var(--mb-color-fg);
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.mb-body-sm {
+  font-family: var(--mb-font-body);
+  font-size: var(--mb-font-size-sm);
+  line-height: var(--mb-line-height);
+  color: var(--mb-color-muted);
+  margin: 0;
+  overflow-wrap: anywhere;
+}

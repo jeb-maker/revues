@@ -1,4 +1,26 @@
 {{define "admin_nav"}}
+<label class="admin-nav-jump">
+  <span class="visually-hidden">Section administration</span>
+  <select class="admin-nav-jump__select" onchange="if (this.value) location.href = this.value">
+    <option value="">Aller à…</option>
+    <optgroup label="Gestion">
+      <option value="/admin/users"{{if eq .AdminSection "users"}} selected{{end}}>Emails autorisés</option>
+      <option value="/admin/teams"{{if eq .AdminSection "teams"}} selected{{end}}>Équipes</option>
+      <option value="/admin/subjects"{{if eq .AdminSection "subjects"}} selected{{end}}>{{.Labels.Subject.Plural}}</option>
+      <option value="/admin/settings/labels"{{if eq .AdminSection "labels"}} selected{{end}}>Libellé</option>
+      <option value="/admin/settings/policies"{{if eq .AdminSection "policies"}} selected{{end}}>Politiques</option>
+    </optgroup>
+    {{if .CanManageOrgUsers}}
+    <optgroup label="Intégrations">
+      <option value="/admin/integrations"{{if eq .AdminSection "integrations"}} selected{{end}}>Vue d'ensemble</option>
+      <option value="/admin/settings/smtp"{{if eq .AdminSection "smtp"}} selected{{end}}>SMTP</option>
+      <option value="/admin/settings/webhooks"{{if eq .AdminSection "webhooks"}} selected{{end}}>Webhooks</option>
+      <option value="/admin/integrations/jira"{{if eq .AdminSection "jira"}} selected{{end}}>Jira</option>
+      <option value="/admin/integrations/notion"{{if eq .AdminSection "notion"}} selected{{end}}>Notion</option>
+    </optgroup>
+    {{end}}
+  </select>
+</label>
 <nav class="admin-nav" aria-label="Administration">
   <div class="admin-nav__group">
     <span class="admin-nav__group-label">Gestion</span>

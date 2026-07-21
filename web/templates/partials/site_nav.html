@@ -1,13 +1,23 @@
 {{define "site_nav"}}
 <nav class="site-nav site-nav--nojs" aria-label="Navigation principale">
-  <a href="/revues" class="site-nav__link{{if eq .ActiveTab "runs"}} is-active{{end}}"{{if eq .ActiveTab "runs"}} aria-current="page"{{end}}>Revues</a>
+  {{if .SimpleUI}}
+  <a href="/revues" class="site-nav__link{{if eq .ActiveTab "runs"}} is-active{{end}}"{{if eq .ActiveTab "runs"}} aria-current="page"{{end}}><span class="site-nav__label">{{.Labels.Run.Nav}}</span><span class="site-nav__label-short">{{.Labels.Run.NavShort}}</span></a>
+  <span class="site-nav__sep" aria-hidden="true"></span>
+  <a href="/modeles" class="site-nav__link site-nav__link--ref{{if eq .ActiveTab "templates"}} is-active{{end}}"{{if eq .ActiveTab "templates"}} aria-current="page"{{end}}>Listes</a>
+  {{else}}
+  <a href="/revues" class="site-nav__link{{if eq .ActiveTab "runs"}} is-active{{end}}"{{if eq .ActiveTab "runs"}} aria-current="page"{{end}}><span class="site-nav__label">{{.Labels.Run.Nav}}</span><span class="site-nav__label-short">{{.Labels.Run.NavShort}}</span></a>
+  {{if .ShowMyTasks}}
   <span class="site-nav__sep" aria-hidden="true"></span>
   <a href="/mes-taches" class="site-nav__link{{if eq .ActiveTab "tasks"}} is-active{{end}}"{{if eq .ActiveTab "tasks"}} aria-current="page"{{end}}>Mes tâches</a>
+  {{end}}
   {{if and .User (ne .User.Role "reader")}}
-  <a href="/modeles" class="site-nav__link site-nav__link--ref{{if eq .ActiveTab "templates"}} is-active{{end}}"{{if eq .ActiveTab "templates"}} aria-current="page"{{end}}>Modèles</a>
+  <span class="site-nav__sep" aria-hidden="true"></span>
+  <a href="/modeles" class="site-nav__link site-nav__link--ref{{if eq .ActiveTab "templates"}} is-active{{end}}"{{if eq .ActiveTab "templates"}} aria-current="page"{{end}}>{{if .ShowSubjectColumn}}Modèles{{else}}Listes{{end}}</a>
   {{end}}
   {{if .ShowOrganisationNav}}
+  <span class="site-nav__sep" aria-hidden="true"></span>
   <a href="/admin" class="site-nav__link{{if eq .ActiveTab "org"}} is-active{{end}}"{{if eq .ActiveTab "org"}} aria-current="page"{{end}}>Organisation</a>
+  {{end}}
   {{end}}
 </nav>
 {{end}}

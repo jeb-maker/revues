@@ -6,6 +6,8 @@ import (
 	"html/template"
 	"log/slog"
 	"net/http"
+	"strconv"
+	"strings"
 
 	"github.com/jeb-maker/revues/internal/auth"
 	"github.com/jeb-maker/revues/internal/config"
@@ -34,16 +36,77 @@ func (h *Auth) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	devAuth := h.Config.DevAuthEnabled() && middleware.IsLocalDevRequest(r)
 	data := templates.ApplyPageMeta(templates.PageData{
 		LoginError: auth.LoginErrorMessage(r.URL.Query().Get("error")),
-		DevAuth:    h.Config.DevAuthEnabled() && middleware.IsLocalDevRequest(r),
+		DevAuth:    devAuth,
 	}, templates.BCLogin())
+	if devAuth {
+		if users, err := h.Store.ListUsers(r.Context()); err == nil {
+			data.DevAuthUsers = users
+		}
+	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	if err := h.Templates.ExecuteTemplate(w, "login", data); err != nil {
 		slog.Error("render login page", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}
+}
+
+// DevLogin switches the local session to another seeded user (REVUES_DEV_AUTH + loopback only).
+func (h *Auth) DevLogin(w http.ResponseWriter, r *http.Request) {
+	if !h.Config.DevAuthEnabled() || !middleware.IsLocalDevRequest(r) {
+		http.NotFound(w, r)
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
+
+	userID, err := strconv.ParseInt(strings.TrimSpace(r.FormValue("user_id")), 10, 64)
+	if err != nil || userID <= 0 {
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
+
+	user, err := h.Store.UserByID(r.Context(), userID)
+	if err != nil {
+		if errors.Is(err, store.ErrUserNotFound) {
+			http.NotFound(w, r)
+			return
+		}
+		slog.Error("dev login user", "err", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	if token, tokenErr := auth.SessionTokenFromRequest(r); tokenErr == nil && token != "" {
+		if clearErr := h.Sessions.ClearSession(r.Context(), token); clearErr != nil {
+			slog.Debug("dev login clear previous session", "err", clearErr)
+		}
+	}
+
+	sessionOrgID, redirect, err := organizations.PostLoginRoute(r.Context(), h.Store, user.ID)
+	if err != nil {
+		slog.Error("dev login org route", "err", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	sessionToken, _, err := h.Sessions.CreateLoginSession(r.Context(), user.ID, sessionOrgID)
+	if err != nil {
+		slog.Error("dev login session", "err", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	h.Sessions.SetSessionCookie(w, sessionToken)
+	if next := strings.TrimSpace(r.FormValue("next")); next == "/revues" || next == "/mes-taches" || next == "/subjects" {
+		redirect = next
+	}
+	http.Redirect(w, r, redirect, http.StatusSeeOther)
 }
 
 func (h *Auth) StartGitHub(w http.ResponseWriter, r *http.Request) {
@@ -111,7 +174,7 @@ func (h *Auth) Callback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	role, err := h.Store.ResolveLoginRole(r.Context(), profile.Email, h.Config.BootstrapAdminEmail)
+	role, err := h.Store.ResolveLoginRoleStrict(r.Context(), profile.Email, h.Config.BootstrapAdminEmail, h.Config.LoginRequireWhitelist)
 	if err != nil {
 		if errors.Is(err, store.ErrEmailNotAllowed) {
 			http.Redirect(w, r, "/login?error=email+non+autoris%C3%A9", http.StatusFound)

@@ -1,11 +1,16 @@
 {{define "run_item_row_fragment"}}
-<tr id="run-item-{{.Item.ID}}">
-  <td>
+<tr id="run-item-{{.Item.ID}}" class="run-item-row">
+  <td class="run-item-row__point">
     <span class="run-item-label">{{.Item.Label}}</span>
     <a href="/runs/{{.RunID}}/items/{{.Item.ID}}" class="run-item-details">Détails</a>
-    {{if .Item.HelpText}}<blockquote class="help-text">{{.Item.HelpText}}</blockquote>{{end}}
+    {{if .Item.HelpText}}
+    <details class="run-item-help">
+      <summary>Aide</summary>
+      <blockquote class="help-text">{{.Item.HelpText}}</blockquote>
+    </details>
+    {{end}}
   </td>
-  <td class="data-table__col--center">
+  <td class="run-item-row__status data-table__col--center" data-label="Statut">
     {{if and (eq .RunStatus "in_progress") .CanCheck}}
     <select name="status" form="item-form-{{.Item.ID}}" required class="status-select" aria-label="Statut">
       <option value="pending" {{if eq .Item.Status "pending"}}selected{{end}}>{{formatItemStatus "pending"}}</option>
@@ -17,7 +22,8 @@
     <span class="status-badge status-{{.Item.Status}}">{{formatItemStatus .Item.Status}}</span>
     {{end}}
   </td>
-  <td>
+  {{if .ShowAssign}}
+  <td class="run-item-row__assign" data-label="Assigné">
     {{if and (eq .RunStatus "in_progress") .CanAssign}}
     <select name="assignee_id" form="assign-form-{{.Item.ID}}" class="assign-select" aria-label="Assigné" hx-indicator="#spinner-{{.Item.ID}}">
       <option value="">Non assigné</option>
@@ -27,13 +33,14 @@
     </select>
     {{else if .Item.AssignedLogin}}{{.Item.AssignedLogin}}{{else}}<span class="muted">—</span>{{end}}
   </td>
-  <td>
+  {{end}}
+  <td class="run-item-row__comment" data-label="Commentaire">
     {{if and (eq .RunStatus "in_progress") .CanCheck}}
     <span class="visually-hidden" id="comment-hint-{{.Item.ID}}">Contexte + impact + prochaine action (obligatoire si Non validé)</span>
     <textarea name="comment" form="item-form-{{.Item.ID}}" rows="1" class="comment-inline{{if .Item.Comment}} is-filled{{end}}" aria-label="Commentaire" aria-describedby="comment-hint-{{.Item.ID}}" hx-indicator="#spinner-{{.Item.ID}}">{{.Item.Comment}}</textarea>
     {{else if .Item.Comment}}{{.Item.Comment}}{{else}}<span class="muted">—</span>{{end}}
   </td>
-  <td class="data-table__col--center">
+  <td class="run-item-row__pj data-table__col--center{{if not .Attachment}} run-item-row__pj--empty{{end}}" data-label="PJ">
     {{if .Attachment}}
     <div class="attachment-display attachment-display-compact">
       {{if attachmentIsImage .Attachment}}

@@ -181,12 +181,16 @@ func filteredRunSummariesFilterSQL(userID int64, admin bool, orgID int64, status
 		args = append(args, userID, RunStatusArchived, orgID, userID, userID, orgID)
 	}
 
-	if status != "" {
-		sqlQuery += ` AND r.status = ?`
-		args = append(args, status)
-	} else {
+	switch status {
+	case "":
 		sqlQuery += ` AND r.status IN (?, ?, ?)`
 		args = append(args, RunStatusDraft, RunStatusInProgress, RunStatusDone)
+	case RunListFilterOverdue:
+		sqlQuery += ` AND r.status = ? AND r.due_date IS NOT NULL AND date(r.due_date) < date('now')`
+		args = append(args, RunStatusInProgress)
+	default:
+		sqlQuery += ` AND r.status = ?`
+		args = append(args, status)
 	}
 
 	for _, term := range searchTerms(query) {
@@ -289,7 +293,8 @@ func scanRunListSummaries(rows interface {
 		); err != nil {
 			return nil, fmt.Errorf("scan run list summary: %w", err)
 		}
-		summary.Title = RunDisplayLabel(templateName, summary.SubjectName, createdAt, summary.RunID)
+		// Subject stays in its own column; omit it from the title link label.
+		summary.Title = RunDisplayLabel(templateName, "", createdAt, summary.RunID)
 		summary.CreatedAt = createdAt
 		summary.Percent = progressPercent(summary.Done, summary.Total)
 		summaries = append(summaries, summary)
@@ -355,7 +360,7 @@ func (s *Store) ListRunsWithProgressBySubject(ctx context.Context, subjectID int
 	rows, err := s.db.QueryContext(ctx, `
 		SELECT r.id, r.subject_id, r.template_version_id, r.status, r.due_date, r.closing_note,
 		       r.created_by, r.started_at, r.completed_at, r.notion_url, r.created_at,
-		       t.name, p.name,
+		       t.name,
 		       COUNT(ri.id) AS total,
 		       SUM(CASE WHEN ri.status IN ('ok', 'na') THEN 1 ELSE 0 END) AS done
 		FROM checklist_runs r
@@ -365,7 +370,7 @@ func (s *Store) ListRunsWithProgressBySubject(ctx context.Context, subjectID int
 		LEFT JOIN run_items ri ON ri.run_id = r.id
 		WHERE r.subject_id = ? AND r.status != ?
 		GROUP BY r.id, r.subject_id, r.template_version_id, r.status, r.due_date, r.closing_note,
-		         r.created_by, r.started_at, r.completed_at, r.notion_url, r.created_at, t.name, p.name
+		         r.created_by, r.started_at, r.completed_at, r.notion_url, r.created_at, t.name
 		ORDER BY r.created_at DESC
 	`, subjectID, RunStatusArchived)
 	if err != nil {
@@ -376,16 +381,17 @@ func (s *Store) ListRunsWithProgressBySubject(ctx context.Context, subjectID int
 	var runs []RunWithProgress
 	for rows.Next() {
 		var run RunWithProgress
-		var templateName, subjectName string
+		var templateName string
 		if err := rows.Scan(
 			&run.ID, &run.SubjectID, &run.TemplateVersionID, &run.Status, &run.DueDate, &run.ClosingNote,
 			&run.CreatedBy, &run.StartedAt, &run.CompletedAt, &run.NotionURL, &run.CreatedAt,
-			&templateName, &subjectName,
+			&templateName,
 			&run.Total, &run.Done,
 		); err != nil {
 			return nil, fmt.Errorf("scan run with progress: %w", err)
 		}
-		run.DisplayLabel = RunDisplayLabel(templateName, subjectName, run.CreatedAt, run.ID)
+		// Listed under a subject: omit subject from the label.
+		run.DisplayLabel = RunDisplayLabel(templateName, "", run.CreatedAt, run.ID)
 		run.Percent = progressPercent(run.Done, run.Total)
 		runs = append(runs, run)
 	}
