@@ -109,6 +109,24 @@
     });
   }
 
+  // <template> preserves <tr>/<td>; <div>.innerHTML does not (desktop row vanish).
+  function parseFragment(html) {
+    var tpl = document.createElement("template");
+    tpl.innerHTML = html;
+    return tpl.content;
+  }
+
+  function firstMainElement(frag) {
+    var nodes = frag.children || frag.childNodes;
+    for (var i = 0; i < nodes.length; i++) {
+      var n = nodes[i];
+      if (n.nodeType === 1 && !n.hasAttribute("hx-swap-oob")) {
+        return n;
+      }
+    }
+    return null;
+  }
+
   function request(form, triggerEl) {
     var url = form.getAttribute("hx-post") || form.getAttribute("hx-get");
     if (!url) {
@@ -175,12 +193,11 @@
         if (!result || result.redirect) {
           return;
         }
-        var wrapper = document.createElement("div");
-        wrapper.innerHTML = result.text;
-        applyOOB(wrapper);
+        var frag = parseFragment(result.text);
+        applyOOB(frag);
         if (target) {
-          var main = wrapper.firstElementChild;
-          if (main && !main.hasAttribute("hx-swap-oob")) {
+          var main = firstMainElement(frag);
+          if (main) {
             swapTarget(target, main.outerHTML, swapMode);
           }
         }
