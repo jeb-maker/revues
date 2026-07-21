@@ -59,7 +59,7 @@ func AppendReport(dir string, report Report) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("open bug reports file: %w", err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	if _, err := f.Write(line); err != nil {
 		return "", fmt.Errorf("write bug report: %w", err)
