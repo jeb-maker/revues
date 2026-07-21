@@ -23,16 +23,31 @@
     return raw.split(",").map(function (part) {
       part = part.trim();
       var event = part.split(/\s+/)[0];
-      var fromMatch = part.match(/from:([^\s]+)/);
+      var fromMatch = part.match(/\bfrom:(.+)$/);
       var keyMatch = part.match(/\[key==['"](.+?)['"]\]/);
       var needsCtrl = part.indexOf("ctrlKey") !== -1;
       return {
         event: event,
-        from: fromMatch ? fromMatch[1] : null,
+        from: fromMatch ? fromMatch[1].trim() : null,
         key: keyMatch ? keyMatch[1] : null,
         ctrlKey: needsCtrl,
       };
     });
+  }
+
+  function fromMatches(eventTarget, fromSel) {
+    if (!fromSel) return true;
+    if (!eventTarget || !eventTarget.matches) return false;
+    try {
+      if (eventTarget.matches(fromSel)) return true;
+    } catch (e) {}
+    var nodes = document.querySelectorAll(fromSel);
+    for (var i = 0; i < nodes.length; i++) {
+      if (nodes[i] === eventTarget || (nodes[i].contains && nodes[i].contains(eventTarget))) {
+        return true;
+      }
+    }
+    return false;
   }
 
   function appendField(fd, el) {
@@ -132,13 +147,14 @@
     }
     var body = null;
     var fetchUrl = url;
+    var params = new URLSearchParams();
+    formDataFor(form).forEach(function (value, key) {
+      params.append(key, value);
+    });
     if (method === "POST") {
-      body = formDataFor(form);
+      headers["Content-Type"] = "application/x-www-form-urlencoded";
+      body = params.toString();
     } else {
-      var params = new URLSearchParams();
-      formDataFor(form).forEach(function (value, key) {
-        params.append(key, value);
-      });
       var qs = params.toString();
       if (qs) {
         fetchUrl += (url.indexOf("?") >= 0 ? "&" : "?") + qs;
@@ -146,11 +162,19 @@
     }
     fetch(fetchUrl, { method: method, headers: headers, body: body, credentials: "same-origin" })
       .then(function (resp) {
+        var redirect = resp.headers.get("HX-Redirect");
+        if (redirect) {
+          window.location.assign(redirect);
+          return { redirect: true };
+        }
         return resp.text().then(function (text) {
           return { ok: resp.ok, text: text };
         });
       })
       .then(function (result) {
+        if (!result || result.redirect) {
+          return;
+        }
         var wrapper = document.createElement("div");
         wrapper.innerHTML = result.text;
         applyOOB(wrapper);
@@ -175,7 +199,7 @@
       if (spec.event !== event.type) {
         return false;
       }
-      if (spec.from && !event.target.matches(spec.from)) {
+      if (!fromMatches(event.target, spec.from)) {
         return false;
       }
       if (spec.key && event.key !== spec.key) {

@@ -28,10 +28,15 @@
   {{else}}
   <div class="empty-state">
     <p><strong>Aucun {{.Labels.Subject.Singular | lowerFirst}} disponible</strong></p>
+    {{if .CanCreate}}
     <p class="muted">Créez un {{.Labels.Subject.Singular | lowerFirst}} ci-dessous pour lancer une revue.</p>
+    {{else}}
+    <p class="muted">Demandez à un éditeur de créer un {{.Labels.Subject.Singular | lowerFirst}} pour lancer une revue.</p>
+    {{end}}
   </div>
   {{end}}
 
+  {{if .CanCreate}}
   <form method="post" action="/revues/nouvelle" class="stack-form">
     <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
     {{if .SelectedTemplateID}}<input type="hidden" name="template" value="{{.SelectedTemplateID}}">{{end}}
@@ -51,6 +56,7 @@
       <button type="submit" class="button">{{icon "plus"}} Créer et continuer</button>
     </div>
   </form>
+  {{end}}
 </div>
 {{template "layout_end" .}}
 {{end}}

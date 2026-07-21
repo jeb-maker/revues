@@ -47,6 +47,21 @@ func setupDoneRun(t *testing.T, st *store.Store, ctx context.Context, lead *stor
 	if err = st.CompleteRun(ctx, run.ID, "Clôturée"); err != nil {
 		t.Fatalf("CompleteRun(): %v", err)
 	}
+	exportRows, err := st.ListRunExportRows(ctx, run.ID)
+	if err != nil {
+		t.Fatalf("ListRunExportRows(): %v", err)
+	}
+	csvData, err := runs.BuildRunCSV(exportRows)
+	if err != nil {
+		t.Fatalf("BuildRunCSV(): %v", err)
+	}
+	if err = st.SealRunEvidenceHash(ctx, run.ID, runs.SHA256Hex(csvData)); err != nil {
+		t.Fatalf("SealRunEvidenceHash(): %v", err)
+	}
+	run, err = st.RunByID(ctx, run.ID)
+	if err != nil {
+		t.Fatalf("RunByID(): %v", err)
+	}
 	return run
 }
 
@@ -273,6 +288,13 @@ func TestRuns_ShowDoneIncludesExportButton(t *testing.T) {
 	if !strings.Contains(rec.Body.String(), "Exporter CSV") {
 		t.Fatal("expected export button label")
 	}
+	evidenceURL := "/runs/" + strconv.FormatInt(run.ID, 10) + "/export/preuve.zip"
+	if !strings.Contains(rec.Body.String(), evidenceURL) {
+		t.Fatalf("expected evidence link %q in page", evidenceURL)
+	}
+	if !strings.Contains(rec.Body.String(), "Télécharger la preuve") {
+		t.Fatal("expected evidence button label")
+	}
 }
 
 func TestRuns_ShowInProgressOmitsExportButton(t *testing.T) {
@@ -319,5 +341,161 @@ func TestRuns_ShowInProgressOmitsExportButton(t *testing.T) {
 	}
 	if strings.Contains(rec.Body.String(), "/export.csv") {
 		t.Fatal("export link should not appear for in-progress run")
+	}
+	if strings.Contains(rec.Body.String(), "/export/preuve.zip") {
+		t.Fatal("evidence link should not appear for in-progress run")
+	}
+}
+
+func TestRuns_ExportEvidence_OK(t *testing.T) {
+	handler, db := testRouter(t)
+	ctx := context.Background()
+	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
+
+	lead, err := st.UpsertGitHubUser(ctx, 60, "lead", "lead@example.com", "Lead", "", auth.RoleEditor)
+	if err != nil {
+		t.Fatal(err)
+	}
+	project, err := st.CreateProject(ctx, "Alpha", "", lead.ID, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	run := setupDoneRun(t, st, ctx, lead, project)
+
+	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
+	token, _, err := sessions.CreateLoginSession(ctx, lead.ID, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/runs/"+strconv.FormatInt(run.ID, 10)+"/export/preuve.zip", nil)
+	req.AddCookie(&http.Cookie{Name: "revues_session", Value: token})
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d body=%s", rec.Code, http.StatusOK, rec.Body.String())
+	}
+	if ct := rec.Header().Get("Content-Type"); ct != "application/zip" {
+		t.Fatalf("Content-Type = %q", ct)
+	}
+	if !strings.Contains(rec.Header().Get("Content-Disposition"), "preuve-revue-") {
+		t.Fatalf("Content-Disposition = %q", rec.Header().Get("Content-Disposition"))
+	}
+	if len(rec.Body.Bytes()) < 50 {
+		t.Fatalf("zip too small: %d bytes", len(rec.Body.Bytes()))
+	}
+	if run.EvidenceCSVSHA256 == "" {
+		t.Fatal("sealed hash should be non-empty")
+	}
+}
+
+func TestRuns_ExportEvidence_NotDone(t *testing.T) {
+	handler, db := testRouter(t)
+	ctx := context.Background()
+	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
+
+	lead, err := st.UpsertGitHubUser(ctx, 61, "lead", "lead@example.com", "Lead", "", auth.RoleEditor)
+	if err != nil {
+		t.Fatal(err)
+	}
+	project, err := st.CreateProject(ctx, "Alpha", "", lead.ID, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	template, _, err := st.CreateChecklistTemplate(ctx, "Modèle", lead.ID, nil, []store.TemplateItemInput{
+		{Label: "Point", Required: true},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	run, err := st.CreateChecklistRun(ctx, project.ID, template.ID, lead.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
+	token, _, err := sessions.CreateLoginSession(ctx, lead.ID, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/runs/"+strconv.FormatInt(run.ID, 10)+"/export/preuve.zip", nil)
+	req.AddCookie(&http.Cookie{Name: "revues_session", Value: token})
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusNotFound)
+	}
+}
+
+func TestRuns_ExportEvidence_IDOR(t *testing.T) {
+	handler, db := testRouter(t)
+	ctx := context.Background()
+	st := store.New(db)
+
+	alice, err := st.UpsertGitHubUser(ctx, 62, "alice", "alice@example.com", "Alice", "", auth.RoleEditor)
+	if err != nil {
+		t.Fatal(err)
+	}
+	bob, err := st.UpsertGitHubUser(ctx, 63, "bob", "bob@example.com", "Bob", "", auth.RoleEditor)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx = testutil.SetupIsolatedOrg(ctx, st, "Alice Org", "alice-export-evidence", alice.ID)
+	projectA, err := st.CreateProject(ctx, "Secret", "", alice.ID, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	run := setupDoneRun(t, st, ctx, alice, projectA)
+
+	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
+	bobToken, _, err := sessions.CreateLoginSession(ctx, bob.ID, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/runs/"+strconv.FormatInt(run.ID, 10)+"/export/preuve.zip", nil)
+	req.AddCookie(&http.Cookie{Name: "revues_session", Value: bobToken})
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("status = %d, want %d (IDOR)", rec.Code, http.StatusNotFound)
+	}
+}
+
+func TestRuns_ExportEvidence_HashMismatch(t *testing.T) {
+	handler, db := testRouter(t)
+	ctx := context.Background()
+	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
+
+	lead, err := st.UpsertGitHubUser(ctx, 64, "lead", "lead@example.com", "Lead", "", auth.RoleEditor)
+	if err != nil {
+		t.Fatal(err)
+	}
+	project, err := st.CreateProject(ctx, "Alpha", "", lead.ID, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	run := setupDoneRun(t, st, ctx, lead, project)
+	if _, err = db.ExecContext(ctx, `UPDATE checklist_runs SET evidence_csv_sha256 = ? WHERE id = ?`, "deadbeef", run.ID); err != nil {
+		t.Fatal(err)
+	}
+
+	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
+	token, _, err := sessions.CreateLoginSession(ctx, lead.ID, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/runs/"+strconv.FormatInt(run.ID, 10)+"/export/preuve.zip", nil)
+	req.AddCookie(&http.Cookie{Name: "revues_session", Value: token})
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+	if rec.Code != http.StatusInternalServerError {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusInternalServerError)
 	}
 }

@@ -12,9 +12,10 @@ import (
 )
 
 const (
-	devAuthGitHubID    int64      = 1
-	devAuthLogin                  = "devadmin"
-	peerAddrContextKey contextKey = 5
+	devAuthGitHubID     int64      = 1
+	devAuthLogin                   = "devadmin"
+	peerAddrContextKey  contextKey = 5
+	devAuthUIContextKey contextKey = 6
 )
 
 // CapturePeerAddr stores the TCP peer IP before RealIP rewrites RemoteAddr.
@@ -35,6 +36,9 @@ func CapturePeerAddr(next http.Handler) http.Handler {
 func EnsureDevAuth(st *store.Store, sessions *auth.SessionManager, enabled bool, email string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if enabled && IsLocalDevRequest(r) {
+				r = r.WithContext(context.WithValue(r.Context(), devAuthUIContextKey, true))
+			}
 			if !enabled || isDevAuthExemptPath(r.URL.Path) || !IsLocalDevRequest(r) {
 				next.ServeHTTP(w, r)
 				return
@@ -65,6 +69,12 @@ func EnsureDevAuth(st *store.Store, sessions *auth.SessionManager, enabled bool,
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
+}
+
+// DevAuthUIActive is true when local DevAuth UI (user switcher) may be shown.
+func DevAuthUIActive(ctx context.Context) bool {
+	active, _ := ctx.Value(devAuthUIContextKey).(bool)
+	return active
 }
 
 // IsLocalDevRequest is true when the client is loopback and the Host is localhost/127.0.0.1.
@@ -107,6 +117,8 @@ func ensureDevUser(ctx context.Context, st *store.Store, email string) (*store.U
 func isDevAuthExemptPath(path string) bool {
 	switch {
 	case path == "/healthz", path == "/sw.js", path == "/login":
+		return true
+	case strings.HasPrefix(path, "/auth/dev/"):
 		return true
 	case strings.HasPrefix(path, "/static/"):
 		return true

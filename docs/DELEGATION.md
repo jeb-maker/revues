@@ -32,11 +32,14 @@ Création : *Issues → Milestones → New milestone*
 ### 2. Labels (à créer manuellement)
 
 ```
-epic, vague-1, vague-2, vague-3
+epic, vague-1, vague-2, vague-3, vague-thematic
 area:infra, area:data, area:auth, area:core, area:ui
 area:admin, area:integrations, area:notifications, area:attachments
 good first issue
 ```
+
+Roadmap thématique post-cœur : [issues/thematic-roadmap-epic.md](./issues/thematic-roadmap-epic.md) —  
+`./scripts/create-thematic-roadmap-issues.sh` (lots 0–5).
 
 Création : *Issues → Labels → New label*
 

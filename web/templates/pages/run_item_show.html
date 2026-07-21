@@ -103,3 +103,6 @@
 <p><a href="/runs/{{.Run.ID}}" class="button-ghost">{{icon "arrow-left"}} Retour à la revue</a></p>
 {{template "layout_end" .}}
 {{end}}
+{{define "page_styles"}}
+<link rel="stylesheet" href="{{assetURL `/static/css/run.css`}}">
+{{end}}

@@ -56,5 +56,12 @@ func needsCSRF(r *http.Request) bool {
 	}
 
 	path := r.URL.Path
-	return !strings.HasPrefix(path, "/auth/github/callback")
+	if strings.HasPrefix(path, "/auth/github/callback") {
+		return false
+	}
+	// Local DevAuth user switcher on /login has no session yet; handler enforces loopback.
+	if path == "/auth/dev/login" {
+		return false
+	}
+	return true
 }

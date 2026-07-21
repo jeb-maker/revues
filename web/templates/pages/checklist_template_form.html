@@ -1,26 +1,126 @@
 {{define "checklist_template_form"}}
 {{template "layout_start" .}}
+{{$listUI := not .ShowSubjectColumn}}
 
 <form method="post" action="{{.FormAction}}" class="stack-form" id="template-form"{{if or .NameError .ItemsError}} data-server-state="error"{{end}}>
   <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
 
+  {{if $listUI}}
+  <section class="card">
+    {{if .Template}}
+    <p class="field-hint">Les prochaines revues utiliseront la liste mise à jour. Les revues déjà lancées restent inchangées.</p>
+    {{else}}
+    <p class="field-hint">Nommez votre liste, puis ajoutez ce que vous voulez cocher.</p>
+    {{end}}
+    <label>
+      Nom de la liste
+      <input type="text" name="name" required maxlength="200" value="{{if .Name}}{{.Name}}{{else if .Template}}{{.Template.Name}}{{end}}"{{if .NameError}} aria-invalid="true"{{end}}>
+      {{if .NameError}}<span class="field-error">{{.NameError}}</span>{{end}}
+    </label>
+    <input type="hidden" name="tags" value="">
+
+    <h2 class="template-form__points-title">Points</h2>
+    <p class="field-hint">Un libellé = une case à cocher dans la revue.</p>
+    {{if .ItemsError}}<p class="field-error" id="template-items-error" role="alert">{{.ItemsError}}</p>{{end}}
+
+    <div id="template-sections" class="template-editor template-editor--compact{{if .SectionsEnabled}} is-sectioned{{end}}">
+    {{range $sec := .Sections}}
+      <div class="template-editor__section" data-section-idx="{{$sec.SectionIndex}}">
+        <input type="hidden" name="section_idx" value="{{$sec.SectionIndex}}">
+        <div class="template-editor__section-head">
+          <label>
+            Section
+            <span class="field-hint">Optionnel.</span>
+            <input type="text" name="section_title" maxlength="200" value="{{$sec.Title}}" class="template-editor__section-title">
+          </label>
+          <div class="template-editor__section-actions">
+            <details class="template-editor__reorder">
+              <summary>Déplacer</summary>
+              <button type="button" class="button button-ghost button-sm" data-action="section-up" aria-label="Monter cette section">↑</button>
+              <button type="button" class="button button-ghost button-sm" data-action="section-down" aria-label="Descendre cette section">↓</button>
+            </details>
+            <button type="button" class="button button-ghost button-sm template-editor__move" data-action="section-up" aria-label="Monter cette section">↑</button>
+            <button type="button" class="button button-ghost button-sm template-editor__move" data-action="section-down" aria-label="Descendre cette section">↓</button>
+            <button type="button" class="button button-ghost button-sm" data-action="section-remove">Supprimer la section</button>
+          </div>
+        </div>
+        <div class="template-editor__points">
+        {{range $i, $row := $sec.Items}}
+          <div class="template-editor__point">
+            <input type="hidden" name="item_row_idx" value="{{if $row.RowIndex}}{{$row.RowIndex}}{{else}}{{$i}}{{end}}">
+            <input type="hidden" name="item_section_idx" value="{{$sec.SectionIndex}}">
+            <div class="template-editor__point-fields">
+              <label class="template-editor__field">
+                <span class="visually-hidden">Libellé</span>
+                <input type="text" id="item_label_{{$sec.SectionIndex}}_{{$i}}" name="item_label" maxlength="{{$.MaxItemLabelLen}}" value="{{$row.Label}}" aria-label="Libellé du point"{{if $.ItemsError}} aria-describedby="template-items-error"{{end}}>
+              </label>
+              <details class="template-editor__more">
+                <summary>Options</summary>
+                <label class="template-editor__field">
+                  Texte d'aide
+                  <textarea id="item_help_{{$sec.SectionIndex}}_{{$i}}" name="item_help" maxlength="{{$.MaxItemHelpLen}}" rows="2" class="template-editor__help">{{$row.HelpText}}</textarea>
+                </label>
+                <label class="checkbox-row template-editor__required">
+                  <input type="checkbox" name="item_required" value="{{if $row.RowIndex}}{{$row.RowIndex}}{{else}}{{$i}}{{end}}"{{if $row.Required}} checked{{end}}>
+                  Requis
+                </label>
+              </details>
+            </div>
+            <div class="template-editor__point-actions">
+              <details class="template-editor__reorder">
+                <summary>Déplacer</summary>
+                <button type="button" class="button button-ghost button-sm" data-action="move-up" aria-label="Monter ce point">↑</button>
+                <button type="button" class="button button-ghost button-sm" data-action="move-down" aria-label="Descendre ce point">↓</button>
+              </details>
+              <button type="button" class="button button-ghost button-sm template-editor__move" data-action="move-up" aria-label="Monter ce point">↑</button>
+              <button type="button" class="button button-ghost button-sm template-editor__move" data-action="move-down" aria-label="Descendre ce point">↓</button>
+              <button type="button" class="button button-ghost button-sm" data-action="remove" aria-label="Supprimer ce point">×</button>
+            </div>
+          </div>
+        {{end}}
+        </div>
+        <p class="template-editor__add">
+          <button type="button" class="button button-ghost button-sm" data-action="add-point">+ Ajouter un point</button>
+        </p>
+      </div>
+    {{end}}
+    </div>
+    <p id="template-section-tools" class="template-editor__add"{{if not .SectionsEnabled}} hidden{{end}}>
+      <button type="button" class="button button-ghost button-sm" id="template-add-section">Ajouter une section</button>
+    </p>
+    <p id="template-enable-sections" class="template-editor__add"{{if .SectionsEnabled}} hidden{{end}}>
+      <button type="button" class="button button-ghost button-sm" id="template-enable-sections-btn">Organiser en sections</button>
+    </p>
+    <div class="form-actions">
+      <button type="submit" class="button">{{if .Template}}Enregistrer{{else}}Créer la liste{{end}}</button>
+      {{if .Template}}
+      <a class="button button-ghost" href="/modeles/{{.Template.ID}}">Annuler</a>
+      {{else}}
+      <a class="button button-ghost" href="/modeles">Annuler</a>
+      {{end}}
+    </div>
+  </section>
+  {{else}}
   <section class="card">
     <h2>Identité</h2>
     {{if and .Template .Version}}
     <p class="field-hint">Version actuelle v{{.Version.Version}}. L'enregistrement publie une <strong>nouvelle version</strong> ; les revues déjà lancées conservent la version figée.</p>
     {{else}}
-    <p class="field-hint">Définissez le nom et les domaines de compatibilité. <a href="/modeles/notion-import">Importer depuis Notion</a></p>
+    <p class="field-hint">Définissez le nom du modèle.{{if .NotionConfigured}} <a href="/modeles/notion-import">Importer depuis Notion</a>{{end}}</p>
     {{end}}
     <label>
       Nom du modèle
       <input type="text" name="name" required maxlength="200" value="{{if .Name}}{{.Name}}{{else if .Template}}{{.Template.Name}}{{end}}"{{if .NameError}} aria-invalid="true"{{end}}>
       {{if .NameError}}<span class="field-error">{{.NameError}}</span>{{end}}
     </label>
-    <label>
-      Domaines
-      <span class="field-hint">Séparez par des virgules. Laissez vide pour proposer ce modèle à tous les {{.Labels.Subject.Plural | lowerFirst}}.</span>
-      <input type="text" name="tags" maxlength="500" value="{{if .Tags}}{{.Tags}}{{else if .TagsList}}{{range $i, $tag := .TagsList}}{{if $i}}, {{end}}{{$tag}}{{end}}{{end}}">
-    </label>
+    <details class="template-form__advanced">
+      <summary>Domaines (compatibilité sujets)</summary>
+      <label>
+        Domaines
+        <span class="field-hint">Séparez par des virgules. Laissez vide pour proposer ce modèle à tous les {{.Labels.Subject.Plural | lowerFirst}}.</span>
+        <input type="text" name="tags" maxlength="500" value="{{if .Tags}}{{.Tags}}{{else if .TagsList}}{{range $i, $tag := .TagsList}}{{if $i}}, {{end}}{{$tag}}{{end}}{{end}}">
+      </label>
+    </details>
   </section>
 
   <section class="card">
@@ -39,8 +139,13 @@
             <input type="text" name="section_title" maxlength="200" value="{{$sec.Title}}" class="template-editor__section-title">
           </label>
           <div class="template-editor__section-actions">
-            <button type="button" class="button button-ghost button-sm" data-action="section-up" aria-label="Monter cette section">↑</button>
-            <button type="button" class="button button-ghost button-sm" data-action="section-down" aria-label="Descendre cette section">↓</button>
+            <details class="template-editor__reorder">
+              <summary>Déplacer</summary>
+              <button type="button" class="button button-ghost button-sm" data-action="section-up" aria-label="Monter cette section">↑</button>
+              <button type="button" class="button button-ghost button-sm" data-action="section-down" aria-label="Descendre cette section">↓</button>
+            </details>
+            <button type="button" class="button button-ghost button-sm template-editor__move" data-action="section-up" aria-label="Monter cette section">↑</button>
+            <button type="button" class="button button-ghost button-sm template-editor__move" data-action="section-down" aria-label="Descendre cette section">↓</button>
             <button type="button" class="button button-ghost button-sm" data-action="section-remove">Supprimer la section</button>
           </div>
         </div>
@@ -66,8 +171,13 @@
               </label>
             </div>
             <div class="template-editor__point-actions">
-              <button type="button" class="button button-ghost button-sm" data-action="move-up" aria-label="Monter ce point">↑</button>
-              <button type="button" class="button button-ghost button-sm" data-action="move-down" aria-label="Descendre ce point">↓</button>
+              <details class="template-editor__reorder">
+                <summary>Déplacer</summary>
+                <button type="button" class="button button-ghost button-sm" data-action="move-up" aria-label="Monter ce point">↑</button>
+                <button type="button" class="button button-ghost button-sm" data-action="move-down" aria-label="Descendre ce point">↓</button>
+              </details>
+              <button type="button" class="button button-ghost button-sm template-editor__move" data-action="move-up" aria-label="Monter ce point">↑</button>
+              <button type="button" class="button button-ghost button-sm template-editor__move" data-action="move-down" aria-label="Descendre ce point">↓</button>
               <button type="button" class="button button-ghost button-sm" data-action="remove">Supprimer</button>
             </div>
           </div>
@@ -85,24 +195,24 @@
     <p id="template-enable-sections" class="template-editor__add"{{if .SectionsEnabled}} hidden{{end}}>
       <button type="button" class="button button-ghost button-sm" id="template-enable-sections-btn">Organiser en sections</button>
     </p>
+    <div class="form-actions">
+      <button type="submit" class="button">{{if .Template}}Enregistrer{{else}}Créer le modèle{{end}}</button>
+      {{if .Template}}
+      <a class="button button-ghost" href="/modeles/{{.Template.ID}}">Annuler</a>
+      {{else}}
+      <a class="button button-ghost" href="/modeles">Annuler</a>
+      {{end}}
+    </div>
   </section>
-
-  <div class="form-actions">
-    <button type="submit" class="button">Enregistrer</button>
-    {{if .Template}}
-    <a class="button button-ghost" href="/modeles/{{.Template.ID}}">Annuler</a>
-    {{else}}
-    <a class="button button-ghost" href="/modeles">Annuler</a>
-    {{end}}
-  </div>
+  {{end}}
 </form>
 
 {{if .Template}}
 <section class="card form-danger-zone">
-  <p class="form-danger-zone__text">Archiver retire le modèle de la liste active. Les revues déjà lancées conservent leur snapshot.</p>
-  <form method="post" action="/modeles/{{.Template.ID}}/archive" onsubmit="return confirm('Archiver ce modèle ?');">
+  <p class="form-danger-zone__text">{{if $listUI}}Archiver retire la liste des listes actives. Les revues déjà lancées restent inchangées.{{else}}Archiver retire le modèle de la liste active. Les revues déjà lancées conservent leur snapshot.{{end}}</p>
+  <form method="post" action="/modeles/{{.Template.ID}}/archive" onsubmit="return confirm('{{if $listUI}}Archiver cette liste ?{{else}}Archiver ce modèle ?{{end}}');">
     <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
-    <button type="submit" class="button-danger">Archiver le modèle</button>
+    <button type="submit" class="button-danger">{{if $listUI}}Archiver la liste{{else}}Archiver le modèle{{end}}</button>
   </form>
 </section>
 {{end}}
@@ -110,6 +220,9 @@
 {{template "layout_end" .}}
 {{end}}
 {{define "main_class"}} site-main--wide{{end}}
+{{define "page_styles"}}
+<link rel="stylesheet" href="{{assetURL `/static/css/editor.css`}}">
+{{end}}
 {{define "page_scripts"}}
 <script src="{{assetURL `/static/js/template-editor.js`}}" defer></script>
 {{end}}

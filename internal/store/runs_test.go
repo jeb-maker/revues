@@ -147,3 +147,43 @@ func TestRunStatusTransitions(t *testing.T) {
 		t.Fatalf("closing_note = %q", run.ClosingNote)
 	}
 }
+
+func TestCompleteRun_SealsEvidenceHash(t *testing.T) {
+	ctx := context.Background()
+	db := openMemoryDB(t)
+	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
+
+	lead, err := st.UpsertGitHubUser(ctx, 1, "lead", "lead@example.com", "Lead", "", auth.RoleEditor)
+	if err != nil {
+		t.Fatal(err)
+	}
+	subject, err := st.CreateSubject(ctx, "P", "", lead.ID, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	template, _, err := st.CreateChecklistTemplate(ctx, "Modèle", lead.ID, nil, []store.TemplateItemInput{
+		{Label: "Point", Required: true},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	run, err := st.CreateChecklistRun(ctx, subject.ID, template.ID, lead.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = st.CompleteRun(ctx, run.ID, ""); err != nil {
+		t.Fatalf("CompleteRun(): %v", err)
+	}
+	hash := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+	if err = st.SealRunEvidenceHash(ctx, run.ID, hash); err != nil {
+		t.Fatalf("SealRunEvidenceHash(): %v", err)
+	}
+	got, err := st.RunByID(ctx, run.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.EvidenceCSVSHA256 != hash {
+		t.Fatalf("EvidenceCSVSHA256 = %q, want sealed hash", got.EvidenceCSVSHA256)
+	}
+}

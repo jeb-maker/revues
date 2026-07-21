@@ -19,6 +19,14 @@ func StaticAssetVersion(staticFS fs.FS) (string, error) {
 
 	h := sha256.New()
 	for _, path := range entries {
+		info, statErr := fs.Stat(staticFS, path)
+		if statErr != nil {
+			return "", fmt.Errorf("stat static asset %q: %w", path, statErr)
+		}
+		if info.IsDir() {
+			// fs.Glob may return nested directories (e.g. vendor/…); only hash files.
+			continue
+		}
 		data, readErr := fs.ReadFile(staticFS, path)
 		if readErr != nil {
 			return "", fmt.Errorf("read static asset %q: %w", path, readErr)

@@ -65,7 +65,8 @@ Corps PR : Closes #<N>
 | Métrique | Max |
 |----------|-----|
 | HTML page | 50 Ko |
-| CSS | 20 Ko |
+| CSS core (`app.css`) | 24 Ko brut / 8 Ko gzip |
+| CSS total | 40 Ko brut / 12 Ko gzip cumulé |
 | JS / HTMX | 15 Ko |
 | Requêtes / page | 8 |
 

@@ -94,3 +94,41 @@ func TestNotionImport_RequiresEditorRole(t *testing.T) {
 		t.Errorf("status=%d want 302 redirect to login", rec.Code)
 	}
 }
+
+func TestNotionImport_RedirectsWhenNotConfigured(t *testing.T) {
+	handler, db := testRouterWithEncryptionKey(t, config.TestEncryptionKey())
+	ctx := context.Background()
+	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
+	admin, err := st.UpsertGitHubUser(ctx, 42, "admin-notion-off", "admin-notion-off@example.com", "Admin", "", auth.RoleAdmin)
+	if err != nil {
+		t.Fatalf("UpsertGitHubUser(): %v", err)
+	}
+	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
+	token, _, err := sessions.CreateLoginSession(ctx, admin.ID, 0)
+	if err != nil {
+		t.Fatalf("CreateLoginSession(): %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/modeles/notion-import", nil)
+	req.AddCookie(&http.Cookie{Name: "revues_session", Value: token})
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+	if rec.Code != http.StatusSeeOther {
+		t.Fatalf("status=%d want %d; body=%s", rec.Code, http.StatusSeeOther, rec.Body.String())
+	}
+	if loc := rec.Header().Get("Location"); !strings.HasPrefix(loc, "/modeles") {
+		t.Fatalf("Location = %q, want /modeles…", loc)
+	}
+
+	indexReq := httptest.NewRequest(http.MethodGet, "/modeles", nil)
+	indexReq.AddCookie(&http.Cookie{Name: "revues_session", Value: token})
+	indexRec := httptest.NewRecorder()
+	handler.ServeHTTP(indexRec, indexReq)
+	if indexRec.Code != http.StatusOK {
+		t.Fatalf("index status=%d", indexRec.Code)
+	}
+	if strings.Contains(indexRec.Body.String(), "/modeles/notion-import") {
+		t.Fatal("expected Importer CTA hidden when Notion is not configured")
+	}
+}

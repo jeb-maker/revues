@@ -11,7 +11,12 @@
 {{if .Error}}<p class="error" role="alert">{{.Error}}</p>{{end}}
 <section class="empty-state">
   <h2>Aucun {{.Labels.Subject.Singular | lowerFirst}}</h2>
-  {{if .CanManageOrgUsers}}
+  {{if .SimpleUI}}
+  <p>Un {{.Labels.Subject.Singular | lowerFirst}} regroupe vos checklists (revues). Créez-en un pour commencer.</p>
+  <p class="empty-state-actions">
+    {{if .CanCreate}}<a class="button" href="/subjects/new">Créer un {{.Labels.Subject.Singular | lowerFirst}}</a>{{end}}
+  </p>
+  {{else if .CanManageOrgUsers}}
   <p>Votre organisation est prête. Commencez par autoriser les utilisateurs, puis créez votre premier {{.Labels.Subject.Singular | lowerFirst}}.</p>
   <p class="empty-state-actions">
     <a class="button" href="/admin/users">Gérer les emails autorisés</a>
@@ -33,6 +38,9 @@
 <section class="card">
   {{if .Message}}<p class="success" role="status">{{.Message}}</p>{{end}}
   {{if .Error}}<p class="error" role="alert">{{.Error}}</p>{{end}}
+  {{if .SimpleUI}}
+  <p class="muted">Chaque {{.Labels.Subject.Singular | lowerFirst}} contient vos revues / checklists.</p>
+  {{end}}
   <div class="list-toolbar">
     <form method="get" action="{{if eq .AdminSection "subjects"}}/admin/subjects{{else}}/subjects{{end}}" class="list-toolbar__form filter-form filter-form--inline">
       <input class="list-toolbar__search toolbar-control" type="search" id="filter-query" name="q" value="{{.FilterQuery}}" placeholder="Rechercher un {{.Labels.Subject.Singular | lowerFirst}}…" aria-label="Rechercher un {{.Labels.Subject.Singular | lowerFirst}}">
@@ -42,17 +50,17 @@
     {{if .CanCreate}}<a class="button list-toolbar__action toolbar-control" href="{{if eq .AdminSection "subjects"}}/admin/subjects/new{{else}}/subjects/new{{end}}" title="Nouveau {{.Labels.Subject.Singular | lowerFirst}}">Créer</a>{{end}}
   </div>
   <div class="table-scroll">
-  <table class="data-table table-sticky">
+  <table class="data-table data-table--cards table-sticky">
     <thead>
       <tr><th scope="col">{{.Labels.Subject.Singular}}</th></tr>
     </thead>
     <tbody>
       {{if .Subjects}}
       {{range .Subjects}}
-      <tr>
-        <td>
+      <tr class="subject-card">
+        <td class="subject-card__title data-row__primary">
           <a href="/subjects/{{.ID}}">{{.Name}}</a>
-          {{if eq .Visibility "private"}} <span class="status-badge status-na">Privé</span>{{end}}
+          {{if eq .Visibility "private"}}<span class="status-badge status-na">Privé</span>{{end}}
         </td>
       </tr>
       {{end}}

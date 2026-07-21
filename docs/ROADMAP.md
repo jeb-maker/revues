@@ -118,9 +118,56 @@ flowchart TD
 
 ---
 
+## Vagues thématiques post-cœur
+
+Spec normative : [issues/thematic-roadmap-epic.md](./issues/thematic-roadmap-epic.md).  
+Création GitHub : `./scripts/create-thematic-roadmap-issues.sh` (lots 0–5).
+
+Chemin critique : **gates sécu → SimpleUI mince → preuve → #66 PASS → D1 + vision légère → filtres gated**.
+
+### Épiques
+
+| Vague | Épique |
+|-------|--------|
+| A Adoption | [#184](https://github.com/jeb-maker/revues/issues/184) |
+| B SimpleUI | [#185](https://github.com/jeb-maker/revues/issues/185) |
+| C Preuve | [#186](https://github.com/jeb-maker/revues/issues/186) |
+| D Opérationnel | [#187](https://github.com/jeb-maker/revues/issues/187) |
+| E Intégrations v2 | [#188](https://github.com/jeb-maker/revues/issues/188) |
+| F Gouvernance (icebox) | [#189](https://github.com/jeb-maker/revues/issues/189) |
+| G Hardening | [#190](https://github.com/jeb-maker/revues/issues/190) |
+
+### Lots
+
+| Lot | Issues | Notes |
+|-----|--------|-------|
+| **1** Gates | [#62](https://github.com/jeb-maker/revues/issues/62) A4 · [#64](https://github.com/jeb-maker/revues/issues/64) A5 · [#191](https://github.com/jeb-maker/revues/issues/191) A2 · [#192](https://github.com/jeb-maker/revues/issues/192) G2 | Avant intégrations |
+| **2** SimpleUI | [#193](https://github.com/jeb-maker/revues/issues/193)–[#201](https://github.com/jeb-maker/revues/issues/201) (B1→B2→B3→B0→B5→B6→A1a/b/c) | Séquentiel templates ; #63 scindé |
+| **3** Preuve | [#202](https://github.com/jeb-maker/revues/issues/202)–[#205](https://github.com/jeb-maker/revues/issues/205) (C0–C3) | C1 WIP branche evidence |
+| **4** Pilote | [#66](https://github.com/jeb-maker/revues/issues/66) (+ checklist terrain) | Humain, pas agent code |
+| **5** Post-#66 | [#206](https://github.com/jeb-maker/revues/issues/206) D1 · [#207](https://github.com/jeb-maker/revues/issues/207) D6 · [#208](https://github.com/jeb-maker/revues/issues/208) E3' · [#209](https://github.com/jeb-maker/revues/issues/209) E6 · [#210](https://github.com/jeb-maker/revues/issues/210)–[#212](https://github.com/jeb-maker/revues/issues/212) B4 · [#213](https://github.com/jeb-maker/revues/issues/213) D7 | Après #66 PASS |
+
+**Icebox** (pas d’issues tant que signal d’usage) : séries/campagnes moteurs, fusion sujets, rapport org, Slack/Teams, Google OAuth, Jira Server, gouvernance F*, audit admin, concurrency items, antivirus, PostgreSQL.
+
+Paliers UI (P0–P3) : voir [PLAN.md](./PLAN.md) ([#197](https://github.com/jeb-maker/revues/issues/197) B5) et `.cursor/skills/revues-ui-audit/decisions.md`.
+
+```mermaid
+flowchart TD
+  gates[Lot1_Gates_Secu]
+  ui[Lot2_SimpleUI_mince]
+  preuve[Lot3_Preuve]
+  pilote[Lot4_Pilote_66]
+  vision[Lot5_Vision_plus_D1]
+  icebox[Icebox]
+  gates --> ui --> preuve --> pilote --> vision
+  vision --> icebox
+```
+
+---
+
 ## Labels GitHub
 
-Voir [DELEGATION.md](./DELEGATION.md).
+Voir [DELEGATION.md](./DELEGATION.md). Label roadmap : `vague-thematic`.
 
 ---
 
@@ -131,3 +178,4 @@ Voir [DELEGATION.md](./DELEGATION.md).
 3. Paralléliser après #8 : #10 et #11
 4. **Revue humaine** obligatoire sur #7 et `area:integrations`
 5. Référencer [RBAC.md](./RBAC.md) et [canonical.sql](./schema/canonical.sql) dans chaque PR data/auth
+6. Roadmap thématique : 1 lot à la fois ; ne pas paralléliser A1↔B*, C1↔C2↔C3 ; Definition of Eco sur issues UI/intégrations

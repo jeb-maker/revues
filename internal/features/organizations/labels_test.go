@@ -132,6 +132,7 @@ func TestSubjectLabelsSave_UpdatesPreset(t *testing.T) {
 	form := url.Values{
 		"csrf_token":       {auth.CSRFToken(token, hubTestSessionSecret)},
 		"ui_subject_label": {store.UISubjectLabelAsset},
+		"ui_run_label":     {store.UIRunLabelListesEnCours},
 	}
 	req := httptest.NewRequest(http.MethodPost, "/admin/settings/labels", strings.NewReader(form.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
@@ -152,5 +153,78 @@ func TestSubjectLabelsSave_UpdatesPreset(t *testing.T) {
 	}
 	if got.UISubjectLabel != store.UISubjectLabelAsset {
 		t.Fatalf("UISubjectLabel = %q, want %q", got.UISubjectLabel, store.UISubjectLabelAsset)
+	}
+	if got.UIRunLabel != store.UIRunLabelListesEnCours {
+		t.Fatalf("UIRunLabel = %q, want %q", got.UIRunLabel, store.UIRunLabelListesEnCours)
+	}
+}
+
+func TestRunLabelPreset_ListesEnCoursInNav(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	db, err := store.Open(ctx, t.TempDir()+"/test.db", 0)
+	if err != nil {
+		t.Fatalf("Open(): %v", err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+	if err = store.Migrate(ctx, db); err != nil {
+		t.Fatalf("Migrate(): %v", err)
+	}
+
+	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
+	defaultOrg, err := st.OrganizationBySlug(ctx, "default")
+	if err != nil {
+		t.Fatalf("OrganizationBySlug(): %v", err)
+	}
+
+	orgAdmin, err := st.UpsertGitHubUser(ctx, 12, "runlabel", "runlabel@example.com", "RunLabel", "", auth.RoleEditor)
+	if err != nil {
+		t.Fatalf("UpsertGitHubUser(): %v", err)
+	}
+	if err = st.AddOrganizationMember(ctx, defaultOrg.ID, orgAdmin.ID, store.OrgRoleAdmin); err != nil {
+		t.Fatalf("AddOrganizationMember(): %v", err)
+	}
+	if err = st.UpdateOrganizationUIRunLabel(ctx, defaultOrg.ID, store.UIRunLabelListesEnCours); err != nil {
+		t.Fatalf("UpdateOrganizationUIRunLabel(): %v", err)
+	}
+
+	handler, _, err := appweb.NewRouter(appweb.Deps{
+		Config: config.Config{
+			Addr:          ":8080",
+			BaseURL:       "http://example.com",
+			SessionSecret: hubTestSessionSecret,
+			Env:           "development",
+		},
+		DB: db,
+	})
+	if err != nil {
+		t.Fatalf("NewRouter(): %v", err)
+	}
+
+	sessions := &auth.SessionManager{Store: st, SessionSecret: hubTestSessionSecret}
+	token, _, err := sessions.CreateLoginSession(ctx, orgAdmin.ID, defaultOrg.ID)
+	if err != nil {
+		t.Fatalf("CreateLoginSession(): %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/revues", nil)
+	req.AddCookie(&http.Cookie{Name: "revues_session", Value: token})
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+	body := rec.Body.String()
+	if !strings.Contains(body, "Listes en cours") {
+		t.Fatalf("nav missing Listes en cours in body")
+	}
+	if !strings.Contains(body, "site-nav__label-short") || !strings.Contains(body, "En cours") {
+		t.Fatalf("nav missing short label En cours")
+	}
+	if !strings.Contains(body, "Lancer une liste") {
+		t.Fatalf("CTA missing Lancer une liste")
 	}
 }

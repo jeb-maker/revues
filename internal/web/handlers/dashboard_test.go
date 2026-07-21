@@ -67,8 +67,8 @@ func TestDashboard_ShowsActiveRunProgress(t *testing.T) {
 		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
 	}
 	body := rec.Body.String()
-	if !strings.Contains(body, "Alpha") {
-		t.Fatal("expected active run display label")
+	if !strings.Contains(body, "Modèle") {
+		t.Fatal("expected active run display label (template name)")
 	}
 	if !strings.Contains(body, "50%") {
 		t.Fatal("expected run progress percent")
@@ -134,8 +134,8 @@ func TestDashboard_ShowsRecentCompletedRuns(t *testing.T) {
 	if strings.Contains(body, "Terminées récemment") {
 		t.Fatal("unexpected legacy completed runs section")
 	}
-	if !strings.Contains(body, "Zeta") {
-		t.Fatal("expected completed run display label")
+	if !strings.Contains(body, "Modèle") {
+		t.Fatal("expected completed run display label (template name)")
 	}
 	if !strings.Contains(body, "100%") {
 		t.Fatal("expected completed run progress")
@@ -190,11 +190,14 @@ func TestDashboard_ShowsNewRunAsInProgress(t *testing.T) {
 		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
 	}
 	body := rec.Body.String()
-	if !strings.Contains(body, "DraftCo") {
-		t.Fatal("expected run display label on dashboard")
+	if !strings.Contains(body, "Modèle") {
+		t.Fatal("expected run display label on dashboard (template name)")
 	}
-	if !strings.Contains(body, "En cours") {
-		t.Fatal("expected in-progress status label on dashboard")
+	if strings.Contains(body, "status-in_progress") {
+		t.Fatal("in_progress status badge must be omitted on run list (progress carries state)")
+	}
+	if !strings.Contains(body, "run-card__progress") {
+		t.Fatal("expected progress on dashboard for in-progress run")
 	}
 	if strings.Contains(body, "Brouillon") {
 		t.Fatal("new runs must not appear as draft")
@@ -401,8 +404,12 @@ func TestTemplatesIndex_ListsVisibleTemplates(t *testing.T) {
 	if !strings.Contains(body, "Checklist QA") {
 		t.Fatal("expected template in index")
 	}
-	if !strings.Contains(body, "tous sujets") {
-		t.Fatal("expected global template marker in index")
+	// Mono-sujet : pas de colonne Domaines (P2) — vocabulaire « Liste ».
+	if strings.Contains(body, "tous sujets") {
+		t.Fatal("domains column unexpected without multi-subject unlock")
+	}
+	if !strings.Contains(body, ">Liste<") {
+		t.Fatal("expected Liste column header for mono-subject")
 	}
 	if !strings.Contains(body, "list-toolbar") {
 		t.Fatal("expected list toolbar on templates page")

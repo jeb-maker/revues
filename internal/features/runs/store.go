@@ -25,6 +25,9 @@ type RunStore interface {
 	RunByID(ctx context.Context, id int64) (*store.ChecklistRun, error)
 	StartRun(ctx context.Context, id int64) error
 	CompleteRun(ctx context.Context, id int64, closingNote string) error
+	CompleteRunWithEvidence(ctx context.Context, id int64, closingNote, csvSHA256 string) error
+	SealRunEvidenceHash(ctx context.Context, id int64, csvSHA256 string) error
+	UserByID(ctx context.Context, id int64) (*store.User, error)
 	RunItemByID(ctx context.Context, runID, itemID int64) (*store.RunItem, error)
 	ListRunItems(ctx context.Context, runID int64) ([]store.RunItem, error)
 	ListNokRunItems(ctx context.Context, runID int64) ([]store.RunItem, error)

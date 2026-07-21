@@ -254,6 +254,77 @@ func (s *Store) ListSubjects(ctx context.Context, userID int64, admin bool, quer
 	return subjects, nil
 }
 
+// ListVisibleSubjectIDs returns up to limit subject ids visible to the user (name order).
+// Used for simple-UI detection without loading full subject rows.
+func (s *Store) ListVisibleSubjectIDs(ctx context.Context, userID int64, admin bool, limit int) ([]int64, error) {
+	if limit <= 0 {
+		return nil, nil
+	}
+	orgID, err := organizationIDFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	orgRole, isMember, err := s.OrganizationMemberRole(ctx, orgID, userID)
+	if err != nil {
+		return nil, err
+	}
+	orgAdmin := isMember && (orgRole == OrgRoleOwner || orgRole == OrgRoleAdmin)
+
+	sqlQuery := `
+		SELECT s.id
+		FROM subjects s
+		WHERE s.organization_id = ? AND s.archived_at IS NULL`
+	args := []any{orgID}
+
+	if !admin && !orgAdmin {
+		if !isMember {
+			return nil, nil
+		}
+		sqlQuery += `
+		AND (
+			(
+				s.visibility = '` + SubjectVisibilityNormal + `'
+				AND NOT EXISTS (SELECT 1 FROM subject_members sm0 WHERE sm0.subject_id = s.id)
+				AND NOT EXISTS (SELECT 1 FROM team_subject_roles tsr0 WHERE tsr0.subject_id = s.id)
+			)
+			OR EXISTS (
+				SELECT 1 FROM subject_members sm
+				WHERE sm.subject_id = s.id AND sm.user_id = ?
+			)
+			OR EXISTS (
+				SELECT 1 FROM team_subject_roles tsr
+				INNER JOIN team_members tm ON tm.team_id = tsr.team_id
+				INNER JOIN organization_teams ot ON ot.id = tsr.team_id
+				WHERE tsr.subject_id = s.id AND tm.user_id = ? AND ot.organization_id = ?
+			)
+		)`
+		args = append(args, userID, userID, orgID)
+	}
+
+	sqlQuery += ` ORDER BY s.name LIMIT ?`
+	args = append(args, limit)
+
+	rows, err := s.db.QueryContext(ctx, sqlQuery, args...)
+	if err != nil {
+		return nil, fmt.Errorf("list visible subject ids: %w", err)
+	}
+	defer rows.Close()
+
+	var ids []int64
+	for rows.Next() {
+		var id int64
+		if err := rows.Scan(&id); err != nil {
+			return nil, fmt.Errorf("scan subject id: %w", err)
+		}
+		ids = append(ids, id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate subject ids: %w", err)
+	}
+	return ids, nil
+}
+
 // UpdateSubject changes name, description and matching domains (visibility unchanged).
 func (s *Store) UpdateSubject(ctx context.Context, id int64, name, description string, domains []string) error {
 	sub, err := s.SubjectByID(ctx, id)

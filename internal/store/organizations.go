@@ -31,10 +31,18 @@ const (
 	UISubjectLabelCible  = "cible"
 	UISubjectLabelEntite = "entite"
 	UISubjectLabelAsset  = "asset"
+
+	UIRunLabelRevues        = "revues"
+	UIRunLabelListesEnCours = "listes_en_cours"
+	UIRunLabelAudits        = "audits"
+	UIRunLabelChecklists    = "checklists"
 )
 
 // ErrInvalidUISubjectLabel is returned when a subject label preset is unknown.
 var ErrInvalidUISubjectLabel = errors.New("invalid ui subject label")
+
+// ErrInvalidUIRunLabel is returned when a run label preset is unknown.
+var ErrInvalidUIRunLabel = errors.New("invalid ui run label")
 
 var (
 	organizationSlugPattern = regexp.MustCompile(`^[a-z0-9]+(?:-[a-z0-9]+)*$`)
@@ -44,6 +52,12 @@ var (
 		UISubjectLabelEntite: {},
 		UISubjectLabelAsset:  {},
 	}
+	validUIRunLabels = map[string]struct{}{
+		UIRunLabelRevues:        {},
+		UIRunLabelListesEnCours: {},
+		UIRunLabelAudits:        {},
+		UIRunLabelChecklists:    {},
+	}
 )
 
 // Organization is a multi-tenant container above subjects.
@@ -52,6 +66,7 @@ type Organization struct {
 	Name                    string
 	Slug                    string
 	UISubjectLabel          string
+	UIRunLabel              string
 	LeadsMayAssignTeams     bool
 	LeadsMayInviteMembers   bool
 	LeadsMayInviteExternals bool
@@ -95,6 +110,18 @@ func NormalizeUISubjectLabel(label string) (string, error) {
 	}
 	if _, ok := validUISubjectLabels[label]; !ok {
 		return "", ErrInvalidUISubjectLabel
+	}
+	return label, nil
+}
+
+// NormalizeUIRunLabel validates and returns a known run label preset.
+func NormalizeUIRunLabel(label string) (string, error) {
+	label = strings.TrimSpace(strings.ToLower(label))
+	if label == "" {
+		return UIRunLabelRevues, nil
+	}
+	if _, ok := validUIRunLabels[label]; !ok {
+		return "", ErrInvalidUIRunLabel
 	}
 	return label, nil
 }
@@ -203,12 +230,12 @@ func (s *Store) OrganizationBySlug(ctx context.Context, slug string) (*Organizat
 
 	var org Organization
 	err = s.db.QueryRowContext(ctx, `
-		SELECT id, name, slug, ui_subject_label,
+		SELECT id, name, slug, ui_subject_label, ui_run_label,
 		       leads_may_assign_teams, leads_may_invite_members, leads_may_invite_externals,
 		       created_at, created_by
 		FROM organizations WHERE slug = ?
 	`, slug).Scan(
-		&org.ID, &org.Name, &org.Slug, &org.UISubjectLabel,
+		&org.ID, &org.Name, &org.Slug, &org.UISubjectLabel, &org.UIRunLabel,
 		&org.LeadsMayAssignTeams, &org.LeadsMayInviteMembers, &org.LeadsMayInviteExternals,
 		&org.CreatedAt, &org.CreatedBy,
 	)
@@ -226,12 +253,12 @@ func (s *Store) OrganizationBySlug(ctx context.Context, slug string) (*Organizat
 func (s *Store) OrganizationByID(ctx context.Context, id int64) (*Organization, error) {
 	var org Organization
 	err := s.db.QueryRowContext(ctx, `
-		SELECT id, name, slug, ui_subject_label,
+		SELECT id, name, slug, ui_subject_label, ui_run_label,
 		       leads_may_assign_teams, leads_may_invite_members, leads_may_invite_externals,
 		       created_at, created_by
 		FROM organizations WHERE id = ?
 	`, id).Scan(
-		&org.ID, &org.Name, &org.Slug, &org.UISubjectLabel,
+		&org.ID, &org.Name, &org.Slug, &org.UISubjectLabel, &org.UIRunLabel,
 		&org.LeadsMayAssignTeams, &org.LeadsMayInviteMembers, &org.LeadsMayInviteExternals,
 		&org.CreatedAt, &org.CreatedBy,
 	)
@@ -260,6 +287,28 @@ func (s *Store) UpdateOrganizationUISubjectLabel(ctx context.Context, organizati
 	n, err := res.RowsAffected()
 	if err != nil {
 		return fmt.Errorf("update organization ui subject label rows: %w", err)
+	}
+	if n == 0 {
+		return ErrOrganizationNotFound
+	}
+	return nil
+}
+
+// UpdateOrganizationUIRunLabel sets the org-wide run UI label preset.
+func (s *Store) UpdateOrganizationUIRunLabel(ctx context.Context, organizationID int64, label string) error {
+	normalized, err := NormalizeUIRunLabel(label)
+	if err != nil {
+		return err
+	}
+	res, err := s.db.ExecContext(ctx, `
+		UPDATE organizations SET ui_run_label = ? WHERE id = ?
+	`, normalized, organizationID)
+	if err != nil {
+		return fmt.Errorf("update organization ui run label: %w", err)
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("update organization ui run label rows: %w", err)
 	}
 	if n == 0 {
 		return ErrOrganizationNotFound
@@ -349,7 +398,7 @@ func (s *Store) OrganizationMemberRole(ctx context.Context, organizationID, user
 // ListUserOrganizations returns organizations a user belongs to.
 func (s *Store) ListUserOrganizations(ctx context.Context, userID int64) ([]OrganizationMembership, error) {
 	rows, err := s.db.QueryContext(ctx, `
-		SELECT o.id, o.name, o.slug, o.ui_subject_label,
+		SELECT o.id, o.name, o.slug, o.ui_subject_label, o.ui_run_label,
 		       o.leads_may_assign_teams, o.leads_may_invite_members, o.leads_may_invite_externals,
 		       o.created_at, o.created_by, om.role, om.created_at
 		FROM organization_members om
@@ -370,6 +419,7 @@ func (s *Store) ListUserOrganizations(ctx context.Context, userID int64) ([]Orga
 			&m.Organization.Name,
 			&m.Organization.Slug,
 			&m.Organization.UISubjectLabel,
+			&m.Organization.UIRunLabel,
 			&m.Organization.LeadsMayAssignTeams,
 			&m.Organization.LeadsMayInviteMembers,
 			&m.Organization.LeadsMayInviteExternals,

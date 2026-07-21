@@ -1,0 +1,4 @@
+/* Variables + anti-FOUC only — no html/body reset, no @font-face.
+   Prefer this entry when the host owns document styles (e.g. Go MPA shells). */
+@import "./reference.css";
+@import "./semantic.css";

@@ -21,6 +21,9 @@ const (
 	seedMarkerV2       = "demo_seed_v2"
 	seedMarkerV3       = "demo_seed_v3"
 	seedMarkerV4       = "demo_seed_v4"
+	seedMarkerV5       = "demo_seed_v5"
+	seedMarkerV6       = "demo_seed_v6"
+	seedMarkerV7       = "demo_seed_v7"
 	targetSubjectCount = 100
 	bulkTemplateCount  = 25
 )
@@ -112,6 +115,42 @@ func main() {
 		fmt.Printf("Phase v4 : %d modèles et %d revues ajoutés.\n", templates, runs)
 		ran++
 	}
+	if !hasSeedMarker(ctx, st, seedMarkerV5) {
+		if err := seedSoloUser(ctx, st); err != nil {
+			slog.Error("seed v5 failed", "err", err)
+			os.Exit(1)
+		}
+		if err := markSeeded(ctx, st, seedMarkerV5); err != nil {
+			slog.Error("seed marker v5", "err", err)
+			os.Exit(1)
+		}
+		fmt.Println("Phase v5 : utilisateur solo (membre Default + sujet privé).")
+		ran++
+	}
+	if !hasSeedMarker(ctx, st, seedMarkerV6) {
+		if err := seedParticulierUser(ctx, st); err != nil {
+			slog.Error("seed v6 failed", "err", err)
+			os.Exit(1)
+		}
+		if err := markSeeded(ctx, st, seedMarkerV6); err != nil {
+			slog.Error("seed marker v6", "err", err)
+			os.Exit(1)
+		}
+		fmt.Println("Phase v6 : particulier isolé (mini-org + UI simplifiée).")
+		ran++
+	}
+	if !hasSeedMarker(ctx, st, seedMarkerV7) {
+		if err := seedParticulierLifestyleTemplates(ctx, st); err != nil {
+			slog.Error("seed v7 failed", "err", err)
+			os.Exit(1)
+		}
+		if err := markSeeded(ctx, st, seedMarkerV7); err != nil {
+			slog.Error("seed marker v7", "err", err)
+			os.Exit(1)
+		}
+		fmt.Println("Phase v7 : modèles particulier (vacances, courses…).")
+		ran++
+	}
 	if ran == 0 {
 		fmt.Println("Base déjà à jour. Rien à faire.")
 		return
@@ -143,7 +182,7 @@ func resolveAdmin(ctx context.Context, st *store.Store, email string) (*store.Us
 	if err == nil {
 		return user, nil
 	}
-	if !errors.Is(err, sql.ErrNoRows) {
+	if !errors.Is(err, store.ErrUserNotFound) {
 		return nil, err
 	}
 
@@ -275,6 +314,166 @@ func seedV1(ctx context.Context, st *store.Store, admin *store.User) error {
 		return fmt.Errorf("complete run: %w", err)
 	}
 
+	return nil
+}
+
+// seedSoloUser adds a solo demo user in Default org with a private personal subject (no team).
+func seedSoloUser(ctx context.Context, st *store.Store) error {
+	solo, err := st.UpsertGitHubUser(ctx, 9004, "solo", "solo@example.com", "Camille Solo", "", auth.RoleEditor)
+	if err != nil {
+		return fmt.Errorf("solo user: %w", err)
+	}
+	defaultOrg, err := st.OrganizationBySlug(ctx, "default")
+	if err != nil {
+		return err
+	}
+	if err = st.AddOrganizationMember(ctx, defaultOrg.ID, solo.ID, store.OrgRoleMember); err != nil {
+		return fmt.Errorf("org member solo: %w", err)
+	}
+
+	personal, err := st.CreateSubjectWithVisibility(
+		ctx,
+		"Mon usage perso",
+		"Sujet privé pour un usage solo / particulier — invisible sans grant.",
+		solo.ID,
+		[]string{"perso"},
+		store.SubjectVisibilityPrivate,
+	)
+	if err != nil {
+		return fmt.Errorf("private subject: %w", err)
+	}
+	if err = st.SetSubjectTags(ctx, personal.ID, []string{"solo", "privé"}); err != nil {
+		return fmt.Errorf("tags perso: %w", err)
+	}
+
+	tpl, _, err := st.CreateChecklistTemplate(ctx, "Revue perso", solo.ID, []string{"perso"}, []store.TemplateItemInput{
+		{Section: "Quotidien", Label: "Sauvegarde effectuée", Required: true},
+		{Section: "Quotidien", Label: "Mises à jour appliquées", Required: true},
+		{Section: "Sécurité", Label: "Mot de passe gestionnaire à jour", Required: false},
+	})
+	if err != nil {
+		return fmt.Errorf("template perso: %w", err)
+	}
+
+	run, err := st.CreateChecklistRun(ctx, personal.ID, tpl.ID, solo.ID)
+	if err != nil {
+		return fmt.Errorf("solo run: %w", err)
+	}
+	if err = st.StartRun(ctx, run.ID); err != nil {
+		return fmt.Errorf("start solo run: %w", err)
+	}
+	return nil
+}
+
+// seedParticulierUser creates an isolated mini-org for a particular (not in Default).
+func seedParticulierUser(ctx context.Context, st *store.Store) error {
+	user, err := st.UpsertGitHubUser(ctx, 9005, "particulier", "particulier@example.com", "Camille Particulier", "", auth.RoleEditor)
+	if err != nil {
+		return fmt.Errorf("particulier user: %w", err)
+	}
+
+	org, err := st.CreateOrganization(ctx, "Perso Camille", "perso-camille", user.ID)
+	if err != nil {
+		return fmt.Errorf("particulier org: %w", err)
+	}
+	if err = st.UpdateOrganizationUIRunLabel(ctx, org.ID, store.UIRunLabelListesEnCours); err != nil {
+		return fmt.Errorf("particulier ui_run_label: %w", err)
+	}
+	if err = st.AddOrganizationMember(ctx, org.ID, user.ID, store.OrgRoleOwner); err != nil {
+		return fmt.Errorf("particulier org owner: %w", err)
+	}
+
+	orgCtx := orgctx.WithOrganizationID(ctx, org.ID)
+	if err = st.InsertAllowedEmail(orgCtx, user.Email, auth.RoleEditor); err != nil {
+		return fmt.Errorf("particulier whitelist: %w", err)
+	}
+
+	home, err := st.CreateSubjectWithVisibility(
+		orgCtx,
+		"Chez moi",
+		"",
+		user.ID,
+		nil,
+		store.SubjectVisibilityPrivate,
+	)
+	if err != nil {
+		return fmt.Errorf("particulier subject: %w", err)
+	}
+
+	tpl, _, err := st.CreateChecklistTemplate(orgCtx, "Check rapide", user.ID, nil, []store.TemplateItemInput{
+		{Section: "Base", Label: "C'est fait", Required: true},
+		{Section: "Base", Label: "Rien d'urgent", Required: false},
+	})
+	if err != nil {
+		return fmt.Errorf("particulier template: %w", err)
+	}
+
+	run, err := st.CreateChecklistRun(orgCtx, home.ID, tpl.ID, user.ID)
+	if err != nil {
+		return fmt.Errorf("particulier run: %w", err)
+	}
+	if err = st.StartRun(orgCtx, run.ID); err != nil {
+		return fmt.Errorf("start particulier run: %w", err)
+	}
+	return nil
+}
+
+// seedParticulierLifestyleTemplates adds everyday checklist models for the particulier org.
+func seedParticulierLifestyleTemplates(ctx context.Context, st *store.Store) error {
+	user, err := st.UserByEmail(ctx, "particulier@example.com")
+	if err != nil {
+		return fmt.Errorf("particulier user: %w", err)
+	}
+	org, err := st.OrganizationBySlug(ctx, "perso-camille")
+	if err != nil {
+		return fmt.Errorf("particulier org: %w", err)
+	}
+	orgCtx := orgctx.WithOrganizationID(ctx, org.ID)
+
+	specs := []struct {
+		name  string
+		items []store.TemplateItemInput
+	}{
+		{
+			name: "Vacances",
+			items: []store.TemplateItemInput{
+				{Section: "Avant le départ", Label: "Billets / réservations confirmés", Required: true},
+				{Section: "Avant le départ", Label: "Papiers d'identité à jour", Required: true},
+				{Section: "Avant le départ", Label: "Arrêt courrier / voisins prévenus", Required: false},
+				{Section: "Valise", Label: "Vêtements adaptés à la météo", Required: true},
+				{Section: "Valise", Label: "Chargeurs et adaptateurs", Required: true},
+				{Section: "Valise", Label: "Trousse de toilette / médicaments", Required: true},
+				{Section: "Maison", Label: "Électricité / eau / gaz sécurisés", Required: true},
+				{Section: "Maison", Label: "Plantes arrosées ou confiées", Required: false},
+			},
+		},
+		{
+			name: "Courses",
+			items: []store.TemplateItemInput{
+				{Section: "Frais", Label: "Fruits et légumes", Required: false},
+				{Section: "Frais", Label: "Produits laitiers", Required: false},
+				{Section: "Frais", Label: "Pain / viennoiseries", Required: false},
+				{Section: "Épicerie", Label: "Féculents (pâtes, riz…)", Required: false},
+				{Section: "Épicerie", Label: "Conserves et bocaux", Required: false},
+				{Section: "Maison", Label: "Produits ménagers", Required: false},
+				{Section: "Maison", Label: "Hygiène", Required: false},
+			},
+		},
+		{
+			name: "Week-end",
+			items: []store.TemplateItemInput{
+				{Section: "Préparation", Label: "Activités prévues", Required: false},
+				{Section: "Préparation", Label: "Courses du week-end faites", Required: false},
+				{Section: "Maison", Label: "Linge / ménage de base", Required: false},
+			},
+		},
+	}
+
+	for _, spec := range specs {
+		if _, _, err = st.CreateChecklistTemplate(orgCtx, spec.name, user.ID, nil, spec.items); err != nil {
+			return fmt.Errorf("template %q: %w", spec.name, err)
+		}
+	}
 	return nil
 }
 

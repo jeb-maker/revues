@@ -4,16 +4,32 @@
 <section class="card">
   <h2>Mode démo</h2>
   <p class="muted"><code>REVUES_DEV_AUTH</code> est actif sur <strong>127.0.0.1</strong> uniquement — la connexion GitHub n'est pas requise.</p>
-  <p><a class="button" href="/revues">Entrer sans GitHub</a></p>
+  <p><mb-button href="/revues">Entrer comme admin démo</mb-button></p>
+  {{if .DevAuthUsers}}
+  <h3>Se connecter en tant que</h3>
+  <ul class="item-list">
+    {{range .DevAuthUsers}}
+    <li>
+      <form method="post" action="/auth/dev/login" class="inline-form">
+        <input type="hidden" name="user_id" value="{{.ID}}">
+        <mb-button type="submit" variant="secondary">
+          {{if .DisplayName}}{{.DisplayName}}{{else}}{{.Login}}{{end}}
+          <span class="muted">({{.Login}} · {{formatRole .Role}})</span>
+        </mb-button>
+      </form>
+    </li>
+    {{end}}
+  </ul>
+  {{end}}
 </section>
 {{else}}
+<div class="content-inset">
 <p>Connectez-vous avec votre compte GitHub pour accéder à Revues.</p>
 {{if .LoginError}}
-<div class="login-alert" role="alert">
-  <p>{{.LoginError}}</p>
-</div>
+<mb-alert variant="danger">{{.LoginError}}</mb-alert>
 {{end}}
-<p><a class="button" href="/auth/github/start">Se connecter avec GitHub</a></p>
+<p><mb-button href="/auth/github/start">Se connecter avec GitHub</mb-button></p>
+</div>
 {{end}}
 {{template "layout_end" .}}
 {{end}}

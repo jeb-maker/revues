@@ -70,17 +70,34 @@ if [[ -f go.mod ]]; then
 
   step "Taille assets static"
   if [[ -d web/static ]]; then
-    js_size=$(find web/static -name '*.js' -exec cat {} + 2>/dev/null | wc -c || echo 0)
+    # App JS budget (15 KiB): first-party scripts only.
+    # Exclude web/static/vendor/ (e.g. @jeb-maker/reports, @jeb-maker/mb + Lit) from this sum.
+    js_size=$(find web/static \( -path 'web/static/vendor' -o -path 'web/static/vendor/*' \) -prune -o -name '*.js' -type f -print0 2>/dev/null | xargs -0 cat 2>/dev/null | wc -c || echo 0)
     if [[ "$js_size" -gt 15360 ]]; then
-      fail "JS total $js_size octets > 15 Ko"
+      fail "JS total $js_size octets > 15 Ko (hors vendor/)"
     fi
-    css_size=$(find web/static -name '*.css' -exec cat {} + 2>/dev/null | wc -c || echo 0)
-    if [[ "$css_size" -gt 30720 ]]; then
-      fail "CSS total $css_size octets > 30 Ko"
+    # CSS découpé : core (app.css) léger pour le parcours commun ; run/editor à la demande.
+    # Vérité 3G = gzip par fichier (somme) ; brut total = garde-fou éditorial.
+    # Vendor CSS (mb tokens-core / bridge) excluded — same policy as vendor JS.
+    css_core=$(wc -c < web/static/css/app.css 2>/dev/null || echo 0)
+    if [[ "$css_core" -gt 24576 ]]; then
+      fail "CSS core app.css $css_core octets > 24 Ko"
     fi
-    css_gzip=$(find web/static -name '*.css' -exec cat {} + 2>/dev/null | gzip -c | wc -c || echo 0)
-    if [[ "$css_gzip" -gt 12288 ]]; then
-      fail "CSS gzip $css_gzip octets > 12 Ko"
+    css_core_gzip=$(gzip -c web/static/css/app.css 2>/dev/null | wc -c || echo 0)
+    if [[ "$css_core_gzip" -gt 8192 ]]; then
+      fail "CSS core gzip $css_core_gzip octets > 8 Ko"
+    fi
+    css_size=$(find web/static \( -path 'web/static/vendor' -o -path 'web/static/vendor/*' \) -prune -o -name '*.css' -type f -print0 2>/dev/null | xargs -0 cat 2>/dev/null | wc -c || echo 0)
+    if [[ "$css_size" -gt 40960 ]]; then
+      fail "CSS total $css_size octets > 40 Ko (hors vendor/)"
+    fi
+    css_gzip_sum=0
+    while IFS= read -r -d '' f; do
+      g=$(gzip -c "$f" | wc -c)
+      css_gzip_sum=$((css_gzip_sum + g))
+    done < <(find web/static \( -path 'web/static/vendor' -o -path 'web/static/vendor/*' \) -prune -o -name '*.css' -type f -print0 2>/dev/null)
+    if [[ "$css_gzip_sum" -gt 12288 ]]; then
+      fail "CSS gzip cumulé $css_gzip_sum octets > 12 Ko (hors vendor/)"
     fi
   fi
 else

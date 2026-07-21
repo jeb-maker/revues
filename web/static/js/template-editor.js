@@ -49,19 +49,22 @@
     if (help) help.value = '';
     row.querySelector('input[name="item_required"]').checked = false;
   }
+  function setDisabled(root, action, on) {
+    root.querySelectorAll('[data-action="' + action + '"]').forEach(function (btn) { btn.disabled = on; });
+  }
   function rowBtns(container) {
     var rows = container.querySelectorAll('.template-editor__point');
     rows.forEach(function (row, i) {
-      row.querySelector('[data-action="move-up"]').disabled = i === 0;
-      row.querySelector('[data-action="move-down"]').disabled = i === rows.length - 1;
-      row.querySelector('[data-action="remove"]').disabled = rows.length <= 1;
+      setDisabled(row, 'move-up', i === 0);
+      setDisabled(row, 'move-down', i === rows.length - 1);
+      setDisabled(row, 'remove', rows.length <= 1);
     });
   }
   function secBtns() {
     secs().forEach(function (sec, i, all) {
-      sec.querySelector('[data-action="section-up"]').disabled = i === 0;
-      sec.querySelector('[data-action="section-down"]').disabled = i === all.length - 1;
-      sec.querySelector('[data-action="section-remove"]').disabled = all.length <= 1;
+      setDisabled(sec, 'section-up', i === 0);
+      setDisabled(sec, 'section-down', i === all.length - 1);
+      setDisabled(sec, 'section-remove', all.length <= 1);
     });
   }
   function addPoint(sec) {

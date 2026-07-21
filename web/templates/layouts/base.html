@@ -21,8 +21,12 @@
   })();
   </script>
   <link rel="stylesheet" href="{{assetURL `/static/css/app.css`}}">
+  <link rel="stylesheet" href="{{assetURL `/static/vendor/jeb-maker-mb/tokens/tokens-core.css`}}">
+  <link rel="stylesheet" href="{{assetURL `/static/vendor/jeb-maker-mb/mb-bridge.css`}}">
+  {{block "page_styles" .}}{{end}}
+  <noscript><style>.site-nav{display:flex!important;flex-wrap:wrap}</style></noscript>
 </head>
-<body>
+<body{{if .ReportsAutoOpen}} data-reports-auto-open="1"{{end}}>
   <a class="skip-link" href="#main">Aller au contenu</a>
   <header class="site-header">
     <div class="site-header__inner">
@@ -44,8 +48,20 @@
       {{end}}
       {{template "site_nav" .}}
       <div class="header-account">
-        {{if and .CanManageOrgUsers (not .ShowOrganisationNav)}}
+        {{if and .CanManageOrgUsers (not .ShowOrganisationNav) (not .SimpleUI)}}
         <a href="/admin" class="button button-ghost button-sm">Organisation</a>
+        {{end}}
+        {{if and .DevAuth .DevAuthUsers}}
+        <form method="post" action="/auth/dev/login" class="org-switcher" title="Mode démo — changer d'utilisateur">
+          <input type="hidden" name="next" value="/revues">
+          <label class="visually-hidden" for="dev-user-switcher-select">Utilisateur de test</label>
+          <select id="dev-user-switcher-select" name="user_id">
+            {{range .DevAuthUsers}}
+            <option value="{{.ID}}"{{if eq .ID $.User.ID}} selected{{end}}>{{.Login}} ({{formatRole .Role}})</option>
+            {{end}}
+          </select>
+          <button type="submit" class="button button-ghost button-sm">Changer</button>
+        </form>
         {{end}}
         {{if .User.AvatarURL}}<img class="header-account__avatar" src="{{.User.AvatarURL}}" alt="" width="28" height="28">{{end}}
         <span class="header-account__name">{{if .User.DisplayName}}{{.User.DisplayName}}{{else}}{{.User.Login}}{{end}}</span>
@@ -108,12 +124,18 @@
   </main>
   <footer class="site-footer">
     <div class="site-footer__inner">
-      <p>Revues — gestion de check-lists pour revues qualité.</p>
+      <p>Revues — gestion de check-lists pour revues qualité.{{if .User}} · <a href="/signaler" data-reports-open>Signaler un problème</a>{{end}}</p>
     </div>
   </footer>
   </div>
   <script src="{{assetURL `/static/js/htmx.js`}}" defer></script>
   <script src="{{assetURL `/static/js/app.js`}}" defer></script>
+  <script type="module" src="{{assetURL `/static/vendor/jeb-maker-mb/mb-boot.js`}}"></script>
+  {{if .User}}
+  <script type="application/json" id="revues-reports-meta">{{toJSON .ReportsMetadata}}</script>
+  <script src="{{assetURL `/static/vendor/jeb-maker-reports/reports.min.js`}}" defer></script>
+  <script src="{{assetURL `/static/vendor/jeb-maker-reports/init.js`}}" defer></script>
+  {{end}}
   {{block "page_scripts" .}}{{end}}
 </body>
 </html>

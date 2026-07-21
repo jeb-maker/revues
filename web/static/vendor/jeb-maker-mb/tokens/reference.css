@@ -1,0 +1,35 @@
+:root {
+  /* Palette — reference */
+  --mb-ref-ink-950: #14201b;
+  --mb-ref-ink-800: #24352e;
+  --mb-ref-ink-600: #4a5f55;
+  --mb-ref-ink-400: #7d9187;
+  --mb-ref-paper-50: #f3f6f2;
+  --mb-ref-paper-100: #e7eee8;
+  --mb-ref-paper-0: #fbfcf9;
+  --mb-ref-moss-700: #1f6b4a;
+  --mb-ref-moss-600: #268056;
+  --mb-ref-moss-100: #d8f0e4;
+  --mb-ref-coral-700: #a33b2c;
+  --mb-ref-coral-100: #f8e0db;
+  --mb-ref-amber-700: #8a5a10;
+  --mb-ref-amber-100: #f7ecd7;
+  --mb-ref-sky-700: #1d5f7a;
+  --mb-ref-sky-100: #d9eef6;
+
+  /* Scales */
+  --mb-ref-space-1: 0.25rem;
+  --mb-ref-space-2: 0.5rem;
+  --mb-ref-space-3: 0.75rem;
+  --mb-ref-space-4: 1rem;
+  --mb-ref-space-5: 1.5rem;
+  --mb-ref-space-6: 2rem;
+  --mb-ref-space-8: 3rem;
+
+  --mb-ref-radius-sm: 0.25rem;
+  --mb-ref-radius-md: 0.5rem;
+  --mb-ref-radius-lg: 0.875rem;
+
+  --mb-ref-font-display: "Fraunces", "Iowan Old Style", "Palatino Linotype", Palatino, serif;
+  --mb-ref-font-body: "Source Sans 3", "Source Sans Pro", "Segoe UI", sans-serif;
+}

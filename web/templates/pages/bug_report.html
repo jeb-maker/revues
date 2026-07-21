@@ -1,0 +1,74 @@
+{{define "bug_report"}}
+{{template "layout_start" .}}
+
+{{if .Message}}<mb-alert variant="success">{{.Message}}</mb-alert>{{end}}
+{{if .Error}}<mb-alert variant="danger">{{.Error}}</mb-alert>{{end}}
+
+{{if .ReturnURL}}
+<p class="muted content-inset"><a href="{{.ReturnURL}}">Retour à la page précédente</a></p>
+{{end}}
+
+<section class="card">
+  <p>Le signalement s’ouvre dans le widget (bouton «&nbsp;Signaler un problème&nbsp;» en bas de page, ou ci-dessous).</p>
+  <p class="form-actions">
+    {{/* reports init binds a[data-reports-open] — keep native anchor until host adapter supports CE */}}
+    <a class="button" href="/signaler" data-reports-open>Ouvrir le signalement</a>
+  </p>
+  <p class="muted field-hint">Sans JavaScript, utilisez le formulaire de secours ci-dessous.</p>
+</section>
+
+<noscript>
+<section class="card">
+  <p class="muted">Décrivez le problème rencontré. Le contexte de session ci-dessous sera joint automatiquement.</p>
+  <form method="post" action="/signaler" class="stack-form">
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+    <input type="hidden" name="page_url" value="{{.PageURL}}">
+    <label>
+      Titre
+      <span class="field-hint">Résumé court du problème (obligatoire).</span>
+      <input type="text" name="title" required maxlength="200" value="{{.TitleValue}}" autocomplete="off">
+    </label>
+    <label>
+      Description
+      <span class="field-hint">Ce qui s'est passé, ce que vous attendiez (obligatoire).</span>
+      <textarea name="description" required maxlength="8000" rows="5">{{.Description}}</textarea>
+    </label>
+    <label>
+      Étapes pour reproduire
+      <span class="field-hint">Optionnel — numérotez les étapes si possible.</span>
+      <textarea name="steps" maxlength="4000" rows="4">{{.Steps}}</textarea>
+    </label>
+    <label>
+      Gravité
+      <select name="severity">
+        <option value="low"{{if eq .Severity "low"}} selected{{end}}>Faible</option>
+        <option value="normal"{{if or (eq .Severity "normal") (eq .Severity "")}} selected{{end}}>Normale</option>
+        <option value="high"{{if eq .Severity "high"}} selected{{end}}>Élevée</option>
+      </select>
+    </label>
+    <div class="form-actions">
+      <mb-button type="submit">Envoyer le signalement</mb-button>
+    </div>
+  </form>
+</section>
+
+<section class="card" aria-labelledby="bug-context-heading">
+  <h2 id="bug-context-heading">Contexte joint automatiquement</h2>
+  <p class="field-hint">Ces informations sont capturées côté serveur (non modifiables) pour faciliter le diagnostic.</p>
+  <ul class="item-list">
+    <li><span class="muted">Page</span> — {{if .Context.PageURL}}<code>{{.Context.PageURL}}</code>{{else}}<span class="muted">non disponible</span>{{end}}</li>
+    <li><span class="muted">Utilisateur</span> — #{{.Context.UserID}} {{.Context.UserLogin}}{{if .Context.UserDisplayName}} ({{.Context.UserDisplayName}}){{end}}{{if .Context.UserEmail}} · {{.Context.UserEmail}}{{end}}</li>
+    <li><span class="muted">Rôle global</span> — {{formatRole .Context.UserRole}}</li>
+    <li><span class="muted">Organisation</span> — {{if .Context.OrgID}}#{{.Context.OrgID}} {{.Context.OrgName}}{{if .Context.OrgRole}} · {{.Context.OrgRole}}{{end}}{{else}}<span class="muted">aucune</span>{{end}}</li>
+    <li><span class="muted">Libellé revue (ui_run_label)</span> — {{if .Context.UIRunLabel}}{{.Context.UIRunLabel}}{{else}}<span class="muted">—</span>{{end}}</li>
+    <li><span class="muted">SimpleUI</span> — {{if .Context.SimpleUI}}oui{{else}}non{{end}}</li>
+    <li><span class="muted">Caps UI</span> — assign={{.Context.ShowAssign}}, tâches={{.Context.ShowMyTasks}}, sujets={{.Context.ShowSubjectColumn}}, collab={{.Context.ShowCollab}}</li>
+    <li><span class="muted">Horodatage</span> — <code>{{.Context.Timestamp}}</code></li>
+    <li><span class="muted">User-Agent</span> — <code>{{.Context.UserAgent}}</code></li>
+    <li><span class="muted">Request ID</span> — {{if .Context.RequestID}}<code>{{.Context.RequestID}}</code>{{else}}<span class="muted">—</span>{{end}}</li>
+  </ul>
+</section>
+</noscript>
+
+{{template "layout_end" .}}
+{{end}}

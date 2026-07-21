@@ -18,6 +18,7 @@ import (
 	adminusers "github.com/jeb-maker/revues/internal/features/admin/users"
 	adminwebhooks "github.com/jeb-maker/revues/internal/features/admin/webhooks"
 	authhandler "github.com/jeb-maker/revues/internal/features/auth"
+	"github.com/jeb-maker/revues/internal/features/bugreports"
 	"github.com/jeb-maker/revues/internal/features/checklisttemplates"
 	home "github.com/jeb-maker/revues/internal/features/home"
 	mytasks "github.com/jeb-maker/revues/internal/features/mytasks"
@@ -173,6 +174,11 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, error) {
 		SessionSecret: deps.Config.SessionSecret,
 		SecureCookies: deps.Config.SecureCookies(),
 	}}
+	bugReports := &bugreports.BugReports{Deps: bugreports.Deps{
+		Templates:     tpl,
+		SessionSecret: deps.Config.SessionSecret,
+		ReportsDir:    bugreports.ReportsDirFromAttachments(deps.Config.AttachmentsDir),
+	}}
 
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
@@ -180,6 +186,7 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, error) {
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
+	r.Use(middleware.Compress(5))
 	r.Use(DevNoCache(deps.Config.Env))
 	r.Use(appmiddleware.LoadUser(st))
 	r.Use(appmiddleware.EnsureDevAuth(st, sessions, deps.Config.DevAuthEnabled(), deps.Config.DevAuthEmail))
@@ -199,6 +206,7 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, error) {
 	r.Get("/login", authHandler.Login)
 	r.Get("/auth/github/start", authHandler.StartGitHub)
 	r.Get("/auth/github/callback", authHandler.Callback)
+	r.Post("/auth/dev/login", authHandler.DevLogin)
 	r.Post("/logout", authHandler.Logout)
 
 	r.Group(func(r chi.Router) {
@@ -232,6 +240,7 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, error) {
 		r.Post("/revues/nouvelle", subjectsHandler.WizardNouvelleCreate)
 		r.Get("/runs/{id}", runsHandler.Show)
 		r.Get("/runs/{id}/export.csv", runsHandler.ExportCSV)
+		r.Get("/runs/{id}/export/preuve.zip", runsHandler.ExportEvidence)
 		r.Post("/runs/{id}/export/notion", runsHandler.ExportNotion)
 		r.Get("/runs/{id}/items/{itemId}", runsHandler.ShowItem)
 		r.Post("/runs/{id}/items/{itemId}", runsHandler.UpdateItem)
@@ -243,6 +252,9 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, error) {
 		r.Post("/runs/{id}/start", runsHandler.Start)
 		r.Post("/runs/{id}/complete", runsHandler.Complete)
 		r.Get("/mes-taches", myTasks.List)
+		r.Get("/signaler", bugReports.Form)
+		r.Post("/signaler", bugReports.Create)
+		r.Post("/signaler/api", bugReports.CreateAPI)
 		r.Get("/modeles", checklistTemplates.IndexAll)
 		r.Get("/modeles/new", checklistTemplates.NewForm)
 		r.Post("/modeles", checklistTemplates.Create)

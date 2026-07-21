@@ -27,7 +27,9 @@ Remplace Excel, fils de mails et check-lists éparpillées, sans devenir une usi
 | Métrique | Cible |
 |----------|-------|
 | HTML par page | < 50 Ko |
-| CSS | < 30 Ko brut, < 12 Ko gzip |
+| CSS core (`app.css`) | < 24 Ko brut, < 8 Ko gzip |
+| CSS total (tous fichiers) | < 40 Ko brut, < 12 Ko gzip cumulé |
+| CSS page (core + feuille dédiée) | chargé à la demande (`run.css`, `editor.css`) |
 | JS / HTMX | < 15 Ko |
 | Requêtes par page | ≤ 8 |
 | RAM serveur | < 128 Mo en charge normale |
@@ -204,15 +206,32 @@ Emails déclenchés : revue terminée, point assigné, échéance J-1.
 
 ---
 
+## Paliers UI (progressive disclosure)
+
+**Même produit** — complexité révélée par la structure d’usage, pas un mode « lite » forké.  
+Détail runtime : `.cursor/skills/revues-ui-audit/decisions.md`. Backlog : [issues/thematic-roadmap-epic.md](./issues/thematic-roadmap-epic.md).
+
+| Palier | Déclencheur | Surface |
+|--------|-------------|---------|
+| **P0 — Particulier** | `SimpleUI` (1 org · 1 membre · ≤1 sujet · whitelist ≤1 · pas admin global) | Revues · Listes ; cocher ; CSV ; pas assign / tâches / collab |
+| **P1 — Duo** | ≥2 **membres** org | + Assignation · Mes tâches · collab fiche sujet |
+| **P2 — Multi-sujet** | ≥2 sujets visibles | + Colonne Sujet · domaines · vocabulaire « Modèles » |
+| **P3 — Conformité** | Intégration configurée / preuve scellée | Notion/Jira/webhooks/preuve **capability-gated** (pas masqués par SimpleUI) |
+
+Principes : unlock don’t fork · vocabulaire suit le palier (Listes → Modèles) · déclencheur structurel (pas de toggle « mode pro »).
+
+---
+
 ## Roadmap en 3 vagues
 
-Voir [ROADMAP.md](./ROADMAP.md), [DELEGATION.md](./DELEGATION.md), [REVIEW_ADVERSE.md](./REVIEW_ADVERSE.md), [AGENTS.md](../AGENTS.md) et les [issues GitHub](https://github.com/jeb-maker/revues/issues).
+Voir [ROADMAP.md](./ROADMAP.md) (y compris **vagues thématiques post-cœur**), [DELEGATION.md](./DELEGATION.md), [REVIEW_ADVERSE.md](./REVIEW_ADVERSE.md), [AGENTS.md](../AGENTS.md) et les [issues GitHub](https://github.com/jeb-maker/revues/issues).
 
 | Vague | Objectif | Livrable clé |
 |-------|----------|--------------|
 | **1 — Cœur** | App utilisable sans intégrations | Revues complètes, auth, export CSV |
 | **2 — Admin & intégrations** | Brancher la stack existante | SMTP, Jira, webhooks |
 | **3 — Companion** | Archivage & fichiers | Notion, pièces jointes |
+| **Thématique** | Adoption → preuve → vision | Voir ROADMAP § vagues thématiques |
 
 ---
 

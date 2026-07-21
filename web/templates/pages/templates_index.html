@@ -2,6 +2,7 @@
 {{template "layout_start" .}}
 {{if and (not .Templates) (not .HasActiveFilters)}}
 <section class="empty-state">
+  {{if .ShowSubjectColumn}}
   <h2>Aucun modèle</h2>
   <p class="muted">Aucun modèle actif pour l'instant.</p>
   {{if .CanManage}}
@@ -9,39 +10,64 @@
     <a class="button" href="/modeles/new">Créer un modèle</a>
   </div>
   {{end}}
+  {{else}}
+  <h2>Aucune liste</h2>
+  <p class="muted">Créez une liste (vacances, courses…) pour lancer des revues.</p>
+  {{if .CanManage}}
+  <div class="empty-state-actions">
+    <a class="button" href="/modeles/new">Créer une liste</a>
+  </div>
+  {{end}}
+  {{end}}
 </section>
 {{else}}
 <section class="card">
   {{if .Message}}<p class="success" role="status">{{.Message}}</p>{{end}}
+  {{if not .ShowSubjectColumn}}
+  <p class="muted">Listes réutilisables — lancez une revue à partir d'une liste.</p>
+  {{end}}
   <div class="list-toolbar">
     <form method="get" action="/modeles" class="list-toolbar__form filter-form filter-form--inline">
+      {{if .ShowSubjectColumn}}
       <input class="list-toolbar__search toolbar-control" type="search" id="filter-query" name="q" value="{{.FilterQuery}}" placeholder="Rechercher un modèle ou un domaine…" aria-label="Rechercher un modèle ou un domaine">
+      {{else}}
+      <input class="list-toolbar__search toolbar-control" type="search" id="filter-query" name="q" value="{{.FilterQuery}}" placeholder="Rechercher une liste…" aria-label="Rechercher une liste">
+      {{end}}
       <button type="submit" class="button-secondary toolbar-control">Filtrer</button>
       {{if .HasActiveFilters}}<a href="/modeles" class="button-ghost toolbar-control">Effacer</a>{{end}}
     </form>
     <div class="list-toolbar__actions">
-      {{if .CanManage}}<a class="button-secondary list-toolbar__action toolbar-control" href="/modeles/notion-import" title="Importer depuis Notion">Importer</a>{{end}}
-      {{if .CanManage}}<a class="button list-toolbar__action toolbar-control" href="/modeles/new" title="Nouveau modèle">Créer</a>{{end}}
+      {{if and .CanManage .NotionConfigured (not .SimpleUI)}}<a class="button-secondary list-toolbar__action toolbar-control" href="/modeles/notion-import" title="Importer depuis Notion">Importer</a>{{end}}
+      {{if .CanManage}}
+      <a class="button list-toolbar__action toolbar-control" href="/modeles/new" title="{{if .ShowSubjectColumn}}Nouveau modèle{{else}}Nouvelle liste{{end}}">Créer</a>
+      {{end}}
     </div>
   </div>
   <div class="table-scroll">
-  <table class="data-table table-sticky">
+  <table class="data-table data-table--cards table-sticky">
     <thead>
-      <tr><th scope="col">Modèle</th><th scope="col">Domaines</th><th scope="col" class="data-table__col--center">Version</th><th scope="col" class="data-table__col--center">Points</th></tr>
+      <tr>
+        <th scope="col">{{if .ShowSubjectColumn}}Modèle{{else}}Liste{{end}}</th>
+        {{if .ShowSubjectColumn}}<th scope="col">Domaines</th>{{end}}
+        {{if .ShowSubjectColumn}}<th scope="col" class="data-table__col--center">Version</th>{{end}}
+        <th scope="col" class="data-table__col--center">Points</th>
+      </tr>
     </thead>
     <tbody>
       {{if .Templates}}
       {{range .Templates}}
       <tr>
-        <td><a href="/modeles/{{.ID}}">{{.Name}}</a></td>
-        <td>{{if .Tags}}{{range $i, $tag := .Tags}}{{if $i}}, {{end}}<span class="tag">{{$tag}}</span>{{end}}{{else}}<span class="muted">tous {{$.Labels.Subject.Plural | lowerFirst}}</span>{{end}}</td>
-        <td class="data-table__col--center">v{{.LatestVersion}}</td>
-        <td class="data-table__col--center">{{.ItemCount}}</td>
+        <td class="data-row__primary"><a href="/modeles/{{.ID}}">{{.Name}}</a></td>
+        {{if $.ShowSubjectColumn}}
+        <td data-label="Domaines">{{if .Tags}}{{range $i, $tag := .Tags}}{{if $i}}, {{end}}<span class="tag">{{$tag}}</span>{{end}}{{else}}<span class="muted">tous {{$.Labels.Subject.Plural | lowerFirst}}</span>{{end}}</td>
+        <td class="data-table__col--center" data-label="Version">v{{.LatestVersion}}</td>
+        {{end}}
+        <td class="data-table__col--center list-card__meta">{{.ItemCount}} point{{if ne .ItemCount 1}}s{{end}}</td>
       </tr>
       {{end}}
       {{else}}
       <tr>
-        <td colspan="4" class="muted">Aucun modèle pour cette recherche. <a href="/modeles">Effacer</a></td>
+        <td colspan="{{if $.ShowSubjectColumn}}4{{else}}2{{end}}" class="muted">{{if $.ShowSubjectColumn}}Aucun modèle{{else}}Aucune liste{{end}} pour cette recherche. <a href="/modeles">Effacer</a></td>
       </tr>
       {{end}}
     </tbody>

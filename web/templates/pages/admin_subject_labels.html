@@ -1,7 +1,7 @@
 {{define "admin_subject_labels"}}
 {{template "layout_start" .}}
 <section class="card">
-  <p class="muted">Choisissez le libellé affiché dans l’interface pour désigner ce que vous révisez (sujet, cible, entité…).</p>
+  <p class="muted">Choisissez les libellés affichés dans l’interface : ce que vous révisez (sujet, cible…) et le nom des instances en cours (revues, listes…).</p>
 </section>
 
 {{template "admin_nav" .}}
@@ -14,18 +14,27 @@
 {{end}}
 
 <section class="card">
-  <h2>Libellé {{.Labels.Subject.Singular | lowerFirst}}</h2>
+  <h2>Libellés</h2>
   <form method="post" action="/admin/settings/labels" class="stack-form">
     <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
     <label>
-      Preset
+      Libellé {{.Labels.Subject.Singular | lowerFirst}}
       <select name="ui_subject_label" required>
         {{range .Presets}}
         <option value="{{.Value}}"{{if eq $.Current .Value}} selected{{end}}>{{.Singular}} / {{.Plural}}</option>
         {{end}}
       </select>
     </label>
-    <span class="field-hint">Ce choix s’applique à toute l’organisation (navigation, formulaires, fiches).</span>
+    <label>
+      Libellé des instances
+      <select name="ui_run_label" required>
+        {{range .RunPresets}}
+        <option value="{{.Value}}"{{if eq $.CurrentRun .Value}} selected{{end}}>{{.Nav}}</option>
+        {{end}}
+      </select>
+      <span class="field-hint">Navigation, titres de liste et actions « Lancer… ». Sur mobile, « Listes en cours » devient « En cours ».</span>
+    </label>
+    <span class="field-hint">Ces choix s’appliquent à toute l’organisation.</span>
     <button type="submit" class="button">Enregistrer</button>
   </form>
 </section>
