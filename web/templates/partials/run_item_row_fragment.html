@@ -12,32 +12,32 @@
   </td>
   <td class="run-item-row__status data-table__col--center" data-label="Statut">
     {{if and (eq .RunStatus "in_progress") .CanCheck}}
-    <select name="status" form="item-form-{{.Item.ID}}" required class="status-select" aria-label="Statut">
-      <option value="pending" {{if eq .Item.Status "pending"}}selected{{end}}>{{formatItemStatus "pending"}}</option>
-      <option value="ok" {{if eq .Item.Status "ok"}}selected{{end}}>{{formatItemStatus "ok"}}</option>
-      <option value="nok" {{if eq .Item.Status "nok"}}selected{{end}}>{{formatItemStatus "nok"}}</option>
-      <option value="na" {{if eq .Item.Status "na"}}selected{{end}}>{{formatItemStatus "na"}}</option>
-    </select>
+    <mb-select name="status" form="item-form-{{.Item.ID}}" required density="compact" class="status-select" aria-label="Statut" value="{{.Item.Status}}">
+      <option value="pending">{{formatItemStatus "pending"}}</option>
+      <option value="ok">{{formatItemStatus "ok"}}</option>
+      <option value="nok">{{formatItemStatus "nok"}}</option>
+      <option value="na">{{formatItemStatus "na"}}</option>
+    </mb-select>
     {{else}}
-    <span class="status-badge status-{{.Item.Status}}">{{formatItemStatus .Item.Status}}</span>
+    <mb-badge variant="{{badgeVariant .Item.Status}}">{{formatItemStatus .Item.Status}}</mb-badge>
     {{end}}
   </td>
   {{if .ShowAssign}}
   <td class="run-item-row__assign" data-label="Assigné">
     {{if and (eq .RunStatus "in_progress") .CanAssign}}
-    <select name="assignee_id" form="assign-form-{{.Item.ID}}" class="assign-select" aria-label="Assigné" hx-indicator="#spinner-{{.Item.ID}}">
-      <option value="">Non assigné</option>
+    <mb-select name="assignee_id" form="assign-form-{{.Item.ID}}" density="compact" class="assign-select" aria-label="Assigné" hx-indicator="#spinner-{{.Item.ID}}" value="{{if .Item.AssignedTo.Valid}}{{.Item.AssignedTo.Int64}}{{else}}0{{end}}">
+      <option value="0">Non assigné</option>
       {{range .Members}}
-      <option value="{{.UserID}}" {{if and $.Item.AssignedTo.Valid (eq $.Item.AssignedTo.Int64 .UserID)}}selected{{end}}>{{.Login}}</option>
+      <option value="{{.UserID}}">{{.Login}}</option>
       {{end}}
-    </select>
+    </mb-select>
     {{else if .Item.AssignedLogin}}{{.Item.AssignedLogin}}{{else}}<span class="muted">—</span>{{end}}
   </td>
   {{end}}
   <td class="run-item-row__comment" data-label="Commentaire">
     {{if and (eq .RunStatus "in_progress") .CanCheck}}
     <span class="visually-hidden" id="comment-hint-{{.Item.ID}}">Contexte + impact + prochaine action (obligatoire si Non validé)</span>
-    <textarea name="comment" form="item-form-{{.Item.ID}}" rows="1" class="comment-inline{{if .Item.Comment}} is-filled{{end}}" aria-label="Commentaire" aria-describedby="comment-hint-{{.Item.ID}}" hx-indicator="#spinner-{{.Item.ID}}">{{.Item.Comment}}</textarea>
+    <mb-textarea name="comment" form="item-form-{{.Item.ID}}" rows="1" density="compact" class="comment-inline{{if .Item.Comment}} is-filled{{end}}" aria-label="Commentaire" aria-describedby="comment-hint-{{.Item.ID}}" hx-indicator="#spinner-{{.Item.ID}}" value="{{.Item.Comment}}"></mb-textarea>
     {{else if .Item.Comment}}{{.Item.Comment}}{{else}}<span class="muted">—</span>{{end}}
   </td>
   <td class="run-item-row__pj data-table__col--center{{if not .Attachment}} run-item-row__pj--empty{{end}}" data-label="PJ">
@@ -59,12 +59,12 @@
     {{if .ItemError}}<p class="error item-inline-error" role="alert">{{.ItemError}}</p>{{end}}
     {{if .AssignError}}<p class="error item-inline-error" role="alert">{{.AssignError}}</p>{{end}}
     {{if .CanCheck}}
-    <form id="item-form-{{.Item.ID}}" class="visually-hidden" hx-post="/runs/{{.RunID}}/items/{{.Item.ID}}" hx-target="#run-item-{{.Item.ID}}" hx-swap="outerHTML" hx-trigger="change from:#run-item-{{.Item.ID}} select[name=status], blur from:#run-item-{{.Item.ID}} textarea[name=comment], keydown[key=='Enter' && ctrlKey] from:#run-item-{{.Item.ID}} textarea[name=comment]">
+    <form id="item-form-{{.Item.ID}}" class="visually-hidden" hx-post="/runs/{{.RunID}}/items/{{.Item.ID}}" hx-target="#run-item-{{.Item.ID}}" hx-swap="outerHTML" hx-trigger="mb-change from:#run-item-{{.Item.ID}} mb-select[name=status], mb-change from:#run-item-{{.Item.ID}} mb-textarea[name=comment], keydown[key=='Enter' && ctrlKey] from:#run-item-{{.Item.ID}} mb-textarea[name=comment]">
       <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
     </form>
     {{end}}
     {{if .CanAssign}}
-    <form id="assign-form-{{.Item.ID}}" class="visually-hidden" hx-post="/runs/{{.RunID}}/items/{{.Item.ID}}/assign" hx-target="#run-item-{{.Item.ID}}" hx-swap="outerHTML" hx-trigger="change from:#run-item-{{.Item.ID}} select[name=assignee_id]">
+    <form id="assign-form-{{.Item.ID}}" class="visually-hidden" hx-post="/runs/{{.RunID}}/items/{{.Item.ID}}/assign" hx-target="#run-item-{{.Item.ID}}" hx-swap="outerHTML" hx-trigger="mb-change from:#run-item-{{.Item.ID}} mb-select[name=assignee_id]">
       <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
     </form>
     {{end}}

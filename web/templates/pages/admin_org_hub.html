@@ -12,13 +12,13 @@
 <section class="card">
   <h2>Accès rapide</h2>
   <div class="empty-state-actions">
-    <a class="button-secondary" href="/admin/users">Inviter</a>
-    <a class="button-secondary" href="/admin/teams">Équipes</a>
-    <a class="button-secondary" href="/admin/subjects">Mes {{.Labels.Subject.Plural | lowerFirst}}</a>
-    <a class="button-secondary" href="/admin/settings/labels">Libellé {{.Labels.Subject.Singular | lowerFirst}}</a>
-    <a class="button-secondary" href="/admin/settings/policies">Politiques</a>
+    <mb-button href="/admin/users" variant="secondary">Inviter</mb-button>
+    <mb-button href="/admin/teams" variant="secondary">Équipes</mb-button>
+    <mb-button href="/admin/subjects" variant="secondary">Mes {{.Labels.Subject.Plural | lowerFirst}}</mb-button>
+    <mb-button href="/admin/settings/labels" variant="secondary">Libellé {{.Labels.Subject.Singular | lowerFirst}}</mb-button>
+    <mb-button href="/admin/settings/policies" variant="secondary">Politiques</mb-button>
     {{if .CanManageOrgUsers}}
-    <a class="button-secondary" href="/admin/integrations">Intégrations</a>
+    <mb-button href="/admin/integrations" variant="secondary">Intégrations</mb-button>
     {{end}}
   </div>
 </section>

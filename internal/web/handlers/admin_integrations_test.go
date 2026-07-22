@@ -120,10 +120,10 @@ func TestAdminIntegrations_ShowStatus(t *testing.T) {
 			t.Errorf("body missing %q", want)
 		}
 	}
-	if !strings.Contains(body, "status-enabled") {
+	if !strings.Contains(body, `<mb-badge variant="success">Activé</mb-badge>`) {
 		t.Error("expected at least one integration marked enabled")
 	}
-	if !strings.Contains(body, "status-disabled") {
+	if !strings.Contains(body, `<mb-badge variant="neutral">Désactivé</mb-badge>`) {
 		t.Error("expected at least one integration marked disabled")
 	}
 }

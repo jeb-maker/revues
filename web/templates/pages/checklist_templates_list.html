@@ -3,8 +3,8 @@
 {{$listUI := not .ShowSubjectColumn}}
 
 <section class="card">
-  {{if .Message}}<p class="success" role="status">{{.Message}}</p>{{end}}
-  {{if .Error}}<p class="error" role="alert">{{.Error}}</p>{{end}}
+  {{if .Message}}<mb-alert variant="success">{{.Message}}</mb-alert>{{end}}
+  {{if .Error}}<mb-alert variant="danger">{{.Error}}</mb-alert>{{end}}
   {{if .ForRun}}
   {{if $listUI}}
   <p class="muted">Choisissez une liste pour lancer la revue.</p>
@@ -32,12 +32,12 @@
       {{if .ForRun}}<input type="hidden" name="for_run" value="1">{{end}}
       {{if .SelectedTemplateID}}<input type="hidden" name="template" value="{{.SelectedTemplateID}}">{{end}}
       {{if $listUI}}
-      <input class="list-toolbar__search toolbar-control" type="search" id="filter-query" name="q" value="{{.FilterQuery}}" placeholder="Rechercher une liste…" aria-label="Rechercher une liste">
+      <mb-input class="list-toolbar__search toolbar-control" type="search" density="compact" id="filter-query" name="q" value="{{.FilterQuery}}" placeholder="Rechercher une liste…" aria-label="Rechercher une liste"></mb-input>
       {{else}}
-      <input class="list-toolbar__search toolbar-control" type="search" id="filter-query" name="q" value="{{.FilterQuery}}" placeholder="Rechercher un modèle ou un domaine…" aria-label="Rechercher un modèle ou un domaine">
+      <mb-input class="list-toolbar__search toolbar-control" type="search" density="compact" id="filter-query" name="q" value="{{.FilterQuery}}" placeholder="Rechercher un modèle ou un domaine…" aria-label="Rechercher un modèle ou un domaine"></mb-input>
       {{end}}
-      <button type="submit" class="button-secondary toolbar-control">Filtrer</button>
-      {{if .HasActiveFilters}}<a href="{{subjectModelesListPath .Subject.ID .ForRun .SelectedTemplateID}}" class="button-ghost toolbar-control">Effacer</a>{{end}}
+      <mb-button type="submit" variant="secondary" class="toolbar-control">Filtrer</mb-button>
+      {{if .HasActiveFilters}}<mb-button href="{{subjectModelesListPath .Subject.ID .ForRun .SelectedTemplateID}}" variant="ghost" class="toolbar-control">Effacer</mb-button>{{end}}
     </form>
   </div>
 
@@ -86,7 +86,7 @@
   {{else}}
   <p class="muted">Aucun modèle actif ne correspond aux domaines de ce {{.Labels.Subject.Singular | lowerFirst}}.</p>
   {{end}}
-  <p><a href="/modeles" class="button">Voir les {{if $listUI}}listes{{else}}modèles{{end}}</a></p>
+  <p><mb-button href="/modeles">Voir les {{if $listUI}}listes{{else}}modèles{{end}}</mb-button></p>
   {{else}}
   {{if $listUI}}
   <p class="muted">Aucune liste active pour l'instant.</p>
@@ -94,7 +94,7 @@
   <p class="muted">Aucun modèle actif ne correspond aux domaines de ce {{.Labels.Subject.Singular | lowerFirst}}.</p>
   {{end}}
   {{if .CanManage}}
-  <p><a href="/modeles/new" class="button">{{icon "plus"}} Créer {{if $listUI}}une liste{{else}}un modèle{{end}}</a></p>
+  <p><mb-button href="/modeles/new">{{icon "plus"}} Créer {{if $listUI}}une liste{{else}}un modèle{{end}}</mb-button></p>
   {{end}}
   {{end}}
 </section>

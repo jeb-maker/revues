@@ -1,19 +1,19 @@
 {{define "checklist_template_notion_import"}}
 {{template "layout_start" .}}
-{{if .Error}}<p class="error" role="alert">{{.Error}}</p>{{end}}
+{{if .Error}}<mb-alert variant="danger">{{.Error}}</mb-alert>{{end}}
 
 <div class="card">
 {{if not .NotionConfigured}}
 <p class="muted">Notion n'est pas configuré. Demandez à un administrateur de configurer l'intégration.</p>
-<p><a class="button-secondary" href="/modeles">Retour aux modèles</a></p>
+<p><mb-button href="/modeles" variant="secondary">Retour aux modèles</mb-button></p>
 {{else}}
 {{if eq .Step "source"}}
 <form method="post" action="{{.FormAction}}" class="stack-form">
   <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
   <input type="hidden" name="action" value="fetch">
-  <label>Base Notion<input name="database_ref" required value="{{.DatabaseRef}}"></label>
-  <label>Domaines (optionnel)<input name="tags" maxlength="500" value="{{.Tags}}"></label>
-  <button type="submit" class="button">Charger</button>
+  <mb-input label="Base Notion" type="text" name="database_ref" required value="{{.DatabaseRef}}"></mb-input>
+  <mb-input label="Domaines (optionnel)" type="text" name="tags" value="{{.Tags}}"></mb-input>
+  <mb-button type="submit">Charger</mb-button>
 </form>
 {{end}}
 
@@ -24,8 +24,8 @@
   <input type="hidden" name="database_id" value="{{.DatabaseID}}">
   <input type="hidden" name="tags" value="{{.Tags}}">
   <p class="muted">Base : {{.DatabaseTitle}}</p>
-  <label>Libellé<select name="map_label" required>{{range .Properties}}{{if eq .Type "title"}}<option value="{{.Name}}"{{if eq $.Mapping.Label .Name}} selected{{end}}>{{.Name}}</option>{{end}}{{end}}</select></label>
-  <button type="submit" class="button-secondary">Prévisualiser</button>
+  <mb-select label="Libellé" name="map_label" required value="{{.Mapping.Label}}">{{range .Properties}}{{if eq .Type "title"}}<option value="{{.Name}}">{{.Name}}</option>{{end}}{{end}}</mb-select>
+  <mb-button type="submit" variant="secondary">Prévisualiser</mb-button>
 </form>
 {{end}}
 
@@ -37,7 +37,7 @@
   <input type="hidden" name="map_label" value="{{.Mapping.Label}}">
   <input type="hidden" name="tags" value="{{.Tags}}">
   <p class="muted">{{.PreviewCount}} point(s) seront importés dans « {{.TemplateName}} ».</p>
-  <button type="submit" class="button">Importer v1</button>
+  <mb-button type="submit">Importer v1</mb-button>
 </form>
 {{end}}
 {{end}}

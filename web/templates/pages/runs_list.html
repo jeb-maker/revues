@@ -38,13 +38,13 @@
   <div class="list-toolbar">
     <form method="get" action="/revues" class="list-toolbar__form filter-form filter-form--inline">
       {{if .ShowSubjectColumn}}
-      <input class="list-toolbar__search toolbar-control" type="search" id="filter-query" name="q" value="{{.FilterQuery}}" placeholder="Rechercher {{.Labels.Run.Article}} {{.Labels.Run.Singular}} ou un {{.Labels.Subject.Singular | lowerFirst}}…" aria-label="Rechercher {{.Labels.Run.Article}} {{.Labels.Run.Singular}} ou un {{.Labels.Subject.Singular | lowerFirst}}">
+      <mb-input class="list-toolbar__search toolbar-control" type="search" density="compact" id="filter-query" name="q" value="{{.FilterQuery}}" placeholder="Rechercher {{.Labels.Run.Article}} {{.Labels.Run.Singular}} ou un {{.Labels.Subject.Singular | lowerFirst}}…" aria-label="Rechercher {{.Labels.Run.Article}} {{.Labels.Run.Singular}} ou un {{.Labels.Subject.Singular | lowerFirst}}"></mb-input>
       {{else}}
-      <input class="list-toolbar__search toolbar-control" type="search" id="filter-query" name="q" value="{{.FilterQuery}}" placeholder="Rechercher {{.Labels.Run.Article}} {{.Labels.Run.Singular}}…" aria-label="Rechercher {{.Labels.Run.Article}} {{.Labels.Run.Singular}}">
+      <mb-input class="list-toolbar__search toolbar-control" type="search" density="compact" id="filter-query" name="q" value="{{.FilterQuery}}" placeholder="Rechercher {{.Labels.Run.Article}} {{.Labels.Run.Singular}}…" aria-label="Rechercher {{.Labels.Run.Article}} {{.Labels.Run.Singular}}"></mb-input>
       {{end}}
       {{if .FilterStatus}}<input type="hidden" name="status" value="{{.FilterStatus}}">{{end}}
-      <button type="submit" class="button-secondary toolbar-control">Filtrer</button>
-      {{if .HasActiveFilters}}<a href="/revues" class="button-ghost toolbar-control">Effacer</a>{{end}}
+      <mb-button type="submit" variant="secondary" class="toolbar-control">Filtrer</mb-button>
+      {{if .HasActiveFilters}}<mb-button href="/revues" variant="ghost" class="toolbar-control">Effacer</mb-button>{{end}}
     </form>
     {{if .CanLaunch}}<mb-button class="list-toolbar__action toolbar-control" href="/revues/nouvelle">{{launchRunCTA .Labels.Run}}</mb-button>{{end}}
     <mb-segmented-control label="Filtrer par statut">
@@ -72,9 +72,9 @@
         <td class="run-card__title data-row__primary"><a href="/runs/{{.RunID}}">{{.Title}}</a></td>
         {{if $.ShowSubjectColumn}}<td class="run-card__subject"><a href="/subjects/{{.SubjectID}}">{{.SubjectName}}</a></td>{{end}}
         {{if not $.SimpleUI}}
-        <td class="run-card__status data-table__col--center">{{if ne .Status "in_progress"}}<span class="status-badge status-{{.Status}}">{{formatRunStatus .Status}}</span>{{end}}</td>
+        <td class="run-card__status data-table__col--center">{{if ne .Status "in_progress"}}<mb-badge variant="{{badgeVariant .Status}}">{{formatRunStatus .Status}}</mb-badge>{{end}}</td>
         {{end}}
-        <td class="run-card__due data-table__col--center{{if not .DueDate.Valid}} run-card__due--empty{{end}}{{if dueDateOverdue .DueDate .Status}} run-card__due--overdue{{end}}">{{if .DueDate.Valid}}{{formatDueDate .DueDate}}{{if dueDateOverdue .DueDate .Status}} <span class="status-badge status-nok">En retard</span>{{end}}{{else}}<span class="muted">—</span>{{end}}</td>
+        <td class="run-card__due data-table__col--center{{if not .DueDate.Valid}} run-card__due--empty{{end}}{{if dueDateOverdue .DueDate .Status}} run-card__due--overdue{{end}}">{{if .DueDate.Valid}}{{formatDueDate .DueDate}}{{if dueDateOverdue .DueDate .Status}} <mb-badge variant="danger">En retard</mb-badge>{{end}}{{else}}<span class="muted">—</span>{{end}}</td>
         <td class="run-card__progress data-table__stats data-table__progress muted" style="--run-progress: {{.Percent}}%" aria-label="Progression {{.Done}} sur {{.Total}}, {{.Percent}} pourcent"><span class="run-card__fraction">{{.Done}}/{{.Total}}</span><span class="run-card__bar" aria-hidden="true"></span><span class="run-card__pct"> ({{.Percent}}%)</span></td>
       </tr>
       {{end}}

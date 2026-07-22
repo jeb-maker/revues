@@ -2,15 +2,15 @@
 {{template "layout_start" .}}
 <div class="card">
   <p class="muted">Choisissez un {{.Labels.Subject.Singular | lowerFirst}} ou créez-en un pour lancer la revue.</p>
-  {{if .Message}}<p class="success" role="status">{{.Message}}</p>{{end}}
-  {{if .Error}}<p class="error" role="alert">{{.Error}}</p>{{end}}
+  {{if .Message}}<mb-alert variant="success">{{.Message}}</mb-alert>{{end}}
+  {{if .Error}}<mb-alert variant="danger">{{.Error}}</mb-alert>{{end}}
 
   <div class="list-toolbar">
     <form method="get" action="/revues/nouvelle" class="list-toolbar__form filter-form filter-form--inline">
       {{if .SelectedTemplateID}}<input type="hidden" name="template" value="{{.SelectedTemplateID}}">{{end}}
-      <input class="list-toolbar__search toolbar-control" type="search" id="filter-query" name="q" value="{{.FilterQuery}}" placeholder="Rechercher un {{.Labels.Subject.Singular | lowerFirst}}…" aria-label="Rechercher un {{.Labels.Subject.Singular | lowerFirst}}">
-      <button type="submit" class="button-secondary toolbar-control">Filtrer</button>
-      {{if .FilterQuery}}<a href="{{runWizardPath .SelectedTemplateID}}" class="button-ghost toolbar-control">Effacer</a>{{end}}
+      <mb-input class="list-toolbar__search toolbar-control" type="search" density="compact" id="filter-query" name="q" value="{{.FilterQuery}}" placeholder="Rechercher un {{.Labels.Subject.Singular | lowerFirst}}…" aria-label="Rechercher un {{.Labels.Subject.Singular | lowerFirst}}"></mb-input>
+      <mb-button type="submit" variant="secondary" class="toolbar-control">Filtrer</mb-button>
+      {{if .FilterQuery}}<mb-button href="{{runWizardPath .SelectedTemplateID}}" variant="ghost" class="toolbar-control">Effacer</mb-button>{{end}}
     </form>
   </div>
 
@@ -19,41 +19,33 @@
     {{range .Subjects}}
     <li>
       <a href="{{subjectTemplatesForRunPath .ID $.SelectedTemplateID}}">{{.Name}}</a>
-      {{if eq .Visibility "private"}} <span class="status-badge status-na">Privé</span>{{end}}
+      {{if eq .Visibility "private"}} <mb-badge variant="warning">Privé</mb-badge>{{end}}
     </li>
     {{end}}
   </ul>
   {{else if .FilterQuery}}
   <p class="muted">Aucun {{.Labels.Subject.Singular | lowerFirst}} pour cette recherche. <a href="{{runWizardPath .SelectedTemplateID}}">Effacer</a></p>
   {{else}}
-  <div class="empty-state">
-    <p><strong>Aucun {{.Labels.Subject.Singular | lowerFirst}} disponible</strong></p>
+  <mb-empty-state heading="Aucun {{.Labels.Subject.Singular | lowerFirst}} disponible">
     {{if .CanCreate}}
-    <p class="muted">Créez un {{.Labels.Subject.Singular | lowerFirst}} ci-dessous pour lancer une revue.</p>
+    <p>Créez un {{.Labels.Subject.Singular | lowerFirst}} ci-dessous pour lancer une revue.</p>
     {{else}}
-    <p class="muted">Demandez à un éditeur de créer un {{.Labels.Subject.Singular | lowerFirst}} pour lancer une revue.</p>
+    <p>Demandez à un éditeur de créer un {{.Labels.Subject.Singular | lowerFirst}} pour lancer une revue.</p>
     {{end}}
-  </div>
+  </mb-empty-state>
   {{end}}
 
   {{if .CanCreate}}
   <form method="post" action="/revues/nouvelle" class="stack-form">
     <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
     {{if .SelectedTemplateID}}<input type="hidden" name="template" value="{{.SelectedTemplateID}}">{{end}}
-    <label>
-      Nouveau {{.Labels.Subject.Singular | lowerFirst}}
-      <input type="text" name="name" required maxlength="200" placeholder="Nom du {{.Labels.Subject.Singular | lowerFirst}}">
-    </label>
+    <mb-input label="Nouveau {{.Labels.Subject.Singular | lowerFirst}}" type="text" name="name" required placeholder="Nom du {{.Labels.Subject.Singular | lowerFirst}}"></mb-input>
     <details class="stack-form">
       <summary>Options avancées</summary>
-      <label>
-        Domaines
-        <span class="field-hint">Séparez par des virgules. Facultatif — filtre les modèles proposés à l'étape suivante.</span>
-        <input type="text" name="domains" maxlength="500" placeholder="web, api">
-      </label>
+      <mb-input label="Domaines" type="text" name="domains" placeholder="web, api" hint="Séparez par des virgules. Facultatif — filtre les modèles proposés à l'étape suivante."></mb-input>
     </details>
     <div class="form-actions">
-      <button type="submit" class="button">{{icon "plus"}} Créer et continuer</button>
+      <mb-button type="submit">{{icon "plus"}} Créer et continuer</mb-button>
     </div>
   </form>
   {{end}}

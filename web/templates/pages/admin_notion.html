@@ -4,18 +4,18 @@
   <p class="muted">Notion pour cette organisation. Voir <code>docs/NOTION.md</code> pour le mapping des champs.</p>
 </section>
 {{template "admin_nav" .}}
-{{if not .CanEncrypt}}<p class="error content-inset" role="alert">REVUES_ENCRYPTION_KEY n'est pas configurée.</p>{{end}}
-{{if .Message}}<p class="success content-inset" role="status">{{.Message}}</p>{{end}}
-{{if .Error}}<p class="error content-inset" role="alert">{{.Error}}</p>{{end}}
+{{if not .CanEncrypt}}<mb-alert variant="danger" class="content-inset">REVUES_ENCRYPTION_KEY n'est pas configurée.</mb-alert>{{end}}
+{{if .Message}}<mb-alert variant="success" class="content-inset">{{.Message}}</mb-alert>{{end}}
+{{if .Error}}<mb-alert variant="danger" class="content-inset">{{.Error}}</mb-alert>{{end}}
 <section class="card">
   <h2>Intégration Notion</h2>
   <form method="post" action="/admin/integrations/notion" class="stack-form">
     <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
     <input type="hidden" name="action" value="save">
-    <label>Nom du workspace<input type="text" name="workspace_name" value="{{.WorkspaceName}}"></label>
-    <label>Jeton d'intégration<input type="password" name="api_token" placeholder="{{if .HasAPIToken}}Laisser vide pour conserver{{end}}"></label>
-    <label>ID base par défaut<input type="text" name="default_database_id" value="{{.DefaultDatabaseID}}"></label>
-    <button type="submit" class="button" {{if not .CanEncrypt}}disabled{{end}}>Enregistrer</button>
+    <mb-input label="Nom du workspace" type="text" name="workspace_name" value="{{.WorkspaceName}}"></mb-input>
+    <mb-input label="Jeton d'intégration" type="password" name="api_token" placeholder="{{if .HasAPIToken}}Laisser vide pour conserver{{end}}"></mb-input>
+    <mb-input label="ID base par défaut" type="text" name="default_database_id" value="{{.DefaultDatabaseID}}"></mb-input>
+    <mb-button type="submit" {{if not .CanEncrypt}}disabled{{end}}>Enregistrer</mb-button>
   </form>
 </section>
 <section class="card">
@@ -24,7 +24,7 @@
     <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
     <input type="hidden" name="action" value="test">
     <p class="muted">Vérifie le jeton via <code>GET /v1/users/me</code>.</p>
-    <button type="submit" class="button-secondary" {{if not .Configured}}disabled{{end}}>Tester la connexion</button>
+    <mb-button type="submit" variant="secondary" {{if not .Configured}}disabled{{end}}>Tester la connexion</mb-button>
   </form>
 </section>
 {{template "layout_end" .}}

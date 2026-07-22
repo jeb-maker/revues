@@ -43,13 +43,13 @@
           <option value="{{.Organization.ID}}"{{if $.ActiveOrganization}}{{if eq .Organization.ID $.ActiveOrganization.ID}} selected{{end}}{{end}}>{{.Organization.Name}}</option>
           {{end}}
         </select>
-        <button type="submit" class="button button-ghost button-sm">Changer</button>
+        <mb-button type="submit" variant="ghost" size="sm">Changer</mb-button>
       </form>
       {{end}}
       {{template "site_nav" .}}
       <div class="header-account">
         {{if and .CanManageOrgUsers (not .ShowOrganisationNav) (not .SimpleUI)}}
-        <a href="/admin" class="button button-ghost button-sm">Organisation</a>
+        <mb-button href="/admin" variant="ghost" size="sm">Organisation</mb-button>
         {{end}}
         {{if and .DevAuth .DevAuthUsers}}
         <form method="post" action="/auth/dev/login" class="org-switcher" title="Mode démo — changer d'utilisateur">
@@ -60,19 +60,19 @@
             <option value="{{.ID}}"{{if eq .ID $.User.ID}} selected{{end}}>{{.Login}} ({{formatRole .Role}})</option>
             {{end}}
           </select>
-          <button type="submit" class="button button-ghost button-sm">Changer</button>
+          <mb-button type="submit" variant="ghost" size="sm">Changer</mb-button>
         </form>
         {{end}}
         {{if .User.AvatarURL}}<img class="header-account__avatar" src="{{.User.AvatarURL}}" alt="" width="28" height="28">{{end}}
         <span class="header-account__name">{{if .User.DisplayName}}{{.User.DisplayName}}{{else}}{{.User.Login}}{{end}}</span>
-        <span class="status-badge status-{{.User.Role}} role-badge">{{formatRole .User.Role}}</span>
+        <mb-badge variant="{{badgeVariant .User.Role}}" class="role-badge">{{formatRole .User.Role}}</mb-badge>
         <form method="post" action="/logout" class="inline-form">
           <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
-          <button type="submit" class="button button-ghost button-sm">Déconnexion</button>
+          <mb-button type="submit" variant="ghost" size="sm">Déconnexion</mb-button>
         </form>
       </div>
       {{else}}
-      <a class="button button-ghost button-sm" href="/login">Connexion</a>
+      <mb-button href="/login" variant="ghost" size="sm">Connexion</mb-button>
       {{end}}
     </div>
   </header>
@@ -86,7 +86,7 @@
       Invitation à rejoindre <strong>{{.OrganizationName}}</strong>
       <form method="post" action="/org/invitations/{{.ID}}/accept" class="inline-form">
         <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
-        <button type="submit" class="button button-sm">Accepter</button>
+        <mb-button type="submit" size="sm">Accepter</mb-button>
       </form>
     </p>
     {{end}}
@@ -112,7 +112,7 @@
       {{if .PageActions}}
       <div class="page-actions">
         {{range .PageActions}}
-        <a class="{{if .Primary}}button{{else}}button-secondary{{end}}{{if .IconOnly}} button--icon{{end}}" href="{{.URL}}" aria-label="{{if .Title}}{{.Title}}{{else}}{{.Label}}{{end}}" title="{{if .Title}}{{.Title}}{{else}}{{.Label}}{{end}}">{{.Label}}</a>
+        <mb-button href="{{.URL}}"{{if not .Primary}} variant="secondary"{{end}}{{if .IconOnly}} icon-only size="sm"{{end}} aria-label="{{if .Title}}{{.Title}}{{else}}{{.Label}}{{end}}" title="{{if .Title}}{{.Title}}{{else}}{{.Label}}{{end}}">{{.Label}}</mb-button>
         {{end}}
       </div>
       {{end}}
@@ -130,6 +130,7 @@
       <p>Revues — gestion de check-lists pour revues qualité.{{if .User}} · <a href="/signaler" data-reports-open>Signaler un problème</a>{{end}}</p>
     </div>
   </footer>
+  <mb-toast></mb-toast>
   </div>
   <script src="{{assetURL `/static/js/htmx.js`}}" defer></script>
   <script src="{{assetURL `/static/js/app.js`}}" defer></script>

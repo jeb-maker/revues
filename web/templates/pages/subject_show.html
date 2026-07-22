@@ -2,16 +2,16 @@
 {{template "layout_start" .}}
 
 <section class="card subject-meta">
-  {{if .Message}}<p class="success" role="status">{{.Message}}</p>{{end}}
-  {{if .Error}}<p class="error" role="alert">{{.Error}}</p>{{end}}
+  {{if .Message}}<mb-alert variant="success">{{.Message}}</mb-alert>{{end}}
+  {{if .Error}}<mb-alert variant="danger">{{.Error}}</mb-alert>{{end}}
   <div class="subject-meta__head">
     {{if and (eq .Subject.Visibility "private") .ShowCollab}}
-    <p class="subject-meta__line"><span class="status-badge status-na">Privé</span></p>
+    <p class="subject-meta__line"><mb-badge variant="warning">Privé</mb-badge></p>
     {{end}}
     {{if or .CanLaunch .CanManage}}
     <div class="subject-meta__actions">
-      {{if .CanLaunch}}<a class="button" href="/subjects/{{.Subject.ID}}/modeles?for_run=1" title="{{launchActionTitle .Labels.Subject .Labels.Run}}">{{launchRunCTA .Labels.Run}}</a>{{end}}
-      {{if .CanManage}}<a class="button-secondary" href="{{.EditPath}}">Modifier</a>{{end}}
+      {{if .CanLaunch}}<mb-button href="/subjects/{{.Subject.ID}}/modeles?for_run=1" title="{{launchActionTitle .Labels.Subject .Labels.Run}}">{{launchRunCTA .Labels.Run}}</mb-button>{{end}}
+      {{if .CanManage}}<mb-button href="{{.EditPath}}" variant="secondary">Modifier</mb-button>{{end}}
     </div>
     {{end}}
   </div>
@@ -81,7 +81,7 @@
       <tr class="run-card">
         <td class="run-card__title data-row__primary"><a href="/runs/{{.ID}}">{{.DisplayLabel}}</a></td>
         {{if not $.SimpleUI}}
-        <td class="run-card__status data-table__col--center">{{if ne .Status "in_progress"}}<span class="status-badge status-{{.Status}}">{{formatRunStatus .Status}}</span>{{end}}</td>
+        <td class="run-card__status data-table__col--center">{{if ne .Status "in_progress"}}<mb-badge variant="{{badgeVariant .Status}}">{{formatRunStatus .Status}}</mb-badge>{{end}}</td>
         {{end}}
         <td class="run-card__due data-table__col--center{{if not .DueDate.Valid}} run-card__due--empty{{end}}">{{if .DueDate.Valid}}{{formatDueDate .DueDate}}{{else}}<span class="muted">—</span>{{end}}</td>
         <td class="run-card__progress data-table__stats data-table__progress muted" style="--run-progress: {{if eq .Status "in_progress"}}{{.Percent}}{{else}}0{{end}}%"{{if eq .Status "in_progress"}} aria-label="Progression {{.Done}} sur {{.Total}}, {{.Percent}} pourcent"{{else if gt .Total 0}} aria-label="Progression {{.Done}} sur {{.Total}}"{{end}}>
@@ -126,7 +126,7 @@
           <form method="post" action="/subjects/{{$.Subject.ID}}/teams/remove" class="inline-form" onsubmit="return confirm('Retirer cette équipe du sujet ?');">
             <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
             <input type="hidden" name="team_id" value="{{.TeamID}}">
-            <button type="submit" class="button-ghost button-sm">Retirer</button>
+            <mb-button type="submit" variant="ghost" size="sm">Retirer</mb-button>
           </form>
         </td>
         {{end}}
@@ -148,30 +148,23 @@
   {{if .AvailableTeams}}
   <form method="post" action="/subjects/{{.Subject.ID}}/teams" class="stack-form"
         hx-get="/subjects/{{.Subject.ID}}/teams/preview"
-        hx-trigger="change"
+        hx-trigger="mb-change"
         hx-target="#team-assign-preview"
         hx-swap="outerHTML">
     <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
-    <label>
-      Équipe
-      <select name="team_id" required>
-        <option value="">Choisir…</option>
-        {{range .AvailableTeams}}
-        <option value="{{.ID}}"{{if eq $.AddTeamID .ID}} selected{{end}}>{{.Name}} ({{.MemberCount}} membre{{if ne .MemberCount 1}}s{{end}})</option>
-        {{end}}
-      </select>
-    </label>
-    <label>
-      Rôle
-      <select name="role" required>
-        <option value="viewer"{{if eq .AddTeamRole "viewer"}} selected{{end}}>Observateur</option>
-        <option value="contributor"{{if eq .AddTeamRole "contributor"}} selected{{end}}>Contributeur</option>
-        <option value="lead"{{if eq .AddTeamRole "lead"}} selected{{end}}>Responsable</option>
-      </select>
-    </label>
+    <mb-select label="Équipe" name="team_id" required{{if .AddTeamID}} value="{{.AddTeamID}}"{{end}}>
+      {{range .AvailableTeams}}
+      <option value="{{.ID}}">{{.Name}} ({{.MemberCount}} membre{{if ne .MemberCount 1}}s{{end}})</option>
+      {{end}}
+    </mb-select>
+    <mb-select label="Rôle" name="role" required value="{{if .AddTeamRole}}{{.AddTeamRole}}{{else}}viewer{{end}}">
+      <option value="viewer">Observateur</option>
+      <option value="contributor">Contributeur</option>
+      <option value="lead">Responsable</option>
+    </mb-select>
     <p id="team-assign-preview" class="muted">Sélectionnez une équipe et un rôle.</p>
     <div class="form-actions">
-      <button type="submit" class="button">Ajouter</button>
+      <mb-button type="submit">Ajouter</mb-button>
     </div>
   </form>
   {{else}}
@@ -208,7 +201,7 @@
           <form method="post" action="/subjects/{{$.Subject.ID}}/members/remove" class="inline-form" onsubmit="return confirm('Retirer ce membre du sujet ?');">
             <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
             <input type="hidden" name="user_id" value="{{.UserID}}">
-            <button type="submit" class="button-ghost button-sm">Retirer</button>
+            <mb-button type="submit" variant="ghost" size="sm">Retirer</mb-button>
           </form>
         </td>
         {{end}}
@@ -229,21 +222,15 @@
   <h3>Inviter un membre</h3>
   <form method="post" action="/subjects/{{.Subject.ID}}/members" class="stack-form">
     <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
-    <label>
-      Email
-      <input type="email" name="email" required value="{{.AddMemberEmail}}" autocomplete="off">
-    </label>
-    <label>
-      Rôle
-      <select name="role" required>
-        <option value="viewer"{{if eq .AddMemberRole "viewer"}} selected{{end}}>Observateur</option>
-        <option value="contributor"{{if eq .AddMemberRole "contributor"}} selected{{end}}>Contributeur</option>
-        <option value="lead"{{if eq .AddMemberRole "lead"}} selected{{end}}>Responsable</option>
-      </select>
-    </label>
+    <mb-input label="Email" type="email" name="email" required value="{{.AddMemberEmail}}"></mb-input>
+    <mb-select label="Rôle" name="role" required value="{{if .AddMemberRole}}{{.AddMemberRole}}{{else}}viewer{{end}}">
+      <option value="viewer">Observateur</option>
+      <option value="contributor">Contributeur</option>
+      <option value="lead">Responsable</option>
+    </mb-select>
     <span class="field-hint">L'invité doit déjà avoir un compte. Hors organisation = politique « externes ».</span>
     <div class="form-actions">
-      <button type="submit" class="button-secondary">Inviter</button>
+      <mb-button type="submit" variant="secondary">Inviter</mb-button>
     </div>
   </form>
   {{end}}
@@ -267,7 +254,7 @@
       <tr class="run-card">
         <td class="run-card__title data-row__primary"><a href="/runs/{{.ID}}">{{.DisplayLabel}}</a></td>
         {{if not $.SimpleUI}}
-        <td class="run-card__status data-table__col--center">{{if ne .Status "in_progress"}}<span class="status-badge status-{{.Status}}">{{formatRunStatus .Status}}</span>{{end}}</td>
+        <td class="run-card__status data-table__col--center">{{if ne .Status "in_progress"}}<mb-badge variant="{{badgeVariant .Status}}">{{formatRunStatus .Status}}</mb-badge>{{end}}</td>
         {{end}}
         <td class="run-card__due data-table__col--center{{if not .DueDate.Valid}} run-card__due--empty{{end}}">{{if .DueDate.Valid}}{{formatDueDate .DueDate}}{{else}}<span class="muted">—</span>{{end}}</td>
         <td class="run-card__progress data-table__stats data-table__progress muted" style="--run-progress: {{if eq .Status "in_progress"}}{{.Percent}}{{else}}0{{end}}%"{{if eq .Status "in_progress"}} aria-label="Progression {{.Done}} sur {{.Total}}, {{.Percent}} pourcent"{{else if gt .Total 0}} aria-label="Progression {{.Done}} sur {{.Total}}"{{end}}>

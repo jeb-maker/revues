@@ -11,10 +11,10 @@
 {{template "admin_nav" .}}
 
 {{if .Message}}
-<p class="success content-inset" role="status">{{.Message}}</p>
+<mb-alert variant="success" class="content-inset">{{.Message}}</mb-alert>
 {{end}}
 {{if .Error}}
-<p class="error content-inset" role="alert">{{.Error}}</p>
+<mb-alert variant="danger" class="content-inset">{{.Error}}</mb-alert>
 {{end}}
 
 {{if not .Emails}}
@@ -31,20 +31,14 @@
   <h2>Ajouter ou mettre à jour</h2>
   <form method="post" action="/admin/users" class="stack-form">
     <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
-    <label>
-      Email
-      <input type="email" name="email" required autocomplete="email">
-    </label>
-    <label>
-      Rôle
-      <select name="role" required>
-        <option value="reader">{{formatRole "reader"}}</option>
-        <option value="editor">{{formatRole "editor"}}</option>
-        <option value="admin">{{formatRole "admin"}}</option>
-      </select>
-    </label>
+    <mb-input label="Email" type="email" name="email" required></mb-input>
+    <mb-select label="Rôle" name="role" required value="reader">
+      <option value="reader">{{formatRole "reader"}}</option>
+      <option value="editor">{{formatRole "editor"}}</option>
+      <option value="admin">{{formatRole "admin"}}</option>
+    </mb-select>
     <div class="form-actions">
-      <button type="submit" class="button">Enregistrer</button>
+      <mb-button type="submit">Enregistrer</mb-button>
     </div>
   </form>
 </section>
@@ -72,7 +66,7 @@
           <form method="post" action="/admin/users/remove" class="inline-form" onsubmit="return confirm('Retirer cet email de la liste autorisée ?');">
             <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
             <input type="hidden" name="email" value="{{.Email}}">
-            <button type="submit" class="button-ghost button-sm">Retirer</button>
+            <mb-button type="submit" variant="ghost" size="sm">Retirer</mb-button>
           </form>
         </td>
       </tr>

@@ -43,3 +43,34 @@ mb-pagination {
 .run-progress mb-progress {
   display: block;
 }
+
+/* Full-migration wave — host layout for mb form fields in stack forms */
+.stack-form mb-input,
+.stack-form mb-select,
+.stack-form mb-textarea,
+.stack-form mb-radio-group {
+  max-width: 26rem;
+  margin-block-end: 0.85rem;
+}
+.stack-form mb-checkbox {
+  margin-block-end: 0.5rem;
+}
+.stack-form details mb-input {
+  margin-block-start: 0.35rem;
+}
+fieldset mb-input {
+  margin-block-end: 0.85rem;
+}
+mb-input.list-toolbar__search {
+  flex: 1 1 12rem;
+  min-width: min(100%, 10rem);
+  max-width: 22rem;
+}
+.inline-form mb-button,
+.header-account mb-button,
+.org-switcher mb-button {
+  vertical-align: middle;
+}
+mb-badge.role-badge {
+  flex-shrink: 0;
+}

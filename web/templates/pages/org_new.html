@@ -1,27 +1,20 @@
 {{define "org_new"}}
 {{template "layout_start" .}}
 <p>Créez votre organisation pour commencer à utiliser Revues.</p>
-{{if .Error}}<p class="error" role="alert">{{.Error}}</p>{{end}}
+{{if .Error}}<mb-alert variant="danger">{{.Error}}</mb-alert>{{end}}
 
 <form method="post" action="/org/new" class="stack-form">
   <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
-  <label>
-    Nom
-    <input type="text" id="org-name" name="name" required maxlength="200" value="{{.Name}}">
-  </label>
-  <label>
-    Identifiant (slug)
-    <input type="text" id="org-slug" name="slug" maxlength="100" pattern="[a-z0-9]+(?:-[a-z0-9]+)*" value="{{.Slug}}" placeholder="mon-equipe">
-  </label>
-  <p class="field-hint">Lettres minuscules, chiffres et tirets. Pré-rempli depuis le nom.</p>
-  <button type="submit" class="button">Créer l'organisation</button>
+  <mb-input label="Nom" type="text" id="org-name" name="name" required value="{{.Name}}"></mb-input>
+  <mb-input label="Identifiant (slug)" type="text" id="org-slug" name="slug" value="{{.Slug}}" placeholder="mon-equipe" hint="Lettres minuscules, chiffres et tirets. Pré-rempli depuis le nom."></mb-input>
+  <mb-button type="submit">Créer l'organisation</mb-button>
 </form>
 <script>
 (function(){
   var name=document.getElementById('org-name'),slug=document.getElementById('org-slug'),manual=false;
   if(!name||!slug)return;
-  slug.addEventListener('input',function(){manual=true;});
-  name.addEventListener('input',function(){
+  slug.addEventListener('mb-input',function(){manual=true;});
+  name.addEventListener('mb-input',function(){
     if(manual)return;
     slug.value=name.value.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
   });

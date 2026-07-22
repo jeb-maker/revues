@@ -57,7 +57,6 @@
 .template-editor--compact .template-editor__point{padding:.35rem 0;background:0 0;border:0;border-bottom:1px solid var(--border);border-radius:0;align-items:center}
 .template-editor--compact .template-editor__point-fields{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center}
 .template-editor--compact .template-editor__field{flex:1 1 12rem}
-.template-editor--compact .template-editor__field input{margin-top:0}
 .template-editor--compact .template-editor__more{flex:0 0 auto}
 .template-editor--compact .template-editor__more[open]{flex:1 1 100%}
 .template-editor__section {
@@ -73,7 +72,7 @@
   justify-content: space-between;
   margin-bottom: 0.65rem;
 }
-.template-editor__section-head label { flex: 1 1 16rem; margin-bottom: 0; }
+.template-editor__section-head .template-editor__section-title { flex: 1 1 16rem; margin-bottom: 0; }
 .template-editor__section-actions,
 .template-editor__point-actions {
   display: flex;
@@ -112,17 +111,9 @@
   font-weight: 500;
   font-size: 0.85rem;
 }
-.template-editor__field input,
-.template-editor__field textarea {
-  display: block;
+.template-editor__field {
   width: 100%;
   max-width: none;
-  margin-top: 0.25rem;
-  font-weight: 400;
-}
-.template-editor__help {
-  min-height: 3.25rem;
-  resize: vertical;
 }
 .template-editor__required { margin-top: 0.15rem; }
 .template-editor__add { margin-top: 0.65rem; }

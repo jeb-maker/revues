@@ -2,19 +2,19 @@
 {{template "layout_start" .}}
 
 <section class="card template-meta">
-  {{if .Message}}<p class="success" role="status">{{.Message}}</p>{{end}}
-  {{if .Error}}<p class="error" role="alert">{{.Error}}</p>{{end}}
+  {{if .Message}}<mb-alert variant="success">{{.Message}}</mb-alert>{{end}}
+  {{if .Error}}<mb-alert variant="danger">{{.Error}}</mb-alert>{{end}}
   <div class="template-meta__head">
     {{if or .CanLaunch .CanManage}}
     <div class="template-meta__actions">
-      {{if .CanLaunch}}<a class="button" href="/revues/nouvelle?template={{.Template.ID}}">{{if .SimpleUI}}Lancer cette liste{{else}}Lancer avec ce modèle{{end}}</a>{{end}}
-      {{if .CanManage}}<a class="button-secondary" href="/modeles/{{.Template.ID}}/edit">Modifier</a>{{end}}
+      {{if .CanLaunch}}<mb-button href="/revues/nouvelle?template={{.Template.ID}}">{{if .SimpleUI}}Lancer cette liste{{else}}Lancer avec ce modèle{{end}}</mb-button>{{end}}
+      {{if .CanManage}}<mb-button href="/modeles/{{.Template.ID}}/edit" variant="secondary">Modifier</mb-button>{{end}}
     </div>
     {{end}}
   </div>
   <p class="muted template-meta__line">
     {{if .ShowSubjectColumn}}
-    <span class="status-badge status-enabled">v{{.Version.Version}}</span>
+    <mb-badge variant="success">v{{.Version.Version}}</mb-badge>
     · Publiée le {{formatDateTime .Version.PublishedAt}}
     · {{end}}{{.ItemCount}} point{{if ne .ItemCount 1}}s{{end}}
   </p>
@@ -44,7 +44,7 @@
       <li class="template-point-list__item">
         <div class="template-point-list__head">
           <span class="template-point-list__label">{{.Label}}</span>
-          {{if .Required}}<span class="status-badge status-enabled">requis</span>{{end}}
+          {{if .Required}}<mb-badge variant="success">requis</mb-badge>{{end}}
         </div>
         {{if .HelpText}}<blockquote class="help-text template-point-list__help">{{.HelpText}}</blockquote>{{end}}
       </li>
@@ -57,7 +57,7 @@
     <li class="template-point-list__item">
       <div class="template-point-list__head">
         <span class="template-point-list__label">{{.Label}}</span>
-        {{if .Required}}<span class="status-badge status-enabled">requis</span>{{end}}
+        {{if .Required}}<mb-badge variant="success">requis</mb-badge>{{end}}
       </div>
       {{if .HelpText}}<blockquote class="help-text template-point-list__help">{{.HelpText}}</blockquote>{{end}}
     </li>
@@ -66,15 +66,14 @@
   {{end}}
   {{end}}
   {{else}}
-  <div class="empty-state">
-    <p><strong>Aucun point dans cette version</strong></p>
-    <p class="muted">{{if .SimpleUI}}Ajoutez des points pour utiliser cette liste.{{else}}Ajoutez des points de check-list pour utiliser ce modèle dans une revue.{{end}}</p>
+  <mb-empty-state heading="Aucun point dans cette version">
+    <p>{{if .SimpleUI}}Ajoutez des points pour utiliser cette liste.{{else}}Ajoutez des points de check-list pour utiliser ce modèle dans une revue.{{end}}</p>
     {{if .CanManage}}
-    <div class="empty-state-actions">
-      <a href="/modeles/{{.Template.ID}}/edit" class="button-secondary">Ajouter des points</a>
+    <div slot="actions">
+      <mb-button href="/modeles/{{.Template.ID}}/edit" variant="secondary">Ajouter des points</mb-button>
     </div>
     {{end}}
-  </div>
+  </mb-empty-state>
   {{end}}
 </section>
 

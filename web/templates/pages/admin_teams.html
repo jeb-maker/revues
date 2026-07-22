@@ -11,30 +11,21 @@
 {{template "admin_nav" .}}
 
 {{if .Message}}
-<p class="success content-inset" role="status">{{.Message}}</p>
+<mb-alert variant="success" class="content-inset">{{.Message}}</mb-alert>
 {{end}}
 {{if .Error}}
-<p class="error content-inset" role="alert">{{.Error}}</p>
+<mb-alert variant="danger" class="content-inset">{{.Error}}</mb-alert>
 {{end}}
 
 <section class="card">
   <h2>Créer une équipe</h2>
   <form method="post" action="/admin/teams" class="stack-form">
     <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
-    <label>
-      Nom
-      <input type="text" name="name" required maxlength="120" autocomplete="off">
-    </label>
-    <label>
-      Slug <span class="muted">(optionnel — dérivé du nom si vide)</span>
-      <input type="text" name="slug" maxlength="80" autocomplete="off" pattern="[a-zA-Z0-9 _\-]*">
-    </label>
-    <label>
-      Description
-      <textarea name="description" rows="2" maxlength="500"></textarea>
-    </label>
+    <mb-input label="Nom" type="text" name="name" required></mb-input>
+    <mb-input label="Slug" type="text" name="slug" hint="Optionnel — dérivé du nom si vide (lettres, chiffres, tirets)."></mb-input>
+    <mb-textarea label="Description" name="description" rows="2"></mb-textarea>
     <div class="form-actions">
-      <button type="submit" class="button">Créer</button>
+      <mb-button type="submit">Créer</mb-button>
     </div>
   </form>
 </section>

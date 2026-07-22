@@ -1,29 +1,28 @@
 {{define "my_tasks"}}
 {{template "layout_start" .}}
 {{if and (not .Tasks) (not .HasActiveFilters)}}
-<section class="empty-state">
-  <h2>Aucune tâche assignée</h2>
-  <p class="muted">Les points qui vous sont assignés dans les {{.Labels.Run.Plural}} en cours apparaîtront ici.</p>
-  <p class="empty-state-actions">
-    <a class="button" href="/revues">Voir les {{.Labels.Run.Plural}}</a>
-  </p>
-</section>
+<mb-empty-state heading="Aucune tâche assignée">
+  <p>Les points qui vous sont assignés dans les {{.Labels.Run.Plural}} en cours apparaîtront ici.</p>
+  <div slot="actions">
+    <mb-button href="/revues">Voir les {{.Labels.Run.Plural}}</mb-button>
+  </div>
+</mb-empty-state>
 {{else}}
 <section class="card">
   <div class="list-toolbar">
     <form method="get" action="/mes-taches" class="list-toolbar__form filter-form filter-form--inline">
-      <input class="list-toolbar__search toolbar-control" type="search" id="filter-query" name="q" value="{{.FilterQuery}}" placeholder="Rechercher un {{.Labels.Subject.Singular | lowerFirst}}, {{.Labels.Run.Article}} {{.Labels.Run.Singular}}, un point…" aria-label="Rechercher un {{.Labels.Subject.Singular | lowerFirst}}, {{.Labels.Run.Article}} {{.Labels.Run.Singular}} ou un point">
+      <mb-input class="list-toolbar__search toolbar-control" type="search" density="compact" id="filter-query" name="q" value="{{.FilterQuery}}" placeholder="Rechercher un {{.Labels.Subject.Singular | lowerFirst}}, {{.Labels.Run.Article}} {{.Labels.Run.Singular}}, un point…" aria-label="Rechercher un {{.Labels.Subject.Singular | lowerFirst}}, {{.Labels.Run.Article}} {{.Labels.Run.Singular}} ou un point"></mb-input>
       {{if .FilterStatus}}<input type="hidden" name="status" value="{{.FilterStatus}}">{{end}}
-      <button type="submit" class="button-secondary toolbar-control">Filtrer</button>
-      {{if .HasActiveFilters}}<a href="/mes-taches" class="button-ghost toolbar-control">Effacer</a>{{end}}
+      <mb-button type="submit" variant="secondary" class="toolbar-control">Filtrer</mb-button>
+      {{if .HasActiveFilters}}<mb-button href="/mes-taches" variant="ghost" class="toolbar-control">Effacer</mb-button>{{end}}
     </form>
-    <nav class="segmented-tabs" aria-label="Filtrer par statut">
-      <a href="{{myTasksListURL "" .FilterQuery}}" class="segmented-tabs__item{{if not .FilterStatus}} is-active{{end}}">Tous</a>
-      <a href="{{myTasksListURL "pending" .FilterQuery}}" class="segmented-tabs__item{{if eq .FilterStatus "pending"}} is-active{{end}}">En attente</a>
-      <a href="{{myTasksListURL "ok" .FilterQuery}}" class="segmented-tabs__item{{if eq .FilterStatus "ok"}} is-active{{end}}">OK</a>
-      <a href="{{myTasksListURL "nok" .FilterQuery}}" class="segmented-tabs__item{{if eq .FilterStatus "nok"}} is-active{{end}}">Non validé</a>
-      <a href="{{myTasksListURL "na" .FilterQuery}}" class="segmented-tabs__item{{if eq .FilterStatus "na"}} is-active{{end}}">N/A</a>
-    </nav>
+    <mb-segmented-control label="Filtrer par statut">
+      <a href="{{myTasksListURL "" .FilterQuery}}"{{if not .FilterStatus}} aria-current="page"{{end}}>Tous</a>
+      <a href="{{myTasksListURL "pending" .FilterQuery}}"{{if eq .FilterStatus "pending"}} aria-current="page"{{end}}>En attente</a>
+      <a href="{{myTasksListURL "ok" .FilterQuery}}"{{if eq .FilterStatus "ok"}} aria-current="page"{{end}}>OK</a>
+      <a href="{{myTasksListURL "nok" .FilterQuery}}"{{if eq .FilterStatus "nok"}} aria-current="page"{{end}}>Non validé</a>
+      <a href="{{myTasksListURL "na" .FilterQuery}}"{{if eq .FilterStatus "na"}} aria-current="page"{{end}}>N/A</a>
+    </mb-segmented-control>
   </div>
   <div class="table-scroll">
   <table class="data-table data-table--cards table-sticky">
@@ -35,7 +34,7 @@
       {{range .Tasks}}
       <tr class="task-card">
         <td class="task-card__point data-row__primary"><a href="/runs/{{.RunID}}/items/{{.ID}}">{{if .Section}}{{.Section}} — {{end}}{{.Label}}</a></td>
-        <td class="task-card__status data-table__col--center"><span class="status-badge status-{{.Status}}">{{formatItemStatus .Status}}</span></td>
+        <td class="task-card__status data-table__col--center"><mb-badge variant="{{badgeVariant .Status}}">{{formatItemStatus .Status}}</mb-badge></td>
         <td class="task-card__run"><a href="/runs/{{.RunID}}">{{.RunTitle}}</a></td>
         <td class="task-card__subject">{{.SubjectName}}</td>
       </tr>

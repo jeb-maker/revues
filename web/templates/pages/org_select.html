@@ -1,21 +1,16 @@
 {{define "org_select"}}
 {{template "layout_start" .}}
 <p>Sélectionnez l'organisation avec laquelle vous souhaitez travailler.</p>
-{{if .Error}}<p class="error" role="alert">{{.Error}}</p>{{end}}
+{{if .Error}}<mb-alert variant="danger">{{.Error}}</mb-alert>{{end}}
 
 <form method="post" action="/org/select" class="stack-form org-select-form">
   <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
-  <fieldset class="stack-form">
-    <legend class="visually-hidden">Organisations</legend>
+  <mb-radio-group label="Organisations" name="organization_id" required value="{{.DefaultOrgID}}">
     {{range .Organizations}}
-    <label>
-      <input type="radio" name="organization_id" value="{{.Organization.ID}}" required
-        {{if eq .Organization.ID $.DefaultOrgID}}checked{{end}}>
-      {{.Organization.Name}} <span class="field-hint">({{.Organization.Slug}})</span>
-    </label>
+    <mb-radio value="{{.Organization.ID}}" label="{{.Organization.Name}} ({{.Organization.Slug}})"></mb-radio>
     {{end}}
-  </fieldset>
-  <button type="submit" class="button">Continuer</button>
+  </mb-radio-group>
+  <mb-button type="submit">Continuer</mb-button>
 </form>
 {{template "layout_end" .}}
 {{end}}
