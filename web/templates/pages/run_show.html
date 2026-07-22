@@ -41,7 +41,12 @@
   <div class="post-closure">
     <a href="/runs/{{.Run.ID}}/export.csv" class="button-secondary">{{icon "download"}} Exporter CSV</a>
     {{if .CanExportEvidence}}
-    <a href="/runs/{{.Run.ID}}/export/preuve.zip" class="button-secondary">{{icon "download"}} Télécharger la preuve</a>
+    <div class="evidence-block">
+      <a href="/runs/{{.Run.ID}}/export/preuve.zip" class="button-secondary">{{icon "download"}} Télécharger la preuve</a>
+      {{if .Run.EvidenceCSVSHA256}}
+      <p class="field-hint evidence-hash">Empreinte CSV scellée : <code>{{.Run.EvidenceCSVSHA256}}</code></p>
+      {{end}}
+    </div>
     {{end}}
     {{if .Run.NotionURL}}
     <a href="{{.Run.NotionURL}}" class="button-secondary" target="_blank" rel="noopener noreferrer">{{icon "external-link"}} Voir dans Notion</a>

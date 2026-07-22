@@ -76,6 +76,9 @@
       {{end}}
     </div>
   </header>
+  {{if .UnlockFlash}}
+  <mb-alert variant="info" role="status">{{.UnlockFlash}}</mb-alert>
+  {{end}}
   {{if .PendingInvitations}}
   <div class="invite-banner" role="region" aria-label="Invitations en attente">
     {{range .PendingInvitations}}

@@ -79,7 +79,7 @@ func TestLoginPage_EmailNotAllowed(t *testing.T) {
 	if !strings.Contains(body, "mb-alert") {
 		t.Fatal("expected login alert")
 	}
-	if !strings.Contains(body, "pas autoris") {
+	if !strings.Contains(body, "Connexion impossible") {
 		t.Fatalf("expected clear unauthorized message, got: %s", body)
 	}
 }

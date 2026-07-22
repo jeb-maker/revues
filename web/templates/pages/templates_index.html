@@ -37,7 +37,7 @@
       {{if .HasActiveFilters}}<a href="/modeles" class="button-ghost toolbar-control">Effacer</a>{{end}}
     </form>
     <div class="list-toolbar__actions">
-      {{if and .CanManage .NotionConfigured (not .SimpleUI)}}<a class="button-secondary list-toolbar__action toolbar-control" href="/modeles/notion-import" title="Importer depuis Notion">Importer</a>{{end}}
+      {{if and .CanManage .NotionConfigured}}<a class="button-secondary list-toolbar__action toolbar-control" href="/modeles/notion-import" title="Importer depuis Notion">Importer</a>{{end}}
       {{if .CanManage}}
       <a class="button list-toolbar__action toolbar-control" href="/modeles/new" title="{{if .ShowSubjectColumn}}Nouveau modèle{{else}}Nouvelle liste{{end}}">Créer</a>
       {{end}}

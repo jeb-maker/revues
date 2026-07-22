@@ -144,9 +144,17 @@ func (s *Store) DeleteAllowedEmail(ctx context.Context, email string) error {
 
 // ResolveLoginRole determines the global role for a verified GitHub email at login.
 // Login is allowed when the email is whitelisted in an org, the user belongs to
-// at least one org, matches REVUES_BOOTSTRAP_ADMIN_EMAIL, or has no org yet
-// (self-service org creation).
+// at least one org, matches REVUES_BOOTSTRAP_ADMIN_EMAIL, has a pending invitation,
+// or (unless requireWhitelist) has no org yet (self-service org creation).
 func (s *Store) ResolveLoginRole(ctx context.Context, email, bootstrapAdmin string) (string, error) {
+	return s.ResolveLoginRoleStrict(ctx, email, bootstrapAdmin, false)
+}
+
+// ResolveLoginRoleStrict is ResolveLoginRole with an optional whitelist lock.
+// When requireWhitelist is true, unknown emails without org membership, bootstrap
+// match, or pending invitation are rejected with ErrEmailNotAllowed (same message
+// path for anti-enumeration — no distinction unknown vs not listed).
+func (s *Store) ResolveLoginRoleStrict(ctx context.Context, email, bootstrapAdmin string, requireWhitelist bool) (string, error) {
 	email = strings.ToLower(strings.TrimSpace(email))
 	bootstrapAdmin = strings.ToLower(strings.TrimSpace(bootstrapAdmin))
 
@@ -176,6 +184,10 @@ func (s *Store) ResolveLoginRole(ctx context.Context, email, bootstrapAdmin stri
 		return "", fmt.Errorf("pending invitation lookup: %w", err)
 	} else if ok {
 		return auth.RoleEditor, nil
+	}
+
+	if requireWhitelist {
+		return "", ErrEmailNotAllowed
 	}
 
 	return auth.RoleEditor, nil

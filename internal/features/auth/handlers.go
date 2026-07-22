@@ -174,7 +174,7 @@ func (h *Auth) Callback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	role, err := h.Store.ResolveLoginRole(r.Context(), profile.Email, h.Config.BootstrapAdminEmail)
+	role, err := h.Store.ResolveLoginRoleStrict(r.Context(), profile.Email, h.Config.BootstrapAdminEmail, h.Config.LoginRequireWhitelist)
 	if err != nil {
 		if errors.Is(err, store.ErrEmailNotAllowed) {
 			http.Redirect(w, r, "/login?error=email+non+autoris%C3%A9", http.StatusFound)

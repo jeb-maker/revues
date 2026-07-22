@@ -8,9 +8,10 @@ func LoginErrorMessage(code string) string {
 	case "":
 		return ""
 	case "email non autorisé":
-		return "Votre adresse email GitHub n'est pas autorisée à se connecter. " +
-			"Demandez à un administrateur de vous ajouter dans Utilisateurs autorisés. " +
-			"Vérifiez aussi que votre email GitHub est vérifié et accessible à l'application OAuth."
+		// Generic copy — no confirmation whether the email exists in any whitelist.
+		return "Connexion impossible avec ce compte GitHub. " +
+			"Demandez à un administrateur de votre organisation de vous autoriser, " +
+			"ou vérifiez que votre email GitHub est vérifié et accessible à l'application OAuth."
 	case "oauth non configuré":
 		return "La connexion GitHub OAuth n'est pas configurée sur ce serveur. " +
 			"L'administrateur doit renseigner REVUES_GITHUB_CLIENT_ID et REVUES_GITHUB_CLIENT_SECRET."

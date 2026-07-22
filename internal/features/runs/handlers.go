@@ -549,6 +549,7 @@ func (h *Runs) ExportEvidence(w http.ResponseWriter, r *http.Request) {
 		ClosedBy:     closedBy,
 		CSVSHA256:    run.EvidenceCSVSHA256,
 		GeneratedAt:  completedAt,
+		Attachments:  h.evidenceAttachmentRefs(r.Context(), run.ID),
 	}
 	zipData, err := BuildEvidenceZIP(run.ID, csvData, manifest)
 	if err != nil {

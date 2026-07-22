@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/fs"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -203,11 +204,12 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, error) {
 	r.Get("/sw.js", ServeServiceWorkerKill(staticFS))
 	r.Handle("/static/*", http.StripPrefix("/static/", StaticHandler(http.FileServer(http.FS(staticFS)), deps.Config.Env)))
 
-	r.Get("/login", authHandler.Login)
-	r.Get("/auth/github/start", authHandler.StartGitHub)
-	r.Get("/auth/github/callback", authHandler.Callback)
-	r.Post("/auth/dev/login", authHandler.DevLogin)
-	r.Post("/logout", authHandler.Logout)
+	authLimit := appmiddleware.RateLimit(appmiddleware.RateLimitConfig{Max: 30, Window: time.Minute})
+	r.With(authLimit).Get("/login", authHandler.Login)
+	r.With(authLimit).Get("/auth/github/start", authHandler.StartGitHub)
+	r.With(authLimit).Get("/auth/github/callback", authHandler.Callback)
+	r.With(authLimit).Post("/auth/dev/login", authHandler.DevLogin)
+	r.With(authLimit).Post("/logout", authHandler.Logout)
 
 	r.Group(func(r chi.Router) {
 		r.Use(appmiddleware.RequireAuth)
@@ -217,6 +219,8 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, error) {
 		r.Post("/org/select", orgsHandler.Select)
 		r.Post("/org/invitations/{id}/accept", orgsHandler.AcceptInvitation)
 	})
+
+	sensitiveLimit := appmiddleware.RateLimit(appmiddleware.RateLimitConfig{Max: 60, Window: time.Minute})
 
 	r.Group(func(r chi.Router) {
 		r.Use(appmiddleware.RequireAuth)
@@ -240,7 +244,7 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, error) {
 		r.Post("/revues/nouvelle", subjectsHandler.WizardNouvelleCreate)
 		r.Get("/runs/{id}", runsHandler.Show)
 		r.Get("/runs/{id}/export.csv", runsHandler.ExportCSV)
-		r.Get("/runs/{id}/export/preuve.zip", runsHandler.ExportEvidence)
+		r.With(sensitiveLimit).Get("/runs/{id}/export/preuve.zip", runsHandler.ExportEvidence)
 		r.Post("/runs/{id}/export/notion", runsHandler.ExportNotion)
 		r.Get("/runs/{id}/items/{itemId}", runsHandler.ShowItem)
 		r.Post("/runs/{id}/items/{itemId}", runsHandler.UpdateItem)
@@ -271,8 +275,8 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, error) {
 		r.Use(appmiddleware.RequireOrgAdmin(st))
 		r.Get("/admin", orgsHandler.AdminHub)
 		r.Get("/admin/users", adminUsers.List)
-		r.Post("/admin/users", adminUsers.Add)
-		r.Post("/admin/users/remove", adminUsers.Remove)
+		r.With(sensitiveLimit).Post("/admin/users", adminUsers.Add)
+		r.With(sensitiveLimit).Post("/admin/users/remove", adminUsers.Remove)
 		r.Get("/admin/teams", adminTeams.List)
 		r.Post("/admin/teams", adminTeams.Create)
 		r.Get("/admin/teams/{id}", adminTeams.Show)
@@ -292,7 +296,7 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, error) {
 		r.Get("/admin/settings/smtp", adminSMTP.Show)
 		r.Post("/admin/settings/smtp", adminSMTP.Save)
 		r.Get("/admin/settings/webhooks", adminWebhooks.Show)
-		r.Post("/admin/settings/webhooks", adminWebhooks.Save)
+		r.With(sensitiveLimit).Post("/admin/settings/webhooks", adminWebhooks.Save)
 		r.Get("/admin/integrations/jira", adminJira.Show)
 		r.Post("/admin/integrations/jira", adminJira.Save)
 		r.Get("/admin/integrations/notion", adminNotion.Show)

@@ -24,6 +24,7 @@ func ApplyHeaderFromContext(r *http.Request, data *PageData) {
 		data.ShowMyTasks = hd.ShowMyTasks
 		data.ShowSubjectColumn = hd.ShowSubjectColumn
 		data.ShowCollab = hd.ShowCollab
+		data.UnlockFlash = hd.UnlockFlash
 		data.DevAuth = hd.DevAuth
 		data.DevAuthUsers = hd.DevAuthUsers
 		if hd.ActiveOrg != nil {

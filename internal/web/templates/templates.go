@@ -173,6 +173,7 @@ type PageData struct {
 	ShowMyTasks         bool
 	ShowSubjectColumn   bool
 	ShowCollab          bool
+	UnlockFlash         string // one-shot progressive-disclosure message (P0→P1 / P1→P2)
 	RequestID           string
 	ReportsAutoOpen     bool // open @jeb-maker/reports widget on load (/signaler)
 	Breadcrumbs         []Breadcrumb
@@ -836,6 +837,7 @@ func Parse(assetVersion string) (*template.Template, error) {
 		"launchRunCTA":        LaunchRunCTA,
 		"runItemTableColspan": RunItemTableColspan,
 		"formatDueDate":       formatDueDate,
+		"dueDateOverdue":      dueDateOverdue,
 		"formatDateTime":      formatDateTime,
 		"dueDateInput":        dueDateInput,
 		"runsListURL": func(status, q string, page int) string {
@@ -902,6 +904,24 @@ func formatDueDate(due sql.NullString) string {
 		return ""
 	}
 	return formatDateTime(due.String)
+}
+
+func dueDateOverdue(due sql.NullString, status string) bool {
+	if status != store.RunStatusInProgress && status != store.RunStatusDraft {
+		return false
+	}
+	if !due.Valid || due.String == "" {
+		return false
+	}
+	t, err := time.Parse(time.RFC3339, due.String)
+	if err != nil {
+		t, err = time.Parse("2006-01-02", due.String)
+		if err != nil {
+			return false
+		}
+	}
+	today := time.Now().UTC().Truncate(24 * time.Hour)
+	return t.UTC().Truncate(24 * time.Hour).Before(today)
 }
 
 func formatDateTime(value string) string {

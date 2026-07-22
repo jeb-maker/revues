@@ -181,12 +181,16 @@ func filteredRunSummariesFilterSQL(userID int64, admin bool, orgID int64, status
 		args = append(args, userID, RunStatusArchived, orgID, userID, userID, orgID)
 	}
 
-	if status != "" {
-		sqlQuery += ` AND r.status = ?`
-		args = append(args, status)
-	} else {
+	switch status {
+	case "":
 		sqlQuery += ` AND r.status IN (?, ?, ?)`
 		args = append(args, RunStatusDraft, RunStatusInProgress, RunStatusDone)
+	case RunListFilterOverdue:
+		sqlQuery += ` AND r.status = ? AND r.due_date IS NOT NULL AND date(r.due_date) < date('now')`
+		args = append(args, RunStatusInProgress)
+	default:
+		sqlQuery += ` AND r.status = ?`
+		args = append(args, status)
 	}
 
 	for _, term := range searchTerms(query) {

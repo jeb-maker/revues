@@ -11,6 +11,7 @@ type AuthStore interface {
 	UserByID(ctx context.Context, id int64) (*store.User, error)
 	ListUsers(ctx context.Context) ([]store.User, error)
 	ResolveLoginRole(ctx context.Context, email, bootstrapAdmin string) (string, error)
+	ResolveLoginRoleStrict(ctx context.Context, email, bootstrapAdmin string, requireWhitelist bool) (string, error)
 	EnsureBootstrapOrgOwner(ctx context.Context, userID int64, email, bootstrapAdmin string) error
 	CountUserOrganizations(ctx context.Context, userID int64) (int, error)
 	ListUserOrganizations(ctx context.Context, userID int64) ([]store.OrganizationMembership, error)

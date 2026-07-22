@@ -11,17 +11,27 @@ import (
 	"strconv"
 )
 
+// EvidenceAttachmentRef describes a run-item attachment without embedding binaries.
+type EvidenceAttachmentRef struct {
+	RunItemID   int64  `json:"run_item_id"`
+	Filename    string `json:"filename"`
+	StoragePath string `json:"storage_path"`
+	SizeBytes   int64  `json:"size_bytes"`
+	SHA256      string `json:"sha256,omitempty"`
+}
+
 // EvidenceManifest is the JSON metadata sealed with a completed run export.
 type EvidenceManifest struct {
-	RunID        int64  `json:"run_id"`
-	SubjectName  string `json:"subject_name"`
-	TemplateName string `json:"template_name"`
-	Version      int    `json:"version"`
-	Status       string `json:"status"`
-	CompletedAt  string `json:"completed_at"`
-	ClosedBy     string `json:"closed_by,omitempty"`
-	CSVSHA256    string `json:"csv_sha256"`
-	GeneratedAt  string `json:"generated_at"`
+	RunID        int64                   `json:"run_id"`
+	SubjectName  string                  `json:"subject_name"`
+	TemplateName string                  `json:"template_name"`
+	Version      int                     `json:"version"`
+	Status       string                  `json:"status"`
+	CompletedAt  string                  `json:"completed_at"`
+	ClosedBy     string                  `json:"closed_by,omitempty"`
+	CSVSHA256    string                  `json:"csv_sha256"`
+	GeneratedAt  string                  `json:"generated_at"`
+	Attachments  []EvidenceAttachmentRef `json:"attachments,omitempty"`
 }
 
 // SHA256Hex returns the lowercase hex SHA-256 digest of data.

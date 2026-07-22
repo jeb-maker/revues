@@ -50,6 +50,7 @@
     <mb-segmented-control label="Filtrer par statut">
       <a href="{{runsListURL "" .FilterQuery 1}}"{{if not .FilterStatus}} aria-current="page"{{end}}>Tous</a>
       <a href="{{runsListURL "in_progress" .FilterQuery 1}}"{{if eq .FilterStatus "in_progress"}} aria-current="page"{{end}}>En cours</a>
+      <a href="{{runsListURL "overdue" .FilterQuery 1}}"{{if eq .FilterStatus "overdue"}} aria-current="page"{{end}}>En retard</a>
       <a href="{{runsListURL "done" .FilterQuery 1}}"{{if eq .FilterStatus "done"}} aria-current="page"{{end}}>Terminées</a>
     </mb-segmented-control>
   </div>
@@ -73,7 +74,7 @@
         {{if not $.SimpleUI}}
         <td class="run-card__status data-table__col--center">{{if ne .Status "in_progress"}}<span class="status-badge status-{{.Status}}">{{formatRunStatus .Status}}</span>{{end}}</td>
         {{end}}
-        <td class="run-card__due data-table__col--center{{if not .DueDate.Valid}} run-card__due--empty{{end}}">{{if .DueDate.Valid}}{{formatDueDate .DueDate}}{{else}}<span class="muted">—</span>{{end}}</td>
+        <td class="run-card__due data-table__col--center{{if not .DueDate.Valid}} run-card__due--empty{{end}}{{if dueDateOverdue .DueDate .Status}} run-card__due--overdue{{end}}">{{if .DueDate.Valid}}{{formatDueDate .DueDate}}{{if dueDateOverdue .DueDate .Status}} <span class="status-badge status-nok">En retard</span>{{end}}{{else}}<span class="muted">—</span>{{end}}</td>
         <td class="run-card__progress data-table__stats data-table__progress muted" style="--run-progress: {{.Percent}}%" aria-label="Progression {{.Done}} sur {{.Total}}, {{.Percent}} pourcent"><span class="run-card__fraction">{{.Done}}/{{.Total}}</span><span class="run-card__bar" aria-hidden="true"></span><span class="run-card__pct"> ({{.Percent}}%)</span></td>
       </tr>
       {{end}}

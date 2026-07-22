@@ -14,12 +14,14 @@ const (
 	RunStatusInProgress = "in_progress"
 	RunStatusDone       = "done"
 	RunStatusArchived   = "archived"
+	// RunListFilterOverdue is a virtual /revues filter (not a checklist_runs.status value).
+	RunListFilterOverdue = "overdue"
 )
 
 // ValidRunListStatus reports whether status is allowed for the /revues list filter.
 func ValidRunListStatus(status string) bool {
 	switch status {
-	case RunStatusDraft, RunStatusInProgress, RunStatusDone:
+	case RunStatusDraft, RunStatusInProgress, RunStatusDone, RunListFilterOverdue:
 		return true
 	default:
 		return false

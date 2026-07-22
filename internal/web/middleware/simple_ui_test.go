@@ -170,3 +170,30 @@ func TestResolveUICaps_SoloMultiSubject(t *testing.T) {
 		t.Fatal("expected subject column for ≥2 subjects")
 	}
 }
+
+func TestResolveSimpleUI_GlobalAdminNeverSimple(t *testing.T) {
+	ctx := context.Background()
+	db := openOrgAdminTestDB(t)
+	st := store.New(db)
+
+	admin, err := st.UpsertGitHubUser(ctx, 91003, "gadmin", "gadmin@example.com", "GAdmin", "", auth.RoleAdmin)
+	if err != nil {
+		t.Fatal(err)
+	}
+	org, err := st.CreateOrganization(ctx, "Solo Admin Org", "solo-admin-org", admin.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	octx := orgctx.WithOrganizationID(ctx, org.ID)
+	if _, err = st.CreateSubjectWithVisibility(octx, "Seul", "", admin.ID, nil, store.SubjectVisibilityPrivate); err != nil {
+		t.Fatal(err)
+	}
+
+	reqCtx := testOrgNavCtx(t, st, org, admin)
+	hd := HeaderData{
+		UserOrganizations: []store.OrganizationMembership{{Organization: *org, Role: store.OrgRoleOwner}},
+	}
+	if simple, _ := resolveSimpleUI(reqCtx, st, admin, hd); simple {
+		t.Fatal("global admin must never be SimpleUI")
+	}
+}
