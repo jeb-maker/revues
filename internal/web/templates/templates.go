@@ -776,9 +776,9 @@ func Parse(assetVersion string) (*template.Template, error) {
 			return path + "?v=" + assetVersion
 		},
 		"toJSON": func(v any) (template.JS, error) {
-			b, err := json.Marshal(v)
-			if err != nil {
-				return "", err
+			b, marshalErr := json.Marshal(v)
+			if marshalErr != nil {
+				return "", marshalErr
 			}
 			return template.JS(b), nil
 		},

@@ -61,7 +61,7 @@ func (h *BugReports) CreateAPI(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var client clientReport
-	if err := json.Unmarshal(raw, &client); err != nil {
+	if unmarshalErr := json.Unmarshal(raw, &client); unmarshalErr != nil {
 		writeJSON(w, http.StatusBadRequest, map[string]any{"ok": false, "error": "invalid json"})
 		return
 	}
