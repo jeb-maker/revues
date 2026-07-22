@@ -27,14 +27,14 @@
   </div>
   {{end}}
   {{if .NokItems}}
-  <div class="warning-panel">
+  <mb-alert variant="warning">
     <h3>Points non validés ({{len .NokItems}})</h3>
     <ul class="item-list">
       {{range .NokItems}}
       <li><a href="/runs/{{$.Run.ID}}/items/{{.ID}}"><strong>{{.Label}}</strong></a>{{if .Comment}} — {{.Comment}}{{end}}</li>
       {{end}}
     </ul>
-  </div>
+  </mb-alert>
   {{end}}
   <div class="post-closure">
     <mb-button href="/runs/{{.Run.ID}}/export.csv" variant="secondary">{{icon "download"}} Exporter CSV</mb-button>

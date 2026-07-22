@@ -66,15 +66,14 @@
   {{end}}
   {{end}}
   {{else}}
-  <div class="empty-state">
-    <p><strong>Aucun point dans cette version</strong></p>
-    <p class="muted">{{if .SimpleUI}}Ajoutez des points pour utiliser cette liste.{{else}}Ajoutez des points de check-list pour utiliser ce modèle dans une revue.{{end}}</p>
+  <mb-empty-state heading="Aucun point dans cette version">
+    <p>{{if .SimpleUI}}Ajoutez des points pour utiliser cette liste.{{else}}Ajoutez des points de check-list pour utiliser ce modèle dans une revue.{{end}}</p>
     {{if .CanManage}}
-    <div class="empty-state-actions">
+    <div slot="actions">
       <mb-button href="/modeles/{{.Template.ID}}/edit" variant="secondary">Ajouter des points</mb-button>
     </div>
     {{end}}
-  </div>
+  </mb-empty-state>
   {{end}}
 </section>
 

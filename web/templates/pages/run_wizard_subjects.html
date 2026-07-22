@@ -26,31 +26,23 @@
   {{else if .FilterQuery}}
   <p class="muted">Aucun {{.Labels.Subject.Singular | lowerFirst}} pour cette recherche. <a href="{{runWizardPath .SelectedTemplateID}}">Effacer</a></p>
   {{else}}
-  <div class="empty-state">
-    <p><strong>Aucun {{.Labels.Subject.Singular | lowerFirst}} disponible</strong></p>
+  <mb-empty-state heading="Aucun {{.Labels.Subject.Singular | lowerFirst}} disponible">
     {{if .CanCreate}}
-    <p class="muted">Créez un {{.Labels.Subject.Singular | lowerFirst}} ci-dessous pour lancer une revue.</p>
+    <p>Créez un {{.Labels.Subject.Singular | lowerFirst}} ci-dessous pour lancer une revue.</p>
     {{else}}
-    <p class="muted">Demandez à un éditeur de créer un {{.Labels.Subject.Singular | lowerFirst}} pour lancer une revue.</p>
+    <p>Demandez à un éditeur de créer un {{.Labels.Subject.Singular | lowerFirst}} pour lancer une revue.</p>
     {{end}}
-  </div>
+  </mb-empty-state>
   {{end}}
 
   {{if .CanCreate}}
   <form method="post" action="/revues/nouvelle" class="stack-form">
     <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
     {{if .SelectedTemplateID}}<input type="hidden" name="template" value="{{.SelectedTemplateID}}">{{end}}
-    <label>
-      Nouveau {{.Labels.Subject.Singular | lowerFirst}}
-      <input type="text" name="name" required maxlength="200" placeholder="Nom du {{.Labels.Subject.Singular | lowerFirst}}">
-    </label>
+    <mb-input label="Nouveau {{.Labels.Subject.Singular | lowerFirst}}" type="text" name="name" required placeholder="Nom du {{.Labels.Subject.Singular | lowerFirst}}"></mb-input>
     <details class="stack-form">
       <summary>Options avancées</summary>
-      <label>
-        Domaines
-        <span class="field-hint">Séparez par des virgules. Facultatif — filtre les modèles proposés à l'étape suivante.</span>
-        <input type="text" name="domains" maxlength="500" placeholder="web, api">
-      </label>
+      <mb-input label="Domaines" type="text" name="domains" placeholder="web, api" hint="Séparez par des virgules. Facultatif — filtre les modèles proposés à l'étape suivante."></mb-input>
     </details>
     <div class="form-actions">
       <mb-button type="submit">{{icon "plus"}} Créer et continuer</mb-button>
