@@ -8,7 +8,7 @@
 {{template "admin_nav" .}}
 
 {{if .Error}}
-<p class="error content-inset" role="alert">{{.Error}}</p>
+<mb-alert variant="danger" class="content-inset">{{.Error}}</mb-alert>
 {{end}}
 
 <section class="card">
@@ -31,9 +31,9 @@
         <td class="muted">{{.Description}}</td>
         <td class="data-table__col--center">
           {{if .Enabled}}
-          <span class="status-badge status-enabled">Activé</span>
+          <mb-badge variant="success">Activé</mb-badge>
           {{else}}
-          <span class="status-badge status-disabled">Désactivé</span>
+          <mb-badge variant="neutral">Désactivé</mb-badge>
           {{end}}
         </td>
         <td class="data-table__col--end"><a href="{{.ConfigPath}}">Configurer</a></td>

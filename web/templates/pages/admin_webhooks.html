@@ -4,9 +4,9 @@
   <p class="muted">Webhooks de l'organisation active — JSON signé HMAC-SHA256. Voir <code>docs/WEBHOOKS.md</code>.</p>
 </section>
 {{template "admin_nav" .}}
-{{if not .CanEncrypt}}<p class="error content-inset" role="alert">REVUES_ENCRYPTION_KEY requise pour enregistrer.</p>{{end}}
-{{if .Message}}<p class="success content-inset" role="status">{{.Message}}</p>{{end}}
-{{if .Error}}<p class="error content-inset" role="alert">{{.Error}}</p>{{end}}
+{{if not .CanEncrypt}}<mb-alert variant="danger" class="content-inset">REVUES_ENCRYPTION_KEY requise pour enregistrer.</mb-alert>{{end}}
+{{if .Message}}<mb-alert variant="success" class="content-inset">{{.Message}}</mb-alert>{{end}}
+{{if .Error}}<mb-alert variant="danger" class="content-inset">{{.Error}}</mb-alert>{{end}}
 <section class="card">
   <h2>Destinataires</h2>
   <form method="post" action="/admin/settings/webhooks" class="stack-form">
@@ -16,12 +16,12 @@
     <label>Secret HMAC<input type="password" name="secret" placeholder="{{if .HasSecret}}Laisser vide pour conserver{{end}}"></label>
     <label class="checkbox-label"><input type="checkbox" name="review_completed" value="on" {{if .ReviewCompleted}}checked{{end}}> review.completed</label>
     <label class="checkbox-label"><input type="checkbox" name="review_item_nok" value="on" {{if .ReviewItemNOK}}checked{{end}}> review.item.nok</label>
-    <button type="submit" class="button" {{if not .CanEncrypt}}disabled{{end}}>Enregistrer</button>
+    <mb-button type="submit" {{if not .CanEncrypt}}disabled{{end}}>Enregistrer</mb-button>
   </form>
 </section>
 <section class="card">
   <h2>Test</h2>
-  <form method="post" action="/admin/settings/webhooks"><input type="hidden" name="csrf_token" value="{{.CSRFToken}}"><input type="hidden" name="action" value="test"><button type="submit" class="button-secondary" {{if not .Configured}}disabled{{end}}>Envoyer un webhook de test</button></form>
+  <form method="post" action="/admin/settings/webhooks"><input type="hidden" name="csrf_token" value="{{.CSRFToken}}"><input type="hidden" name="action" value="test"><mb-button type="submit" variant="secondary" {{if not .Configured}}disabled{{end}}>Envoyer un webhook de test</mb-button></form>
 </section>
 {{template "layout_end" .}}
 {{end}}

@@ -11,10 +11,10 @@
 {{template "admin_nav" .}}
 
 {{if .Message}}
-<p class="success content-inset" role="status">{{.Message}}</p>
+<mb-alert variant="success" class="content-inset">{{.Message}}</mb-alert>
 {{end}}
 {{if .Error}}
-<p class="error content-inset" role="alert">{{.Error}}</p>
+<mb-alert variant="danger" class="content-inset">{{.Error}}</mb-alert>
 {{end}}
 
 {{if not .Emails}}
@@ -44,7 +44,7 @@
       </select>
     </label>
     <div class="form-actions">
-      <button type="submit" class="button">Enregistrer</button>
+      <mb-button type="submit">Enregistrer</mb-button>
     </div>
   </form>
 </section>
@@ -72,7 +72,7 @@
           <form method="post" action="/admin/users/remove" class="inline-form" onsubmit="return confirm('Retirer cet email de la liste autorisée ?');">
             <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
             <input type="hidden" name="email" value="{{.Email}}">
-            <button type="submit" class="button-ghost button-sm">Retirer</button>
+            <mb-button type="submit" variant="ghost" size="sm">Retirer</mb-button>
           </form>
         </td>
       </tr>

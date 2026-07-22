@@ -7,47 +7,47 @@
 {{template "admin_nav" .}}
 {{end}}
 {{if and (not .Subjects) (not .HasActiveFilters)}}
-{{if .Message}}<p class="success" role="status">{{.Message}}</p>{{end}}
-{{if .Error}}<p class="error" role="alert">{{.Error}}</p>{{end}}
+{{if .Message}}<mb-alert variant="success">{{.Message}}</mb-alert>{{end}}
+{{if .Error}}<mb-alert variant="danger">{{.Error}}</mb-alert>{{end}}
 <section class="empty-state">
   <h2>Aucun {{.Labels.Subject.Singular | lowerFirst}}</h2>
   {{if .SimpleUI}}
   <p>Un {{.Labels.Subject.Singular | lowerFirst}} regroupe vos checklists (revues). Créez-en un pour commencer.</p>
   <p class="empty-state-actions">
-    {{if .CanCreate}}<a class="button" href="/subjects/new">Créer un {{.Labels.Subject.Singular | lowerFirst}}</a>{{end}}
+    {{if .CanCreate}}<mb-button href="/subjects/new">Créer un {{.Labels.Subject.Singular | lowerFirst}}</mb-button>{{end}}
   </p>
   {{else if .CanManageOrgUsers}}
   <p>Votre organisation est prête. Commencez par autoriser les utilisateurs, puis créez votre premier {{.Labels.Subject.Singular | lowerFirst}}.</p>
   <p class="empty-state-actions">
-    <a class="button" href="/admin/users">Gérer les emails autorisés</a>
-    {{if .CanCreate}}<a class="button-secondary" href="{{if eq .AdminSection "subjects"}}/admin/subjects/new{{else}}/subjects/new{{end}}">Créer un {{.Labels.Subject.Singular | lowerFirst}}</a>{{end}}
+    <mb-button href="/admin/users">Gérer les emails autorisés</mb-button>
+    {{if .CanCreate}}<mb-button href="{{if eq .AdminSection "subjects"}}/admin/subjects/new{{else}}/subjects/new{{end}}" variant="secondary">Créer un {{.Labels.Subject.Singular | lowerFirst}}</mb-button>{{end}}
   </p>
   {{else if .CanCreate}}
   <p>Créez un {{.Labels.Subject.Singular | lowerFirst}} pour y ajouter des modèles de checklist et lancer une revue.</p>
   <p class="empty-state-actions">
-    <a class="button" href="/subjects/new">Créer un {{.Labels.Subject.Singular | lowerFirst}}</a>
+    <mb-button href="/subjects/new">Créer un {{.Labels.Subject.Singular | lowerFirst}}</mb-button>
   </p>
   {{else}}
   <p>Aucun {{.Labels.Subject.Singular | lowerFirst}} disponible pour le moment. Demandez à un administrateur de l'organisation.</p>
   <p class="empty-state-actions">
-    <a class="button" href="/mes-taches">Voir mes tâches</a>
+    <mb-button href="/mes-taches">Voir mes tâches</mb-button>
   </p>
   {{end}}
 </section>
 {{else}}
 <section class="card">
-  {{if .Message}}<p class="success" role="status">{{.Message}}</p>{{end}}
-  {{if .Error}}<p class="error" role="alert">{{.Error}}</p>{{end}}
+  {{if .Message}}<mb-alert variant="success">{{.Message}}</mb-alert>{{end}}
+  {{if .Error}}<mb-alert variant="danger">{{.Error}}</mb-alert>{{end}}
   {{if .SimpleUI}}
   <p class="muted">Chaque {{.Labels.Subject.Singular | lowerFirst}} contient vos revues / checklists.</p>
   {{end}}
   <div class="list-toolbar">
     <form method="get" action="{{if eq .AdminSection "subjects"}}/admin/subjects{{else}}/subjects{{end}}" class="list-toolbar__form filter-form filter-form--inline">
       <input class="list-toolbar__search toolbar-control" type="search" id="filter-query" name="q" value="{{.FilterQuery}}" placeholder="Rechercher un {{.Labels.Subject.Singular | lowerFirst}}…" aria-label="Rechercher un {{.Labels.Subject.Singular | lowerFirst}}">
-      <button type="submit" class="button-secondary toolbar-control">Filtrer</button>
-      {{if .HasActiveFilters}}<a href="{{if eq .AdminSection "subjects"}}/admin/subjects{{else}}/subjects{{end}}" class="button-ghost toolbar-control">Effacer</a>{{end}}
+      <mb-button type="submit" variant="secondary" class="toolbar-control">Filtrer</mb-button>
+      {{if .HasActiveFilters}}<mb-button href="{{if eq .AdminSection "subjects"}}/admin/subjects{{else}}/subjects{{end}}" variant="ghost" class="toolbar-control">Effacer</mb-button>{{end}}
     </form>
-    {{if .CanCreate}}<a class="button list-toolbar__action toolbar-control" href="{{if eq .AdminSection "subjects"}}/admin/subjects/new{{else}}/subjects/new{{end}}" title="Nouveau {{.Labels.Subject.Singular | lowerFirst}}">Créer</a>{{end}}
+    {{if .CanCreate}}<mb-button class="list-toolbar__action toolbar-control" href="{{if eq .AdminSection "subjects"}}/admin/subjects/new{{else}}/subjects/new{{end}}" title="Nouveau {{.Labels.Subject.Singular | lowerFirst}}">Créer</mb-button>{{end}}
   </div>
   <div class="table-scroll">
   <table class="data-table data-table--cards table-sticky">
@@ -60,7 +60,7 @@
       <tr class="subject-card">
         <td class="subject-card__title data-row__primary">
           <a href="/subjects/{{.ID}}">{{.Name}}</a>
-          {{if eq .Visibility "private"}}<span class="status-badge status-na">Privé</span>{{end}}
+          {{if eq .Visibility "private"}}<mb-badge variant="warning">Privé</mb-badge>{{end}}
         </td>
       </tr>
       {{end}}

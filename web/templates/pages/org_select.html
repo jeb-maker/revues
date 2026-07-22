@@ -1,7 +1,7 @@
 {{define "org_select"}}
 {{template "layout_start" .}}
 <p>Sélectionnez l'organisation avec laquelle vous souhaitez travailler.</p>
-{{if .Error}}<p class="error" role="alert">{{.Error}}</p>{{end}}
+{{if .Error}}<mb-alert variant="danger">{{.Error}}</mb-alert>{{end}}
 
 <form method="post" action="/org/select" class="stack-form org-select-form">
   <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
@@ -15,7 +15,7 @@
     </label>
     {{end}}
   </fieldset>
-  <button type="submit" class="button">Continuer</button>
+  <mb-button type="submit">Continuer</mb-button>
 </form>
 {{template "layout_end" .}}
 {{end}}

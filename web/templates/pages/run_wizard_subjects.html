@@ -2,15 +2,15 @@
 {{template "layout_start" .}}
 <div class="card">
   <p class="muted">Choisissez un {{.Labels.Subject.Singular | lowerFirst}} ou créez-en un pour lancer la revue.</p>
-  {{if .Message}}<p class="success" role="status">{{.Message}}</p>{{end}}
-  {{if .Error}}<p class="error" role="alert">{{.Error}}</p>{{end}}
+  {{if .Message}}<mb-alert variant="success">{{.Message}}</mb-alert>{{end}}
+  {{if .Error}}<mb-alert variant="danger">{{.Error}}</mb-alert>{{end}}
 
   <div class="list-toolbar">
     <form method="get" action="/revues/nouvelle" class="list-toolbar__form filter-form filter-form--inline">
       {{if .SelectedTemplateID}}<input type="hidden" name="template" value="{{.SelectedTemplateID}}">{{end}}
       <input class="list-toolbar__search toolbar-control" type="search" id="filter-query" name="q" value="{{.FilterQuery}}" placeholder="Rechercher un {{.Labels.Subject.Singular | lowerFirst}}…" aria-label="Rechercher un {{.Labels.Subject.Singular | lowerFirst}}">
-      <button type="submit" class="button-secondary toolbar-control">Filtrer</button>
-      {{if .FilterQuery}}<a href="{{runWizardPath .SelectedTemplateID}}" class="button-ghost toolbar-control">Effacer</a>{{end}}
+      <mb-button type="submit" variant="secondary" class="toolbar-control">Filtrer</mb-button>
+      {{if .FilterQuery}}<mb-button href="{{runWizardPath .SelectedTemplateID}}" variant="ghost" class="toolbar-control">Effacer</mb-button>{{end}}
     </form>
   </div>
 
@@ -19,7 +19,7 @@
     {{range .Subjects}}
     <li>
       <a href="{{subjectTemplatesForRunPath .ID $.SelectedTemplateID}}">{{.Name}}</a>
-      {{if eq .Visibility "private"}} <span class="status-badge status-na">Privé</span>{{end}}
+      {{if eq .Visibility "private"}} <mb-badge variant="warning">Privé</mb-badge>{{end}}
     </li>
     {{end}}
   </ul>
@@ -53,7 +53,7 @@
       </label>
     </details>
     <div class="form-actions">
-      <button type="submit" class="button">{{icon "plus"}} Créer et continuer</button>
+      <mb-button type="submit">{{icon "plus"}} Créer et continuer</mb-button>
     </div>
   </form>
   {{end}}

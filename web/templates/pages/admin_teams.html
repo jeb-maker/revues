@@ -11,10 +11,10 @@
 {{template "admin_nav" .}}
 
 {{if .Message}}
-<p class="success content-inset" role="status">{{.Message}}</p>
+<mb-alert variant="success" class="content-inset">{{.Message}}</mb-alert>
 {{end}}
 {{if .Error}}
-<p class="error content-inset" role="alert">{{.Error}}</p>
+<mb-alert variant="danger" class="content-inset">{{.Error}}</mb-alert>
 {{end}}
 
 <section class="card">
@@ -34,7 +34,7 @@
       <textarea name="description" rows="2" maxlength="500"></textarea>
     </label>
     <div class="form-actions">
-      <button type="submit" class="button">Créer</button>
+      <mb-button type="submit">Créer</mb-button>
     </div>
   </form>
 </section>

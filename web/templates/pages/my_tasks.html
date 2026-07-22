@@ -5,7 +5,7 @@
   <h2>Aucune tâche assignée</h2>
   <p class="muted">Les points qui vous sont assignés dans les {{.Labels.Run.Plural}} en cours apparaîtront ici.</p>
   <p class="empty-state-actions">
-    <a class="button" href="/revues">Voir les {{.Labels.Run.Plural}}</a>
+    <mb-button href="/revues">Voir les {{.Labels.Run.Plural}}</mb-button>
   </p>
 </section>
 {{else}}
@@ -14,8 +14,8 @@
     <form method="get" action="/mes-taches" class="list-toolbar__form filter-form filter-form--inline">
       <input class="list-toolbar__search toolbar-control" type="search" id="filter-query" name="q" value="{{.FilterQuery}}" placeholder="Rechercher un {{.Labels.Subject.Singular | lowerFirst}}, {{.Labels.Run.Article}} {{.Labels.Run.Singular}}, un point…" aria-label="Rechercher un {{.Labels.Subject.Singular | lowerFirst}}, {{.Labels.Run.Article}} {{.Labels.Run.Singular}} ou un point">
       {{if .FilterStatus}}<input type="hidden" name="status" value="{{.FilterStatus}}">{{end}}
-      <button type="submit" class="button-secondary toolbar-control">Filtrer</button>
-      {{if .HasActiveFilters}}<a href="/mes-taches" class="button-ghost toolbar-control">Effacer</a>{{end}}
+      <mb-button type="submit" variant="secondary" class="toolbar-control">Filtrer</mb-button>
+      {{if .HasActiveFilters}}<mb-button href="/mes-taches" variant="ghost" class="toolbar-control">Effacer</mb-button>{{end}}
     </form>
     <nav class="segmented-tabs" aria-label="Filtrer par statut">
       <a href="{{myTasksListURL "" .FilterQuery}}" class="segmented-tabs__item{{if not .FilterStatus}} is-active{{end}}">Tous</a>
@@ -35,7 +35,7 @@
       {{range .Tasks}}
       <tr class="task-card">
         <td class="task-card__point data-row__primary"><a href="/runs/{{.RunID}}/items/{{.ID}}">{{if .Section}}{{.Section}} — {{end}}{{.Label}}</a></td>
-        <td class="task-card__status data-table__col--center"><span class="status-badge status-{{.Status}}">{{formatItemStatus .Status}}</span></td>
+        <td class="task-card__status data-table__col--center"><mb-badge variant="{{badgeVariant .Status}}">{{formatItemStatus .Status}}</mb-badge></td>
         <td class="task-card__run"><a href="/runs/{{.RunID}}">{{.RunTitle}}</a></td>
         <td class="task-card__subject">{{.SubjectName}}</td>
       </tr>

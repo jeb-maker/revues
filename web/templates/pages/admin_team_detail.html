@@ -8,10 +8,10 @@
 {{template "admin_nav" .}}
 
 {{if .Message}}
-<p class="success content-inset" role="status">{{.Message}}</p>
+<mb-alert variant="success" class="content-inset">{{.Message}}</mb-alert>
 {{end}}
 {{if .Error}}
-<p class="error content-inset" role="alert">{{.Error}}</p>
+<mb-alert variant="danger" class="content-inset">{{.Error}}</mb-alert>
 {{end}}
 
 <section class="card">
@@ -29,7 +29,7 @@
       </select>
     </label>
     <div class="form-actions">
-      <button type="submit" class="button">Ajouter</button>
+      <mb-button type="submit">Ajouter</mb-button>
     </div>
   </form>
   {{else}}
@@ -58,7 +58,7 @@
           <form method="post" action="/admin/teams/{{$.Team.ID}}/members/remove" class="inline-form" onsubmit="return confirm('Retirer ce membre de l\'équipe ?');">
             <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
             <input type="hidden" name="user_id" value="{{.UserID}}">
-            <button type="submit" class="button-ghost button-sm">Retirer</button>
+            <mb-button type="submit" variant="ghost" size="sm">Retirer</mb-button>
           </form>
         </td>
       </tr>

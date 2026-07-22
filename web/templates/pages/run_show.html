@@ -1,19 +1,17 @@
 {{define "run_show"}}
 {{template "layout_start" .}}
-<div id="toast" class="toast" role="alert" aria-live="assertive"></div>
-
-{{if .Message}}<p class="success" role="status">{{.Message}}</p>{{end}}
-{{if .Error}}<p class="error" role="alert">{{.Error}}</p>{{end}}
-{{if .ItemError}}<p class="error" role="alert">{{.ItemError}}</p>{{end}}
-{{if .AssignError}}<p class="error" role="alert">{{.AssignError}}</p>{{end}}
-{{if .CompleteError}}<p class="error" role="alert">{{.CompleteError}}</p>{{end}}
-{{if .NotionExportError}}<p class="error" role="alert">{{.NotionExportError}}</p>{{end}}
+{{if .Message}}<mb-alert variant="success">{{.Message}}</mb-alert>{{end}}
+{{if .Error}}<mb-alert variant="danger">{{.Error}}</mb-alert>{{end}}
+{{if .ItemError}}<mb-alert variant="danger">{{.ItemError}}</mb-alert>{{end}}
+{{if .AssignError}}<mb-alert variant="danger">{{.AssignError}}</mb-alert>{{end}}
+{{if .CompleteError}}<mb-alert variant="danger">{{.CompleteError}}</mb-alert>{{end}}
+{{if .NotionExportError}}<mb-alert variant="danger">{{.NotionExportError}}</mb-alert>{{end}}
 
 {{/* Statut « en cours » omis (contexte page) ; échéance / autres statuts seulement. */}}
 {{if or .Run.DueDate.Valid (and (ne .Run.Status "in_progress") (ne .Run.Status "draft"))}}
 <p class="muted run-statusline">
   {{if and (ne .Run.Status "in_progress") (ne .Run.Status "draft")}}
-  <span class="status-badge status-{{.Run.Status}}">{{formatRunStatus .Run.Status}}</span>{{if .Run.DueDate.Valid}} · {{end}}
+  <mb-badge variant="{{badgeVariant .Run.Status}}">{{formatRunStatus .Run.Status}}</mb-badge>{{if .Run.DueDate.Valid}} · {{end}}
   {{end}}
   {{if .Run.DueDate.Valid}}{{formatDueDate .Run.DueDate}}{{end}}
 </p>
@@ -39,24 +37,24 @@
   </div>
   {{end}}
   <div class="post-closure">
-    <a href="/runs/{{.Run.ID}}/export.csv" class="button-secondary">{{icon "download"}} Exporter CSV</a>
+    <mb-button href="/runs/{{.Run.ID}}/export.csv" variant="secondary">{{icon "download"}} Exporter CSV</mb-button>
     {{if .CanExportEvidence}}
     <div class="evidence-block">
-      <a href="/runs/{{.Run.ID}}/export/preuve.zip" class="button-secondary">{{icon "download"}} Télécharger la preuve</a>
+      <mb-button href="/runs/{{.Run.ID}}/export/preuve.zip" variant="secondary">{{icon "download"}} Télécharger la preuve</mb-button>
       {{if .Run.EvidenceCSVSHA256}}
       <p class="field-hint evidence-hash">Empreinte CSV scellée : <code>{{.Run.EvidenceCSVSHA256}}</code></p>
       {{end}}
     </div>
     {{end}}
     {{if .Run.NotionURL}}
-    <a href="{{.Run.NotionURL}}" class="button-secondary" target="_blank" rel="noopener noreferrer">{{icon "external-link"}} Voir dans Notion</a>
+    <mb-button href="{{.Run.NotionURL}}" variant="secondary" target="_blank">{{icon "external-link"}} Voir dans Notion</mb-button>
     {{else if and .NotionConfigured .CanExportNotion}}
     <form method="post" action="/runs/{{.Run.ID}}/export/notion" class="inline-form">
       <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
-      <button type="submit" class="button-secondary">{{icon "external-link"}} Exporter vers Notion</button>
+      <mb-button type="submit" variant="secondary">{{icon "external-link"}} Exporter vers Notion</mb-button>
     </form>
     {{end}}
-    <a href="/subjects/{{.Subject.ID}}" class="button-ghost">{{icon "arrow-left"}} Retour au {{.Labels.Subject.Singular | lowerFirst}}</a>
+    <mb-button href="/subjects/{{.Subject.ID}}" variant="ghost">{{icon "arrow-left"}} Retour au {{.Labels.Subject.Singular | lowerFirst}}</mb-button>
   </div>
 </div>
 {{end}}
@@ -66,7 +64,7 @@
   {{if .CanLaunch}}
   <form method="post" action="/runs/{{.Run.ID}}/start" class="inline-form">
     <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
-    <button type="submit" class="button">{{icon "check"}} Démarrer la revue</button>
+    <mb-button type="submit">{{icon "check"}} Démarrer la revue</mb-button>
   </form>
   {{end}}
 </div>
@@ -102,9 +100,9 @@
           <option value="na" {{if eq .FilterStatus "na"}}selected{{end}}>{{formatItemStatus "na"}}</option>
         </select>
       </label>
-      <button type="submit" class="button-secondary">Filtrer</button>
+      <mb-button type="submit" variant="secondary" size="sm">Filtrer</mb-button>
       {{if or .FilterSection .FilterStatus}}
-      <a href="/runs/{{.Run.ID}}" class="button-ghost">Effacer</a>
+      <mb-button href="/runs/{{.Run.ID}}" variant="ghost" size="sm">Effacer</mb-button>
       {{end}}
     </form>
   </div>
@@ -194,11 +192,8 @@
   </div>
   <form method="post" action="/runs/{{.Run.ID}}/complete" class="stack-form" hx-post="/runs/{{.Run.ID}}/complete" hx-target="#complete-section" hx-swap="outerHTML" hx-confirm="Confirmer la clôture de la revue ?">
     <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
-    <label>
-      Note de clôture (optionnelle)
-      <textarea name="closing_note" rows="4" placeholder="Note optionnelle…">{{.ClosingNote}}</textarea>
-    </label>
-    <button type="submit" class="button">{{icon "check"}} Terminer la revue</button>
+    <mb-textarea name="closing_note" label="Note de clôture (optionnelle)" rows="4" placeholder="Note optionnelle…" value="{{.ClosingNote}}"></mb-textarea>
+    <mb-button type="submit">{{icon "check"}} Terminer la revue</mb-button>
   </form>
 </div>
 {{end}}
@@ -207,8 +202,8 @@
 {{if ne .Run.Status "done"}}
 <div class="card post-closure-links">
   <p>
-    <a href="/subjects/{{.Subject.ID}}" class="button-ghost">{{icon "arrow-left"}} Retour au {{.Labels.Subject.Singular | lowerFirst}}</a>
-    {{if .CanLaunch}}<a href="/subjects/{{.Subject.ID}}/modeles?for_run=1" class="button-ghost">Lancer une autre revue</a>{{end}}
+    <mb-button href="/subjects/{{.Subject.ID}}" variant="ghost">{{icon "arrow-left"}} Retour au {{.Labels.Subject.Singular | lowerFirst}}</mb-button>
+    {{if .CanLaunch}}<mb-button href="/subjects/{{.Subject.ID}}/modeles?for_run=1" variant="ghost">Lancer une autre revue</mb-button>{{end}}
   </p>
 </div>
 {{end}}

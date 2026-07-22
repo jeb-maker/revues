@@ -7,10 +7,10 @@
 {{template "admin_nav" .}}
 
 {{if .Message}}
-<p class="success content-inset" role="status">{{.Message}}</p>
+<mb-alert variant="success" class="content-inset">{{.Message}}</mb-alert>
 {{end}}
 {{if .Error}}
-<p class="error content-inset" role="alert">{{.Error}}</p>
+<mb-alert variant="danger" class="content-inset">{{.Error}}</mb-alert>
 {{end}}
 
 <section class="card">
@@ -30,7 +30,7 @@
       Les leads peuvent inviter des personnes hors organisation
     </label>
     <span class="field-hint">Les admins org et l'admin global ne sont jamais limités par ces options.</span>
-    <button type="submit" class="button">Enregistrer</button>
+    <mb-button type="submit">Enregistrer</mb-button>
   </form>
 </section>
 {{template "layout_end" .}}

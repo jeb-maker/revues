@@ -4,7 +4,7 @@
   <p class="muted">
     {{.Labels.Subject.Singular}} : <a href="/subjects/{{.Subject.ID}}">{{.Subject.Name}}</a>
     · Revue : <a href="/runs/{{.Run.ID}}">{{.RunDisplayLabel}}</a>
-    · Statut : <span class="status-badge status-{{.Item.Status}}">{{formatItemStatus .Item.Status}}</span>
+    · Statut : <mb-badge variant="{{badgeVariant .Item.Status}}">{{formatItemStatus .Item.Status}}</mb-badge>
   </p>
 
   {{if .Item.Section}}<p><strong>Section :</strong> {{.Item.Section}}</p>{{end}}
@@ -13,10 +13,10 @@
   {{if .Item.AssignedLogin}}<p class="muted">Assigné à : {{.Item.AssignedLogin}}</p>{{end}}
 </div>
 
-{{if .Message}}<p class="success" role="status">{{.Message}}</p>{{end}}
-{{if .LinkError}}<p class="error" role="alert">{{.LinkError}}</p>{{end}}
-{{if .CreateError}}<p class="error" role="alert">{{.CreateError}}</p>{{end}}
-{{if .UploadError}}<p class="error" role="alert">{{.UploadError}}</p>{{end}}
+{{if .Message}}<mb-alert variant="success">{{.Message}}</mb-alert>{{end}}
+{{if .LinkError}}<mb-alert variant="danger">{{.LinkError}}</mb-alert>{{end}}
+{{if .CreateError}}<mb-alert variant="danger">{{.CreateError}}</mb-alert>{{end}}
+{{if .UploadError}}<mb-alert variant="danger">{{.UploadError}}</mb-alert>{{end}}
 
 <div class="card">
   <h2>{{icon "external-link"}} Issue Jira</h2>
@@ -33,7 +33,7 @@
       <span class="field-hint">Ex. PROJ-123 ou l'URL complète du ticket dans Jira.</span>
       <input type="text" name="jira_issue" value="{{.JiraIssueInput}}" placeholder="PROJ-123" required>
     </label>
-    <button type="submit" class="button-secondary">{{if .JiraLink}}Mettre à jour le lien{{else}}Lier l'issue{{end}}</button>
+    <mb-button type="submit" variant="secondary">{{if .JiraLink}}Mettre à jour le lien{{else}}Lier l'issue{{end}}</mb-button>
   </form>
   {{else if and .CanLinkJira (not .JiraConfigured)}}
   {{if .CanManageIntegrations}}
@@ -54,7 +54,7 @@
       Description
       <textarea name="jira_description" rows="6" required>{{.JiraCreateDesc}}</textarea>
     </label>
-    <button type="submit" class="button-secondary">Créer ticket Jira</button>
+    <mb-button type="submit" variant="secondary">Créer ticket Jira</mb-button>
   </form>
   {{end}}
 </div>
@@ -74,7 +74,7 @@
       <input type="file" name="attachment" accept="image/jpeg,image/png,image/webp,application/pdf" required>
     </label>
     <p class="muted">JPEG, PNG, WebP ou PDF — max 5 Mo. Les images sont redimensionnées (1920 px max).</p>
-    <button type="submit" class="button-secondary">{{icon "plus"}} Enregistrer</button>
+    <mb-button type="submit" variant="secondary">{{icon "plus"}} Enregistrer</mb-button>
   </form>
   {{end}}
 </div>
@@ -88,7 +88,7 @@
       <div class="event-marker event-marker--{{.NewStatus}}"></div>
       <div class="event-body">
         <p class="event-header">
-          <span class="status-badge status-{{.NewStatus}}">{{formatItemStatus .NewStatus}}</span>
+          <mb-badge variant="{{badgeVariant .NewStatus}}">{{formatItemStatus .NewStatus}}</mb-badge>
           {{if .OldStatus.Valid}}<span class="muted">(était {{formatItemStatus .OldStatus.String}})</span>{{end}}
         </p>
         <p class="event-meta muted">
@@ -104,7 +104,7 @@
   {{end}}
 </div>
 
-<p><a href="/runs/{{.Run.ID}}" class="button-ghost">{{icon "arrow-left"}} Retour à la revue</a></p>
+<p><mb-button href="/runs/{{.Run.ID}}" variant="ghost">{{icon "arrow-left"}} Retour à la revue</mb-button></p>
 {{template "layout_end" .}}
 {{end}}
 {{define "page_styles"}}

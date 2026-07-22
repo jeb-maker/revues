@@ -7,7 +7,7 @@
   <p class="muted">Aucun modèle actif pour l'instant.</p>
   {{if .CanManage}}
   <div class="empty-state-actions">
-    <a class="button" href="/modeles/new">Créer un modèle</a>
+    <mb-button href="/modeles/new">Créer un modèle</mb-button>
   </div>
   {{end}}
   {{else}}
@@ -15,14 +15,14 @@
   <p class="muted">Créez une liste (vacances, courses…) pour lancer des revues.</p>
   {{if .CanManage}}
   <div class="empty-state-actions">
-    <a class="button" href="/modeles/new">Créer une liste</a>
+    <mb-button href="/modeles/new">Créer une liste</mb-button>
   </div>
   {{end}}
   {{end}}
 </section>
 {{else}}
 <section class="card">
-  {{if .Message}}<p class="success" role="status">{{.Message}}</p>{{end}}
+  {{if .Message}}<mb-alert variant="success">{{.Message}}</mb-alert>{{end}}
   {{if not .ShowSubjectColumn}}
   <p class="muted">Listes réutilisables — lancez une revue à partir d'une liste.</p>
   {{end}}
@@ -33,13 +33,13 @@
       {{else}}
       <input class="list-toolbar__search toolbar-control" type="search" id="filter-query" name="q" value="{{.FilterQuery}}" placeholder="Rechercher une liste…" aria-label="Rechercher une liste">
       {{end}}
-      <button type="submit" class="button-secondary toolbar-control">Filtrer</button>
-      {{if .HasActiveFilters}}<a href="/modeles" class="button-ghost toolbar-control">Effacer</a>{{end}}
+      <mb-button type="submit" variant="secondary" class="toolbar-control">Filtrer</mb-button>
+      {{if .HasActiveFilters}}<mb-button href="/modeles" variant="ghost" class="toolbar-control">Effacer</mb-button>{{end}}
     </form>
     <div class="list-toolbar__actions">
-      {{if and .CanManage .NotionConfigured}}<a class="button-secondary list-toolbar__action toolbar-control" href="/modeles/notion-import" title="Importer depuis Notion">Importer</a>{{end}}
+      {{if and .CanManage .NotionConfigured}}<mb-button class="list-toolbar__action toolbar-control" href="/modeles/notion-import" variant="secondary" title="Importer depuis Notion">Importer</mb-button>{{end}}
       {{if .CanManage}}
-      <a class="button list-toolbar__action toolbar-control" href="/modeles/new" title="{{if .ShowSubjectColumn}}Nouveau modèle{{else}}Nouvelle liste{{end}}">Créer</a>
+      <mb-button class="list-toolbar__action toolbar-control" href="/modeles/new" title="{{if .ShowSubjectColumn}}Nouveau modèle{{else}}Nouvelle liste{{end}}">Créer</mb-button>
       {{end}}
     </div>
   </div>

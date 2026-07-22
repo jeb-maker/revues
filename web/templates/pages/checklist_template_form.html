@@ -36,12 +36,12 @@
           <div class="template-editor__section-actions">
             <details class="template-editor__reorder">
               <summary>Déplacer</summary>
-              <button type="button" class="button button-ghost button-sm" data-action="section-up" aria-label="Monter cette section">↑</button>
-              <button type="button" class="button button-ghost button-sm" data-action="section-down" aria-label="Descendre cette section">↓</button>
+              <mb-button variant="ghost" size="sm" data-action="section-up" aria-label="Monter cette section">↑</mb-button>
+              <mb-button variant="ghost" size="sm" data-action="section-down" aria-label="Descendre cette section">↓</mb-button>
             </details>
-            <button type="button" class="button button-ghost button-sm template-editor__move" data-action="section-up" aria-label="Monter cette section">↑</button>
-            <button type="button" class="button button-ghost button-sm template-editor__move" data-action="section-down" aria-label="Descendre cette section">↓</button>
-            <button type="button" class="button button-ghost button-sm" data-action="section-remove">Supprimer la section</button>
+            <mb-button variant="ghost" size="sm" class="template-editor__move" data-action="section-up" aria-label="Monter cette section">↑</mb-button>
+            <mb-button variant="ghost" size="sm" class="template-editor__move" data-action="section-down" aria-label="Descendre cette section">↓</mb-button>
+            <mb-button variant="ghost" size="sm" data-action="section-remove">Supprimer la section</mb-button>
           </div>
         </div>
         <div class="template-editor__points">
@@ -69,34 +69,34 @@
             <div class="template-editor__point-actions">
               <details class="template-editor__reorder">
                 <summary>Déplacer</summary>
-                <button type="button" class="button button-ghost button-sm" data-action="move-up" aria-label="Monter ce point">↑</button>
-                <button type="button" class="button button-ghost button-sm" data-action="move-down" aria-label="Descendre ce point">↓</button>
+                <mb-button variant="ghost" size="sm" data-action="move-up" aria-label="Monter ce point">↑</mb-button>
+                <mb-button variant="ghost" size="sm" data-action="move-down" aria-label="Descendre ce point">↓</mb-button>
               </details>
-              <button type="button" class="button button-ghost button-sm template-editor__move" data-action="move-up" aria-label="Monter ce point">↑</button>
-              <button type="button" class="button button-ghost button-sm template-editor__move" data-action="move-down" aria-label="Descendre ce point">↓</button>
-              <button type="button" class="button button-ghost button-sm" data-action="remove" aria-label="Supprimer ce point">×</button>
+              <mb-button variant="ghost" size="sm" class="template-editor__move" data-action="move-up" aria-label="Monter ce point">↑</mb-button>
+              <mb-button variant="ghost" size="sm" class="template-editor__move" data-action="move-down" aria-label="Descendre ce point">↓</mb-button>
+              <mb-button variant="ghost" size="sm" data-action="remove" aria-label="Supprimer ce point">×</mb-button>
             </div>
           </div>
         {{end}}
         </div>
         <p class="template-editor__add">
-          <button type="button" class="button button-ghost button-sm" data-action="add-point">+ Ajouter un point</button>
+          <mb-button variant="ghost" size="sm" data-action="add-point">+ Ajouter un point</mb-button>
         </p>
       </div>
     {{end}}
     </div>
     <p id="template-section-tools" class="template-editor__add"{{if not .SectionsEnabled}} hidden{{end}}>
-      <button type="button" class="button button-ghost button-sm" id="template-add-section">Ajouter une section</button>
+      <mb-button variant="ghost" size="sm" id="template-add-section">Ajouter une section</mb-button>
     </p>
     <p id="template-enable-sections" class="template-editor__add"{{if .SectionsEnabled}} hidden{{end}}>
-      <button type="button" class="button button-ghost button-sm" id="template-enable-sections-btn">Organiser en sections</button>
+      <mb-button variant="ghost" size="sm" id="template-enable-sections-btn">Organiser en sections</mb-button>
     </p>
     <div class="form-actions">
-      <button type="submit" class="button">{{if .Template}}Enregistrer{{else}}Créer la liste{{end}}</button>
+      <mb-button type="submit">{{if .Template}}Enregistrer{{else}}Créer la liste{{end}}</mb-button>
       {{if .Template}}
-      <a class="button button-ghost" href="/modeles/{{.Template.ID}}">Annuler</a>
+      <mb-button href="/modeles/{{.Template.ID}}" variant="ghost">Annuler</mb-button>
       {{else}}
-      <a class="button button-ghost" href="/modeles">Annuler</a>
+      <mb-button href="/modeles" variant="ghost">Annuler</mb-button>
       {{end}}
     </div>
   </section>
@@ -141,12 +141,12 @@
           <div class="template-editor__section-actions">
             <details class="template-editor__reorder">
               <summary>Déplacer</summary>
-              <button type="button" class="button button-ghost button-sm" data-action="section-up" aria-label="Monter cette section">↑</button>
-              <button type="button" class="button button-ghost button-sm" data-action="section-down" aria-label="Descendre cette section">↓</button>
+              <mb-button variant="ghost" size="sm" data-action="section-up" aria-label="Monter cette section">↑</mb-button>
+              <mb-button variant="ghost" size="sm" data-action="section-down" aria-label="Descendre cette section">↓</mb-button>
             </details>
-            <button type="button" class="button button-ghost button-sm template-editor__move" data-action="section-up" aria-label="Monter cette section">↑</button>
-            <button type="button" class="button button-ghost button-sm template-editor__move" data-action="section-down" aria-label="Descendre cette section">↓</button>
-            <button type="button" class="button button-ghost button-sm" data-action="section-remove">Supprimer la section</button>
+            <mb-button variant="ghost" size="sm" class="template-editor__move" data-action="section-up" aria-label="Monter cette section">↑</mb-button>
+            <mb-button variant="ghost" size="sm" class="template-editor__move" data-action="section-down" aria-label="Descendre cette section">↓</mb-button>
+            <mb-button variant="ghost" size="sm" data-action="section-remove">Supprimer la section</mb-button>
           </div>
         </div>
         <div class="template-editor__points">
@@ -173,34 +173,34 @@
             <div class="template-editor__point-actions">
               <details class="template-editor__reorder">
                 <summary>Déplacer</summary>
-                <button type="button" class="button button-ghost button-sm" data-action="move-up" aria-label="Monter ce point">↑</button>
-                <button type="button" class="button button-ghost button-sm" data-action="move-down" aria-label="Descendre ce point">↓</button>
+                <mb-button variant="ghost" size="sm" data-action="move-up" aria-label="Monter ce point">↑</mb-button>
+                <mb-button variant="ghost" size="sm" data-action="move-down" aria-label="Descendre ce point">↓</mb-button>
               </details>
-              <button type="button" class="button button-ghost button-sm template-editor__move" data-action="move-up" aria-label="Monter ce point">↑</button>
-              <button type="button" class="button button-ghost button-sm template-editor__move" data-action="move-down" aria-label="Descendre ce point">↓</button>
-              <button type="button" class="button button-ghost button-sm" data-action="remove">Supprimer</button>
+              <mb-button variant="ghost" size="sm" class="template-editor__move" data-action="move-up" aria-label="Monter ce point">↑</mb-button>
+              <mb-button variant="ghost" size="sm" class="template-editor__move" data-action="move-down" aria-label="Descendre ce point">↓</mb-button>
+              <mb-button variant="ghost" size="sm" data-action="remove">Supprimer</mb-button>
             </div>
           </div>
         {{end}}
         </div>
         <p class="template-editor__add">
-          <button type="button" class="button button-ghost button-sm" data-action="add-point">Ajouter un point</button>
+          <mb-button variant="ghost" size="sm" data-action="add-point">Ajouter un point</mb-button>
         </p>
       </div>
     {{end}}
     </div>
     <p id="template-section-tools" class="template-editor__add"{{if not .SectionsEnabled}} hidden{{end}}>
-      <button type="button" class="button button-ghost button-sm" id="template-add-section">Ajouter une section</button>
+      <mb-button variant="ghost" size="sm" id="template-add-section">Ajouter une section</mb-button>
     </p>
     <p id="template-enable-sections" class="template-editor__add"{{if .SectionsEnabled}} hidden{{end}}>
-      <button type="button" class="button button-ghost button-sm" id="template-enable-sections-btn">Organiser en sections</button>
+      <mb-button variant="ghost" size="sm" id="template-enable-sections-btn">Organiser en sections</mb-button>
     </p>
     <div class="form-actions">
-      <button type="submit" class="button">{{if .Template}}Enregistrer{{else}}Créer le modèle{{end}}</button>
+      <mb-button type="submit">{{if .Template}}Enregistrer{{else}}Créer le modèle{{end}}</mb-button>
       {{if .Template}}
-      <a class="button button-ghost" href="/modeles/{{.Template.ID}}">Annuler</a>
+      <mb-button href="/modeles/{{.Template.ID}}" variant="ghost">Annuler</mb-button>
       {{else}}
-      <a class="button button-ghost" href="/modeles">Annuler</a>
+      <mb-button href="/modeles" variant="ghost">Annuler</mb-button>
       {{end}}
     </div>
   </section>
@@ -212,7 +212,7 @@
   <p class="form-danger-zone__text">{{if $listUI}}Archiver retire la liste des listes actives. Les revues déjà lancées restent inchangées.{{else}}Archiver retire le modèle de la liste active. Les revues déjà lancées conservent leur snapshot.{{end}}</p>
   <form method="post" action="/modeles/{{.Template.ID}}/archive" onsubmit="return confirm('{{if $listUI}}Archiver cette liste ?{{else}}Archiver ce modèle ?{{end}}');">
     <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
-    <button type="submit" class="button-danger">{{if $listUI}}Archiver la liste{{else}}Archiver le modèle{{end}}</button>
+    <mb-button type="submit" variant="danger">{{if $listUI}}Archiver la liste{{else}}Archiver le modèle{{end}}</mb-button>
   </form>
 </section>
 {{end}}
