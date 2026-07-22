@@ -5,27 +5,29 @@
   {{if .Message}}<p class="success" role="status">{{.Message}}</p>{{end}}
   {{if .Error}}<p class="error" role="alert">{{.Error}}</p>{{end}}
   <div class="subject-meta__head">
-    {{if eq .Subject.Visibility "private"}}
+    {{if and (eq .Subject.Visibility "private") .ShowCollab}}
     <p class="subject-meta__line"><span class="status-badge status-na">Privé</span></p>
     {{end}}
     {{if or .CanLaunch .CanManage}}
     <div class="subject-meta__actions">
-      {{if .CanLaunch}}<a class="button" href="/subjects/{{.Subject.ID}}/modeles?for_run=1" title="{{launchActionTitle .Labels.Subject}}">Lancer une revue</a>{{end}}
+      {{if .CanLaunch}}<a class="button" href="/subjects/{{.Subject.ID}}/modeles?for_run=1" title="{{launchActionTitle .Labels.Subject .Labels.Run}}">{{launchRunCTA .Labels.Run}}</a>{{end}}
       {{if .CanManage}}<a class="button-secondary" href="{{.EditPath}}">Modifier</a>{{end}}
     </div>
     {{end}}
   </div>
   {{if .Subject.Description}}
   <p class="subject-meta__description">{{.Subject.Description}}</p>
+  {{else if not .ShowCollab}}
+  <p class="muted subject-meta__description">Vos checklists (revues) pour ce {{.Labels.Subject.Singular | lowerFirst}}.</p>
   {{end}}
-  {{if .AccessSources}}
+  {{if and .AccessSources .ShowCollab}}
   <p class="muted subject-meta__line">
     Vos accès :
     {{range $i, $src := .AccessSources}}{{if $i}} · {{end}}<span class="tag">{{$src}}</span>{{end}}
     {{if .MemberRole}} — rôle effectif : {{formatRole .MemberRole}}{{end}}
   </p>
   {{end}}
-  {{if or .Domains .Tags}}
+  {{if and (or .Domains .Tags) .ShowSubjectColumn}}
   <details class="subject-meta__details stack-form">
     <summary>Détails</summary>
     {{if .Domains}}
@@ -58,6 +60,47 @@
   </ul>
 </section>
 {{end}}
+
+{{/* Sans collab (P0 / solo) : checklists d'abord — pas d'Équipes / Membres. */}}
+{{if not .ShowCollab}}
+<section class="card">
+  <h2>{{.Labels.Run.Nav}} ({{len .Runs}})</h2>
+  {{if .Runs}}
+  <div class="table-scroll">
+  <table class="data-table data-table--cards">
+    <thead>
+      <tr>
+        <th scope="col">{{.Labels.Run.Nav}}</th>
+        {{if not $.SimpleUI}}<th scope="col" class="data-table__col--center">Statut</th>{{end}}
+        <th scope="col" class="data-table__col--center">Échéance</th>
+        <th scope="col" class="data-table__col--end">Progression</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{range .Runs}}
+      <tr class="run-card">
+        <td class="run-card__title data-row__primary"><a href="/runs/{{.ID}}">{{.DisplayLabel}}</a></td>
+        {{if not $.SimpleUI}}
+        <td class="run-card__status data-table__col--center">{{if ne .Status "in_progress"}}<span class="status-badge status-{{.Status}}">{{formatRunStatus .Status}}</span>{{end}}</td>
+        {{end}}
+        <td class="run-card__due data-table__col--center{{if not .DueDate.Valid}} run-card__due--empty{{end}}">{{if .DueDate.Valid}}{{formatDueDate .DueDate}}{{else}}<span class="muted">—</span>{{end}}</td>
+        <td class="run-card__progress data-table__stats data-table__progress muted" style="--run-progress: {{if eq .Status "in_progress"}}{{.Percent}}{{else}}0{{end}}%"{{if eq .Status "in_progress"}} aria-label="Progression {{.Done}} sur {{.Total}}, {{.Percent}} pourcent"{{else if gt .Total 0}} aria-label="Progression {{.Done}} sur {{.Total}}"{{end}}>
+          {{if or (eq .Status "in_progress") (gt .Total 0)}}
+          <span class="run-card__fraction">{{.Done}}/{{.Total}}</span><span class="run-card__bar" aria-hidden="true"></span>{{if eq .Status "in_progress"}}<span class="run-card__pct"> ({{.Percent}}%)</span>{{end}}
+          {{else}}
+          <span class="run-card__fraction muted">—</span><span class="run-card__bar" aria-hidden="true"></span>
+          {{end}}
+        </td>
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+  </div>
+  {{else}}
+  <p class="muted">{{.Labels.Run.NoneArticle}} {{.Labels.Run.Singular}} sur ce {{.Labels.Subject.Singular | lowerFirst}}.{{if .CanLaunch}} <a href="/subjects/{{.Subject.ID}}/modeles?for_run=1">{{launchRunCTA .Labels.Run}}</a>.{{end}}</p>
+  {{end}}
+</section>
+{{else}}
 
 <section class="card">
   <h2>Équipes ({{len .Teams}})</h2>
@@ -132,7 +175,11 @@
     </div>
   </form>
   {{else}}
-  <p class="muted">Toutes les équipes de l'organisation sont déjà affectées.{{if eq (len .Teams) 0}} <a href="/admin/teams">Créer une équipe</a>.{{end}}</p>
+  {{if eq (len .Teams) 0}}
+  <p class="muted">Aucune équipe n'existe encore dans l'organisation.{{if .CanManageOrgUsers}} <a href="/admin/teams">Créer une équipe</a>.{{else}} Demandez à un administrateur d'en créer une.{{end}}</p>
+  {{else}}
+  <p class="muted">Toutes les équipes de l'organisation sont déjà affectées à ce sujet.</p>
+  {{end}}
   {{end}}
   {{end}}
 </section>
@@ -196,33 +243,38 @@
     </label>
     <span class="field-hint">L'invité doit déjà avoir un compte. Hors organisation = politique « externes ».</span>
     <div class="form-actions">
-      <button type="submit" class="button">Inviter</button>
+      <button type="submit" class="button-secondary">Inviter</button>
     </div>
   </form>
   {{end}}
 </section>
 
 <section class="card">
-  <h2>Revues ({{len .Runs}})</h2>
+  <h2>{{.Labels.Run.Nav}} ({{len .Runs}})</h2>
   {{if .Runs}}
   <div class="table-scroll">
-  <table class="data-table">
+  <table class="data-table data-table--cards">
     <thead>
-      <tr><th scope="col">Revue</th><th scope="col" class="data-table__col--center">Statut</th><th scope="col" class="data-table__col--center">Échéance</th><th scope="col" class="data-table__col--end">Progression</th></tr>
+      <tr>
+        <th scope="col">{{.Labels.Run.Nav}}</th>
+        {{if not $.SimpleUI}}<th scope="col" class="data-table__col--center">Statut</th>{{end}}
+        <th scope="col" class="data-table__col--center">Échéance</th>
+        <th scope="col" class="data-table__col--end">Progression</th>
+      </tr>
     </thead>
     <tbody>
       {{range .Runs}}
-      <tr>
-        <td><a href="/runs/{{.ID}}">{{.DisplayLabel}}</a></td>
-        <td class="data-table__col--center"><span class="status-badge status-{{.Status}}">{{formatRunStatus .Status}}</span></td>
-        <td class="data-table__col--center">{{if .DueDate.Valid}}{{formatDueDate .DueDate}}{{else}}<span class="muted">—</span>{{end}}</td>
-        <td class="data-table__stats data-table__progress muted" style="--run-progress: {{if eq .Status "in_progress"}}{{.Percent}}{{else}}0{{end}}%"{{if eq .Status "in_progress"}} aria-label="Progression {{.Done}} sur {{.Total}}, {{.Percent}} pourcent"{{else if gt .Total 0}} aria-label="Progression {{.Done}} sur {{.Total}}"{{end}}>
-          {{if eq .Status "in_progress"}}
-          {{.Done}} / {{.Total}} ({{.Percent}}%)
-          {{else if gt .Total 0}}
-          {{.Done}} / {{.Total}}
+      <tr class="run-card">
+        <td class="run-card__title data-row__primary"><a href="/runs/{{.ID}}">{{.DisplayLabel}}</a></td>
+        {{if not $.SimpleUI}}
+        <td class="run-card__status data-table__col--center">{{if ne .Status "in_progress"}}<span class="status-badge status-{{.Status}}">{{formatRunStatus .Status}}</span>{{end}}</td>
+        {{end}}
+        <td class="run-card__due data-table__col--center{{if not .DueDate.Valid}} run-card__due--empty{{end}}">{{if .DueDate.Valid}}{{formatDueDate .DueDate}}{{else}}<span class="muted">—</span>{{end}}</td>
+        <td class="run-card__progress data-table__stats data-table__progress muted" style="--run-progress: {{if eq .Status "in_progress"}}{{.Percent}}{{else}}0{{end}}%"{{if eq .Status "in_progress"}} aria-label="Progression {{.Done}} sur {{.Total}}, {{.Percent}} pourcent"{{else if gt .Total 0}} aria-label="Progression {{.Done}} sur {{.Total}}"{{end}}>
+          {{if or (eq .Status "in_progress") (gt .Total 0)}}
+          <span class="run-card__fraction">{{.Done}}/{{.Total}}</span><span class="run-card__bar" aria-hidden="true"></span>{{if eq .Status "in_progress"}}<span class="run-card__pct"> ({{.Percent}}%)</span>{{end}}
           {{else}}
-          —
+          <span class="run-card__fraction muted">—</span><span class="run-card__bar" aria-hidden="true"></span>
           {{end}}
         </td>
       </tr>
@@ -231,9 +283,13 @@
   </table>
   </div>
   {{else}}
-  <p class="muted">Aucune revue sur ce {{.Labels.Subject.Singular | lowerFirst}}.{{if .CanLaunch}} <a href="/subjects/{{.Subject.ID}}/modeles?for_run=1">Lancer une revue</a>.{{end}}</p>
+  <p class="muted">{{.Labels.Run.NoneArticle}} {{.Labels.Run.Singular}} sur ce {{.Labels.Subject.Singular | lowerFirst}}.{{if .CanLaunch}} <a href="/subjects/{{.Subject.ID}}/modeles?for_run=1">{{launchRunCTA .Labels.Run}}</a>.{{end}}</p>
   {{end}}
 </section>
+{{end}}{{/* end ShowCollab blocks */}}
 {{template "layout_end" .}}
 {{end}}
 {{define "main_class"}} site-main--wide{{end}}
+{{define "page_styles"}}
+<link rel="stylesheet" href="{{assetURL `/static/css/run.css`}}">
+{{end}}

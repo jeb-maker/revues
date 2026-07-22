@@ -86,9 +86,38 @@ func (s *Store) UserByID(ctx context.Context, id int64) (*User, error) {
 		SELECT id, github_id, login, email, display_name, avatar_url, role
 		FROM users WHERE id = ?
 	`, id).Scan(&user.ID, &user.GitHubID, &user.Login, &user.Email, &user.DisplayName, &user.AvatarURL, &user.Role)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, ErrUserNotFound
+	}
 	if err != nil {
 		return nil, fmt.Errorf("user by id: %w", err)
 	}
 
 	return &user, nil
+}
+
+// ListUsers returns all users ordered by login (dev switcher / admin tooling).
+func (s *Store) ListUsers(ctx context.Context) ([]User, error) {
+	rows, err := s.db.QueryContext(ctx, `
+		SELECT id, github_id, login, email, display_name, avatar_url, role
+		FROM users
+		ORDER BY lower(login) ASC, id ASC
+	`)
+	if err != nil {
+		return nil, fmt.Errorf("list users: %w", err)
+	}
+	defer rows.Close()
+
+	var users []User
+	for rows.Next() {
+		var user User
+		if err = rows.Scan(&user.ID, &user.GitHubID, &user.Login, &user.Email, &user.DisplayName, &user.AvatarURL, &user.Role); err != nil {
+			return nil, fmt.Errorf("scan user: %w", err)
+		}
+		users = append(users, user)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("list users rows: %w", err)
+	}
+	return users, nil
 }

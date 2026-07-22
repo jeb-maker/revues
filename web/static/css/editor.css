@@ -1,0 +1,148 @@
+.template-section-block {
+  margin-top: 1.25rem;
+  padding: 1rem 1.15rem;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+}
+.template-section-block:first-of-type { margin-top: 0.5rem; }
+.template-section-block__title {
+  margin: 0 0 0.75rem;
+  font-size: 1rem;
+  font-weight: 600;
+}
+.template-section-block__count {
+  font-weight: 400;
+  font-size: 0.9rem;
+}
+.template-point-list {
+  margin: 0;
+  padding-left: 1.4rem;
+  list-style: decimal;
+}
+.template-point-list--flat {
+  margin-top: 0.5rem;
+  padding-left: 1.4rem;
+}
+.template-point-list__item {
+  padding: 0.55rem 0 0.85rem;
+  border-bottom: 1px solid var(--border);
+}
+.template-point-list__item:last-child { border-bottom: 0; padding-bottom: 0; }
+.template-point-list__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+.template-point-list__label { font-weight: 500; }
+.template-point-list__help {
+  margin: 0.45rem 0 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.template-editor { display: flex; flex-direction: column; gap: 1.25rem; }
+.template-editor:not(.is-sectioned) .template-editor__section-head { display: none; }
+.template-editor:not(.is-sectioned) .template-editor__section { padding: 0; border: 0; background: transparent; }
+.template-editor.is-sectioned .template-editor__section {
+  padding: 1rem 1.15rem;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+}
+.template-form__points-title{margin:1.1rem 0 .35rem;font-size:1.1rem}
+.template-form__advanced{margin-top:.75rem}
+.template-form__advanced summary,.template-editor--compact .template-editor__more summary{cursor:pointer;color:var(--muted);font-size:.9rem}
+.template-editor--compact{gap:.5rem}
+.template-editor--compact .template-editor__point{padding:.35rem 0;background:0 0;border:0;border-bottom:1px solid var(--border);border-radius:0;align-items:center}
+.template-editor--compact .template-editor__point-fields{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center}
+.template-editor--compact .template-editor__field{flex:1 1 12rem}
+.template-editor--compact .template-editor__field input{margin-top:0}
+.template-editor--compact .template-editor__more{flex:0 0 auto}
+.template-editor--compact .template-editor__more[open]{flex:1 1 100%}
+.template-editor__section {
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--border);
+}
+.template-editor__section:first-child { padding-top: 0; border-top: 0; }
+.template-editor__section-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: end;
+  justify-content: space-between;
+  margin-bottom: 0.65rem;
+}
+.template-editor__section-head label { flex: 1 1 16rem; margin-bottom: 0; }
+.template-editor__section-actions,
+.template-editor__point-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+.template-editor__section-title {
+  display: block;
+  width: 100%;
+  max-width: 26rem;
+  margin-top: 0.25rem;
+}
+.template-editor__points {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+.template-editor__point {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  align-items: flex-start;
+  padding: 0.85rem;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+}
+.template-editor__point-fields {
+  flex: 1 1 14rem;
+  display: grid;
+  gap: 0.55rem;
+}
+.template-editor__field {
+  display: block;
+  margin: 0;
+  font-weight: 500;
+  font-size: 0.85rem;
+}
+.template-editor__field input,
+.template-editor__field textarea {
+  display: block;
+  width: 100%;
+  max-width: none;
+  margin-top: 0.25rem;
+  font-weight: 400;
+}
+.template-editor__help {
+  min-height: 3.25rem;
+  resize: vertical;
+}
+.template-editor__required { margin-top: 0.15rem; }
+.template-editor__add { margin-top: 0.65rem; }
+.template-editor__reorder { display: none; }
+.template-editor__reorder > summary {
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--muted);
+  list-style: none;
+}
+.template-editor__reorder > summary::-webkit-details-marker { display: none; }
+.template-editor__reorder[open] > summary { margin-bottom: 0.25rem; }
+@media (max-width: 40rem) {
+  .template-editor__move { display: none !important; }
+  .template-editor__reorder { display: inline-block; }
+  .template-editor__section-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    align-items: center;
+  }
+}

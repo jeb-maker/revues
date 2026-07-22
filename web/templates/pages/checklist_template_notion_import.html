@@ -3,6 +3,10 @@
 {{if .Error}}<p class="error" role="alert">{{.Error}}</p>{{end}}
 
 <div class="card">
+{{if not .NotionConfigured}}
+<p class="muted">Notion n'est pas configuré. Demandez à un administrateur de configurer l'intégration.</p>
+<p><a class="button-secondary" href="/modeles">Retour aux modèles</a></p>
+{{else}}
 {{if eq .Step "source"}}
 <form method="post" action="{{.FormAction}}" class="stack-form">
   <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
@@ -35,6 +39,7 @@
   <p class="muted">{{.PreviewCount}} point(s) seront importés dans « {{.TemplateName}} ».</p>
   <button type="submit" class="button">Importer v1</button>
 </form>
+{{end}}
 {{end}}
 </div>
 {{template "layout_end" .}}

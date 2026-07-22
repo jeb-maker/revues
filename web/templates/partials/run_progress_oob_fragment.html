@@ -1,8 +1,9 @@
 {{define "run_progress_oob_fragment"}}
-<div id="run-progress" class="run-progress" hx-swap-oob="true" aria-label="Progression de la revue">
-  <div class="run-progress-track">
-    <div class="run-progress-bar" style="width: {{.Percent}}%"></div>
-  </div>
-  <p class="run-progress-label muted">{{.Done}} / {{.Total}} points traités</p>
+<div id="run-progress" class="run-progress" hx-swap-oob="true">
+  <mb-progress
+    percent="{{.Percent}}"
+    label="{{.Done}} / {{.Total}}"
+    aria-label="Progression {{.Done}} sur {{.Total}}, {{.Percent}} pourcent"
+  ></mb-progress>
 </div>
 {{end}}

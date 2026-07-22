@@ -16,6 +16,14 @@ type HeaderData struct {
 	PendingInvitations  []store.OrganizationInvitation
 	CanManageOrgUsers   bool
 	ShowOrganisationNav bool
+	SimpleUI            bool
+	SimpleSubjectID     int64
+	ShowAssign          bool
+	ShowMyTasks         bool
+	ShowSubjectColumn   bool
+	ShowCollab          bool
+	DevAuth             bool
+	DevAuthUsers        []store.User
 }
 
 // LoadHeaderData preloads organization switcher data for authenticated requests.
@@ -47,6 +55,20 @@ func LoadHeaderData(st *store.Store) func(http.Handler) http.Handler {
 
 			hd.CanManageOrgUsers = CanManageOrgUsers(r.Context(), st, user)
 			hd.ShowOrganisationNav = showOrganisationNav(r.Context(), st, user, hd)
+			caps := resolveUICaps(r.Context(), st, user, hd)
+			hd.SimpleUI = caps.SimpleUI
+			hd.SimpleSubjectID = caps.SimpleSubjectID
+			hd.ShowAssign = caps.ShowAssign
+			hd.ShowMyTasks = caps.ShowMyTasks
+			hd.ShowSubjectColumn = caps.ShowSubjectColumn
+			hd.ShowCollab = caps.ShowCollab
+
+			if DevAuthUIActive(r.Context()) {
+				hd.DevAuth = true
+				if users, listErr := st.ListUsers(r.Context()); listErr == nil {
+					hd.DevAuthUsers = users
+				}
+			}
 
 			ctx := context.WithValue(r.Context(), headerDataContextKey, hd)
 			next.ServeHTTP(w, r.WithContext(ctx))

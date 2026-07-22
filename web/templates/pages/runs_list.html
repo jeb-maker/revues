@@ -2,49 +2,64 @@
 {{template "layout_start" .}}
 
 {{if not .HasSubjects}}
-{{if .Message}}<p class="success" role="status">{{.Message}}</p>{{end}}
-{{if .Error}}<p class="error" role="alert">{{.Error}}</p>{{end}}
-<section class="empty-state">
-  <h2>Bienvenue dans Revues</h2>
+{{if .Message}}<mb-alert variant="success">{{.Message}}</mb-alert>{{end}}
+{{if .Error}}<mb-alert variant="danger">{{.Error}}</mb-alert>{{end}}
+<mb-empty-state heading="Bienvenue dans Revues">
   {{if .CanLaunch}}
-  <p>Aucune revue pour l'instant. Lancez-en une — vous pourrez choisir ou créer un {{.Labels.Subject.Singular | lowerFirst}} au passage.</p>
-  <p class="empty-state-actions">
-    <a class="button" href="/revues/nouvelle">Lancer une revue</a>
-    {{if .CanManageOrgUsers}}<a class="button-secondary" href="/admin/users">Gérer les emails autorisés</a>{{end}}
-  </p>
-  {{else if .CanManageOrgUsers}}
+  <p>{{.Labels.Run.NoneArticle}} {{.Labels.Run.Singular}} pour l'instant. Lancez-en {{.Labels.Run.Article}} — vous pourrez choisir ou créer un {{.Labels.Subject.Singular | lowerFirst}} au passage.</p>
+  <div slot="actions">
+    <mb-button href="/revues/nouvelle">{{launchRunCTA .Labels.Run}}</mb-button>
+    {{if .CanManageOrgUsers}}<mb-button href="/admin/users" variant="secondary">Gérer les emails autorisés</mb-button>{{end}}
+  </div>
+  {{else if and .CanManageOrgUsers (not .SimpleUI)}}
   <p>Votre organisation est prête. Commencez par autoriser les utilisateurs, puis lancez une première revue.</p>
-  <p class="empty-state-actions">
-    <a class="button" href="/admin/users">Gérer les emails autorisés</a>
-    <a class="button-secondary" href="/mes-taches">Voir mes tâches</a>
-  </p>
+  <div slot="actions">
+    <mb-button href="/admin/users">Gérer les emails autorisés</mb-button>
+    <mb-button href="/mes-taches" variant="secondary">Voir mes tâches</mb-button>
+  </div>
+  {{else if and .SimpleUI .CanCreate}}
+  <p>Créez votre premier {{.Labels.Subject.Singular | lowerFirst}} pour commencer.</p>
+  <div slot="actions">
+    <mb-button href="/subjects/new">Nouveau {{.Labels.Subject.Singular | lowerFirst}}</mb-button>
+  </div>
   {{else}}
   <p>Aucun {{.Labels.Subject.Singular | lowerFirst}} disponible pour le moment. Demandez à un administrateur de l'organisation.</p>
-  <p class="empty-state-actions">
-    <a class="button" href="/mes-taches">Voir mes tâches</a>
-  </p>
+  {{if .ShowMyTasks}}
+  <div slot="actions">
+    <mb-button href="/mes-taches">Voir mes tâches</mb-button>
+  </div>
   {{end}}
-</section>
+  {{end}}
+</mb-empty-state>
 {{else}}
 <section class="card">
-  {{if .Message}}<p class="success" role="status">{{.Message}}</p>{{end}}
-  {{if .Error}}<p class="error" role="alert">{{.Error}}</p>{{end}}
+  {{if .Message}}<mb-alert variant="success">{{.Message}}</mb-alert>{{end}}
+  {{if .Error}}<mb-alert variant="danger">{{.Error}}</mb-alert>{{end}}
   <div class="list-toolbar">
     <form method="get" action="/revues" class="list-toolbar__form filter-form filter-form--inline">
-      <input class="list-toolbar__search toolbar-control" type="search" id="filter-query" name="q" value="{{.FilterQuery}}" placeholder="Rechercher une revue ou un {{.Labels.Subject.Singular | lowerFirst}}…" aria-label="Rechercher une revue ou un {{.Labels.Subject.Singular | lowerFirst}}">
+      {{if .ShowSubjectColumn}}
+      <input class="list-toolbar__search toolbar-control" type="search" id="filter-query" name="q" value="{{.FilterQuery}}" placeholder="Rechercher {{.Labels.Run.Article}} {{.Labels.Run.Singular}} ou un {{.Labels.Subject.Singular | lowerFirst}}…" aria-label="Rechercher {{.Labels.Run.Article}} {{.Labels.Run.Singular}} ou un {{.Labels.Subject.Singular | lowerFirst}}">
+      {{else}}
+      <input class="list-toolbar__search toolbar-control" type="search" id="filter-query" name="q" value="{{.FilterQuery}}" placeholder="Rechercher {{.Labels.Run.Article}} {{.Labels.Run.Singular}}…" aria-label="Rechercher {{.Labels.Run.Article}} {{.Labels.Run.Singular}}">
+      {{end}}
       {{if .FilterStatus}}<input type="hidden" name="status" value="{{.FilterStatus}}">{{end}}
       <button type="submit" class="button-secondary toolbar-control">Filtrer</button>
       {{if .HasActiveFilters}}<a href="/revues" class="button-ghost toolbar-control">Effacer</a>{{end}}
     </form>
-    {{if .CanLaunch}}<a class="button list-toolbar__action toolbar-control" href="/revues/nouvelle">Lancer une revue</a>{{end}}
+    {{if .CanLaunch}}<mb-button class="list-toolbar__action toolbar-control" href="/revues/nouvelle">{{launchRunCTA .Labels.Run}}</mb-button>{{end}}
+    <mb-segmented-control label="Filtrer par statut">
+      <a href="{{runsListURL "" .FilterQuery 1}}"{{if not .FilterStatus}} aria-current="page"{{end}}>Tous</a>
+      <a href="{{runsListURL "in_progress" .FilterQuery 1}}"{{if eq .FilterStatus "in_progress"}} aria-current="page"{{end}}>En cours</a>
+      <a href="{{runsListURL "done" .FilterQuery 1}}"{{if eq .FilterStatus "done"}} aria-current="page"{{end}}>Terminées</a>
+    </mb-segmented-control>
   </div>
   <div class="table-scroll">
-  <table class="data-table table-sticky">
+  <table class="data-table data-table--cards table-sticky">
     <thead>
       <tr>
-        <th scope="col">Revue</th>
-        <th scope="col">{{.Labels.Subject.Singular}}</th>
-        <th scope="col" class="data-table__col--center">Statut</th>
+        <th scope="col">{{.Labels.Run.Nav}}</th>
+        {{if .ShowSubjectColumn}}<th scope="col">{{.Labels.Subject.Singular}}</th>{{end}}
+        {{if not .SimpleUI}}<th scope="col" class="data-table__col--center">Statut</th>{{end}}
         <th scope="col" class="data-table__col--center">Échéance</th>
         <th scope="col" class="data-table__col--end">Progression</th>
       </tr>
@@ -52,43 +67,43 @@
     <tbody>
       {{if .Runs}}
       {{range .Runs}}
-      <tr>
-        <td><a href="/runs/{{.RunID}}">{{.Title}}</a></td>
-        <td><a href="/subjects/{{.SubjectID}}">{{.SubjectName}}</a></td>
-        <td class="data-table__col--center"><span class="status-badge status-{{.Status}}">{{formatRunStatus .Status}}</span></td>
-        <td class="data-table__col--center">{{if .DueDate.Valid}}{{formatDueDate .DueDate}}{{else}}<span class="muted">—</span>{{end}}</td>
-        <td class="data-table__stats data-table__progress muted" style="--run-progress: {{.Percent}}%" aria-label="Progression {{.Done}} sur {{.Total}}, {{.Percent}} pourcent">{{.Done}}/{{.Total}} ({{.Percent}}%)</td>
+      <tr class="run-card">
+        <td class="run-card__title data-row__primary"><a href="/runs/{{.RunID}}">{{.Title}}</a></td>
+        {{if $.ShowSubjectColumn}}<td class="run-card__subject"><a href="/subjects/{{.SubjectID}}">{{.SubjectName}}</a></td>{{end}}
+        {{if not $.SimpleUI}}
+        <td class="run-card__status data-table__col--center">{{if ne .Status "in_progress"}}<span class="status-badge status-{{.Status}}">{{formatRunStatus .Status}}</span>{{end}}</td>
+        {{end}}
+        <td class="run-card__due data-table__col--center{{if not .DueDate.Valid}} run-card__due--empty{{end}}">{{if .DueDate.Valid}}{{formatDueDate .DueDate}}{{else}}<span class="muted">—</span>{{end}}</td>
+        <td class="run-card__progress data-table__stats data-table__progress muted" style="--run-progress: {{.Percent}}%" aria-label="Progression {{.Done}} sur {{.Total}}, {{.Percent}} pourcent"><span class="run-card__fraction">{{.Done}}/{{.Total}}</span><span class="run-card__bar" aria-hidden="true"></span><span class="run-card__pct"> ({{.Percent}}%)</span></td>
       </tr>
       {{end}}
       {{else if .HasActiveFilters}}
       <tr>
-        <td colspan="5" class="muted">Aucune revue pour cette recherche. <a href="/revues">Effacer</a></td>
+        <td colspan="{{if and $.ShowSubjectColumn (not $.SimpleUI)}}5{{else if or $.ShowSubjectColumn (not $.SimpleUI)}}4{{else}}3{{end}}" class="muted">{{$.Labels.Run.NoneArticle}} {{$.Labels.Run.Singular}} pour cette recherche. <a href="/revues">Effacer</a></td>
       </tr>
       {{else}}
       <tr>
-        <td colspan="5" class="muted">Aucune revue pour l'instant. {{if .CanLaunch}}<a href="/revues/nouvelle">Lancer une revue</a>{{else}}Demandez à un éditeur d'en lancer une.{{end}}</td>
+        <td colspan="{{if and $.ShowSubjectColumn (not $.SimpleUI)}}5{{else if or $.ShowSubjectColumn (not $.SimpleUI)}}4{{else}}3{{end}}" class="muted">{{.Labels.Run.NoneArticle}} {{.Labels.Run.Singular}} pour l'instant. {{if .CanLaunch}}<a href="/revues/nouvelle">{{launchRunCTA .Labels.Run}}</a>{{else}}Demandez à un éditeur d'en lancer {{.Labels.Run.Article}}.{{end}}</td>
       </tr>
       {{end}}
     </tbody>
   </table>
   </div>
   {{if gt .Pagination.TotalPages 1}}
-  <nav class="pagination" aria-label="Pagination des revues">
-    {{if .Pagination.HasPrev}}
-    <a class="button-secondary" href="{{.Pagination.PrevURL}}">Précédent</a>
-    {{else}}
-    <span class="button-secondary" aria-disabled="true">Précédent</span>
-    {{end}}
-    <span class="pagination__status" role="status">Page {{.Pagination.Page}} sur {{.Pagination.TotalPages}} ({{.Pagination.Total}})</span>
-    {{if .Pagination.HasNext}}
-    <a class="button-secondary" href="{{.Pagination.NextURL}}">Suivant</a>
-    {{else}}
-    <span class="button-secondary" aria-disabled="true">Suivant</span>
-    {{end}}
-  </nav>
+  <mb-pagination
+    label="Pagination des revues"
+    prev-label="Précédent"
+    next-label="Suivant"
+    status="Page {{.Pagination.Page}} sur {{.Pagination.TotalPages}} ({{.Pagination.Total}})"
+    {{if .Pagination.HasPrev}}prev-url="{{.Pagination.PrevURL}}"{{else}}prev-disabled{{end}}
+    {{if .Pagination.HasNext}}next-url="{{.Pagination.NextURL}}"{{else}}next-disabled{{end}}
+  ></mb-pagination>
   {{end}}
 </section>
 {{end}}
 {{template "layout_end" .}}
 {{end}}
 {{define "main_class"}} site-main--wide{{end}}
+{{define "page_styles"}}
+<link rel="stylesheet" href="{{assetURL `/static/css/run.css`}}">
+{{end}}

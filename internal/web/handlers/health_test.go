@@ -76,7 +76,7 @@ func TestLoginPage_EmailNotAllowed(t *testing.T) {
 		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
 	}
 	body := rec.Body.String()
-	if !strings.Contains(body, "login-alert") {
+	if !strings.Contains(body, "mb-alert") {
 		t.Fatal("expected login alert")
 	}
 	if !strings.Contains(body, "pas autoris") {

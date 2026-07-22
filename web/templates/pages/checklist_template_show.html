@@ -7,16 +7,18 @@
   <div class="template-meta__head">
     {{if or .CanLaunch .CanManage}}
     <div class="template-meta__actions">
-      {{if .CanLaunch}}<a class="button" href="/revues/nouvelle?template={{.Template.ID}}">Lancer avec ce modèle</a>{{end}}
+      {{if .CanLaunch}}<a class="button" href="/revues/nouvelle?template={{.Template.ID}}">{{if .SimpleUI}}Lancer cette liste{{else}}Lancer avec ce modèle{{end}}</a>{{end}}
       {{if .CanManage}}<a class="button-secondary" href="/modeles/{{.Template.ID}}/edit">Modifier</a>{{end}}
     </div>
     {{end}}
   </div>
   <p class="muted template-meta__line">
+    {{if .ShowSubjectColumn}}
     <span class="status-badge status-enabled">v{{.Version.Version}}</span>
     · Publiée le {{formatDateTime .Version.PublishedAt}}
-    · {{.ItemCount}} point{{if ne .ItemCount 1}}s{{end}}
+    · {{end}}{{.ItemCount}} point{{if ne .ItemCount 1}}s{{end}}
   </p>
+  {{if .ShowSubjectColumn}}
   <p class="template-meta__line">
     {{if .Tags}}
     Domaines : {{range $i, $tag := .Tags}}{{if $i}}, {{end}}<span class="tag">{{$tag}}</span>{{end}}
@@ -24,6 +26,7 @@
     Domaines : aucun (compatible avec tous les {{.Labels.Subject.Plural | lowerFirst}})
     {{end}}
   </p>
+  {{end}}
 </section>
 
 <section class="card">
@@ -65,7 +68,7 @@
   {{else}}
   <div class="empty-state">
     <p><strong>Aucun point dans cette version</strong></p>
-    <p class="muted">Ajoutez des points de check-list pour utiliser ce modèle dans une revue.</p>
+    <p class="muted">{{if .SimpleUI}}Ajoutez des points pour utiliser cette liste.{{else}}Ajoutez des points de check-list pour utiliser ce modèle dans une revue.{{end}}</p>
     {{if .CanManage}}
     <div class="empty-state-actions">
       <a href="/modeles/{{.Template.ID}}/edit" class="button-secondary">Ajouter des points</a>
@@ -78,3 +81,6 @@
 {{template "layout_end" .}}
 {{end}}
 {{define "main_class"}} site-main--wide{{end}}
+{{define "page_styles"}}
+<link rel="stylesheet" href="{{assetURL `/static/css/editor.css`}}">
+{{end}}

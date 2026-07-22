@@ -326,6 +326,46 @@ func TestWizardNouvelle_InlineCreate(t *testing.T) {
 	}
 }
 
+func TestWizardNouvelle_ReaderRedirected(t *testing.T) {
+	handler, db := testRouter(t)
+	ctx := context.Background()
+	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
+
+	reader, err := st.UpsertGitHubUser(ctx, 63, "wiz-reader", "wiz-reader@example.com", "Reader", "", auth.RoleReader)
+	if err != nil {
+		t.Fatalf("UpsertGitHubUser(): %v", err)
+	}
+	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
+	token, _, err := sessions.CreateLoginSession(ctx, reader.ID, 0)
+	if err != nil {
+		t.Fatalf("CreateLoginSession(): %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/revues/nouvelle", nil)
+	req.AddCookie(&http.Cookie{Name: "revues_session", Value: token})
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+	if rec.Code != http.StatusSeeOther {
+		t.Fatalf("GET status = %d, want %d", rec.Code, http.StatusSeeOther)
+	}
+	if loc := rec.Header().Get("Location"); loc != "/revues" {
+		t.Fatalf("Location = %q, want /revues", loc)
+	}
+
+	form := url.Values{}
+	form.Set("csrf_token", auth.CSRFToken(token, "test-secret-at-least-thirty-two-bytes"))
+	form.Set("name", "Nope")
+	postReq := httptest.NewRequest(http.MethodPost, "/revues/nouvelle", strings.NewReader(form.Encode()))
+	postReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	postReq.AddCookie(&http.Cookie{Name: "revues_session", Value: token})
+	postRec := httptest.NewRecorder()
+	handler.ServeHTTP(postRec, postReq)
+	if postRec.Code != http.StatusNotFound {
+		t.Fatalf("POST status = %d, want %d", postRec.Code, http.StatusNotFound)
+	}
+}
+
 func TestWizardNouvelle_SearchByName(t *testing.T) {
 	handler, db := testRouter(t)
 	ctx := context.Background()

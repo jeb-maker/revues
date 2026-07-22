@@ -76,13 +76,16 @@ func (h *ChecklistTemplates) IndexAll(w http.ResponseWriter, r *http.Request) {
 	}
 
 	pd := h.PageDataTab(r, "Modèles", "templates")
-	pd.Breadcrumbs = viewtemplates.BCTemplatesIndex()
+	listUI := !pd.ShowSubjectColumn
+	pd.Breadcrumbs = viewtemplates.BCTemplatesIndex(listUI)
+	pd.Title = viewtemplates.TemplatesSectionLabel(listUI)
 	data := viewtemplates.TemplatesIndexData{
 		PageData:         pd,
 		Templates:        rows,
 		FilterQuery:      filterQuery,
 		HasActiveFilters: filterQuery != "",
 		CanManage:        CanManageGlobal(user),
+		NotionConfigured: h.notionImportReady(r),
 		Message:          r.URL.Query().Get("msg"),
 	}
 
@@ -131,7 +134,7 @@ func (h *ChecklistTemplates) List(w http.ResponseWriter, r *http.Request) {
 	var pd viewtemplates.PageData
 	if forRun {
 		pd = h.PageData(r, "Lancer")
-		pd.Breadcrumbs = viewtemplates.BCRunWizardTemplates(subject.Name, subject.ID)
+		pd.Breadcrumbs = viewtemplates.BCRunWizardTemplates(subject.Name, subject.ID, pd.Labels.Run)
 		pd.ActiveTab = "runs"
 	} else {
 		pd = h.PageDataTab(r, "Modèles — "+subject.Name, "templates")
@@ -171,14 +174,21 @@ func (h *ChecklistTemplates) NewForm(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sections := emptyEditorSections(extraRows(r, defaultTemplateEditorRows))
 	pd := h.PageDataTab(r, "Nouveau modèle", "templates")
-	pd.Breadcrumbs = viewtemplates.BCTemplatesNewWizard()
+	listUI := !pd.ShowSubjectColumn
+	rowFallback := defaultTemplateEditorRows
+	if listUI {
+		pd.Title = "Nouvelle liste"
+		rowFallback = 1
+	}
+	sections := emptyEditorSections(extraRows(r, rowFallback))
+	pd.Breadcrumbs = viewtemplates.BCTemplatesNewWizard(listUI)
 	data := viewtemplates.ChecklistTemplateFormData{
-		PageData:        pd,
-		Sections:        sections,
-		SectionsEnabled: sectionsEnabled(sections),
-		FormAction:      "/modeles",
+		PageData:         pd,
+		Sections:         sections,
+		SectionsEnabled:  sectionsEnabled(sections),
+		FormAction:       "/modeles",
+		NotionConfigured: h.notionImportReady(r),
 	}
 	applyTemplateFormLimits(&data)
 
@@ -208,7 +218,8 @@ func (h *ChecklistTemplates) Create(w http.ResponseWriter, r *http.Request) {
 	name := strings.TrimSpace(r.FormValue("name"))
 	tags := store.ParseTagsCSV(r.FormValue("tags"))
 	items, itemErr := parseTemplateItems(r)
-	nameErr, itemsErr := formFieldErrors(name, itemErr, len(items))
+	listUI := !h.PageData(r, "").ShowSubjectColumn
+	nameErr, itemsErr := formFieldErrors(name, itemErr, len(items), listUI)
 	if nameErr != "" || itemsErr != "" {
 		h.renderFormError(w, r, nil, nil, "/modeles", name, store.FormatTagsCSV(tags), tags, nameErr, itemsErr)
 		return
@@ -221,7 +232,11 @@ func (h *ChecklistTemplates) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.Redirect(w, r, templateShowURL(template.ID)+"?msg=Mod%C3%A8le+cr%C3%A9%C3%A9", http.StatusSeeOther)
+	msg := "Mod%C3%A8le+cr%C3%A9%C3%A9"
+	if listUI {
+		msg = "Liste+cr%C3%A9%C3%A9e"
+	}
+	http.Redirect(w, r, templateShowURL(template.ID)+"?msg="+msg, http.StatusSeeOther)
 }
 
 // Show displays the latest template version.
@@ -238,7 +253,7 @@ func (h *ChecklistTemplates) Show(w http.ResponseWriter, r *http.Request) {
 	}
 
 	pd := h.PageDataTab(r, template.Name, "templates")
-	pd.Breadcrumbs = viewtemplates.BCTemplateGlobalShow(template.Name, template.ID)
+	pd.Breadcrumbs = viewtemplates.BCTemplateGlobalShow(template.Name, template.ID, !pd.ShowSubjectColumn)
 
 	orgMember := h.callerOrgMembership(r, user)
 
@@ -281,16 +296,17 @@ func (h *ChecklistTemplates) EditForm(w http.ResponseWriter, r *http.Request) {
 	sections := itemsToEditorSections(items)
 
 	pd := h.PageDataTab(r, "Modifier "+template.Name, "templates")
-	pd.Breadcrumbs = viewtemplates.BCTemplateGlobalEdit(template.Name, template.ID)
+	pd.Breadcrumbs = viewtemplates.BCTemplateGlobalEdit(template.Name, template.ID, !pd.ShowSubjectColumn)
 	data := viewtemplates.ChecklistTemplateFormData{
-		PageData:        pd,
-		Template:        template,
-		Version:         version,
-		Tags:            store.FormatTagsCSV(tags),
-		TagsList:        tags,
-		Sections:        sections,
-		SectionsEnabled: sectionsEnabled(sections),
-		FormAction:      "/modeles/" + strconv.FormatInt(template.ID, 10),
+		PageData:         pd,
+		Template:         template,
+		Version:          version,
+		Tags:             store.FormatTagsCSV(tags),
+		TagsList:         tags,
+		Sections:         sections,
+		SectionsEnabled:  sectionsEnabled(sections),
+		FormAction:       "/modeles/" + strconv.FormatInt(template.ID, 10),
+		NotionConfigured: h.notionImportReady(r),
 	}
 	applyTemplateFormLimits(&data)
 
@@ -326,7 +342,8 @@ func (h *ChecklistTemplates) Save(w http.ResponseWriter, r *http.Request) {
 	tags := store.ParseTagsCSV(r.FormValue("tags"))
 	items, itemErr := parseTemplateItems(r)
 	action := "/modeles/" + strconv.FormatInt(template.ID, 10)
-	nameErr, itemsErr := formFieldErrors(name, itemErr, len(items))
+	listUI := !h.PageData(r, "").ShowSubjectColumn
+	nameErr, itemsErr := formFieldErrors(name, itemErr, len(items), listUI)
 	if nameErr != "" || itemsErr != "" {
 		h.renderFormError(w, r, template, version, action, name, store.FormatTagsCSV(tags), tags, nameErr, itemsErr)
 		return
@@ -494,33 +511,42 @@ func (h *ChecklistTemplates) loadGlobalTemplate(w http.ResponseWriter, r *http.R
 }
 
 func (h *ChecklistTemplates) renderFormError(w http.ResponseWriter, r *http.Request, template *store.ChecklistTemplate, version *store.TemplateVersion, action, name, tagsCSV string, tags []string, nameErr, itemsErr string) {
+	title := "Nouveau modèle"
+	pdProbe := h.PageData(r, title)
+	listUI := !pdProbe.ShowSubjectColumn
 	sections := parseTemplateItemsToSections(r)
 	if len(sections) == 0 {
-		sections = emptyEditorSections(defaultTemplateEditorRows)
+		rows := defaultTemplateEditorRows
+		if listUI {
+			rows = 1
+		}
+		sections = emptyEditorSections(rows)
 	}
-
-	title := "Nouveau modèle"
+	if listUI && template == nil {
+		title = "Nouvelle liste"
+	}
 	if template != nil {
 		title = "Modifier " + template.Name
 	}
 	pd := h.PageDataTab(r, title, "templates")
 	if template != nil {
-		pd.Breadcrumbs = viewtemplates.BCTemplateGlobalEdit(template.Name, template.ID)
+		pd.Breadcrumbs = viewtemplates.BCTemplateGlobalEdit(template.Name, template.ID, listUI)
 	} else {
-		pd.Breadcrumbs = viewtemplates.BCTemplatesNewWizard()
+		pd.Breadcrumbs = viewtemplates.BCTemplatesNewWizard(listUI)
 	}
 	data := viewtemplates.ChecklistTemplateFormData{
-		PageData:        pd,
-		Template:        template,
-		Version:         version,
-		Name:            name,
-		Tags:            tagsCSV,
-		TagsList:        tags,
-		Sections:        sections,
-		SectionsEnabled: sectionsEnabled(sections),
-		FormAction:      action,
-		NameError:       nameErr,
-		ItemsError:      itemsErr,
+		PageData:         pd,
+		Template:         template,
+		Version:          version,
+		Name:             name,
+		Tags:             tagsCSV,
+		TagsList:         tags,
+		Sections:         sections,
+		SectionsEnabled:  sectionsEnabled(sections),
+		FormAction:       action,
+		NameError:        nameErr,
+		ItemsError:       itemsErr,
+		NotionConfigured: h.notionImportReady(r),
 	}
 	applyTemplateFormLimits(&data)
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -549,14 +575,18 @@ func extraRows(r *http.Request, fallback int) int {
 	return n
 }
 
-func formFieldErrors(name, itemErr string, itemCount int) (nameErr, itemsErr string) {
+func formFieldErrors(name, itemErr string, itemCount int, listUI bool) (nameErr, itemsErr string) {
 	if strings.TrimSpace(name) == "" {
 		nameErr = "Le nom est obligatoire."
 	}
 	if itemErr != "" {
 		itemsErr = itemErr
 	} else if itemCount == 0 {
-		itemsErr = "Ajoutez au moins un point au modèle."
+		if listUI {
+			itemsErr = "Ajoutez au moins un point à la liste."
+		} else {
+			itemsErr = "Ajoutez au moins un point au modèle."
+		}
 	}
 	return nameErr, itemsErr
 }

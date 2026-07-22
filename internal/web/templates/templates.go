@@ -2,6 +2,7 @@ package templates
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"io/fs"
@@ -41,8 +42,8 @@ func CreateAction(title, url string) PageAction {
 }
 
 // LaunchAction returns the standard launch-revue header button.
-func LaunchAction(url string, labels SubjectUILabels) PageAction {
-	return PageAction{Label: "Lancer une revue", Title: LaunchActionTitle(labels), URL: url, Primary: true}
+func LaunchAction(url string, subject SubjectUILabels, run RunUILabels) PageAction {
+	return PageAction{Label: LaunchRunCTA(run), Title: LaunchActionTitle(subject, run), URL: url, Primary: true}
 }
 
 // SecondaryAction returns a secondary header action.
@@ -143,11 +144,15 @@ func TeamAssignPreview(teamName string, memberCount int, role string) string {
 }
 
 // RunItemTableColspan returns the column count for the run items table empty row.
-func RunItemTableColspan(runStatus string, canCheck, canAssign bool) int {
-	if runStatus == store.RunStatusInProgress && (canCheck || canAssign) {
-		return 6
+func RunItemTableColspan(runStatus string, canCheck, canAssign, showAssign bool) int {
+	n := 4 // Point, Statut, Commentaire, PJ
+	if showAssign {
+		n++
 	}
-	return 5
+	if runStatus == store.RunStatusInProgress && (canCheck || canAssign) {
+		n++ // Actions
+	}
+	return n
 }
 
 // PageData is shared view data for HTML pages.
@@ -157,16 +162,54 @@ type PageData struct {
 	CSRFToken           string
 	LoginError          string
 	DevAuth             bool
+	DevAuthUsers        []store.User
 	ActiveTab           string
 	AdminSection        string
 	CanManageOrgUsers   bool
 	ShowOrganisationNav bool
+	SimpleUI            bool
+	SimpleSubjectID     int64
+	ShowAssign          bool
+	ShowMyTasks         bool
+	ShowSubjectColumn   bool
+	ShowCollab          bool
+	RequestID           string
+	ReportsAutoOpen     bool // open @jeb-maker/reports widget on load (/signaler)
 	Breadcrumbs         []Breadcrumb
 	PageActions         []PageAction
 	Labels              UILabels
 	ActiveOrganization  *store.Organization
 	UserOrganizations   []store.OrganizationMembership
 	PendingInvitations  []store.OrganizationInvitation
+}
+
+// ReportsMetadata returns trusted session context for the @jeb-maker/reports widget.
+// The server re-applies identity on POST /signaler/api; this is for diagnostics only.
+func (d PageData) ReportsMetadata() map[string]any {
+	if d.User == nil {
+		return nil
+	}
+	meta := map[string]any{
+		"app":        "revues",
+		"user_id":    d.User.ID,
+		"user_login": d.User.Login,
+		"user_role":  d.User.Role,
+		"simple_ui":  d.SimpleUI,
+		"request_id": d.RequestID,
+		"ui_caps": map[string]any{
+			"simple_ui":           d.SimpleUI,
+			"show_assign":         d.ShowAssign,
+			"show_my_tasks":       d.ShowMyTasks,
+			"show_subject_column": d.ShowSubjectColumn,
+			"show_collab":         d.ShowCollab,
+		},
+	}
+	if d.ActiveOrganization != nil {
+		meta["org_id"] = d.ActiveOrganization.ID
+		meta["org_name"] = d.ActiveOrganization.Name
+		meta["ui_run_label"] = d.ActiveOrganization.UIRunLabel
+	}
+	return meta
 }
 
 // AdminUsersData is view data for the org-scoped whitelist admin screen.
@@ -204,13 +247,15 @@ type AdminOrgHubData struct {
 	OrganizationName string
 }
 
-// AdminSubjectLabelsData is view data for the org subject label preset screen.
+// AdminSubjectLabelsData is view data for the org subject + run label preset screen.
 type AdminSubjectLabelsData struct {
 	PageData
-	Presets []SubjectLabelPreset
-	Current string
-	Message string
-	Error   string
+	Presets    []SubjectLabelPreset
+	Current    string
+	RunPresets []RunLabelPreset
+	CurrentRun string
+	Message    string
+	Error      string
 }
 
 // AdminLeadPoliciesData is view data for org lead-delegation policies.
@@ -287,6 +332,53 @@ type AdminWebhooksData struct {
 	CanEncrypt      bool
 	Message         string
 	Error           string
+}
+
+// BugReportContext is auto-captured request/session context shown on the form.
+type BugReportContext struct {
+	PageURL           string
+	UserID            int64
+	UserLogin         string
+	UserEmail         string
+	UserDisplayName   string
+	UserRole          string
+	OrgID             int64
+	OrgName           string
+	OrgRole           string
+	UIRunLabel        string
+	SimpleUI          bool
+	ShowAssign        bool
+	ShowMyTasks       bool
+	ShowSubjectColumn bool
+	ShowCollab        bool
+	Timestamp         string
+	UserAgent         string
+	RequestID         string
+}
+
+// UICapsMap returns progressive-disclosure flags for persistence.
+func (c BugReportContext) UICapsMap() map[string]any {
+	return map[string]any{
+		"simple_ui":           c.SimpleUI,
+		"show_assign":         c.ShowAssign,
+		"show_my_tasks":       c.ShowMyTasks,
+		"show_subject_column": c.ShowSubjectColumn,
+		"show_collab":         c.ShowCollab,
+	}
+}
+
+// BugReportData is view data for the in-app bug report form.
+type BugReportData struct {
+	PageData
+	Context     BugReportContext
+	PageURL     string
+	TitleValue  string
+	Description string
+	Steps       string
+	Severity    string
+	ReturnURL   string
+	Message     string
+	Error       string
 }
 
 // RunsListData is view data for the runs index page.
@@ -414,6 +506,7 @@ type SubjectShowData struct {
 	CanManage           bool
 	CanManageMembers    bool
 	CanAssignTeams      bool
+	CanManageOrgUsers   bool
 	TeamsPolicyDenied   bool
 	MembersPolicyDenied bool
 	CanLaunch           bool
@@ -433,6 +526,7 @@ type TemplatesIndexData struct {
 	FilterQuery      string
 	HasActiveFilters bool
 	CanManage        bool
+	NotionConfigured bool
 	Message          string
 }
 
@@ -496,19 +590,20 @@ type ChecklistTemplatesListData struct {
 // ChecklistTemplateFormData is view data for create/edit template forms.
 type ChecklistTemplateFormData struct {
 	PageData
-	Template        *store.ChecklistTemplate
-	Version         *store.TemplateVersion
-	Name            string
-	Tags            string
-	TagsList        []string
-	Sections        []TemplateEditorSection
-	SectionsEnabled bool
-	MaxItemLabelLen int
-	MaxItemHelpLen  int
-	NameError       string
-	ItemsError      string
-	FormAction      string
-	Error           string
+	Template         *store.ChecklistTemplate
+	Version          *store.TemplateVersion
+	Name             string
+	Tags             string
+	TagsList         []string
+	Sections         []TemplateEditorSection
+	SectionsEnabled  bool
+	MaxItemLabelLen  int
+	MaxItemHelpLen   int
+	NameError        string
+	ItemsError       string
+	FormAction       string
+	NotionConfigured bool
+	Error            string
 }
 
 // ChecklistTemplateShowData is view data for template detail.
@@ -531,6 +626,7 @@ type RunWizardSubjectsData struct {
 	Subjects           []store.Subject
 	SelectedTemplateID int64
 	FilterQuery        string
+	CanCreate          bool
 	Message            string
 	Error              string
 }
@@ -558,6 +654,13 @@ type RunProgressData struct {
 	Percent int
 }
 
+// RunCompleteStatusData is view data for the run complete-section status fragment.
+type RunCompleteStatusData struct {
+	Run      *store.ChecklistRun
+	NokItems []store.RunItem
+	Progress RunProgressData
+}
+
 // RunItemRowData is view data for a single run item table row fragment.
 type RunItemRowData struct {
 	RunID          int64
@@ -567,6 +670,7 @@ type RunItemRowData struct {
 	CSRFToken      string
 	CanCheck       bool
 	CanAssign      bool
+	ShowAssign     bool // false in SimpleUI (solo / particulier)
 	CanLinkJira    bool
 	JiraConfigured bool
 	JiraLink       store.IntegrationLink
@@ -611,6 +715,7 @@ type RunShowData struct {
 	CanComplete       bool
 	NotionConfigured  bool
 	CanExportNotion   bool
+	CanExportEvidence bool
 	Progress          RunProgressData
 	ClosingNote       string
 	Message           string
@@ -633,26 +738,27 @@ type MyTasksData struct {
 // RunItemShowData is view data for run item detail with audit history.
 type RunItemShowData struct {
 	PageData
-	Subject         *store.Subject
-	Run             *store.ChecklistRun
-	RunDisplayLabel string
-	Item            *store.RunItem
-	Events          []store.RunItemEvent
-	JiraLink        *store.IntegrationLink
-	MemberRole      string
-	CanCheck        bool
-	CanLinkJira     bool
-	JiraConfigured  bool
-	JiraIssueInput  string
-	Message         string
-	LinkError       string
-	CreateError     string
-	ShowJiraCreate  bool
-	JiraCreateTitle string
-	JiraCreateDesc  string
-	Attachment      *store.Attachment
-	CanUpload       bool
-	UploadError     string
+	Subject               *store.Subject
+	Run                   *store.ChecklistRun
+	RunDisplayLabel       string
+	Item                  *store.RunItem
+	Events                []store.RunItemEvent
+	JiraLink              *store.IntegrationLink
+	MemberRole            string
+	CanCheck              bool
+	CanLinkJira           bool
+	JiraConfigured        bool
+	CanManageIntegrations bool
+	JiraIssueInput        string
+	Message               string
+	LinkError             string
+	CreateError           string
+	ShowJiraCreate        bool
+	JiraCreateTitle       string
+	JiraCreateDesc        string
+	Attachment            *store.Attachment
+	CanUpload             bool
+	UploadError           string
 }
 
 // Parse loads layout and page templates from the embedded filesystem.
@@ -669,6 +775,13 @@ func Parse(assetVersion string) (*template.Template, error) {
 				return path
 			}
 			return path + "?v=" + assetVersion
+		},
+		"toJSON": func(v any) (template.JS, error) {
+			b, marshalErr := json.Marshal(v)
+			if marshalErr != nil {
+				return "", marshalErr
+			}
+			return template.JS(b), nil
 		},
 		"icon": func(name string) template.HTML {
 			switch name {
@@ -720,6 +833,7 @@ func Parse(assetVersion string) (*template.Template, error) {
 		"teamAssignPreview":   TeamAssignPreview,
 		"lowerFirst":          LowerFirst,
 		"launchActionTitle":   LaunchActionTitle,
+		"launchRunCTA":        LaunchRunCTA,
 		"runItemTableColspan": RunItemTableColspan,
 		"formatDueDate":       formatDueDate,
 		"formatDateTime":      formatDateTime,
@@ -751,7 +865,7 @@ func Parse(assetVersion string) (*template.Template, error) {
 			}
 			return attachments.IsImageMime(att.MimeType)
 		},
-		"runItemRow": func(run *store.ChecklistRun, item store.RunItem, members []store.SubjectMember, csrf string, canCheck, canAssign, canLinkJira, jiraConfigured bool, jiraLink store.IntegrationLink, attachment *store.Attachment, itemErr, assignErr string) RunItemRowData {
+		"runItemRow": func(run *store.ChecklistRun, item store.RunItem, members []store.SubjectMember, csrf string, canCheck, canAssign, showAssign, canLinkJira, jiraConfigured bool, jiraLink store.IntegrationLink, attachment *store.Attachment, itemErr, assignErr string) RunItemRowData {
 			return RunItemRowData{
 				RunID:          run.ID,
 				RunStatus:      run.Status,
@@ -759,7 +873,8 @@ func Parse(assetVersion string) (*template.Template, error) {
 				Members:        members,
 				CSRFToken:      csrf,
 				CanCheck:       canCheck,
-				CanAssign:      canAssign,
+				CanAssign:      canAssign && showAssign,
+				ShowAssign:     showAssign,
 				CanLinkJira:    canLinkJira,
 				JiraConfigured: jiraConfigured,
 				JiraLink:       jiraLink,

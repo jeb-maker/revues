@@ -679,6 +679,10 @@ func (h *Subjects) WizardNouvelle(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/login", http.StatusFound)
 		return
 	}
+	if !auth.HasMinRole(user.Role, auth.RoleEditor) {
+		http.Redirect(w, r, "/revues", http.StatusSeeOther)
+		return
+	}
 
 	templateID := parseWizardTemplateID(r)
 	filterQuery := strings.TrimSpace(r.URL.Query().Get("q"))
@@ -707,13 +711,14 @@ func (h *Subjects) WizardNouvelle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pd := h.PageData(r, "Lancer une revue")
-	pd.Breadcrumbs = templates.BCRunWizardSubjects()
+	pd := h.PageData(r, "")
+	pd = templates.ApplyPageMeta(pd, templates.BCRunWizardSubjects(pd.Labels.Run))
 	pd.ActiveTab = "runs"
 	data := templates.RunWizardSubjectsData{
 		PageData:           pd,
 		Subjects:           launchSubjects,
 		SelectedTemplateID: templateID,
+		CanCreate:          CanCreateSubject(user),
 		Message:            r.URL.Query().Get("msg"),
 		FilterQuery:        filterQuery,
 	}
@@ -730,6 +735,10 @@ func (h *Subjects) WizardNouvelleCreate(w http.ResponseWriter, r *http.Request) 
 	user, ok := middleware.UserFromContext(r.Context())
 	if !ok {
 		http.Redirect(w, r, "/login", http.StatusFound)
+		return
+	}
+	if !auth.HasMinRole(user.Role, auth.RoleEditor) {
+		http.NotFound(w, r)
 		return
 	}
 	if err := r.ParseForm(); err != nil {
@@ -894,13 +903,15 @@ func (h *Subjects) renderFormError(w http.ResponseWriter, r *http.Request, subje
 }
 
 func (h *Subjects) renderWizardError(w http.ResponseWriter, r *http.Request, message string) {
+	user, _ := middleware.UserFromContext(r.Context())
 	templateID := parseWizardTemplateID(r)
-	pd := h.PageData(r, "Lancer une revue")
-	pd.Breadcrumbs = templates.BCRunWizardSubjects()
+	pd := h.PageData(r, "")
+	pd = templates.ApplyPageMeta(pd, templates.BCRunWizardSubjects(pd.Labels.Run))
 	pd.ActiveTab = "runs"
 	data := templates.RunWizardSubjectsData{
 		PageData:           pd,
 		SelectedTemplateID: templateID,
+		CanCreate:          user != nil && CanCreateSubject(user),
 		Error:              message,
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -973,7 +984,7 @@ func (h *Subjects) buildSubjectShowData(
 		addMemberRole = store.SubjectRoleViewer
 	}
 
-	pd := h.PageDataTab(r, subject.Name, "")
+	pd := h.PageDataTab(r, subject.Name, "subjects")
 	pd.Breadcrumbs = templates.BCSubjectShow(subject.Name, pd.Labels.Subject)
 
 	return templates.SubjectShowData{
@@ -992,6 +1003,7 @@ func (h *Subjects) buildSubjectShowData(
 		CanManage:           canManage,
 		CanManageMembers:    canManageMembers,
 		CanAssignTeams:      canAssignTeams,
+		CanManageOrgUsers:   CanManageOrgUsers(user, callerOrgRole, callerOrgMember),
 		TeamsPolicyDenied:   leadBlockedByAssignTeamsPolicy(user, access, policies),
 		MembersPolicyDenied: CanLeadAccess(user, access) && !canManageMembers && !auth.HasMinRole(user.Role, auth.RoleAdmin) && !access.HasSource(store.AccessSourceOrgAdmin),
 		CanLaunch:           canLaunch,

@@ -103,8 +103,12 @@ func SubjectModelesListPath(subjectID int64, forRun bool, templateID int64) stri
 }
 
 // BCRevues is the active runs index breadcrumb.
-func BCRevues() []Breadcrumb {
-	return []Breadcrumb{current("Revues")}
+func BCRevues(run RunUILabels) []Breadcrumb {
+	nav := run.Nav
+	if nav == "" {
+		nav = DefaultUILabels().Run.Nav
+	}
+	return []Breadcrumb{current(nav)}
 }
 
 // BCSubjects is the subjects index breadcrumb.
@@ -122,9 +126,23 @@ func BCTasks() []Breadcrumb {
 	return []Breadcrumb{current("Mes tâches")}
 }
 
+// BCBugReport is the in-app bug report form breadcrumb.
+func BCBugReport() []Breadcrumb {
+	return []Breadcrumb{current("Signaler un problème")}
+}
+
+// TemplatesSectionLabel is the UI name for the templates area.
+// listUI (mono-sujet) → Listes ; multi-sujet → Modèles.
+func TemplatesSectionLabel(listUI bool) string {
+	if listUI {
+		return "Listes"
+	}
+	return "Modèles"
+}
+
 // BCTemplatesIndex is the global templates index breadcrumb.
-func BCTemplatesIndex() []Breadcrumb {
-	return []Breadcrumb{current("Modèles")}
+func BCTemplatesIndex(simpleUI bool) []Breadcrumb {
+	return []Breadcrumb{current(TemplatesSectionLabel(simpleUI))}
 }
 
 // BCAdmin is the admin section root breadcrumb.
@@ -187,42 +205,49 @@ func BCProjectEdit(name string, id int64) []Breadcrumb {
 }
 
 // BCRunShow is a run detail breadcrumb.
-func BCRunShow(title string) []Breadcrumb {
-	return []Breadcrumb{crumb("Revues", PathRevues), current(title)}
+func BCRunShow(title string, run RunUILabels) []Breadcrumb {
+	return []Breadcrumb{crumb(runNav(run), PathRevues), current(title)}
 }
 
 // BCRunItemShow is a run item detail breadcrumb.
-func BCRunItemShow(runTitle string, runID int64, itemLabel string) []Breadcrumb {
-	return []Breadcrumb{crumb("Revues", PathRevues), crumb(runTitle, runPath(runID)), current(itemLabel)}
+func BCRunItemShow(runTitle string, runID int64, itemLabel string, run RunUILabels) []Breadcrumb {
+	return []Breadcrumb{crumb(runNav(run), PathRevues), crumb(runTitle, runPath(runID)), current(itemLabel)}
 }
 
 // BCRunWizardSubjects is run wizard step 1.
-func BCRunWizardSubjects() []Breadcrumb {
-	return []Breadcrumb{crumb("Revues", PathRevues), current("Lancer une revue")}
+func BCRunWizardSubjects(run RunUILabels) []Breadcrumb {
+	return []Breadcrumb{crumb(runNav(run), PathRevues), current(LaunchRunCTA(run))}
 }
 
 // BCRunWizardProjects is a deprecated alias for BCRunWizardSubjects.
 func BCRunWizardProjects() []Breadcrumb {
-	return BCRunWizardSubjects()
+	return BCRunWizardSubjects(DefaultUILabels().Run)
 }
 
 // BCRunWizardTemplates is run wizard step 2 (subject already chosen).
-func BCRunWizardTemplates(subjectName string, subjectID int64) []Breadcrumb {
+func BCRunWizardTemplates(subjectName string, subjectID int64, run RunUILabels) []Breadcrumb {
 	return []Breadcrumb{
-		crumb("Revues", PathRevues),
+		crumb(runNav(run), PathRevues),
 		crumb(subjectName, subjectPath(subjectID)),
 		current("Choisir un modèle"),
 	}
 }
 
 // BCRunWizardLaunch is run wizard step 3 (confirm title and launch).
-func BCRunWizardLaunch(subjectName string, subjectID int64, templateName string, version, itemCount int) []Breadcrumb {
+func BCRunWizardLaunch(subjectName string, subjectID int64, templateName string, version, itemCount int, run RunUILabels) []Breadcrumb {
 	return []Breadcrumb{
-		crumb("Revues", PathRevues),
+		crumb(runNav(run), PathRevues),
 		crumb(subjectName, subjectPath(subjectID)),
 		crumb("Choisir un modèle", SubjectTemplatesForRunPath(subjectID)),
 		current(runLaunchTemplateLabel(templateName, version, itemCount)),
 	}
+}
+
+func runNav(run RunUILabels) string {
+	if run.Nav == "" {
+		return DefaultUILabels().Run.Nav
+	}
+	return run.Nav
 }
 
 func runLaunchTemplateLabel(name string, version, itemCount int) string {
@@ -234,30 +259,35 @@ func runLaunchTemplateLabel(name string, version, itemCount int) string {
 }
 
 // BCTemplatesNewWizard is the global new template wizard breadcrumb.
-func BCTemplatesNewWizard() []Breadcrumb {
-	return []Breadcrumb{crumb("Modèles", PathTemplates), current("Nouveau")}
+func BCTemplatesNewWizard(simpleUI bool) []Breadcrumb {
+	sec := TemplatesSectionLabel(simpleUI)
+	newLabel := "Nouveau"
+	if simpleUI {
+		newLabel = "Nouvelle"
+	}
+	return []Breadcrumb{crumb(sec, PathTemplates), current(newLabel)}
 }
 
 // BCTemplateGlobalShow is the global template detail breadcrumb.
-func BCTemplateGlobalShow(name string, templateID int64) []Breadcrumb {
+func BCTemplateGlobalShow(name string, templateID int64, simpleUI bool) []Breadcrumb {
 	return []Breadcrumb{
-		crumb("Modèles", PathTemplates),
+		crumb(TemplatesSectionLabel(simpleUI), PathTemplates),
 		current(name),
 	}
 }
 
 // BCTemplateGlobalEdit is the global template edit form breadcrumb.
-func BCTemplateGlobalEdit(name string, templateID int64) []Breadcrumb {
+func BCTemplateGlobalEdit(name string, templateID int64, simpleUI bool) []Breadcrumb {
 	return []Breadcrumb{
-		crumb("Modèles", PathTemplates),
+		crumb(TemplatesSectionLabel(simpleUI), PathTemplates),
 		crumb(name, "/modeles/"+strconv.FormatInt(templateID, 10)),
 		current("Modifier"),
 	}
 }
 
 // BCTemplateNotionImportGlobal is the global Notion import wizard breadcrumb.
-func BCTemplateNotionImportGlobal() []Breadcrumb {
-	return []Breadcrumb{crumb("Modèles", PathTemplates), current("Importer depuis Notion")}
+func BCTemplateNotionImportGlobal(simpleUI bool) []Breadcrumb {
+	return []Breadcrumb{crumb(TemplatesSectionLabel(simpleUI), PathTemplates), current("Importer depuis Notion")}
 }
 
 // BCSubjectTemplatesList is a subject's template list breadcrumb.
@@ -366,27 +396,27 @@ func BCAdminTeam(name string) []Breadcrumb {
 
 // BCAdminIntegrations is the admin integrations overview breadcrumb.
 func BCAdminIntegrations() []Breadcrumb {
-	return []Breadcrumb{crumb("Admin", PathAdmin), current("Intégrations")}
+	return []Breadcrumb{crumb("Organisation", PathAdminOrg), current("Intégrations")}
 }
 
 // BCAdminSMTP is the admin SMTP settings breadcrumb.
 func BCAdminSMTP() []Breadcrumb {
-	return []Breadcrumb{crumb("Admin", PathAdmin), current("SMTP")}
+	return []Breadcrumb{crumb("Organisation", PathAdminOrg), crumb("Intégrations", PathAdmin), current("SMTP")}
 }
 
 // BCAdminWebhooks is the admin webhooks settings breadcrumb.
 func BCAdminWebhooks() []Breadcrumb {
-	return []Breadcrumb{crumb("Admin", PathAdmin), current("Webhooks")}
+	return []Breadcrumb{crumb("Organisation", PathAdminOrg), crumb("Intégrations", PathAdmin), current("Webhooks")}
 }
 
 // BCAdminJira is the admin Jira settings breadcrumb.
 func BCAdminJira() []Breadcrumb {
-	return []Breadcrumb{crumb("Admin", PathAdmin), current("Jira")}
+	return []Breadcrumb{crumb("Organisation", PathAdminOrg), crumb("Intégrations", PathAdmin), current("Jira")}
 }
 
 // BCAdminNotion is the admin Notion settings breadcrumb.
 func BCAdminNotion() []Breadcrumb {
-	return []Breadcrumb{crumb("Admin", PathAdmin), current("Notion")}
+	return []Breadcrumb{crumb("Organisation", PathAdminOrg), crumb("Intégrations", PathAdmin), current("Notion")}
 }
 
 // BreadcrumbCurrent returns the label of the last breadcrumb.

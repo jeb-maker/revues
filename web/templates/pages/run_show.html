@@ -2,25 +2,22 @@
 {{template "layout_start" .}}
 <div id="toast" class="toast" role="alert" aria-live="assertive"></div>
 
-<div class="card">
-  <p class="muted">
-    {{.Labels.Subject.Singular}} : <a href="/subjects/{{.Subject.ID}}">{{.Subject.Name}}</a>
-    · Modèle : {{.TemplateName}} v{{.VersionNum}}
-    · Statut : <span class="status-badge status-{{.Run.Status}}">{{formatRunStatus .Run.Status}}</span>
-    {{if .Run.DueDate.Valid}} · Échéance : {{formatDueDate .Run.DueDate}}{{end}}
-  </p>
+{{if .Message}}<p class="success" role="status">{{.Message}}</p>{{end}}
+{{if .Error}}<p class="error" role="alert">{{.Error}}</p>{{end}}
+{{if .ItemError}}<p class="error" role="alert">{{.ItemError}}</p>{{end}}
+{{if .AssignError}}<p class="error" role="alert">{{.AssignError}}</p>{{end}}
+{{if .CompleteError}}<p class="error" role="alert">{{.CompleteError}}</p>{{end}}
+{{if .NotionExportError}}<p class="error" role="alert">{{.NotionExportError}}</p>{{end}}
 
-  {{if .Message}}<p class="success" role="status">{{.Message}}</p>{{end}}
-  {{if .Error}}<p class="error" role="alert">{{.Error}}</p>{{end}}
-  {{if .ItemError}}<p class="error" role="alert">{{.ItemError}}</p>{{end}}
-  {{if .AssignError}}<p class="error" role="alert">{{.AssignError}}</p>{{end}}
-  {{if .CompleteError}}<p class="error" role="alert">{{.CompleteError}}</p>{{end}}
-  {{if .NotionExportError}}<p class="error" role="alert">{{.NotionExportError}}</p>{{end}}
-
-  {{if and (ne .Run.Status "draft") (gt .Progress.Total 0)}}
-  {{template "run_progress_fragment" .Progress}}
+{{/* Statut « en cours » omis (contexte page) ; échéance / autres statuts seulement. */}}
+{{if or .Run.DueDate.Valid (and (ne .Run.Status "in_progress") (ne .Run.Status "draft"))}}
+<p class="muted run-statusline">
+  {{if and (ne .Run.Status "in_progress") (ne .Run.Status "draft")}}
+  <span class="status-badge status-{{.Run.Status}}">{{formatRunStatus .Run.Status}}</span>{{if .Run.DueDate.Valid}} · {{end}}
   {{end}}
-</div>
+  {{if .Run.DueDate.Valid}}{{formatDueDate .Run.DueDate}}{{end}}
+</p>
+{{end}}
 
 {{if eq .Run.Status "done"}}
 <div class="card">
@@ -42,7 +39,10 @@
   </div>
   {{end}}
   <div class="post-closure">
-    <a href="/runs/{{.Run.ID}}/export.csv" class="button">{{icon "download"}} Exporter CSV</a>
+    <a href="/runs/{{.Run.ID}}/export.csv" class="button-secondary">{{icon "download"}} Exporter CSV</a>
+    {{if .CanExportEvidence}}
+    <a href="/runs/{{.Run.ID}}/export/preuve.zip" class="button-secondary">{{icon "download"}} Télécharger la preuve</a>
+    {{end}}
     {{if .Run.NotionURL}}
     <a href="{{.Run.NotionURL}}" class="button-secondary" target="_blank" rel="noopener noreferrer">{{icon "external-link"}} Voir dans Notion</a>
     {{else if and .NotionConfigured .CanExportNotion}}
@@ -72,6 +72,9 @@
 
 <div class="card">
   <h2>{{icon "list"}} Points ({{len .Items}})</h2>
+  {{if and (ne .Run.Status "draft") (gt .Progress.Total 0)}}
+  {{template "run_progress_fragment" .Progress}}
+  {{end}}
   {{if .Items}}
   <div class="filter-bar" id="items-filter">
     <form method="get" action="/runs/{{.Run.ID}}" class="filter-form">
@@ -102,29 +105,38 @@
   </div>
   {{end}}
   {{if .ItemSections}}
-  {{$colspan := runItemTableColspan .Run.Status .CanCheck .CanAssign}}
+  {{$showAssign := .ShowAssign}}
+  {{$canAssign := and .CanAssign $showAssign}}
+  {{$colspan := runItemTableColspan .Run.Status .CanCheck $canAssign $showAssign}}
   <div class="table-scroll">
     <table class="data-table data-table--run-items">
-      {{if and (eq .Run.Status "in_progress") (or .CanCheck .CanAssign)}}
+      {{if and (eq .Run.Status "in_progress") (or .CanCheck $canAssign)}}
       <colgroup>
-        <col style="width:26%">
+        <col style="width:{{if $showAssign}}26%{{else}}32%{{end}}">
         <col style="width:14%">
-        <col style="width:12%">
-        <col style="width:32%">
+        {{if $showAssign}}<col style="width:12%">{{end}}
+        <col style="width:{{if $showAssign}}32%{{else}}38%{{end}}">
         <col style="width:8%">
         <col style="width:8%">
       </colgroup>
       {{else}}
       <colgroup>
-        <col style="width:28%">
+        <col style="width:{{if $showAssign}}28%{{else}}34%{{end}}">
         <col style="width:14%">
-        <col style="width:14%">
-        <col style="width:36%">
+        {{if $showAssign}}<col style="width:14%">{{end}}
+        <col style="width:{{if $showAssign}}36%{{else}}44%{{end}}">
         <col style="width:8%">
       </colgroup>
       {{end}}
       <thead class="table-sticky">
-        <tr><th scope="col">Point</th><th scope="col" class="data-table__col--center">Statut</th><th scope="col">Assigné</th><th scope="col">Commentaire</th><th scope="col" class="data-table__col--center">PJ</th>{{if and (eq .Run.Status "in_progress") (or .CanCheck .CanAssign)}}<th scope="col" class="data-table__col--end"><span class="visually-hidden">Actions</span></th>{{end}}</tr>
+        <tr>
+          <th scope="col">Point</th>
+          <th scope="col" class="data-table__col--center">Statut</th>
+          {{if $showAssign}}<th scope="col">Assigné</th>{{end}}
+          <th scope="col">Commentaire</th>
+          <th scope="col" class="data-table__col--center">PJ</th>
+          {{if and (eq .Run.Status "in_progress") (or .CanCheck $canAssign)}}<th scope="col" class="data-table__col--end"><span class="visually-hidden">Actions</span></th>{{end}}
+        </tr>
       </thead>
       {{range .ItemSections}}
       <tbody class="run-section" data-auto-collapse="1" data-all-ok="{{if .AllOKOrNA}}1{{else}}0{{end}}">
@@ -137,7 +149,7 @@
           </td>
         </tr>
         {{range .Items}}
-        {{template "run_item_row_fragment" (runItemRow $.Run . $.Members $.CSRFToken $.CanCheck $.CanAssign $.CanLinkJira $.JiraConfigured (index $.JiraLinks .ID) (index $.Attachments .ID) "" "")}}
+        {{template "run_item_row_fragment" (runItemRow $.Run . $.Members $.CSRFToken $.CanCheck $canAssign $showAssign $.CanLinkJira $.JiraConfigured (index $.JiraLinks .ID) (index $.Attachments .ID) "" "")}}
         {{end}}
       </tbody>
       {{end}}
@@ -172,22 +184,9 @@
 {{if .CanComplete}}
 <div class="card" id="complete-section">
   <h2>Clôturer la revue</h2>
-  {{if .NokItems}}
-  <div class="warning-panel closing-nok">
-    <h3>{{icon "alert"}} Points non validés ({{len .NokItems}})</h3>
-    <ul class="item-list">
-      {{range .NokItems}}
-      <li><a href="/runs/{{$.Run.ID}}/items/{{.ID}}"><strong>{{.Label}}</strong></a>{{if .Comment}} — {{.Comment}}{{end}}</li>
-      {{end}}
-    </ul>
+  <div id="complete-section-status">
+  {{template "run_complete_status_inner" .}}
   </div>
-  {{else}}
-  {{if eq .Progress.Done .Progress.Total}}
-  <p class="muted">Aucun point non validé — tous les points sont traités.</p>
-  {{else}}
-  <p class="muted">Aucun point non validé. {{sub .Progress.Total .Progress.Done}} encore en attente.</p>
-  {{end}}
-  {{end}}
   <form method="post" action="/runs/{{.Run.ID}}/complete" class="stack-form" hx-post="/runs/{{.Run.ID}}/complete" hx-target="#complete-section" hx-swap="outerHTML" hx-confirm="Confirmer la clôture de la revue ?">
     <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
     <label>
@@ -204,10 +203,13 @@
 <div class="card post-closure-links">
   <p>
     <a href="/subjects/{{.Subject.ID}}" class="button-ghost">{{icon "arrow-left"}} Retour au {{.Labels.Subject.Singular | lowerFirst}}</a>
-    <a href="/subjects/{{.Subject.ID}}/modeles?for_run=1" class="button-ghost">Lancer une autre revue</a>
+    {{if .CanLaunch}}<a href="/subjects/{{.Subject.ID}}/modeles?for_run=1" class="button-ghost">Lancer une autre revue</a>{{end}}
   </p>
 </div>
 {{end}}
 {{template "layout_end" .}}
 {{end}}
 {{define "main_class"}} site-main--wide{{end}}
+{{define "page_styles"}}
+<link rel="stylesheet" href="{{assetURL `/static/css/run.css`}}">
+{{end}}
