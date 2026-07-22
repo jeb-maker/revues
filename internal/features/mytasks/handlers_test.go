@@ -243,7 +243,7 @@ func TestMyTasks_ListAssigned(t *testing.T) {
 	if !strings.Contains(rec.Body.String(), "list-toolbar") {
 		t.Fatal("expected list toolbar on my tasks page")
 	}
-	if !strings.Contains(rec.Body.String(), "segmented-tabs") {
+	if !strings.Contains(rec.Body.String(), "<mb-segmented-control") {
 		t.Fatal("expected status tabs on my tasks page")
 	}
 }
