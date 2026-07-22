@@ -38,9 +38,9 @@
   <div class="list-toolbar">
     <form method="get" action="/revues" class="list-toolbar__form filter-form filter-form--inline">
       {{if .ShowSubjectColumn}}
-      <input class="list-toolbar__search toolbar-control" type="search" id="filter-query" name="q" value="{{.FilterQuery}}" placeholder="Rechercher {{.Labels.Run.Article}} {{.Labels.Run.Singular}} ou un {{.Labels.Subject.Singular | lowerFirst}}…" aria-label="Rechercher {{.Labels.Run.Article}} {{.Labels.Run.Singular}} ou un {{.Labels.Subject.Singular | lowerFirst}}">
+      <mb-input class="list-toolbar__search toolbar-control" type="search" density="compact" id="filter-query" name="q" value="{{.FilterQuery}}" placeholder="Rechercher {{.Labels.Run.Article}} {{.Labels.Run.Singular}} ou un {{.Labels.Subject.Singular | lowerFirst}}…" aria-label="Rechercher {{.Labels.Run.Article}} {{.Labels.Run.Singular}} ou un {{.Labels.Subject.Singular | lowerFirst}}"></mb-input>
       {{else}}
-      <input class="list-toolbar__search toolbar-control" type="search" id="filter-query" name="q" value="{{.FilterQuery}}" placeholder="Rechercher {{.Labels.Run.Article}} {{.Labels.Run.Singular}}…" aria-label="Rechercher {{.Labels.Run.Article}} {{.Labels.Run.Singular}}">
+      <mb-input class="list-toolbar__search toolbar-control" type="search" density="compact" id="filter-query" name="q" value="{{.FilterQuery}}" placeholder="Rechercher {{.Labels.Run.Article}} {{.Labels.Run.Singular}}…" aria-label="Rechercher {{.Labels.Run.Article}} {{.Labels.Run.Singular}}"></mb-input>
       {{end}}
       {{if .FilterStatus}}<input type="hidden" name="status" value="{{.FilterStatus}}">{{end}}
       <mb-button type="submit" variant="secondary" class="toolbar-control">Filtrer</mb-button>

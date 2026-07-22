@@ -29,51 +29,26 @@
     <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
     <input type="hidden" name="action" value="save">
 
-    <fieldset>
-      <legend>Type d'instance</legend>
-      <label class="radio-label">
-        <input type="radio" name="instance_type" value="cloud" {{if eq .InstanceType "cloud"}}checked{{end}}>
-        Jira Cloud
-      </label>
-      <label class="radio-label">
-        <input type="radio" name="instance_type" value="server" {{if eq .InstanceType "server"}}checked{{end}}>
-        Jira Server / Data Center
-      </label>
-    </fieldset>
+    <mb-radio-group label="Type d'instance" name="instance_type" value="{{if eq .InstanceType "server"}}server{{else}}cloud{{end}}">
+      <mb-radio value="cloud" label="Jira Cloud"></mb-radio>
+      <mb-radio value="server" label="Jira Server / Data Center"></mb-radio>
+    </mb-radio-group>
 
-    <label>
-      URL de l'instance
-      <input type="url" name="base_url" value="{{.BaseURL}}" required autocomplete="off" placeholder="https://votre-domaine.atlassian.net">
-    </label>
+    <mb-input label="URL de l'instance" type="url" name="base_url" value="{{.BaseURL}}" required placeholder="https://votre-domaine.atlassian.net"></mb-input>
 
-    <label>
-      Clé projet par défaut
-      <input type="text" name="project_key" value="{{.ProjectKey}}" autocomplete="off" placeholder="REV (requis pour créer des tickets)">
-    </label>
+    <mb-input label="Clé projet par défaut" type="text" name="project_key" value="{{.ProjectKey}}" placeholder="REV (requis pour créer des tickets)"></mb-input>
 
-    <label>
-      Type d'issue par défaut
-      <input type="text" name="issue_type" value="{{if .IssueType}}{{.IssueType}}{{else}}Task{{end}}" autocomplete="off" placeholder="Task">
-    </label>
+    <mb-input label="Type d'issue par défaut" type="text" name="issue_type" value="{{if .IssueType}}{{.IssueType}}{{else}}Task{{end}}" placeholder="Task"></mb-input>
 
     <fieldset>
       <legend>Jira Cloud</legend>
-      <label>
-        Email Atlassian
-        <input type="email" name="email" value="{{.Email}}" autocomplete="username" placeholder="Requis pour Cloud">
-      </label>
-      <label>
-        Jeton API
-        <input type="password" name="api_token" autocomplete="new-password" placeholder="{{if .HasAPIToken}}Laisser vide pour conserver{{else}}Jeton API Atlassian{{end}}">
-      </label>
+      <mb-input label="Email Atlassian" type="email" name="email" value="{{.Email}}" placeholder="Requis pour Cloud"></mb-input>
+      <mb-input label="Jeton API" type="password" name="api_token" placeholder="{{if .HasAPIToken}}Laisser vide pour conserver{{else}}Jeton API Atlassian{{end}}"></mb-input>
     </fieldset>
 
     <fieldset>
       <legend>Jira Server / Data Center</legend>
-      <label>
-        Personal Access Token (PAT)
-        <input type="password" name="pat" autocomplete="new-password" placeholder="{{if .HasPAT}}Laisser vide pour conserver{{else}}PAT Jira{{end}}">
-      </label>
+      <mb-input label="Personal Access Token (PAT)" type="password" name="pat" placeholder="{{if .HasPAT}}Laisser vide pour conserver{{else}}PAT Jira{{end}}"></mb-input>
     </fieldset>
 
     <mb-button type="submit" {{if not .CanEncrypt}}disabled{{end}}>Enregistrer</mb-button>

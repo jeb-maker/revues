@@ -1,25 +1,23 @@
 {{define "templates_index"}}
 {{template "layout_start" .}}
 {{if and (not .Templates) (not .HasActiveFilters)}}
-<section class="empty-state">
+<mb-empty-state heading="{{if .ShowSubjectColumn}}Aucun modèle{{else}}Aucune liste{{end}}">
   {{if .ShowSubjectColumn}}
-  <h2>Aucun modèle</h2>
-  <p class="muted">Aucun modèle actif pour l'instant.</p>
+  <p>Aucun modèle actif pour l'instant.</p>
   {{if .CanManage}}
-  <div class="empty-state-actions">
+  <div slot="actions">
     <mb-button href="/modeles/new">Créer un modèle</mb-button>
   </div>
   {{end}}
   {{else}}
-  <h2>Aucune liste</h2>
-  <p class="muted">Créez une liste (vacances, courses…) pour lancer des revues.</p>
+  <p>Créez une liste (vacances, courses…) pour lancer des revues.</p>
   {{if .CanManage}}
-  <div class="empty-state-actions">
+  <div slot="actions">
     <mb-button href="/modeles/new">Créer une liste</mb-button>
   </div>
   {{end}}
   {{end}}
-</section>
+</mb-empty-state>
 {{else}}
 <section class="card">
   {{if .Message}}<mb-alert variant="success">{{.Message}}</mb-alert>{{end}}
@@ -29,9 +27,9 @@
   <div class="list-toolbar">
     <form method="get" action="/modeles" class="list-toolbar__form filter-form filter-form--inline">
       {{if .ShowSubjectColumn}}
-      <input class="list-toolbar__search toolbar-control" type="search" id="filter-query" name="q" value="{{.FilterQuery}}" placeholder="Rechercher un modèle ou un domaine…" aria-label="Rechercher un modèle ou un domaine">
+      <mb-input class="list-toolbar__search toolbar-control" type="search" density="compact" id="filter-query" name="q" value="{{.FilterQuery}}" placeholder="Rechercher un modèle ou un domaine…" aria-label="Rechercher un modèle ou un domaine"></mb-input>
       {{else}}
-      <input class="list-toolbar__search toolbar-control" type="search" id="filter-query" name="q" value="{{.FilterQuery}}" placeholder="Rechercher une liste…" aria-label="Rechercher une liste">
+      <mb-input class="list-toolbar__search toolbar-control" type="search" density="compact" id="filter-query" name="q" value="{{.FilterQuery}}" placeholder="Rechercher une liste…" aria-label="Rechercher une liste"></mb-input>
       {{end}}
       <mb-button type="submit" variant="secondary" class="toolbar-control">Filtrer</mb-button>
       {{if .HasActiveFilters}}<mb-button href="/modeles" variant="ghost" class="toolbar-control">Effacer</mb-button>{{end}}

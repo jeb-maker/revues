@@ -8,36 +8,18 @@
   {{if .Error}}<mb-alert variant="danger">{{.Error}}</mb-alert>{{end}}
   <form method="post" action="{{.FormAction}}" class="stack-form">
     <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
-    <label>
-      Nom
-      <input type="text" name="name" required maxlength="200" value="{{if .Subject}}{{.Subject.Name}}{{end}}">
-    </label>
-    <label>
-      Description
-      <textarea name="description" rows="4">{{if .Subject}}{{.Subject.Description}}{{end}}</textarea>
-    </label>
+    <mb-input label="Nom" type="text" name="name" required value="{{if .Subject}}{{.Subject.Name}}{{end}}"></mb-input>
+    <mb-textarea label="Description" name="description" rows="4" value="{{if .Subject}}{{.Subject.Description}}{{end}}"></mb-textarea>
     {{if .CanSetVisibility}}
-    <label>
-      Visibilité
-      <span class="field-hint">Privé : visible uniquement avec un accès direct ou via une équipe (les admins org voient toujours).</span>
-      <select name="visibility">
-        <option value="normal" {{if or (not .Subject) (eq .Subject.Visibility "normal") (eq .Subject.Visibility "")}}selected{{end}}>Normale</option>
-        <option value="private" {{if and .Subject (eq .Subject.Visibility "private")}}selected{{end}}>Privée</option>
-      </select>
-    </label>
+    <mb-select label="Visibilité" name="visibility" hint="Privé : visible uniquement avec un accès direct ou via une équipe (les admins org voient toujours)." value="{{if and .Subject (eq .Subject.Visibility "private")}}private{{else}}normal{{end}}">
+      <option value="normal">Normale</option>
+      <option value="private">Privée</option>
+    </mb-select>
     {{end}}
     <details class="stack-form">
       <summary>Options avancées</summary>
-      <label>
-        Domaines
-        <span class="field-hint">Séparez par des virgules (ex. k8s, frontend). Filtre les modèles proposés pour ce {{.Labels.Subject.Singular | lowerFirst}}.</span>
-        <input type="text" name="domains" maxlength="500" value="{{.Domains}}">
-      </label>
-      <label>
-        Étiquettes
-        <span class="field-hint">Classification libre (ex. prod, critique).</span>
-        <input type="text" name="tags" maxlength="500" value="{{.Tags}}">
-      </label>
+      <mb-input label="Domaines" type="text" name="domains" value="{{.Domains}}" hint="Séparez par des virgules (ex. k8s, frontend). Filtre les modèles proposés pour ce {{.Labels.Subject.Singular | lowerFirst}}."></mb-input>
+      <mb-input label="Étiquettes" type="text" name="tags" value="{{.Tags}}" hint="Classification libre (ex. prod, critique)."></mb-input>
     </details>
     <div class="form-actions">
       <mb-button type="submit">Enregistrer</mb-button>

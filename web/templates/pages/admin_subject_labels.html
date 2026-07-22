@@ -17,23 +17,16 @@
   <h2>Libellés</h2>
   <form method="post" action="/admin/settings/labels" class="stack-form">
     <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
-    <label>
-      Libellé {{.Labels.Subject.Singular | lowerFirst}}
-      <select name="ui_subject_label" required>
-        {{range .Presets}}
-        <option value="{{.Value}}"{{if eq $.Current .Value}} selected{{end}}>{{.Singular}} / {{.Plural}}</option>
-        {{end}}
-      </select>
-    </label>
-    <label>
-      Libellé des instances
-      <select name="ui_run_label" required>
-        {{range .RunPresets}}
-        <option value="{{.Value}}"{{if eq $.CurrentRun .Value}} selected{{end}}>{{.Nav}}</option>
-        {{end}}
-      </select>
-      <span class="field-hint">Navigation, titres de liste et actions « Lancer… ». Sur mobile, « Listes en cours » devient « En cours ».</span>
-    </label>
+    <mb-select label="Libellé {{.Labels.Subject.Singular | lowerFirst}}" name="ui_subject_label" required value="{{.Current}}">
+      {{range .Presets}}
+      <option value="{{.Value}}">{{.Singular}} / {{.Plural}}</option>
+      {{end}}
+    </mb-select>
+    <mb-select label="Libellé des instances" name="ui_run_label" required value="{{.CurrentRun}}" hint="Navigation, titres de liste et actions « Lancer… ». Sur mobile, « Listes en cours » devient « En cours ».">
+      {{range .RunPresets}}
+      <option value="{{.Value}}">{{.Nav}}</option>
+      {{end}}
+    </mb-select>
     <span class="field-hint">Ces choix s’appliquent à toute l’organisation.</span>
     <mb-button type="submit">Enregistrer</mb-button>
   </form>

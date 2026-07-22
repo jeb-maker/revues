@@ -138,11 +138,17 @@
     }
     var body = null;
     var fetchUrl = url;
+    var fd = formDataFor(form);
     var params = new URLSearchParams();
-    formDataFor(form).forEach(function (value, key) {
-      params.append(key, value);
+    fd.forEach(function (value, key) {
+      if (typeof value === "string") {
+        params.append(key, value);
+      }
     });
-    if (method === "POST") {
+    var multipart = (form.getAttribute("hx-encoding") || form.enctype) === "multipart/form-data";
+    if (method === "POST" && multipart) {
+      body = fd;
+    } else if (method === "POST") {
       headers["Content-Type"] = "application/x-www-form-urlencoded";
       body = params.toString();
     } else {

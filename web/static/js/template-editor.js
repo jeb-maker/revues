@@ -38,16 +38,25 @@
   function syncRow(row, ri, si) {
     row.querySelector('input[name="item_row_idx"]').value = ri;
     row.querySelector('input[name="item_section_idx"]').value = si;
-    row.querySelector('input[name="item_required"]').value = ri;
-    var lab = row.querySelector('input[name="item_label"]'), hlp = row.querySelector('[name="item_help"]');
+    var req = row.querySelector('mb-checkbox[name="item_required"]');
+    req.setAttribute('value', ri);
+    req.value = String(ri);
+    var lab = row.querySelector('mb-input[name="item_label"]'), hlp = row.querySelector('[name="item_help"]');
     lab.id = 'item_label_' + si + '_' + ri;
     hlp.id = 'item_help_' + si + '_' + ri;
   }
   function clearRow(row) {
-    row.querySelector('input[name="item_label"]').value = '';
+    var lab = row.querySelector('mb-input[name="item_label"]');
+    lab.value = '';
+    lab.removeAttribute('value');
     var help = row.querySelector('[name="item_help"]');
-    if (help) help.value = '';
-    row.querySelector('input[name="item_required"]').checked = false;
+    if (help) {
+      help.value = '';
+      help.removeAttribute('value');
+    }
+    var req = row.querySelector('mb-checkbox[name="item_required"]');
+    req.checked = false;
+    req.removeAttribute('checked');
   }
   function setDisabled(root, action, on) {
     root.querySelectorAll('[data-action="' + action + '"]').forEach(function (btn) { btn.disabled = on; });
@@ -74,11 +83,13 @@
     syncRow(row, ++maxRow, si);
     container.appendChild(row);
     rowBtns(container);
-    row.querySelector('input[name="item_label"]').focus();
+    row.querySelector('mb-input[name="item_label"]').focus();
   }
   function addSec() {
     var tpl = box.querySelector('.template-editor__section'), sec = tpl.cloneNode(true), si = String(++maxSec);
-    sec.querySelector('.template-editor__section-title').value = '';
+    var title = sec.querySelector('.template-editor__section-title');
+    title.value = '';
+    title.removeAttribute('value');
     var container = sec.querySelector('.template-editor__points');
     container.innerHTML = '';
     var row = tpl.querySelector('.template-editor__point').cloneNode(true);
@@ -124,7 +135,7 @@
       container.insertBefore(row.nextElementSibling, row); rowBtns(container);
     }
   });
-  box.addEventListener('input', function (e) {
+  box.addEventListener('mb-input', function (e) {
     if (e.target.classList.contains('template-editor__section-title')) syncMode();
   });
   if (addSecBtn) addSecBtn.addEventListener('click', addSec);

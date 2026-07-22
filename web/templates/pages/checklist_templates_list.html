@@ -32,9 +32,9 @@
       {{if .ForRun}}<input type="hidden" name="for_run" value="1">{{end}}
       {{if .SelectedTemplateID}}<input type="hidden" name="template" value="{{.SelectedTemplateID}}">{{end}}
       {{if $listUI}}
-      <input class="list-toolbar__search toolbar-control" type="search" id="filter-query" name="q" value="{{.FilterQuery}}" placeholder="Rechercher une liste…" aria-label="Rechercher une liste">
+      <mb-input class="list-toolbar__search toolbar-control" type="search" density="compact" id="filter-query" name="q" value="{{.FilterQuery}}" placeholder="Rechercher une liste…" aria-label="Rechercher une liste"></mb-input>
       {{else}}
-      <input class="list-toolbar__search toolbar-control" type="search" id="filter-query" name="q" value="{{.FilterQuery}}" placeholder="Rechercher un modèle ou un domaine…" aria-label="Rechercher un modèle ou un domaine">
+      <mb-input class="list-toolbar__search toolbar-control" type="search" density="compact" id="filter-query" name="q" value="{{.FilterQuery}}" placeholder="Rechercher un modèle ou un domaine…" aria-label="Rechercher un modèle ou un domaine"></mb-input>
       {{end}}
       <mb-button type="submit" variant="secondary" class="toolbar-control">Filtrer</mb-button>
       {{if .HasActiveFilters}}<mb-button href="{{subjectModelesListPath .Subject.ID .ForRun .SelectedTemplateID}}" variant="ghost" class="toolbar-control">Effacer</mb-button>{{end}}

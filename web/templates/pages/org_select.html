@@ -5,16 +5,11 @@
 
 <form method="post" action="/org/select" class="stack-form org-select-form">
   <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
-  <fieldset class="stack-form">
-    <legend class="visually-hidden">Organisations</legend>
+  <mb-radio-group label="Organisations" name="organization_id" required value="{{.DefaultOrgID}}">
     {{range .Organizations}}
-    <label>
-      <input type="radio" name="organization_id" value="{{.Organization.ID}}" required
-        {{if eq .Organization.ID $.DefaultOrgID}}checked{{end}}>
-      {{.Organization.Name}} <span class="field-hint">({{.Organization.Slug}})</span>
-    </label>
+    <mb-radio value="{{.Organization.ID}}" label="{{.Organization.Name}} ({{.Organization.Slug}})"></mb-radio>
     {{end}}
-  </fieldset>
+  </mb-radio-group>
   <mb-button type="submit">Continuer</mb-button>
 </form>
 {{template "layout_end" .}}

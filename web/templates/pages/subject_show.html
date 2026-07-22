@@ -148,27 +148,20 @@
   {{if .AvailableTeams}}
   <form method="post" action="/subjects/{{.Subject.ID}}/teams" class="stack-form"
         hx-get="/subjects/{{.Subject.ID}}/teams/preview"
-        hx-trigger="change"
+        hx-trigger="mb-change"
         hx-target="#team-assign-preview"
         hx-swap="outerHTML">
     <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
-    <label>
-      Équipe
-      <select name="team_id" required>
-        <option value="">Choisir…</option>
-        {{range .AvailableTeams}}
-        <option value="{{.ID}}"{{if eq $.AddTeamID .ID}} selected{{end}}>{{.Name}} ({{.MemberCount}} membre{{if ne .MemberCount 1}}s{{end}})</option>
-        {{end}}
-      </select>
-    </label>
-    <label>
-      Rôle
-      <select name="role" required>
-        <option value="viewer"{{if eq .AddTeamRole "viewer"}} selected{{end}}>Observateur</option>
-        <option value="contributor"{{if eq .AddTeamRole "contributor"}} selected{{end}}>Contributeur</option>
-        <option value="lead"{{if eq .AddTeamRole "lead"}} selected{{end}}>Responsable</option>
-      </select>
-    </label>
+    <mb-select label="Équipe" name="team_id" required{{if .AddTeamID}} value="{{.AddTeamID}}"{{end}}>
+      {{range .AvailableTeams}}
+      <option value="{{.ID}}">{{.Name}} ({{.MemberCount}} membre{{if ne .MemberCount 1}}s{{end}})</option>
+      {{end}}
+    </mb-select>
+    <mb-select label="Rôle" name="role" required value="{{if .AddTeamRole}}{{.AddTeamRole}}{{else}}viewer{{end}}">
+      <option value="viewer">Observateur</option>
+      <option value="contributor">Contributeur</option>
+      <option value="lead">Responsable</option>
+    </mb-select>
     <p id="team-assign-preview" class="muted">Sélectionnez une équipe et un rôle.</p>
     <div class="form-actions">
       <mb-button type="submit">Ajouter</mb-button>
@@ -229,18 +222,12 @@
   <h3>Inviter un membre</h3>
   <form method="post" action="/subjects/{{.Subject.ID}}/members" class="stack-form">
     <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
-    <label>
-      Email
-      <input type="email" name="email" required value="{{.AddMemberEmail}}" autocomplete="off">
-    </label>
-    <label>
-      Rôle
-      <select name="role" required>
-        <option value="viewer"{{if eq .AddMemberRole "viewer"}} selected{{end}}>Observateur</option>
-        <option value="contributor"{{if eq .AddMemberRole "contributor"}} selected{{end}}>Contributeur</option>
-        <option value="lead"{{if eq .AddMemberRole "lead"}} selected{{end}}>Responsable</option>
-      </select>
-    </label>
+    <mb-input label="Email" type="email" name="email" required value="{{.AddMemberEmail}}"></mb-input>
+    <mb-select label="Rôle" name="role" required value="{{if .AddMemberRole}}{{.AddMemberRole}}{{else}}viewer{{end}}">
+      <option value="viewer">Observateur</option>
+      <option value="contributor">Contributeur</option>
+      <option value="lead">Responsable</option>
+    </mb-select>
     <span class="field-hint">L'invité doit déjà avoir un compte. Hors organisation = politique « externes ».</span>
     <div class="form-actions">
       <mb-button type="submit" variant="secondary">Inviter</mb-button>

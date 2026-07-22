@@ -19,15 +19,11 @@
   {{if .Candidates}}
   <form method="post" action="/admin/teams/{{.Team.ID}}/members" class="stack-form">
     <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
-    <label>
-      Membre de l'organisation
-      <select name="user_id" required>
-        <option value="">Choisir…</option>
-        {{range .Candidates}}
-        <option value="{{.UserID}}">{{.Login}} — {{.Email}}</option>
-        {{end}}
-      </select>
-    </label>
+    <mb-select label="Membre de l'organisation" name="user_id" required>
+      {{range .Candidates}}
+      <option value="{{.UserID}}">{{.Login}} — {{.Email}}</option>
+      {{end}}
+    </mb-select>
     <div class="form-actions">
       <mb-button type="submit">Ajouter</mb-button>
     </div>

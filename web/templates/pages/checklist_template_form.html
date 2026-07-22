@@ -12,11 +12,7 @@
     {{else}}
     <p class="field-hint">Nommez votre liste, puis ajoutez ce que vous voulez cocher.</p>
     {{end}}
-    <label>
-      Nom de la liste
-      <input type="text" name="name" required maxlength="200" value="{{if .Name}}{{.Name}}{{else if .Template}}{{.Template.Name}}{{end}}"{{if .NameError}} aria-invalid="true"{{end}}>
-      {{if .NameError}}<span class="field-error">{{.NameError}}</span>{{end}}
-    </label>
+    <mb-input label="Nom de la liste" type="text" name="name" required value="{{if .Name}}{{.Name}}{{else if .Template}}{{.Template.Name}}{{end}}"{{if .NameError}} error="{{.NameError}}"{{end}}></mb-input>
     <input type="hidden" name="tags" value="">
 
     <h2 class="template-form__points-title">Points</h2>
@@ -28,11 +24,7 @@
       <div class="template-editor__section" data-section-idx="{{$sec.SectionIndex}}">
         <input type="hidden" name="section_idx" value="{{$sec.SectionIndex}}">
         <div class="template-editor__section-head">
-          <label>
-            Section
-            <span class="field-hint">Optionnel.</span>
-            <input type="text" name="section_title" maxlength="200" value="{{$sec.Title}}" class="template-editor__section-title">
-          </label>
+          <mb-input label="Section" type="text" name="section_title" value="{{$sec.Title}}" hint="Optionnel." class="template-editor__section-title"></mb-input>
           <div class="template-editor__section-actions">
             <details class="template-editor__reorder">
               <summary>Déplacer</summary>
@@ -50,20 +42,11 @@
             <input type="hidden" name="item_row_idx" value="{{if $row.RowIndex}}{{$row.RowIndex}}{{else}}{{$i}}{{end}}">
             <input type="hidden" name="item_section_idx" value="{{$sec.SectionIndex}}">
             <div class="template-editor__point-fields">
-              <label class="template-editor__field">
-                <span class="visually-hidden">Libellé</span>
-                <input type="text" id="item_label_{{$sec.SectionIndex}}_{{$i}}" name="item_label" maxlength="{{$.MaxItemLabelLen}}" value="{{$row.Label}}" aria-label="Libellé du point"{{if $.ItemsError}} aria-describedby="template-items-error"{{end}}>
-              </label>
+              <mb-input class="template-editor__field" type="text" id="item_label_{{$sec.SectionIndex}}_{{$i}}" name="item_label" value="{{$row.Label}}" aria-label="Libellé du point"{{if $.ItemsError}} aria-describedby="template-items-error"{{end}}></mb-input>
               <details class="template-editor__more">
                 <summary>Options</summary>
-                <label class="template-editor__field">
-                  Texte d'aide
-                  <textarea id="item_help_{{$sec.SectionIndex}}_{{$i}}" name="item_help" maxlength="{{$.MaxItemHelpLen}}" rows="2" class="template-editor__help">{{$row.HelpText}}</textarea>
-                </label>
-                <label class="checkbox-row template-editor__required">
-                  <input type="checkbox" name="item_required" value="{{if $row.RowIndex}}{{$row.RowIndex}}{{else}}{{$i}}{{end}}"{{if $row.Required}} checked{{end}}>
-                  Requis
-                </label>
+                <mb-textarea class="template-editor__field template-editor__help" label="Texte d'aide" id="item_help_{{$sec.SectionIndex}}_{{$i}}" name="item_help" rows="2" value="{{$row.HelpText}}"></mb-textarea>
+                <mb-checkbox class="template-editor__required" label="Requis" name="item_required" value="{{if $row.RowIndex}}{{$row.RowIndex}}{{else}}{{$i}}{{end}}"{{if $row.Required}} checked{{end}}></mb-checkbox>
               </details>
             </div>
             <div class="template-editor__point-actions">
@@ -108,18 +91,10 @@
     {{else}}
     <p class="field-hint">Définissez le nom du modèle.{{if .NotionConfigured}} <a href="/modeles/notion-import">Importer depuis Notion</a>{{end}}</p>
     {{end}}
-    <label>
-      Nom du modèle
-      <input type="text" name="name" required maxlength="200" value="{{if .Name}}{{.Name}}{{else if .Template}}{{.Template.Name}}{{end}}"{{if .NameError}} aria-invalid="true"{{end}}>
-      {{if .NameError}}<span class="field-error">{{.NameError}}</span>{{end}}
-    </label>
+    <mb-input label="Nom du modèle" type="text" name="name" required value="{{if .Name}}{{.Name}}{{else if .Template}}{{.Template.Name}}{{end}}"{{if .NameError}} error="{{.NameError}}"{{end}}></mb-input>
     <details class="template-form__advanced">
       <summary>Domaines (compatibilité sujets)</summary>
-      <label>
-        Domaines
-        <span class="field-hint">Séparez par des virgules. Laissez vide pour proposer ce modèle à tous les {{.Labels.Subject.Plural | lowerFirst}}.</span>
-        <input type="text" name="tags" maxlength="500" value="{{if .Tags}}{{.Tags}}{{else if .TagsList}}{{range $i, $tag := .TagsList}}{{if $i}}, {{end}}{{$tag}}{{end}}{{end}}">
-      </label>
+      <mb-input label="Domaines" type="text" name="tags" value="{{if .Tags}}{{.Tags}}{{else if .TagsList}}{{range $i, $tag := .TagsList}}{{if $i}}, {{end}}{{$tag}}{{end}}{{end}}" hint="Séparez par des virgules. Laissez vide pour proposer ce modèle à tous les {{.Labels.Subject.Plural | lowerFirst}}."></mb-input>
     </details>
   </section>
 
@@ -133,11 +108,7 @@
       <div class="template-editor__section" data-section-idx="{{$sec.SectionIndex}}">
         <input type="hidden" name="section_idx" value="{{$sec.SectionIndex}}">
         <div class="template-editor__section-head">
-          <label>
-            Section
-            <span class="field-hint">Optionnel — laissez vide pour des points sans section.</span>
-            <input type="text" name="section_title" maxlength="200" value="{{$sec.Title}}" class="template-editor__section-title">
-          </label>
+          <mb-input label="Section" type="text" name="section_title" value="{{$sec.Title}}" hint="Optionnel — laissez vide pour des points sans section." class="template-editor__section-title"></mb-input>
           <div class="template-editor__section-actions">
             <details class="template-editor__reorder">
               <summary>Déplacer</summary>
@@ -155,20 +126,9 @@
             <input type="hidden" name="item_row_idx" value="{{if $row.RowIndex}}{{$row.RowIndex}}{{else}}{{$i}}{{end}}">
             <input type="hidden" name="item_section_idx" value="{{$sec.SectionIndex}}">
             <div class="template-editor__point-fields">
-              <label class="template-editor__field">
-                Libellé
-                <span class="field-hint">Court — affiché dans la liste de revue ({{$.MaxItemLabelLen}} caractères max).</span>
-                <input type="text" id="item_label_{{$sec.SectionIndex}}_{{$i}}" name="item_label" maxlength="{{$.MaxItemLabelLen}}" value="{{$row.Label}}"{{if $.ItemsError}} aria-describedby="template-items-error"{{end}}>
-              </label>
-              <label class="template-editor__field">
-                Texte d'aide
-                <span class="field-hint">Optionnel — visible sur la fiche point ({{$.MaxItemHelpLen}} caractères max).</span>
-                <textarea id="item_help_{{$sec.SectionIndex}}_{{$i}}" name="item_help" maxlength="{{$.MaxItemHelpLen}}" rows="2" class="template-editor__help">{{$row.HelpText}}</textarea>
-              </label>
-              <label class="checkbox-row template-editor__required">
-                <input type="checkbox" name="item_required" value="{{if $row.RowIndex}}{{$row.RowIndex}}{{else}}{{$i}}{{end}}"{{if $row.Required}} checked{{end}}>
-                Requis
-              </label>
+              <mb-input class="template-editor__field" label="Libellé" type="text" id="item_label_{{$sec.SectionIndex}}_{{$i}}" name="item_label" value="{{$row.Label}}" hint="Court — affiché dans la liste de revue ({{$.MaxItemLabelLen}} caractères max)."{{if $.ItemsError}} aria-describedby="template-items-error"{{end}}></mb-input>
+              <mb-textarea class="template-editor__field template-editor__help" label="Texte d'aide" id="item_help_{{$sec.SectionIndex}}_{{$i}}" name="item_help" rows="2" value="{{$row.HelpText}}" hint="Optionnel — visible sur la fiche point ({{$.MaxItemHelpLen}} caractères max)."></mb-textarea>
+              <mb-checkbox class="template-editor__required" label="Requis" name="item_required" value="{{if $row.RowIndex}}{{$row.RowIndex}}{{else}}{{$i}}{{end}}"{{if $row.Required}} checked{{end}}></mb-checkbox>
             </div>
             <div class="template-editor__point-actions">
               <details class="template-editor__reorder">

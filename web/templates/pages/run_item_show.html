@@ -28,11 +28,7 @@
   {{if and .CanLinkJira .JiraConfigured}}
   <form method="post" action="/runs/{{.Run.ID}}/items/{{.Item.ID}}/jira-link" class="stack-form">
     <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
-    <label>
-      Clé ou URL Jira
-      <span class="field-hint">Ex. PROJ-123 ou l'URL complète du ticket dans Jira.</span>
-      <input type="text" name="jira_issue" value="{{.JiraIssueInput}}" placeholder="PROJ-123" required>
-    </label>
+    <mb-input label="Clé ou URL Jira" type="text" name="jira_issue" value="{{.JiraIssueInput}}" placeholder="PROJ-123" required hint="Ex. PROJ-123 ou l'URL complète du ticket dans Jira."></mb-input>
     <mb-button type="submit" variant="secondary">{{if .JiraLink}}Mettre à jour le lien{{else}}Lier l'issue{{end}}</mb-button>
   </form>
   {{else if and .CanLinkJira (not .JiraConfigured)}}
@@ -46,14 +42,8 @@
   {{if and .ShowJiraCreate (not .JiraLink) (eq .Item.Status "nok")}}
   <form method="post" action="/runs/{{.Run.ID}}/items/{{.Item.ID}}/jira-create" class="stack-form">
     <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
-    <label>
-      Titre du ticket
-      <input type="text" name="jira_title" value="{{.JiraCreateTitle}}" required>
-    </label>
-    <label>
-      Description
-      <textarea name="jira_description" rows="6" required>{{.JiraCreateDesc}}</textarea>
-    </label>
+    <mb-input label="Titre du ticket" type="text" name="jira_title" value="{{.JiraCreateTitle}}" required></mb-input>
+    <mb-textarea label="Description" name="jira_description" rows="6" required value="{{.JiraCreateDesc}}"></mb-textarea>
     <mb-button type="submit" variant="secondary">Créer ticket Jira</mb-button>
   </form>
   {{end}}
@@ -70,9 +60,7 @@
   {{if .CanUpload}}
   <form method="post" action="/runs/{{.Run.ID}}/items/{{.Item.ID}}/attachment" enctype="multipart/form-data" class="stack-form" hx-encoding="multipart/form-data" hx-post="/runs/{{.Run.ID}}/items/{{.Item.ID}}/attachment" hx-target="closest .card" hx-swap="outerHTML">
     <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
-    <label>{{if .Attachment}}Remplacer le fichier{{else}}Ajouter un fichier{{end}}
-      <input type="file" name="attachment" accept="image/jpeg,image/png,image/webp,application/pdf" required>
-    </label>
+    <mb-input label="{{if .Attachment}}Remplacer le fichier{{else}}Ajouter un fichier{{end}}" type="file" name="attachment" accept="image/jpeg,image/png,image/webp,application/pdf" required></mb-input>
     <p class="muted">JPEG, PNG, WebP ou PDF — max 5 Mo. Les images sont redimensionnées (1920 px max).</p>
     <mb-button type="submit" variant="secondary">{{icon "plus"}} Enregistrer</mb-button>
   </form>

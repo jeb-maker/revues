@@ -17,18 +17,9 @@
   <h2>Délégation aux leads</h2>
   <form method="post" action="/admin/settings/policies" class="stack-form">
     <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
-    <label class="checkbox-label">
-      <input type="checkbox" name="leads_may_assign_teams" value="on"{{if .Policies.LeadsMayAssignTeams}} checked{{end}}>
-      Les leads peuvent affecter des équipes à leur {{.Labels.Subject.Singular | lowerFirst}}
-    </label>
-    <label class="checkbox-label">
-      <input type="checkbox" name="leads_may_invite_members" value="on"{{if .Policies.LeadsMayInviteMembers}} checked{{end}}>
-      Les leads peuvent inviter des membres de l'organisation
-    </label>
-    <label class="checkbox-label">
-      <input type="checkbox" name="leads_may_invite_externals" value="on"{{if .Policies.LeadsMayInviteExternals}} checked{{end}}>
-      Les leads peuvent inviter des personnes hors organisation
-    </label>
+    <mb-checkbox label="Les leads peuvent affecter des équipes à leur {{.Labels.Subject.Singular | lowerFirst}}" name="leads_may_assign_teams" value="on"{{if .Policies.LeadsMayAssignTeams}} checked{{end}}></mb-checkbox>
+    <mb-checkbox label="Les leads peuvent inviter des membres de l'organisation" name="leads_may_invite_members" value="on"{{if .Policies.LeadsMayInviteMembers}} checked{{end}}></mb-checkbox>
+    <mb-checkbox label="Les leads peuvent inviter des personnes hors organisation" name="leads_may_invite_externals" value="on"{{if .Policies.LeadsMayInviteExternals}} checked{{end}}></mb-checkbox>
     <span class="field-hint">Les admins org et l'admin global ne sont jamais limités par ces options.</span>
     <mb-button type="submit">Enregistrer</mb-button>
   </form>

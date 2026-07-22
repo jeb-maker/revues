@@ -28,30 +28,12 @@
   <form method="post" action="/admin/settings/smtp" class="stack-form">
     <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
     <input type="hidden" name="action" value="save">
-    <label>
-      Hôte
-      <input type="text" name="host" value="{{.Host}}" required autocomplete="off">
-    </label>
-    <label>
-      Port
-      <input type="number" name="port" value="{{.Port}}" min="1" max="65535" required>
-    </label>
-    <label class="checkbox-label">
-      <input type="checkbox" name="tls" value="on" {{if .TLS}}checked{{end}}>
-      TLS
-    </label>
-    <label>
-      Utilisateur
-      <input type="text" name="username" value="{{.Username}}" autocomplete="username">
-    </label>
-    <label>
-      Mot de passe
-      <input type="password" name="password" autocomplete="new-password" placeholder="{{if .HasPassword}}Laisser vide pour conserver{{else}}Mot de passe SMTP{{end}}">
-    </label>
-    <label>
-      Expéditeur (From)
-      <input type="email" name="from" value="{{.From}}" required autocomplete="email">
-    </label>
+    <mb-input label="Hôte" type="text" name="host" value="{{.Host}}" required></mb-input>
+    <mb-input label="Port" type="number" name="port" value="{{.Port}}" min="1" max="65535" required></mb-input>
+    <mb-checkbox label="TLS" name="tls" value="on" {{if .TLS}}checked{{end}}></mb-checkbox>
+    <mb-input label="Utilisateur" type="text" name="username" value="{{.Username}}"></mb-input>
+    <mb-input label="Mot de passe" type="password" name="password" placeholder="{{if .HasPassword}}Laisser vide pour conserver{{else}}Mot de passe SMTP{{end}}"></mb-input>
+    <mb-input label="Expéditeur (From)" type="email" name="from" value="{{.From}}" required></mb-input>
     <mb-button type="submit" {{if not .CanEncrypt}}disabled{{end}}>Enregistrer</mb-button>
   </form>
 </section>
@@ -61,10 +43,7 @@
   <form method="post" action="/admin/settings/smtp" class="stack-form">
     <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
     <input type="hidden" name="action" value="test">
-    <label>
-      Destinataire
-      <input type="email" name="test_recipient" value="{{.TestRecipient}}" required autocomplete="email">
-    </label>
+    <mb-input label="Destinataire" type="email" name="test_recipient" value="{{.TestRecipient}}" required></mb-input>
     <mb-button type="submit" variant="secondary" {{if not .Configured}}disabled{{end}}>Envoyer un email de test</mb-button>
   </form>
 </section>

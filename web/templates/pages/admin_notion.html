@@ -12,9 +12,9 @@
   <form method="post" action="/admin/integrations/notion" class="stack-form">
     <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
     <input type="hidden" name="action" value="save">
-    <label>Nom du workspace<input type="text" name="workspace_name" value="{{.WorkspaceName}}"></label>
-    <label>Jeton d'intégration<input type="password" name="api_token" placeholder="{{if .HasAPIToken}}Laisser vide pour conserver{{end}}"></label>
-    <label>ID base par défaut<input type="text" name="default_database_id" value="{{.DefaultDatabaseID}}"></label>
+    <mb-input label="Nom du workspace" type="text" name="workspace_name" value="{{.WorkspaceName}}"></mb-input>
+    <mb-input label="Jeton d'intégration" type="password" name="api_token" placeholder="{{if .HasAPIToken}}Laisser vide pour conserver{{end}}"></mb-input>
+    <mb-input label="ID base par défaut" type="text" name="default_database_id" value="{{.DefaultDatabaseID}}"></mb-input>
     <mb-button type="submit" {{if not .CanEncrypt}}disabled{{end}}>Enregistrer</mb-button>
   </form>
 </section>
