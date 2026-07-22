@@ -838,6 +838,7 @@ func Parse(assetVersion string) (*template.Template, error) {
 		"runItemTableColspan": RunItemTableColspan,
 		"formatDueDate":       formatDueDate,
 		"dueDateOverdue":      dueDateOverdue,
+		"badgeVariant":        badgeVariant,
 		"formatDateTime":      formatDateTime,
 		"dueDateInput":        dueDateInput,
 		"runsListURL": func(status, q string, page int) string {
@@ -904,6 +905,22 @@ func formatDueDate(due sql.NullString) string {
 		return ""
 	}
 	return formatDateTime(due.String)
+}
+
+// badgeVariant maps Revues status/role codes to mb-badge variants.
+func badgeVariant(status string) string {
+	switch status {
+	case "ok", "done", "enabled":
+		return "success"
+	case "nok":
+		return "danger"
+	case "na":
+		return "warning"
+	case "in_progress", "admin":
+		return "info"
+	default: // pending, draft, archived, editor, reader, lead, contributor, viewer…
+		return "neutral"
+	}
 }
 
 func dueDateOverdue(due sql.NullString, status string) bool {

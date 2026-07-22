@@ -328,7 +328,8 @@ func (h *Runs) AssignItem(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var assigneeID *int64
-	if raw := strings.TrimSpace(r.FormValue("assignee_id")); raw != "" {
+	// "0" = sentinelle « Non assigné » (l'option vide de mb-select vaut aussi désassignation).
+	if raw := strings.TrimSpace(r.FormValue("assignee_id")); raw != "" && raw != "0" {
 		id, parseErr := strconv.ParseInt(raw, 10, 64)
 		if parseErr != nil {
 			if h.isHTMX(r) {

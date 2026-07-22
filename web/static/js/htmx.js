@@ -44,36 +44,24 @@
     }
     return false;
   }
-  function appendField(fd, el) {
-    if (!el.name || el.disabled) {
-      return;
-    }
-    if ((el.type === "checkbox" || el.type === "radio") && !el.checked) {
-      return;
-    }
-    if (el.tagName === "SELECT") {
-      if (el.multiple) {
-        Array.prototype.forEach.call(el.selectedOptions, function (opt) {
-          fd.append(el.name, opt.value);
-        });
-      } else {
-        fd.append(el.name, el.value);
-      }
-      return;
-    }
-    fd.append(el.name, el.value);
-  }
   function formDataFor(form) {
-    var fd = new FormData();
-    form.querySelectorAll("input,select,textarea").forEach(function (el) {
-      appendField(fd, el);
-    });
-    if (form.id) {
-      document.querySelectorAll('[form="' + form.id + '"]').forEach(function (el) {
-        appendField(fd, el);
-      });
+    /* Native FormData covers form-associated custom elements (mb-*). */
+    return new FormData(form);
+  }
+  function dispatchTriggers(raw) {
+    if (!raw) {
+      return;
     }
-    return fd;
+    var events;
+    try {
+      events = JSON.parse(raw);
+    } catch (e) {
+      events = {};
+      events[raw] = {};
+    }
+    Object.keys(events).forEach(function (name) {
+      document.body.dispatchEvent(new CustomEvent(name, { detail: events[name] || {}, bubbles: true }));
+    });
   }
   function swapTarget(target, html, mode) {
     if (!target) {
@@ -170,6 +158,7 @@
           window.location.assign(redirect);
           return { redirect: true };
         }
+        dispatchTriggers(resp.headers.get("HX-Trigger"));
         return resp.text().then(function (text) {
           return { ok: resp.ok, text: text };
         });
@@ -242,7 +231,7 @@
   window.htmx = { process: process };
   document.addEventListener("DOMContentLoaded", function () {
     process(document);
-    ["change", "blur", "keydown"].forEach(function (name) {
+    ["change", "mb-change", "keydown"].forEach(function (name) {
       document.addEventListener(name, handleDocumentEvent);
     });
   });
