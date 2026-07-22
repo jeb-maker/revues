@@ -360,8 +360,8 @@ func TestBugReportAPI_PersistsAndOverridesIdentity(t *testing.T) {
 		t.Fatalf("POST status = %d, want %d body=%s", rec.Code, http.StatusOK, rec.Body.String())
 	}
 	var resp map[string]any
-	if unmarshalErr := json.Unmarshal(rec.Body.Bytes(), &resp); unmarshalErr != nil {
-		t.Fatalf("unmarshal response: %v", unmarshalErr)
+	if err = json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("unmarshal response: %v", err)
 	}
 	if resp["ok"] != true {
 		t.Fatalf("ok = %v", resp["ok"])

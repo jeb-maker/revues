@@ -71,3 +71,20 @@ func TestBreadcrumbAncestors(t *testing.T) {
 		t.Fatalf("ancestors = %+v", got)
 	}
 }
+
+func TestBCAdminIntegrations_UsesOrganisationHub(t *testing.T) {
+	crumbs := templates.BCAdminIntegrations()
+	if len(crumbs) != 2 {
+		t.Fatalf("len = %d, want 2", len(crumbs))
+	}
+	if crumbs[0].Label != "Organisation" || crumbs[0].URL != templates.PathAdminOrg {
+		t.Fatalf("parent = %+v", crumbs[0])
+	}
+	if crumbs[1].Label != "Intégrations" || crumbs[1].URL != "" {
+		t.Fatalf("current = %+v", crumbs[1])
+	}
+	jira := templates.BCAdminJira()
+	if len(jira) != 3 || jira[0].URL != templates.PathAdminOrg || jira[1].URL != templates.PathAdmin {
+		t.Fatalf("jira crumbs = %+v", jira)
+	}
+}

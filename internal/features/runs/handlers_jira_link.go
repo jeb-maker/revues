@@ -13,6 +13,7 @@ import (
 	"github.com/jeb-maker/revues/internal/features/subjects"
 	"github.com/jeb-maker/revues/internal/integrations/jira"
 	"github.com/jeb-maker/revues/internal/store"
+	appmiddleware "github.com/jeb-maker/revues/internal/web/middleware"
 	viewtemplates "github.com/jeb-maker/revues/internal/web/templates"
 )
 
@@ -135,27 +136,28 @@ func (h *Runs) renderRunItemShow(w http.ResponseWriter, r *http.Request, run *st
 	pd.Breadcrumbs = viewtemplates.BCRunItemShow(h.runDisplayLabel(r.Context(), run, subject), run.ID, item.Label, pd.Labels.Run)
 	pd.ActiveTab = "runs"
 	data := viewtemplates.RunItemShowData{
-		PageData:        pd,
-		Subject:         subject,
-		Run:             run,
-		RunDisplayLabel: h.runDisplayLabel(r.Context(), run, subject),
-		Item:            item,
-		Events:          events,
-		JiraLink:        jiraLink,
-		Attachment:      attachment,
-		MemberRole:      subjects.DisplayRole(access),
-		CanCheck:        CanUpdateAccess(user, access),
-		CanUpload:       CanUpdateAccess(user, access) && run.Status == store.RunStatusInProgress,
-		CanLinkJira:     CanLinkJiraAccess(user, access),
-		JiraConfigured:  h.jiraConfigured(r.Context()),
-		Message:         extra.Message,
-		LinkError:       extra.LinkError,
-		JiraIssueInput:  extra.JiraIssueInput,
-		CreateError:     extra.CreateError,
-		ShowJiraCreate:  extra.ShowJiraCreate,
-		JiraCreateTitle: extra.JiraCreateTitle,
-		JiraCreateDesc:  extra.JiraCreateDesc,
-		UploadError:     extra.UploadError,
+		PageData:              pd,
+		Subject:               subject,
+		Run:                   run,
+		RunDisplayLabel:       h.runDisplayLabel(r.Context(), run, subject),
+		Item:                  item,
+		Events:                events,
+		JiraLink:              jiraLink,
+		Attachment:            attachment,
+		MemberRole:            subjects.DisplayRole(access),
+		CanCheck:              CanUpdateAccess(user, access),
+		CanUpload:             CanUpdateAccess(user, access) && run.Status == store.RunStatusInProgress,
+		CanLinkJira:           CanLinkJiraAccess(user, access),
+		JiraConfigured:        h.jiraConfigured(r.Context()),
+		CanManageIntegrations: appmiddleware.CanManageOrgUsers(r.Context(), h.Store, user),
+		Message:               extra.Message,
+		LinkError:             extra.LinkError,
+		JiraIssueInput:        extra.JiraIssueInput,
+		CreateError:           extra.CreateError,
+		ShowJiraCreate:        extra.ShowJiraCreate,
+		JiraCreateTitle:       extra.JiraCreateTitle,
+		JiraCreateDesc:        extra.JiraCreateDesc,
+		UploadError:           extra.UploadError,
 	}
 	if data.Message == "" {
 		data.Message = r.URL.Query().Get("msg")

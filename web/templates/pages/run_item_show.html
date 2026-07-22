@@ -36,7 +36,11 @@
     <button type="submit" class="button-secondary">{{if .JiraLink}}Mettre à jour le lien{{else}}Lier l'issue{{end}}</button>
   </form>
   {{else if and .CanLinkJira (not .JiraConfigured)}}
+  {{if .CanManageIntegrations}}
+  <p class="muted">Jira n'est pas configuré. <a href="/admin/integrations/jira">Configurer Jira</a>.</p>
+  {{else}}
   <p class="muted">Jira n'est pas configuré — contactez un administrateur.</p>
+  {{end}}
   {{end}}
 
   {{if and .ShowJiraCreate (not .JiraLink) (eq .Item.Status "nok")}}
