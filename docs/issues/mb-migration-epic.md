@@ -29,6 +29,27 @@ décisions `.cursor/skills/revues-ui-audit/decisions.md`, gaps upstream
 | selects à option vide signifiante (filtres « Tous/Toutes », switcher org, jump admin) | `mb-select` 0.2.0 ne supporte pas de label sur l'option vide (placeholder) — gap upstream |
 | `hx-confirm` natif | décision existante : pas de `mb-modal` pour les confirms |
 
+## Bugs corrigés en chemin (découverts au test manuel)
+
+- **Valeur FACE en retard d'une microtâche** : les `mb-*` synchronisent leur valeur
+  de soumission (`ElementInternals.setFormValue`) dans le `updated()` asynchrone de Lit,
+  APRÈS l'événement `mb-change`. `htmx.js` diffère désormais la requête d'une macrotâche,
+  sinon le POST partait avec l'ancienne valeur (statut/assignation non persistés).
+- **Submission value perdue au déplacement DOM** : déplacer une ligne de l'éditeur
+  (`insertBefore`) déconnecte/reconnecte les custom elements et perd leur valeur de
+  soumission → erreur « lignes incohérentes ». `template-editor.js` force un
+  `requestUpdate('value')` sur les champs de la ligne déplacée.
+- **`hx-target="closest .card"` jamais supporté** par le mini-client (sélecteur invalide
+  silencieux, préexistant) — support `closest` ajouté.
+- **Redirections 303 sur requêtes HTMX** (upload PJ) : le client suivait la redirection
+  et swappait la page entière dans la carte — `resp.redirected` déclenche maintenant
+  une navigation.
+- **HX-Trigger ignoré** (préexistant) : les toasts serveur (`toast:success`) n'étaient
+  jamais déclenchés côté client — le client dispatch maintenant les événements HX-Trigger,
+  relayés vers `mb-toast`.
+- **Upload multipart HTMX** (préexistant) : le client sérialisait tout en URL-encoded ;
+  il envoie maintenant le `FormData` natif quand `hx-encoding`/`enctype` est multipart.
+
 ## Notes d'implémentation
 
 - Les composants mb sont form-associated (ElementInternals) : soumission native
