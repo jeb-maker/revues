@@ -1,0 +1,32 @@
+# Revues — stack Docker (VPS multi-apps, Caddy hôte)
+#
+# Architecture :
+#   Caddy (:80/:443) → reverse_proxy 127.0.0.1:8088 → container :8080
+#
+# Usage :
+#   bash deploy/generate-env.sh   # secrets sur l'hôte (ne pas committer .env)
+#   docker compose up -d --build
+# Doc : deploy/README.md
+
+name: revues
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      REVUES_ADDR: ":8080"
+      REVUES_DATABASE_PATH: /app/data/revues.db
+      REVUES_ATTACHMENTS_DIR: /app/data/attachments
+      REVUES_ENV: production
+    volumes:
+      - revues-data:/app/data
+    ports:
+      - "127.0.0.1:${REVUES_HOST_PORT:-8088}:8080"
+
+volumes:
+  revues-data:

@@ -42,6 +42,10 @@ Variables d'environnement : voir [.env.example](.env.example) (`REVUES_DATABASE_
 
 Au démarrage, les migrations goose s'appliquent automatiquement.
 
+## Déploiement Docker
+
+VPS avec Caddy hôte : voir [deploy/README.md](deploy/README.md) (`Dockerfile`, `docker-compose.yml`).
+
 ## Structure
 
 ```
