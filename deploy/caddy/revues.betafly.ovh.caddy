@@ -1,0 +1,25 @@
+# Revues — snippet Caddy hôte (multi-apps)
+# Install : voir deploy/README.md
+# Prérequis log : touch /var/log/caddy/revues.log && chown caddy:caddy $_ && chmod 640 $_
+# DNS : A revues.betafly.ovh → IP publique du VPS
+
+revues.betafly.ovh {
+	encode zstd gzip
+	reverse_proxy 127.0.0.1:8088
+
+	header {
+		Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
+		X-Content-Type-Options nosniff
+		X-Frame-Options DENY
+		Referrer-Policy strict-origin-when-cross-origin
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		-Server
+	}
+
+	log {
+		output file /var/log/caddy/revues.log {
+			roll_disabled
+		}
+		format json
+	}
+}
