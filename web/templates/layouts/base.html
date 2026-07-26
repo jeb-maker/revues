@@ -24,55 +24,51 @@
   <link rel="stylesheet" href="{{assetURL `/static/vendor/jeb-maker-mb/tokens/tokens-core.css`}}">
   <link rel="stylesheet" href="{{assetURL `/static/vendor/jeb-maker-mb/mb-bridge.css`}}">
   {{block "page_styles" .}}{{end}}
-  <noscript><style>.site-nav{display:flex!important;flex-wrap:wrap}</style></noscript>
+  <noscript><style>@media (max-width:36rem){mb-nav{display:block!important}mb-nav-toggle{display:none!important}}</style></noscript>
 </head>
 <body{{if .ReportsAutoOpen}} data-reports-auto-open="1"{{end}}>
   <a class="skip-link" href="#main">Aller au contenu</a>
   <header class="site-header">
     <div class="site-header__inner">
-      <button class="hamburger" aria-label="Menu" aria-expanded="false">
-        {{icon "menu"}}
-      </button>
+      <mb-nav-toggle for="primary-nav" label-open="Menu" label-close="Fermer le menu"></mb-nav-toggle>
       {{if .User}}
       {{if gt (len .UserOrganizations) 1}}
       <form method="post" action="/org/switch" class="org-switcher">
         <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
-        <label class="visually-hidden" for="org-switcher-select">Organisation</label>
-        <select id="org-switcher-select" name="organization_id">
+        <mb-select id="org-switcher-select" name="organization_id" density="compact" hide-label aria-label="Organisation" value="{{if .ActiveOrganization}}{{.ActiveOrganization.ID}}{{end}}">
           {{range .UserOrganizations}}
-          <option value="{{.Organization.ID}}"{{if $.ActiveOrganization}}{{if eq .Organization.ID $.ActiveOrganization.ID}} selected{{end}}{{end}}>{{.Organization.Name}}</option>
+          <option value="{{.Organization.ID}}">{{.Organization.Name}}</option>
           {{end}}
-        </select>
-        <button type="submit" class="button button-ghost button-sm">Changer</button>
+        </mb-select>
+        <mb-button type="submit" variant="ghost" size="sm">Changer</mb-button>
       </form>
       {{end}}
       {{template "site_nav" .}}
       <div class="header-account">
         {{if and .CanManageOrgUsers (not .ShowOrganisationNav) (not .SimpleUI)}}
-        <a href="/admin" class="button button-ghost button-sm">Organisation</a>
+        <mb-button href="/admin" variant="ghost" size="sm">Organisation</mb-button>
         {{end}}
         {{if and .DevAuth .DevAuthUsers}}
         <form method="post" action="/auth/dev/login" class="org-switcher" title="Mode démo — changer d'utilisateur">
           <input type="hidden" name="next" value="/revues">
-          <label class="visually-hidden" for="dev-user-switcher-select">Utilisateur de test</label>
-          <select id="dev-user-switcher-select" name="user_id">
+          <mb-select id="dev-user-switcher-select" name="user_id" density="compact" hide-label aria-label="Utilisateur de test" value="{{.User.ID}}">
             {{range .DevAuthUsers}}
-            <option value="{{.ID}}"{{if eq .ID $.User.ID}} selected{{end}}>{{.Login}} ({{formatRole .Role}})</option>
+            <option value="{{.ID}}">{{.Login}} ({{formatRole .Role}})</option>
             {{end}}
-          </select>
-          <button type="submit" class="button button-ghost button-sm">Changer</button>
+          </mb-select>
+          <mb-button type="submit" variant="ghost" size="sm">Changer</mb-button>
         </form>
         {{end}}
-        {{if .User.AvatarURL}}<img class="header-account__avatar" src="{{.User.AvatarURL}}" alt="" width="28" height="28">{{end}}
+        <mb-avatar class="header-account__avatar" size="sm" src="{{.User.AvatarURL}}" name="{{if .User.DisplayName}}{{.User.DisplayName}}{{else}}{{.User.Login}}{{end}}" alt=""></mb-avatar>
         <span class="header-account__name">{{if .User.DisplayName}}{{.User.DisplayName}}{{else}}{{.User.Login}}{{end}}</span>
-        <span class="status-badge status-{{.User.Role}} role-badge">{{formatRole .User.Role}}</span>
+        <mb-badge variant="{{badgeVariant .User.Role}}" class="role-badge">{{formatRole .User.Role}}</mb-badge>
         <form method="post" action="/logout" class="inline-form">
           <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
-          <button type="submit" class="button button-ghost button-sm">Déconnexion</button>
+          <mb-button type="submit" variant="ghost" size="sm">Déconnexion</mb-button>
         </form>
       </div>
       {{else}}
-      <a class="button button-ghost button-sm" href="/login">Connexion</a>
+      <mb-button href="/login" variant="ghost" size="sm">Connexion</mb-button>
       {{end}}
     </div>
   </header>
@@ -86,7 +82,7 @@
       Invitation à rejoindre <strong>{{.OrganizationName}}</strong>
       <form method="post" action="/org/invitations/{{.ID}}/accept" class="inline-form">
         <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
-        <button type="submit" class="button button-sm">Accepter</button>
+        <mb-button type="submit" size="sm">Accepter</mb-button>
       </form>
     </p>
     {{end}}
@@ -102,17 +98,16 @@
     {{if or $ancestors .PageActions}}
     <div class="page-header">
       {{if $ancestors}}
-      <nav class="breadcrumb" aria-label="Fil d'Ariane">
-        {{range $i, $b := $ancestors}}
-          {{if gt $i 0}}<span class="breadcrumb__sep" aria-hidden="true">{{icon "chevron-right"}}</span>{{end}}
-          {{if $b.URL}}<a href="{{$b.URL}}">{{$b.Label}}</a>{{else}}<span>{{$b.Label}}</span>{{end}}
+      <mb-breadcrumbs class="breadcrumb" label="Fil d'Ariane">
+        {{range $ancestors}}
+        <li>{{if .URL}}<a href="{{.URL}}">{{.Label}}</a>{{else}}<span>{{.Label}}</span>{{end}}</li>
         {{end}}
-      </nav>
+      </mb-breadcrumbs>
       {{end}}
       {{if .PageActions}}
       <div class="page-actions">
         {{range .PageActions}}
-        <a class="{{if .Primary}}button{{else}}button-secondary{{end}}{{if .IconOnly}} button--icon{{end}}" href="{{.URL}}" aria-label="{{if .Title}}{{.Title}}{{else}}{{.Label}}{{end}}" title="{{if .Title}}{{.Title}}{{else}}{{.Label}}{{end}}">{{.Label}}</a>
+        <mb-button href="{{.URL}}"{{if not .Primary}} variant="secondary"{{end}}{{if .IconOnly}} icon-only size="sm"{{end}} aria-label="{{if .Title}}{{.Title}}{{else}}{{.Label}}{{end}}" title="{{if .Title}}{{.Title}}{{else}}{{.Label}}{{end}}">{{.Label}}</mb-button>
         {{end}}
       </div>
       {{end}}
@@ -130,6 +125,7 @@
       <p>Revues — gestion de check-lists pour revues qualité.{{if .User}} · <a href="/signaler" data-reports-open>Signaler un problème</a>{{end}}</p>
     </div>
   </footer>
+  <mb-toast></mb-toast>
   </div>
   <script src="{{assetURL `/static/js/htmx.js`}}" defer></script>
   <script src="{{assetURL `/static/js/app.js`}}" defer></script>

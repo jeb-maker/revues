@@ -1,7 +1,7 @@
 {{define "login"}}
 {{template "layout_start" .}}
 {{if .DevAuth}}
-<section class="card">
+<mb-card>
   <h2>Mode démo</h2>
   <p class="muted"><code>REVUES_DEV_AUTH</code> est actif sur <strong>127.0.0.1</strong> uniquement — la connexion GitHub n'est pas requise.</p>
   <p><mb-button href="/revues">Entrer comme admin démo</mb-button></p>
@@ -21,7 +21,7 @@
     {{end}}
   </ul>
   {{end}}
-</section>
+</mb-card>
 {{else}}
 <div class="content-inset">
 <p>Connectez-vous avec votre compte GitHub pour accéder à Revues.</p>

@@ -12,29 +12,23 @@
     });
   }
 
-  var h = document.querySelector('.hamburger');
-  var n = document.querySelector('.site-nav');
-  if (h && n) {
-    n.classList.remove('site-nav--nojs');
-    h.addEventListener('click', function () {
-      var e = h.getAttribute('aria-expanded') === 'true';
-      h.setAttribute('aria-expanded', !e);
-      n.classList.toggle('site-nav--open');
-    });
-  }
+  document.body.addEventListener('mb-change', function (e) {
+    var t = e.target;
+    if (!t || !t.matches || !t.matches('mb-select.admin-nav-jump__select')) return;
+    var v = e.detail && e.detail.value;
+    if (v) location.href = v;
+  });
 
   function showToast(msg, isError) {
-    var t = document.getElementById('toast');
-    if (!t) return;
-    t.textContent = msg;
-    t.className = 'toast' + (isError ? ' toast--error' : '') + ' toast--show';
-    setTimeout(function () { t.className = 'toast'; }, 3000);
+    document.dispatchEvent(new CustomEvent('mb-toast', {
+      detail: { message: msg, variant: isError ? 'danger' : 'success' }
+    }));
   }
 
   document.body.addEventListener('toast:success', function (e) {
-    showToast(e.detail.message || 'Action effectuée', false);
+    showToast((e.detail && e.detail.message) || 'Action effectuée', false);
   });
   document.body.addEventListener('toast:error', function (e) {
-    showToast(e.detail.message || 'Erreur', true);
+    showToast((e.detail && e.detail.message) || 'Erreur', true);
   });
 })();

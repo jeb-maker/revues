@@ -123,7 +123,12 @@
   }
 }
 
-/* Anti-FOUC for this design system's custom elements only */
+/*
+  Anti-FOUC for *interactive* controls / overlays only.
+  Layout primitives (card, toolbar, nav, breadcrumbs, empty-state, …) stay visible
+  before upgrade so MPA hosts can progressively render structural chrome.
+  Opt *in* to hide a layout tag before define: add class `mb-fouc`.
+*/
 mb-button:not(:defined),
 mb-input:not(:defined),
 mb-textarea:not(:defined),
@@ -131,14 +136,9 @@ mb-select:not(:defined),
 mb-checkbox:not(:defined),
 mb-radio:not(:defined),
 mb-radio-group:not(:defined),
-mb-badge:not(:defined),
-mb-alert:not(:defined),
-mb-card:not(:defined),
 mb-modal:not(:defined),
-mb-progress:not(:defined),
-mb-segmented-control:not(:defined),
-mb-empty-state:not(:defined),
-mb-pagination:not(:defined),
-mb-toast:not(:defined) {
+mb-toast:not(:defined),
+mb-spinner:not(:defined),
+.mb-fouc:not(:defined) {
   visibility: hidden;
 }

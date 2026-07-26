@@ -48,7 +48,10 @@ func TestLayout_BreadcrumbAncestorsOnly(t *testing.T) {
 	if strings.Contains(deep, `Choisir un modèle`) && strings.Contains(deep, `Fil d'Ariane`) {
 		// H1 has the title; breadcrumb nav must not.
 		navStart := strings.Index(deep, `Fil d'Ariane`)
-		navEnd := strings.Index(deep[navStart:], `</nav>`)
+		navEnd := strings.Index(deep[navStart:], `</mb-breadcrumbs>`)
+		if navEnd < 0 {
+			t.Fatalf("expected </mb-breadcrumbs> after Fil d'Ariane, got %s", deep[navStart:])
+		}
 		nav := deep[navStart : navStart+navEnd]
 		if strings.Contains(nav, `Choisir un modèle`) {
 			t.Fatalf("current title leaked into breadcrumb: %s", nav)

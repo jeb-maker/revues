@@ -1,13 +1,13 @@
-import { LitElement as c, css as f, nothing as h, html as d } from "lit";
-import { property as o, state as b } from "lit/decorators.js";
+import { LitElement as c, css as f, nothing as h, html as p } from "lit";
+import { property as l, state as b } from "lit/decorators.js";
 import { repeat as v } from "lit/directives/repeat.js";
 import { setFormValue as y, constraintFlags as m, setValidity as g, clearValidity as $ } from "../lib/form.js";
 import { safeDefine as O } from "../lib/safe-define.js";
 import { sharedStyles as S, fieldStyles as q, fieldLabelState as _ } from "../lib/styles.js";
 var B = Object.defineProperty, i = (a, t, e, n) => {
-  for (var l = void 0, r = a.length - 1, p; r >= 0; r--)
-    (p = a[r]) && (l = p(t, e, l) || l);
-  return l && B(t, e, l), l;
+  for (var r = void 0, o = a.length - 1, d; o >= 0; o--)
+    (d = a[o]) && (r = d(t, e, r) || r);
+  return r && B(t, e, r), r;
 };
 function C(a) {
   if (!a) return [];
@@ -26,7 +26,7 @@ function C(a) {
 }
 class s extends c {
   constructor() {
-    super(...arguments), this.label = "", this.hint = "", this.error = "", this.value = "", this.name = "", this.disabled = !1, this.required = !1, this.invalid = !1, this.density = "default", this.hideLabel = !1, this.options = [], this._slottedOptions = [], this.#e = this.attachInternals(), this.#i = !1, this.#l = "", this.#r = !1, this.#s = !1;
+    super(...arguments), this.label = "", this.hint = "", this.error = "", this.value = "", this.name = "", this.disabled = !1, this.required = !1, this.invalid = !1, this.density = "default", this.hideLabel = !1, this.placeholder = "", this.options = [], this._slottedOptions = [], this.#e = this.attachInternals(), this.#i = !1, this.#l = "", this.#r = !1, this.#s = !1;
   }
   static {
     this.formAssociated = !0;
@@ -52,23 +52,31 @@ class s extends c {
   #l;
   #r;
   #s;
-  get #h() {
+  get #p() {
     return this.disabled || this.#i;
   }
-  get #d() {
+  get #o() {
     return this._slottedOptions.length ? this._slottedOptions : this.options;
   }
-  get #p() {
+  /** Non-empty options rendered after the placeholder option. */
+  get #d() {
+    return this.#o.filter((t) => t.value !== "");
+  }
+  get #u() {
+    const t = this.#o.find((e) => e.value === "");
+    return t?.label ? t.label : this.placeholder;
+  }
+  get #c() {
     return this.getAttribute("aria-label") ?? "";
   }
   connectedCallback() {
-    super.connectedCallback(), this.#r || (this.#l = this.value, this.#r = !0), this.#u();
+    super.connectedCallback(), this.#r || (this.#l = this.value, this.#r = !0), this.#f();
   }
   firstUpdated() {
-    this.#t = this.renderRoot.querySelector("select") ?? void 0, this.#n();
+    this.#t = this.renderRoot.querySelector("select") ?? void 0, this.#h();
   }
   updated(t) {
-    (t.has("value") || t.has("required") || t.has("error") || t.has("options") || t.has("_slottedOptions") || t.has("disabled") || t.has("name")) && this.#n();
+    (t.has("value") || t.has("required") || t.has("error") || t.has("options") || t.has("_slottedOptions") || t.has("disabled") || t.has("name")) && this.#h();
   }
   formDisabledCallback(t) {
     this.#i = t, this.requestUpdate();
@@ -76,28 +84,28 @@ class s extends c {
   formResetCallback() {
     this.#s = !1, this.value = this.#l, this.error = "", this.invalid = !1;
   }
-  #o(t) {
+  #a(t) {
     return t instanceof HTMLOptionElement ? {
       value: t.value,
       label: t.label || t.textContent?.trim() || t.value,
       disabled: t.disabled
     } : null;
   }
-  #u() {
-    const t = [...this.querySelectorAll(":scope > option")].map((e) => this.#o(e)).filter((e) => e != null);
+  #f() {
+    const t = [...this.querySelectorAll(":scope > option")].map((e) => this.#a(e)).filter((e) => e != null);
     t.length && (this._slottedOptions = t);
   }
-  #c() {
-    const t = this.renderRoot.querySelector('slot[name="options"]'), e = this.renderRoot.querySelector("slot:not([name])"), l = [
+  #b() {
+    const t = this.renderRoot.querySelector('slot[name="options"]'), e = this.renderRoot.querySelector("slot:not([name])"), r = [
       ...t?.assignedElements({ flatten: !0 }) ?? [],
       ...e?.assignedElements({ flatten: !0 }) ?? []
-    ].map((u) => this.#o(u)).filter((u) => u != null), r = JSON.stringify(this._slottedOptions), p = JSON.stringify(l);
-    r !== p && (this._slottedOptions = l);
-  }
-  #a() {
-    this.#c();
+    ].map((u) => this.#a(u)).filter((u) => u != null), o = JSON.stringify(this._slottedOptions), d = JSON.stringify(r);
+    o !== d && (this._slottedOptions = r);
   }
   #n() {
+    this.#b();
+  }
+  #h() {
     this.#t && this.#t.value !== this.value && (this.#t.value = this.value), y(this.#e, this.name ? this.value : null);
     const t = this.required && !this.value, { flags: e, message: n } = m(
       this.error,
@@ -106,7 +114,7 @@ class s extends c {
     );
     n ? (g(this.#e, e, n, this.#t), this.invalid = !!this.error || this.#s) : ($(this.#e), this.invalid = !1);
   }
-  #f(t) {
+  #v(t) {
     const e = t.target;
     this.#s = !0, this.value = e.value, this.dispatchEvent(
       new CustomEvent("mb-change", {
@@ -117,14 +125,14 @@ class s extends c {
     );
   }
   render() {
-    const t = [this.hint && !this.error ? "hint" : "", this.error ? "error" : ""].filter(Boolean).join(" "), { labelText: e, hideVisually: n, controlAriaLabel: l } = _(
+    const t = [this.hint && !this.error ? "hint" : "", this.error ? "error" : ""].filter(Boolean).join(" "), { labelText: e, hideVisually: n, controlAriaLabel: r } = _(
       this.label,
       this.hideLabel,
-      this.#p
+      this.#c
     );
-    return d`
+    return p`
       <div class="field">
-        ${e ? d`<label
+        ${e ? p`<label
               part="label"
               class="label${n ? " visually-hidden" : ""}"
               for="control"
@@ -135,65 +143,68 @@ class s extends c {
           part="control"
           class="control"
           name=${this.name || h}
-          ?disabled=${this.#h}
+          ?disabled=${this.#p}
           ?required=${this.required}
           aria-invalid=${this.invalid ? "true" : "false"}
-          aria-label=${l || h}
+          aria-label=${r || h}
           aria-describedby=${t || h}
           .value=${this.value}
-          @change=${this.#f}
+          @change=${this.#v}
         >
-          <option value="" ?disabled=${this.required}></option>
+          <option value="" ?disabled=${this.required}>${this.#u}</option>
           ${v(
       this.#d,
-      (r) => r.value,
-      (r) => d`
-              <option value=${r.value} ?disabled=${!!r.disabled}>
-                ${r.label}
+      (o) => o.value,
+      (o) => p`
+              <option value=${o.value} ?disabled=${!!o.disabled}>
+                ${o.label}
               </option>
             `
     )}
         </select>
-        ${this.hint && !this.error ? d`<p id="hint" class="hint">${this.hint}</p>` : h}
-        ${this.error ? d`<p id="error" class="error" role="alert">${this.error}</p>` : h}
+        ${this.hint && !this.error ? p`<p id="hint" class="hint">${this.hint}</p>` : h}
+        ${this.error ? p`<p id="error" class="error" role="alert">${this.error}</p>` : h}
       </div>
-      <slot name="options" @slotchange=${this.#a}></slot>
-      <slot @slotchange=${this.#a}></slot>
+      <slot name="options" @slotchange=${this.#n}></slot>
+      <slot @slotchange=${this.#n}></slot>
     `;
   }
 }
 i([
-  o()
+  l()
 ], s.prototype, "label");
 i([
-  o()
+  l()
 ], s.prototype, "hint");
 i([
-  o()
+  l()
 ], s.prototype, "error");
 i([
-  o()
+  l()
 ], s.prototype, "value");
 i([
-  o({ reflect: !0 })
+  l({ reflect: !0 })
 ], s.prototype, "name");
 i([
-  o({ type: Boolean, reflect: !0 })
+  l({ type: Boolean, reflect: !0 })
 ], s.prototype, "disabled");
 i([
-  o({ type: Boolean, reflect: !0 })
+  l({ type: Boolean, reflect: !0 })
 ], s.prototype, "required");
 i([
-  o({ type: Boolean, reflect: !0 })
+  l({ type: Boolean, reflect: !0 })
 ], s.prototype, "invalid");
 i([
-  o({ reflect: !0 })
+  l({ reflect: !0 })
 ], s.prototype, "density");
 i([
-  o({ type: Boolean, reflect: !0, attribute: "hide-label" })
+  l({ type: Boolean, reflect: !0, attribute: "hide-label" })
 ], s.prototype, "hideLabel");
 i([
-  o({
+  l()
+], s.prototype, "placeholder");
+i([
+  l({
     attribute: "options",
     converter: {
       fromAttribute: C,

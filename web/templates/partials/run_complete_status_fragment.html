@@ -1,13 +1,13 @@
 {{define "run_complete_status_inner"}}
 {{if .NokItems}}
-<div class="warning-panel closing-nok">
+<mb-alert variant="warning" class="closing-nok">
   <h3>{{icon "alert"}} Points non validés ({{len .NokItems}})</h3>
   <ul class="item-list">
     {{range .NokItems}}
     <li><a href="/runs/{{$.Run.ID}}/items/{{.ID}}"><strong>{{.Label}}</strong></a>{{if .Comment}} — {{.Comment}}{{end}}</li>
     {{end}}
   </ul>
-</div>
+</mb-alert>
 {{else}}
 {{if eq .Progress.Done .Progress.Total}}
 <p class="muted">Aucun point non validé — tous les points sont traités.</p>
