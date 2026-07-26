@@ -1,0 +1,14 @@
+.git
+.github
+.cursor
+data
+.env
+deploy
+docs
+scripts
+tmp
+*.md
+*.test
+/revues
+.idea
+.vscode
