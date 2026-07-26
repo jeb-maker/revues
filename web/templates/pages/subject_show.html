@@ -1,7 +1,7 @@
 {{define "subject_show"}}
 {{template "layout_start" .}}
 
-<section class="card subject-meta">
+<mb-card class="subject-meta">
   {{if .Message}}<mb-alert variant="success">{{.Message}}</mb-alert>{{end}}
   {{if .Error}}<mb-alert variant="danger">{{.Error}}</mb-alert>{{end}}
   <div class="subject-meta__head">
@@ -23,7 +23,7 @@
   {{if and .AccessSources .ShowCollab}}
   <p class="muted subject-meta__line">
     Vos accès :
-    {{range $i, $src := .AccessSources}}{{if $i}} · {{end}}<span class="tag">{{$src}}</span>{{end}}
+    {{range $i, $src := .AccessSources}}{{if $i}} · {{end}}<mb-tag size="sm">{{$src}}</mb-tag>{{end}}
     {{if .MemberRole}} — rôle effectif : {{formatRole .MemberRole}}{{end}}
   </p>
   {{end}}
@@ -32,22 +32,22 @@
     <summary>Détails</summary>
     {{if .Domains}}
     <p class="muted subject-meta__line">
-      Domaines : {{range $i, $tag := .Domains}}{{if $i}}, {{end}}<span class="tag">{{$tag}}</span>{{end}}
+      Domaines : {{range $i, $tag := .Domains}}{{if $i}}, {{end}}<mb-tag size="sm">{{$tag}}</mb-tag>{{end}}
     </p>
     {{else}}
     <p class="muted subject-meta__line">Domaines : aucun (tous les modèles sans domaine seront proposés)</p>
     {{end}}
     {{if .Tags}}
     <p class="muted subject-meta__line">
-      Étiquettes : {{range $i, $tag := .Tags}}{{if $i}}, {{end}}<span class="tag">{{$tag}}</span>{{end}}
+      Étiquettes : {{range $i, $tag := .Tags}}{{if $i}}, {{end}}<mb-tag size="sm">{{$tag}}</mb-tag>{{end}}
     </p>
     {{end}}
   </details>
   {{end}}
-</section>
+</mb-card>
 
 {{if .NokItems}}
-<section class="card">
+<mb-card>
   <h2>Points non validés ({{len .NokItems}})</h2>
   <ul class="item-list">
     {{range .NokItems}}
@@ -58,12 +58,12 @@
     </li>
     {{end}}
   </ul>
-</section>
+</mb-card>
 {{end}}
 
 {{/* Sans collab (P0 / solo) : checklists d'abord — pas d'Équipes / Membres. */}}
 {{if not .ShowCollab}}
-<section class="card">
+<mb-card>
   <h2>{{.Labels.Run.Nav}} ({{len .Runs}})</h2>
   {{if .Runs}}
   <div class="table-scroll">
@@ -99,10 +99,10 @@
   {{else}}
   <p class="muted">{{.Labels.Run.NoneArticle}} {{.Labels.Run.Singular}} sur ce {{.Labels.Subject.Singular | lowerFirst}}.{{if .CanLaunch}} <a href="/subjects/{{.Subject.ID}}/modeles?for_run=1">{{launchRunCTA .Labels.Run}}</a>.{{end}}</p>
   {{end}}
-</section>
+</mb-card>
 {{else}}
 
-<section class="card">
+<mb-card>
   <h2>Équipes ({{len .Teams}})</h2>
   {{if .Teams}}
   <div class="table-scroll">
@@ -175,9 +175,9 @@
   {{end}}
   {{end}}
   {{end}}
-</section>
+</mb-card>
 
-<section class="card">
+<mb-card>
   <h2>Membres directs ({{len .DirectMembers}})</h2>
   {{if .DirectMembers}}
   <div class="table-scroll">
@@ -195,7 +195,7 @@
       <tr>
         <td>{{.Login}} <span class="muted">{{.Email}}</span></td>
         <td>{{formatRole .Role}}</td>
-        <td><span class="tag">direct</span></td>
+        <td><mb-tag size="sm">direct</mb-tag></td>
         {{if $.CanManageMembers}}
         <td class="data-table__col--end">
           <form method="post" action="/subjects/{{$.Subject.ID}}/members/remove" class="inline-form" onsubmit="return confirm('Retirer ce membre du sujet ?');">
@@ -234,9 +234,9 @@
     </div>
   </form>
   {{end}}
-</section>
+</mb-card>
 
-<section class="card">
+<mb-card>
   <h2>{{.Labels.Run.Nav}} ({{len .Runs}})</h2>
   {{if .Runs}}
   <div class="table-scroll">
@@ -272,7 +272,7 @@
   {{else}}
   <p class="muted">{{.Labels.Run.NoneArticle}} {{.Labels.Run.Singular}} sur ce {{.Labels.Subject.Singular | lowerFirst}}.{{if .CanLaunch}} <a href="/subjects/{{.Subject.ID}}/modeles?for_run=1">{{launchRunCTA .Labels.Run}}</a>.{{end}}</p>
   {{end}}
-</section>
+</mb-card>
 {{end}}{{/* end ShowCollab blocks */}}
 {{template "layout_end" .}}
 {{end}}

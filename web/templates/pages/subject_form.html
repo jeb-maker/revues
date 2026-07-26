@@ -4,7 +4,7 @@
 {{template "admin_nav" .}}
 {{end}}
 
-<div class="card">
+<mb-card>
   {{if .Error}}<mb-alert variant="danger">{{.Error}}</mb-alert>{{end}}
   <form method="post" action="{{.FormAction}}" class="stack-form">
     <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
@@ -25,16 +25,16 @@
       <mb-button type="submit">Enregistrer</mb-button>
     </div>
   </form>
-</div>
+</mb-card>
 
 {{if .Subject}}
-<section class="card form-danger-zone">
+<mb-card class="form-danger-zone">
   <p class="form-danger-zone__text">Archiver retire le {{.Labels.Subject.Singular | lowerFirst}} de la liste active. Cette action est irréversible.</p>
   <form method="post" action="{{if eq .AdminSection "subjects"}}/admin/subjects/{{.Subject.ID}}/archive{{else}}/subjects/{{.Subject.ID}}/archive{{end}}" onsubmit="return confirm('Archiver ce {{.Labels.Subject.Singular | lowerFirst}} ?');">
     <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
     <mb-button type="submit" variant="danger">Archiver le {{.Labels.Subject.Singular | lowerFirst}}</mb-button>
   </form>
-</section>
+</mb-card>
 {{end}}
 {{template "layout_end" .}}
 {{end}}

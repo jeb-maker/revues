@@ -74,3 +74,6 @@ mb-input.list-toolbar__search {
 mb-badge.role-badge {
   flex-shrink: 0;
 }
+.filter-bar mb-select {
+  min-inline-size: 8rem;
+}

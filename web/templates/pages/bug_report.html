@@ -8,17 +8,17 @@
 <p class="muted content-inset"><a href="{{.ReturnURL}}">Retour à la page précédente</a></p>
 {{end}}
 
-<section class="card">
+<mb-card>
   <p>Le signalement s’ouvre dans le widget (bouton «&nbsp;Signaler un problème&nbsp;» en bas de page, ou ci-dessous).</p>
   <p class="form-actions">
     {{/* reports init binds a[data-reports-open] — keep native anchor until host adapter supports CE */}}
     <mb-button href="/signaler" data-reports-open>Ouvrir le signalement</mb-button>
   </p>
   <p class="muted field-hint">Sans JavaScript, utilisez le formulaire de secours ci-dessous.</p>
-</section>
+</mb-card>
 
 <noscript>
-<section class="card">
+<mb-card>
   <p class="muted">Décrivez le problème rencontré. Le contexte de session ci-dessous sera joint automatiquement.</p>
   <form method="post" action="/signaler" class="stack-form">
     <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
@@ -50,9 +50,9 @@
       <mb-button type="submit">Envoyer le signalement</mb-button>
     </div>
   </form>
-</section>
+</mb-card>
 
-<section class="card" aria-labelledby="bug-context-heading">
+<mb-card aria-labelledby="bug-context-heading">
   <h2 id="bug-context-heading">Contexte joint automatiquement</h2>
   <p class="field-hint">Ces informations sont capturées côté serveur (non modifiables) pour faciliter le diagnostic.</p>
   <ul class="item-list">
@@ -67,7 +67,7 @@
     <li><span class="muted">User-Agent</span> — <code>{{.Context.UserAgent}}</code></li>
     <li><span class="muted">Request ID</span> — {{if .Context.RequestID}}<code>{{.Context.RequestID}}</code>{{else}}<span class="muted">—</span>{{end}}</li>
   </ul>
-</section>
+</mb-card>
 </noscript>
 
 {{template "layout_end" .}}

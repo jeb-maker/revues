@@ -19,13 +19,13 @@
   {{end}}
 </mb-empty-state>
 {{else}}
-<section class="card">
+<mb-card>
   {{if .Message}}<mb-alert variant="success">{{.Message}}</mb-alert>{{end}}
   {{if not .ShowSubjectColumn}}
   <p class="muted">Listes réutilisables — lancez une revue à partir d'une liste.</p>
   {{end}}
-  <div class="list-toolbar">
-    <form method="get" action="/modeles" class="list-toolbar__form filter-form filter-form--inline">
+  <mb-toolbar class="list-toolbar">
+    <form slot="start" method="get" action="/modeles" class="list-toolbar__form filter-form filter-form--inline">
       {{if .ShowSubjectColumn}}
       <mb-input class="list-toolbar__search toolbar-control" type="search" density="compact" id="filter-query" name="q" value="{{.FilterQuery}}" placeholder="Rechercher un modèle ou un domaine…" aria-label="Rechercher un modèle ou un domaine"></mb-input>
       {{else}}
@@ -34,13 +34,13 @@
       <mb-button type="submit" variant="secondary" class="toolbar-control">Filtrer</mb-button>
       {{if .HasActiveFilters}}<mb-button href="/modeles" variant="ghost" class="toolbar-control">Effacer</mb-button>{{end}}
     </form>
-    <div class="list-toolbar__actions">
+    <div slot="end" class="list-toolbar__actions">
       {{if and .CanManage .NotionConfigured}}<mb-button class="list-toolbar__action toolbar-control" href="/modeles/notion-import" variant="secondary" title="Importer depuis Notion">Importer</mb-button>{{end}}
       {{if .CanManage}}
       <mb-button class="list-toolbar__action toolbar-control" href="/modeles/new" title="{{if .ShowSubjectColumn}}Nouveau modèle{{else}}Nouvelle liste{{end}}">Créer</mb-button>
       {{end}}
     </div>
-  </div>
+  </mb-toolbar>
   <div class="table-scroll">
   <table class="data-table data-table--cards table-sticky">
     <thead>
@@ -57,7 +57,7 @@
       <tr>
         <td class="data-row__primary"><a href="/modeles/{{.ID}}">{{.Name}}</a></td>
         {{if $.ShowSubjectColumn}}
-        <td data-label="Domaines">{{if .Tags}}{{range $i, $tag := .Tags}}{{if $i}}, {{end}}<span class="tag">{{$tag}}</span>{{end}}{{else}}<span class="muted">tous {{$.Labels.Subject.Plural | lowerFirst}}</span>{{end}}</td>
+        <td data-label="Domaines">{{if .Tags}}{{range $i, $tag := .Tags}}{{if $i}}, {{end}}<mb-tag size="sm">{{$tag}}</mb-tag>{{end}}{{else}}<span class="muted">tous {{$.Labels.Subject.Plural | lowerFirst}}</span>{{end}}</td>
         <td class="data-table__col--center" data-label="Version">v{{.LatestVersion}}</td>
         {{end}}
         <td class="data-table__col--center list-card__meta">{{.ItemCount}} point{{if ne .ItemCount 1}}s{{end}}</td>
@@ -71,7 +71,7 @@
     </tbody>
   </table>
   </div>
-</section>
+</mb-card>
 {{end}}
 {{template "layout_end" .}}
 {{end}}

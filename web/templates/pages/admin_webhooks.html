@@ -1,13 +1,13 @@
 {{define "admin_webhooks"}}
 {{template "layout_start" .}}
-<section class="card">
+<mb-card>
   <p class="muted">Webhooks de l'organisation active — JSON signé HMAC-SHA256. Voir <code>docs/WEBHOOKS.md</code>.</p>
-</section>
+</mb-card>
 {{template "admin_nav" .}}
 {{if not .CanEncrypt}}<mb-alert variant="danger" class="content-inset">REVUES_ENCRYPTION_KEY requise pour enregistrer.</mb-alert>{{end}}
 {{if .Message}}<mb-alert variant="success" class="content-inset">{{.Message}}</mb-alert>{{end}}
 {{if .Error}}<mb-alert variant="danger" class="content-inset">{{.Error}}</mb-alert>{{end}}
-<section class="card">
+<mb-card>
   <h2>Destinataires</h2>
   <form method="post" action="/admin/settings/webhooks" class="stack-form">
     <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
@@ -18,11 +18,11 @@
     <mb-checkbox label="review.item.nok" name="review_item_nok" value="on" {{if .ReviewItemNOK}}checked{{end}}></mb-checkbox>
     <mb-button type="submit" {{if not .CanEncrypt}}disabled{{end}}>Enregistrer</mb-button>
   </form>
-</section>
-<section class="card">
+</mb-card>
+<mb-card>
   <h2>Test</h2>
   <form method="post" action="/admin/settings/webhooks"><input type="hidden" name="csrf_token" value="{{.CSRFToken}}"><input type="hidden" name="action" value="test"><mb-button type="submit" variant="secondary" {{if not .Configured}}disabled{{end}}>Envoyer un webhook de test</mb-button></form>
-</section>
+</mb-card>
 {{template "layout_end" .}}
 {{end}}
 {{define "main_class"}} site-main--wide{{end}}

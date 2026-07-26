@@ -1,18 +1,18 @@
 {{define "run_wizard_subjects"}}
 {{template "layout_start" .}}
-<div class="card">
+<mb-card>
   <p class="muted">Choisissez un {{.Labels.Subject.Singular | lowerFirst}} ou créez-en un pour lancer la revue.</p>
   {{if .Message}}<mb-alert variant="success">{{.Message}}</mb-alert>{{end}}
   {{if .Error}}<mb-alert variant="danger">{{.Error}}</mb-alert>{{end}}
 
-  <div class="list-toolbar">
-    <form method="get" action="/revues/nouvelle" class="list-toolbar__form filter-form filter-form--inline">
+  <mb-toolbar class="list-toolbar">
+    <form slot="start" method="get" action="/revues/nouvelle" class="list-toolbar__form filter-form filter-form--inline">
       {{if .SelectedTemplateID}}<input type="hidden" name="template" value="{{.SelectedTemplateID}}">{{end}}
       <mb-input class="list-toolbar__search toolbar-control" type="search" density="compact" id="filter-query" name="q" value="{{.FilterQuery}}" placeholder="Rechercher un {{.Labels.Subject.Singular | lowerFirst}}…" aria-label="Rechercher un {{.Labels.Subject.Singular | lowerFirst}}"></mb-input>
       <mb-button type="submit" variant="secondary" class="toolbar-control">Filtrer</mb-button>
       {{if .FilterQuery}}<mb-button href="{{runWizardPath .SelectedTemplateID}}" variant="ghost" class="toolbar-control">Effacer</mb-button>{{end}}
     </form>
-  </div>
+  </mb-toolbar>
 
   {{if .Subjects}}
   <ul class="item-list">
@@ -49,6 +49,6 @@
     </div>
   </form>
   {{end}}
-</div>
+</mb-card>
 {{template "layout_end" .}}
 {{end}}

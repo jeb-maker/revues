@@ -2,7 +2,7 @@
 {{template "layout_start" .}}
 {{$listUI := not .ShowSubjectColumn}}
 
-<section class="card">
+<mb-card>
   {{if .Message}}<mb-alert variant="success">{{.Message}}</mb-alert>{{end}}
   {{if .Error}}<mb-alert variant="danger">{{.Error}}</mb-alert>{{end}}
   {{if .ForRun}}
@@ -27,8 +27,8 @@
   {{end}}
   {{end}}
 
-  <div class="list-toolbar">
-    <form method="get" action="/subjects/{{.Subject.ID}}/modeles" class="list-toolbar__form filter-form filter-form--inline">
+  <mb-toolbar class="list-toolbar">
+    <form slot="start" method="get" action="/subjects/{{.Subject.ID}}/modeles" class="list-toolbar__form filter-form filter-form--inline">
       {{if .ForRun}}<input type="hidden" name="for_run" value="1">{{end}}
       {{if .SelectedTemplateID}}<input type="hidden" name="template" value="{{.SelectedTemplateID}}">{{end}}
       {{if $listUI}}
@@ -39,7 +39,7 @@
       <mb-button type="submit" variant="secondary" class="toolbar-control">Filtrer</mb-button>
       {{if .HasActiveFilters}}<mb-button href="{{subjectModelesListPath .Subject.ID .ForRun .SelectedTemplateID}}" variant="ghost" class="toolbar-control">Effacer</mb-button>{{end}}
     </form>
-  </div>
+  </mb-toolbar>
 
   {{if .Templates}}
   <div class="table-scroll">
@@ -69,7 +69,7 @@
           {{end}}
         </td>
         {{if not $listUI}}
-        <td data-label="Domaines">{{if .Tags}}{{range $i, $tag := .Tags}}{{if $i}}, {{end}}<span class="tag">{{$tag}}</span>{{end}}{{else}}<span class="muted">tous {{$.Labels.Subject.Plural | lowerFirst}}</span>{{end}}</td>
+        <td data-label="Domaines">{{if .Tags}}{{range $i, $tag := .Tags}}{{if $i}}, {{end}}<mb-tag size="sm">{{$tag}}</mb-tag>{{end}}{{else}}<span class="muted">tous {{$.Labels.Subject.Plural | lowerFirst}}</span>{{end}}</td>
         <td class="data-table__col--center" data-label="Version">v{{.LatestVersion}}</td>
         {{end}}
         <td class="data-table__col--center list-card__meta">{{.ItemCount}} point{{if ne .ItemCount 1}}s{{end}}</td>
@@ -97,7 +97,7 @@
   <p><mb-button href="/modeles/new">{{icon "plus"}} Créer {{if $listUI}}une liste{{else}}un modèle{{end}}</mb-button></p>
   {{end}}
   {{end}}
-</section>
+</mb-card>
 {{template "layout_end" .}}
 {{end}}
 {{define "main_class"}} site-main--wide{{end}}

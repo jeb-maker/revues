@@ -55,7 +55,7 @@
   </td>
   {{if and (eq .RunStatus "in_progress") (or .CanCheck .CanAssign)}}
   <td class="data-table__col--end item-actions">
-    <span id="spinner-{{.Item.ID}}" class="htmx-indicator spinner"></span>
+    <mb-spinner id="spinner-{{.Item.ID}}" class="htmx-indicator" size="sm" label="Enregistrement"></mb-spinner>
     {{if .ItemError}}<p class="error item-inline-error" role="alert">{{.ItemError}}</p>{{end}}
     {{if .AssignError}}<p class="error item-inline-error" role="alert">{{.AssignError}}</p>{{end}}
     {{if .CanCheck}}

@@ -12,16 +12,12 @@
     });
   }
 
-  var h = document.querySelector('.hamburger');
-  var n = document.querySelector('.site-nav');
-  if (h && n) {
-    n.classList.remove('site-nav--nojs');
-    h.addEventListener('click', function () {
-      var e = h.getAttribute('aria-expanded') === 'true';
-      h.setAttribute('aria-expanded', !e);
-      n.classList.toggle('site-nav--open');
-    });
-  }
+  document.body.addEventListener('mb-change', function (e) {
+    var t = e.target;
+    if (!t || !t.matches || !t.matches('mb-select.admin-nav-jump__select')) return;
+    var v = e.detail && e.detail.value;
+    if (v) location.href = v;
+  });
 
   function showToast(msg, isError) {
     document.dispatchEvent(new CustomEvent('mb-toast', {

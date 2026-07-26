@@ -118,7 +118,10 @@ func TestVendoredMBBundlePresent(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ReadFile(mb-boot): %v", err)
 	}
-	for _, tag := range []string{"mb-button", "mb-select", "mb-progress", "mb-empty-state", "mb-segmented-control", "mb-pagination"} {
+	for _, tag := range []string{
+		"mb-button", "mb-select", "mb-progress", "mb-empty-state", "mb-segmented-control", "mb-pagination",
+		"mb-tag", "mb-breadcrumbs", "mb-nav", "mb-nav-toggle", "mb-avatar", "mb-spinner", "mb-toolbar", "mb-card",
+	} {
 		if !bytes.Contains(boot, []byte(tag)) {
 			t.Fatalf("mb-boot.js missing registration for %s", tag)
 		}

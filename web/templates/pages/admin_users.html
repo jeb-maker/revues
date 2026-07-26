@@ -1,12 +1,12 @@
 {{define "admin_users"}}
 {{template "layout_start" .}}
-<section class="card">
+<mb-card>
   {{if .OrganizationName}}
   <p class="muted">Gérez les emails autorisés à rejoindre <strong>{{.OrganizationName}}</strong> via GitHub et leur rôle global.</p>
   {{else}}
   <p class="muted">Gérez les emails autorisés à rejoindre cette organisation via GitHub et leur rôle global.</p>
   {{end}}
-</section>
+</mb-card>
 
 {{template "admin_nav" .}}
 
@@ -18,16 +18,16 @@
 {{end}}
 
 {{if not .Emails}}
-<section class="card onboarding-hint">
+<mb-card class="onboarding-hint">
   <h2>Premier démarrage</h2>
   <p>Pour une instance migrée, définissez l'email GitHub vérifié du premier administrateur :</p>
   <pre><code>export REVUES_BOOTSTRAP_ADMIN_EMAIL=admin@example.com</code></pre>
   <p>Au premier login, cet email reçoit le rôle <strong>admin</strong> et devient <strong>owner</strong> de l'organisation <code>default</code>. Ensuite, ajoutez les autres utilisateurs via le formulaire ci-dessous.</p>
   <p class="muted">Voir aussi la documentation <code>docs/ONBOARDING.md</code>.</p>
-</section>
+</mb-card>
 {{end}}
 
-<section class="card">
+<mb-card>
   <h2>Ajouter ou mettre à jour</h2>
   <form method="post" action="/admin/users" class="stack-form">
     <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
@@ -41,9 +41,9 @@
       <mb-button type="submit">Enregistrer</mb-button>
     </div>
   </form>
-</section>
+</mb-card>
 
-<section class="card">
+<mb-card>
   <h2>Liste ({{len .Emails}})</h2>
   {{if .Emails}}
   <div class="table-scroll">
@@ -77,7 +77,7 @@
   {{else}}
   <p class="muted">Aucun email autorisé pour cette organisation.</p>
   {{end}}
-</section>
+</mb-card>
 {{template "layout_end" .}}
 {{end}}
 {{define "main_class"}} site-main--wide{{end}}

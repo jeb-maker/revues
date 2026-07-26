@@ -6,7 +6,7 @@
   <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
 
   {{if $listUI}}
-  <section class="card">
+  <mb-card>
     {{if .Template}}
     <p class="field-hint">Les prochaines revues utiliseront la liste mise à jour. Les revues déjà lancées restent inchangées.</p>
     {{else}}
@@ -82,9 +82,9 @@
       <mb-button href="/modeles" variant="ghost">Annuler</mb-button>
       {{end}}
     </div>
-  </section>
+  </mb-card>
   {{else}}
-  <section class="card">
+  <mb-card>
     <h2>Identité</h2>
     {{if and .Template .Version}}
     <p class="field-hint">Version actuelle v{{.Version.Version}}. L'enregistrement publie une <strong>nouvelle version</strong> ; les revues déjà lancées conservent la version figée.</p>
@@ -96,9 +96,9 @@
       <summary>Domaines (compatibilité sujets)</summary>
       <mb-input label="Domaines" type="text" name="tags" value="{{if .Tags}}{{.Tags}}{{else if .TagsList}}{{range $i, $tag := .TagsList}}{{if $i}}, {{end}}{{$tag}}{{end}}{{end}}" hint="Séparez par des virgules. Laissez vide pour proposer ce modèle à tous les {{.Labels.Subject.Plural | lowerFirst}}."></mb-input>
     </details>
-  </section>
+  </mb-card>
 
-  <section class="card">
+  <mb-card>
     <h2>Points</h2>
     <p class="field-hint">Au moins un point avec un libellé est requis. Les sections sont optionnelles.</p>
     {{if .ItemsError}}<p class="field-error" id="template-items-error" role="alert">{{.ItemsError}}</p>{{end}}
@@ -163,18 +163,18 @@
       <mb-button href="/modeles" variant="ghost">Annuler</mb-button>
       {{end}}
     </div>
-  </section>
+  </mb-card>
   {{end}}
 </form>
 
 {{if .Template}}
-<section class="card form-danger-zone">
+<mb-card class="form-danger-zone">
   <p class="form-danger-zone__text">{{if $listUI}}Archiver retire la liste des listes actives. Les revues déjà lancées restent inchangées.{{else}}Archiver retire le modèle de la liste active. Les revues déjà lancées conservent leur snapshot.{{end}}</p>
   <form method="post" action="/modeles/{{.Template.ID}}/archive" onsubmit="return confirm('{{if $listUI}}Archiver cette liste ?{{else}}Archiver ce modèle ?{{end}}');">
     <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
     <mb-button type="submit" variant="danger">{{if $listUI}}Archiver la liste{{else}}Archiver le modèle{{end}}</mb-button>
   </form>
-</section>
+</mb-card>
 {{end}}
 
 {{template "layout_end" .}}

@@ -8,9 +8,9 @@
   </div>
 </mb-empty-state>
 {{else}}
-<section class="card">
-  <div class="list-toolbar">
-    <form method="get" action="/mes-taches" class="list-toolbar__form filter-form filter-form--inline">
+<mb-card>
+  <mb-toolbar class="list-toolbar">
+    <form slot="start" method="get" action="/mes-taches" class="list-toolbar__form filter-form filter-form--inline">
       <mb-input class="list-toolbar__search toolbar-control" type="search" density="compact" id="filter-query" name="q" value="{{.FilterQuery}}" placeholder="Rechercher un {{.Labels.Subject.Singular | lowerFirst}}, {{.Labels.Run.Article}} {{.Labels.Run.Singular}}, un point…" aria-label="Rechercher un {{.Labels.Subject.Singular | lowerFirst}}, {{.Labels.Run.Article}} {{.Labels.Run.Singular}} ou un point"></mb-input>
       {{if .FilterStatus}}<input type="hidden" name="status" value="{{.FilterStatus}}">{{end}}
       <mb-button type="submit" variant="secondary" class="toolbar-control">Filtrer</mb-button>
@@ -23,7 +23,7 @@
       <a href="{{myTasksListURL "nok" .FilterQuery}}"{{if eq .FilterStatus "nok"}} aria-current="page"{{end}}>Non validé</a>
       <a href="{{myTasksListURL "na" .FilterQuery}}"{{if eq .FilterStatus "na"}} aria-current="page"{{end}}>N/A</a>
     </mb-segmented-control>
-  </div>
+  </mb-toolbar>
   <div class="table-scroll">
   <table class="data-table data-table--cards table-sticky">
     <thead>
@@ -47,7 +47,7 @@
     </tbody>
   </table>
   </div>
-</section>
+</mb-card>
 {{end}}
 {{template "layout_end" .}}
 {{end}}

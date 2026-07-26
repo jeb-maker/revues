@@ -1,9 +1,9 @@
 {{define "subjects_list"}}
 {{template "layout_start" .}}
 {{if eq .AdminSection "subjects"}}
-<section class="card">
+<mb-card>
   <p class="muted">Gérez les {{.Labels.Subject.Plural | lowerFirst}} de l'organisation — nom, domaines et archivage.</p>
-</section>
+</mb-card>
 {{template "admin_nav" .}}
 {{end}}
 {{if and (not .Subjects) (not .HasActiveFilters)}}
@@ -36,20 +36,20 @@
   {{end}}
 </mb-empty-state>
 {{else}}
-<section class="card">
+<mb-card>
   {{if .Message}}<mb-alert variant="success">{{.Message}}</mb-alert>{{end}}
   {{if .Error}}<mb-alert variant="danger">{{.Error}}</mb-alert>{{end}}
   {{if .SimpleUI}}
   <p class="muted">Chaque {{.Labels.Subject.Singular | lowerFirst}} contient vos revues / checklists.</p>
   {{end}}
-  <div class="list-toolbar">
-    <form method="get" action="{{if eq .AdminSection "subjects"}}/admin/subjects{{else}}/subjects{{end}}" class="list-toolbar__form filter-form filter-form--inline">
+  <mb-toolbar class="list-toolbar">
+    <form slot="start" method="get" action="{{if eq .AdminSection "subjects"}}/admin/subjects{{else}}/subjects{{end}}" class="list-toolbar__form filter-form filter-form--inline">
       <mb-input class="list-toolbar__search toolbar-control" type="search" density="compact" id="filter-query" name="q" value="{{.FilterQuery}}" placeholder="Rechercher un {{.Labels.Subject.Singular | lowerFirst}}…" aria-label="Rechercher un {{.Labels.Subject.Singular | lowerFirst}}"></mb-input>
       <mb-button type="submit" variant="secondary" class="toolbar-control">Filtrer</mb-button>
       {{if .HasActiveFilters}}<mb-button href="{{if eq .AdminSection "subjects"}}/admin/subjects{{else}}/subjects{{end}}" variant="ghost" class="toolbar-control">Effacer</mb-button>{{end}}
     </form>
-    {{if .CanCreate}}<mb-button class="list-toolbar__action toolbar-control" href="{{if eq .AdminSection "subjects"}}/admin/subjects/new{{else}}/subjects/new{{end}}" title="Nouveau {{.Labels.Subject.Singular | lowerFirst}}">Créer</mb-button>{{end}}
-  </div>
+    {{if .CanCreate}}<mb-button slot="end" class="list-toolbar__action toolbar-control" href="{{if eq .AdminSection "subjects"}}/admin/subjects/new{{else}}/subjects/new{{end}}" title="Nouveau {{.Labels.Subject.Singular | lowerFirst}}">Créer</mb-button>{{end}}
+  </mb-toolbar>
   <div class="table-scroll">
   <table class="data-table data-table--cards table-sticky">
     <thead>
@@ -73,7 +73,7 @@
     </tbody>
   </table>
   </div>
-</section>
+</mb-card>
 {{end}}
 {{template "layout_end" .}}
 {{end}}

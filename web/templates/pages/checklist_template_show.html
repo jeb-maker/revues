@@ -1,7 +1,7 @@
 {{define "checklist_template_show"}}
 {{template "layout_start" .}}
 
-<section class="card template-meta">
+<mb-card class="template-meta">
   {{if .Message}}<mb-alert variant="success">{{.Message}}</mb-alert>{{end}}
   {{if .Error}}<mb-alert variant="danger">{{.Error}}</mb-alert>{{end}}
   <div class="template-meta__head">
@@ -21,15 +21,15 @@
   {{if .ShowSubjectColumn}}
   <p class="template-meta__line">
     {{if .Tags}}
-    Domaines : {{range $i, $tag := .Tags}}{{if $i}}, {{end}}<span class="tag">{{$tag}}</span>{{end}}
+    Domaines : {{range $i, $tag := .Tags}}{{if $i}}, {{end}}<mb-tag size="sm">{{$tag}}</mb-tag>{{end}}
     {{else}}
     Domaines : aucun (compatible avec tous les {{.Labels.Subject.Plural | lowerFirst}})
     {{end}}
   </p>
   {{end}}
-</section>
+</mb-card>
 
-<section class="card">
+<mb-card>
   <h2>Points</h2>
   {{if .ItemSections}}
   {{range $i, $sec := .ItemSections}}
@@ -75,7 +75,7 @@
     {{end}}
   </mb-empty-state>
   {{end}}
-</section>
+</mb-card>
 
 {{template "layout_end" .}}
 {{end}}

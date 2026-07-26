@@ -2,7 +2,7 @@
 {{template "layout_start" .}}
 {{if .Error}}<mb-alert variant="danger">{{.Error}}</mb-alert>{{end}}
 
-<div class="card">
+<mb-card>
 {{if not .NotionConfigured}}
 <p class="muted">Notion n'est pas configuré. Demandez à un administrateur de configurer l'intégration.</p>
 <p><mb-button href="/modeles" variant="secondary">Retour aux modèles</mb-button></p>
@@ -41,7 +41,7 @@
 </form>
 {{end}}
 {{end}}
-</div>
+</mb-card>
 {{template "layout_end" .}}
 {{end}}
 {{define "main_class"}} site-main--wide{{end}}

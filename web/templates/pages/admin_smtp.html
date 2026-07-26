@@ -1,8 +1,8 @@
 {{define "admin_smtp"}}
 {{template "layout_start" .}}
-<section class="card">
+<mb-card>
   <p class="muted">Relais SMTP de l'organisation active pour les notifications email. Sans configuration, l'application fonctionne mais n'envoie pas d'emails.</p>
-</section>
+</mb-card>
 
 {{template "admin_nav" .}}
 
@@ -17,7 +17,7 @@
 <mb-alert variant="danger" class="content-inset">{{.Error}}</mb-alert>
 {{end}}
 
-<section class="card">
+<mb-card>
   <h2>Relais SMTP</h2>
   {{if .Configured}}
   <p class="muted">SMTP configuré{{if .HasPassword}} avec mot de passe enregistré{{end}}.</p>
@@ -36,9 +36,9 @@
     <mb-input label="Expéditeur (From)" type="email" name="from" value="{{.From}}" required></mb-input>
     <mb-button type="submit" {{if not .CanEncrypt}}disabled{{end}}>Enregistrer</mb-button>
   </form>
-</section>
+</mb-card>
 
-<section class="card">
+<mb-card>
   <h2>Email de test</h2>
   <form method="post" action="/admin/settings/smtp" class="stack-form">
     <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
@@ -46,7 +46,7 @@
     <mb-input label="Destinataire" type="email" name="test_recipient" value="{{.TestRecipient}}" required></mb-input>
     <mb-button type="submit" variant="secondary" {{if not .Configured}}disabled{{end}}>Envoyer un email de test</mb-button>
   </form>
-</section>
+</mb-card>
 {{template "layout_end" .}}
 {{end}}
 {{define "main_class"}} site-main--wide{{end}}

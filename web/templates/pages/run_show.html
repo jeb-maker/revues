@@ -18,7 +18,7 @@
 {{end}}
 
 {{if eq .Run.Status "done"}}
-<div class="card">
+<mb-card>
   <h2>{{icon "check"}} Revue terminée</h2>
   {{if .Run.ClosingNote}}
   <div class="closing-note">
@@ -56,24 +56,24 @@
     {{end}}
     <mb-button href="/subjects/{{.Subject.ID}}" variant="ghost">{{icon "arrow-left"}} Retour au {{.Labels.Subject.Singular | lowerFirst}}</mb-button>
   </div>
-</div>
+</mb-card>
 {{end}}
 
 {{if eq .Run.Status "draft"}}
-<div class="card">
+<mb-card>
   {{if .CanLaunch}}
   <form method="post" action="/runs/{{.Run.ID}}/start" class="inline-form">
     <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
     <mb-button type="submit">{{icon "check"}} Démarrer la revue</mb-button>
   </form>
   {{end}}
-</div>
+</mb-card>
 {{end}}
 
 {{if eq .Run.Status "in_progress"}}
 {{end}}
 
-<div class="card">
+<mb-card>
   <h2>{{icon "list"}} Points ({{len .Items}})</h2>
   {{if and (ne .Run.Status "draft") (gt .Progress.Total 0)}}
   {{template "run_progress_fragment" .Progress}}
@@ -81,25 +81,17 @@
   {{if .Items}}
   <div class="filter-bar" id="items-filter">
     <form method="get" action="/runs/{{.Run.ID}}" class="filter-form">
-      <label>
-        Section
-        <select name="section">
-          <option value="">Toutes</option>
-          {{range .Sections}}
-          <option value="{{.}}" {{if eq $.FilterSection .}}selected{{end}}>{{.}}</option>
-          {{end}}
-        </select>
-      </label>
-      <label>
-        Statut
-        <select name="status">
-          <option value="">Tous</option>
-          <option value="pending" {{if eq .FilterStatus "pending"}}selected{{end}}>{{formatItemStatus "pending"}}</option>
-          <option value="ok" {{if eq .FilterStatus "ok"}}selected{{end}}>{{formatItemStatus "ok"}}</option>
-          <option value="nok" {{if eq .FilterStatus "nok"}}selected{{end}}>{{formatItemStatus "nok"}}</option>
-          <option value="na" {{if eq .FilterStatus "na"}}selected{{end}}>{{formatItemStatus "na"}}</option>
-        </select>
-      </label>
+      <mb-select name="section" label="Section" density="compact" placeholder="Toutes" value="{{.FilterSection}}">
+        {{range .Sections}}
+        <option value="{{.}}">{{.}}</option>
+        {{end}}
+      </mb-select>
+      <mb-select name="status" label="Statut" density="compact" placeholder="Tous" value="{{.FilterStatus}}">
+        <option value="pending">{{formatItemStatus "pending"}}</option>
+        <option value="ok">{{formatItemStatus "ok"}}</option>
+        <option value="nok">{{formatItemStatus "nok"}}</option>
+        <option value="na">{{formatItemStatus "na"}}</option>
+      </mb-select>
       <mb-button type="submit" variant="secondary" size="sm">Filtrer</mb-button>
       {{if or .FilterSection .FilterStatus}}
       <mb-button href="/runs/{{.Run.ID}}" variant="ghost" size="sm">Effacer</mb-button>
@@ -161,7 +153,7 @@
   {{else}}
   <p class="muted">Aucun point trouvé pour ce filtre.</p>
   {{end}}
-</div>
+</mb-card>
 
 <script>
   (function () {
@@ -185,7 +177,7 @@
 
 {{if eq .Run.Status "in_progress"}}
 {{if .CanComplete}}
-<div class="card" id="complete-section">
+<mb-card id="complete-section">
   <h2>Clôturer la revue</h2>
   <div id="complete-section-status">
   {{template "run_complete_status_inner" .}}
@@ -195,17 +187,17 @@
     <mb-textarea name="closing_note" label="Note de clôture (optionnelle)" rows="4" placeholder="Note optionnelle…" value="{{.ClosingNote}}"></mb-textarea>
     <mb-button type="submit">{{icon "check"}} Terminer la revue</mb-button>
   </form>
-</div>
+</mb-card>
 {{end}}
 {{end}}
 
 {{if ne .Run.Status "done"}}
-<div class="card post-closure-links">
+<mb-card class="post-closure-links">
   <p>
     <mb-button href="/subjects/{{.Subject.ID}}" variant="ghost">{{icon "arrow-left"}} Retour au {{.Labels.Subject.Singular | lowerFirst}}</mb-button>
     {{if .CanLaunch}}<mb-button href="/subjects/{{.Subject.ID}}/modeles?for_run=1" variant="ghost">Lancer une autre revue</mb-button>{{end}}
   </p>
-</div>
+</mb-card>
 {{end}}
 {{template "layout_end" .}}
 {{end}}

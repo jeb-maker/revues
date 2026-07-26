@@ -1,15 +1,15 @@
 {{define "admin_org_hub"}}
 {{template "layout_start" .}}
-<section class="card">
+<mb-card>
   <h2>Organisation</h2>
   {{if .OrganizationName}}
   <p class="muted">Gérez <strong>{{.OrganizationName}}</strong> — membres, {{.Labels.Subject.Plural | lowerFirst}} et intégrations.</p>
   {{else}}
   <p class="muted">Gérez les membres, {{.Labels.Subject.Plural | lowerFirst}} et intégrations de l'organisation.</p>
   {{end}}
-</section>
+</mb-card>
 
-<section class="card">
+<mb-card>
   <h2>Accès rapide</h2>
   <div class="empty-state-actions">
     <mb-button href="/admin/users" variant="secondary">Inviter</mb-button>
@@ -21,7 +21,7 @@
     <mb-button href="/admin/integrations" variant="secondary">Intégrations</mb-button>
     {{end}}
   </div>
-</section>
+</mb-card>
 {{template "layout_end" .}}
 {{end}}
 {{define "main_class"}} site-main--wide{{end}}

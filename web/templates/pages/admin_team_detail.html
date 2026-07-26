@@ -1,9 +1,9 @@
 {{define "admin_team_detail"}}
 {{template "layout_start" .}}
-<section class="card">
+<mb-card>
   <p class="muted"><a href="/admin/teams">← Équipes</a></p>
   <p class="muted"><code>{{.Team.Slug}}</code>{{if .Team.Description}} — {{.Team.Description}}{{end}}</p>
-</section>
+</mb-card>
 
 {{template "admin_nav" .}}
 
@@ -14,7 +14,7 @@
 <mb-alert variant="danger" class="content-inset">{{.Error}}</mb-alert>
 {{end}}
 
-<section class="card">
+<mb-card>
   <h2>Ajouter un membre</h2>
   {{if .Candidates}}
   <form method="post" action="/admin/teams/{{.Team.ID}}/members" class="stack-form">
@@ -31,9 +31,9 @@
   {{else}}
   <p class="muted">Tous les membres de l'organisation sont déjà dans cette équipe.</p>
   {{end}}
-</section>
+</mb-card>
 
-<section class="card">
+<mb-card>
   <h2>Membres ({{len .Members}})</h2>
   {{if .Members}}
   <div class="table-scroll">
@@ -65,7 +65,7 @@
   {{else}}
   <p class="muted">Aucun membre dans cette équipe.</p>
   {{end}}
-</section>
+</mb-card>
 {{template "layout_end" .}}
 {{end}}
 {{define "main_class"}} site-main--wide{{end}}

@@ -1,6 +1,6 @@
 {{define "run_item_show"}}
 {{template "layout_start" .}}
-<div class="card">
+<mb-card>
   <p class="muted">
     {{.Labels.Subject.Singular}} : <a href="/subjects/{{.Subject.ID}}">{{.Subject.Name}}</a>
     · Revue : <a href="/runs/{{.Run.ID}}">{{.RunDisplayLabel}}</a>
@@ -11,14 +11,14 @@
   {{if .Item.HelpText}}<blockquote class="help-text">{{.Item.HelpText}}</blockquote>{{end}}
   {{if .Item.Comment}}<div class="item-comment"><strong>Commentaire :</strong> {{.Item.Comment}}</div>{{end}}
   {{if .Item.AssignedLogin}}<p class="muted">Assigné à : {{.Item.AssignedLogin}}</p>{{end}}
-</div>
+</mb-card>
 
 {{if .Message}}<mb-alert variant="success">{{.Message}}</mb-alert>{{end}}
 {{if .LinkError}}<mb-alert variant="danger">{{.LinkError}}</mb-alert>{{end}}
 {{if .CreateError}}<mb-alert variant="danger">{{.CreateError}}</mb-alert>{{end}}
 {{if .UploadError}}<mb-alert variant="danger">{{.UploadError}}</mb-alert>{{end}}
 
-<div class="card">
+<mb-card>
   <h2>{{icon "external-link"}} Issue Jira</h2>
   {{if .JiraLink}}
   <p>Liée à : <a href="{{.JiraLink.ExternalURL}}" target="_blank" rel="noopener noreferrer">{{.JiraLink.ExternalKey}}</a></p>
@@ -47,9 +47,9 @@
     <mb-button type="submit" variant="secondary">Créer ticket Jira</mb-button>
   </form>
   {{end}}
-</div>
+</mb-card>
 
-<div class="card">
+<mb-card>
   <h2>{{icon "download"}} Pièce jointe</h2>
   {{if .Attachment}}
   <div class="attachment-section">
@@ -58,16 +58,16 @@
   </div>
   {{else}}<p class="muted">Aucune pièce jointe.</p>{{end}}
   {{if .CanUpload}}
-  <form method="post" action="/runs/{{.Run.ID}}/items/{{.Item.ID}}/attachment" enctype="multipart/form-data" class="stack-form" hx-encoding="multipart/form-data" hx-post="/runs/{{.Run.ID}}/items/{{.Item.ID}}/attachment" hx-target="closest .card" hx-swap="outerHTML">
+  <form method="post" action="/runs/{{.Run.ID}}/items/{{.Item.ID}}/attachment" enctype="multipart/form-data" class="stack-form" hx-encoding="multipart/form-data" hx-post="/runs/{{.Run.ID}}/items/{{.Item.ID}}/attachment" hx-target="closest mb-card" hx-swap="outerHTML">
     <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
     <mb-input label="{{if .Attachment}}Remplacer le fichier{{else}}Ajouter un fichier{{end}}" type="file" name="attachment" accept="image/jpeg,image/png,image/webp,application/pdf" required></mb-input>
     <p class="muted">JPEG, PNG, WebP ou PDF — max 5 Mo. Les images sont redimensionnées (1920 px max).</p>
     <mb-button type="submit" variant="secondary">{{icon "plus"}} Enregistrer</mb-button>
   </form>
   {{end}}
-</div>
+</mb-card>
 
-<div class="card">
+<mb-card>
   <h2>{{icon "list"}} Historique des statuts ({{len .Events}})</h2>
   {{if .Events}}
   <div class="event-timeline">
@@ -90,7 +90,7 @@
   {{else}}
   <p class="muted">Aucun changement de statut enregistré.</p>
   {{end}}
-</div>
+</mb-card>
 
 <p><mb-button href="/runs/{{.Run.ID}}" variant="ghost">{{icon "arrow-left"}} Retour à la revue</mb-button></p>
 {{template "layout_end" .}}
