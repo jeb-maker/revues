@@ -7,8 +7,7 @@
 {{template "admin_nav" .}}
 {{end}}
 {{if and (not .Subjects) (not .HasActiveFilters)}}
-{{if .Message}}<mb-alert variant="success">{{.Message}}</mb-alert>{{end}}
-{{if .Error}}<mb-alert variant="danger">{{.Error}}</mb-alert>{{end}}
+{{template "flash_alerts" .}}
 <mb-empty-state heading="Aucun {{.Labels.Subject.Singular | lowerFirst}}">
   {{if .SimpleUI}}
   <p>Un {{.Labels.Subject.Singular | lowerFirst}} regroupe vos checklists (revues). Créez-en un pour commencer.</p>
@@ -37,8 +36,7 @@
 </mb-empty-state>
 {{else}}
 <mb-card>
-  {{if .Message}}<mb-alert variant="success">{{.Message}}</mb-alert>{{end}}
-  {{if .Error}}<mb-alert variant="danger">{{.Error}}</mb-alert>{{end}}
+  {{template "flash_alerts" .}}
   {{if .SimpleUI}}
   <p class="muted">Chaque {{.Labels.Subject.Singular | lowerFirst}} contient vos revues / checklists.</p>
   {{end}}

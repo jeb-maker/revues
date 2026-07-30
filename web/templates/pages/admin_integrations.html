@@ -7,9 +7,7 @@
 
 {{template "admin_nav" .}}
 
-{{if .Error}}
-<mb-alert variant="danger" class="content-inset">{{.Error}}</mb-alert>
-{{end}}
+{{template "flash_alerts_inset" .}}
 
 <mb-card>
   <h2>Statut</h2>

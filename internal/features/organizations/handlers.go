@@ -74,15 +74,7 @@ func PostLoginRoute(ctx context.Context, st interface {
 }
 
 func (h *Organizations) pageData(r *http.Request) templates.PageData {
-	data := templates.PageData{}
-	if user, ok := middleware.UserFromContext(r.Context()); ok {
-		data.User = user
-		if token := middleware.SessionTokenFromContext(r); token != "" {
-			data.CSRFToken = auth.CSRFToken(token, h.SessionSecret)
-		}
-	}
-	templates.ApplyHeaderFromContext(r, &data)
-	return data
+	return templates.NewPageData(r, "", h.SessionSecret)
 }
 
 // NewForm renders the organization creation form.

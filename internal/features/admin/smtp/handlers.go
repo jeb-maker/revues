@@ -8,7 +8,6 @@ import (
 	"net/mail"
 	"strings"
 
-	"github.com/jeb-maker/revues/internal/auth"
 	"github.com/jeb-maker/revues/internal/features/admin/settings"
 	"github.com/jeb-maker/revues/internal/notifications"
 	"github.com/jeb-maker/revues/internal/web/middleware"
@@ -23,15 +22,7 @@ type Deps struct {
 }
 
 func (d *Deps) PageData(r *http.Request, title string) templates.PageData {
-	data := templates.PageData{Title: title}
-	if user, ok := middleware.UserFromContext(r.Context()); ok {
-		data.User = user
-		if token := middleware.SessionTokenFromContext(r); token != "" {
-			data.CSRFToken = auth.CSRFToken(token, d.SessionSecret)
-		}
-	}
-	templates.ApplyHeaderFromContext(r, &data)
-	return data
+	return templates.NewPageData(r, title, d.SessionSecret)
 }
 
 // AdminSMTP manages encrypted SMTP relay settings.

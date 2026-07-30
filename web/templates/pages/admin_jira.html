@@ -6,16 +6,8 @@
 
 {{template "admin_nav" .}}
 
-{{if not .CanEncrypt}}
-<mb-alert variant="danger" class="content-inset">REVUES_ENCRYPTION_KEY n'est pas configurée : vous pouvez consulter ce formulaire mais l'enregistrement est désactivé.</mb-alert>
-{{end}}
-
-{{if .Message}}
-<mb-alert variant="success" class="content-inset">{{.Message}}</mb-alert>
-{{end}}
-{{if .Error}}
-<mb-alert variant="danger" class="content-inset">{{.Error}}</mb-alert>
-{{end}}
+{{template "admin_encryption_alert" .}}
+{{template "flash_alerts_inset" .}}
 
 <mb-card>
   <h2>Instance Jira</h2>

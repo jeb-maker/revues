@@ -2,8 +2,7 @@
 {{template "layout_start" .}}
 <mb-card>
   <p class="muted">Choisissez un {{.Labels.Subject.Singular | lowerFirst}} ou créez-en un pour lancer la revue.</p>
-  {{if .Message}}<mb-alert variant="success">{{.Message}}</mb-alert>{{end}}
-  {{if .Error}}<mb-alert variant="danger">{{.Error}}</mb-alert>{{end}}
+  {{template "flash_alerts" .}}
 
   <mb-toolbar class="list-toolbar">
     <form slot="start" method="get" action="/revues/nouvelle" class="list-toolbar__form filter-form filter-form--inline">

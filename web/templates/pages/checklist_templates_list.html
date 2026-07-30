@@ -3,8 +3,7 @@
 {{$listUI := not .ShowSubjectColumn}}
 
 <mb-card>
-  {{if .Message}}<mb-alert variant="success">{{.Message}}</mb-alert>{{end}}
-  {{if .Error}}<mb-alert variant="danger">{{.Error}}</mb-alert>{{end}}
+  {{template "flash_alerts" .}}
   {{if .ForRun}}
   {{if $listUI}}
   <p class="muted">Choisissez une liste pour lancer la revue.</p>

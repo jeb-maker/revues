@@ -10,12 +10,7 @@
 
 {{template "admin_nav" .}}
 
-{{if .Message}}
-<mb-alert variant="success" class="content-inset">{{.Message}}</mb-alert>
-{{end}}
-{{if .Error}}
-<mb-alert variant="danger" class="content-inset">{{.Error}}</mb-alert>
-{{end}}
+{{template "flash_alerts_inset" .}}
 
 {{if not .Emails}}
 <mb-card class="onboarding-hint">

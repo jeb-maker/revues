@@ -2,8 +2,7 @@
 {{template "layout_start" .}}
 
 <mb-card class="template-meta">
-  {{if .Message}}<mb-alert variant="success">{{.Message}}</mb-alert>{{end}}
-  {{if .Error}}<mb-alert variant="danger">{{.Error}}</mb-alert>{{end}}
+  {{template "flash_alerts" .}}
   <div class="template-meta__head">
     {{if or .CanLaunch .CanManage}}
     <div class="template-meta__actions">

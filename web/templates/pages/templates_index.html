@@ -20,7 +20,7 @@
 </mb-empty-state>
 {{else}}
 <mb-card>
-  {{if .Message}}<mb-alert variant="success">{{.Message}}</mb-alert>{{end}}
+  {{template "flash_alerts" .}}
   {{if not .ShowSubjectColumn}}
   <p class="muted">Listes réutilisables — lancez une revue à partir d'une liste.</p>
   {{end}}

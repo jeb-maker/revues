@@ -8,12 +8,29 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"strings"
 )
 
 const KeySize = 32
 
 // ErrInvalidKey is returned when the encryption key has the wrong length.
 var ErrInvalidKey = errors.New("encryption key must be 32 bytes")
+
+// ErrEncryptionNotConfigured is returned when REVUES_ENCRYPTION_KEY is missing.
+var ErrEncryptionNotConfigured = errors.New("encryption key not configured")
+
+// MergeSecret keeps the existing secret when the form leaves it blank.
+func MergeSecret(current, submitted string) string {
+	if strings.TrimSpace(submitted) != "" {
+		return submitted
+	}
+	return current
+}
+
+// HasSecret reports whether a credential is stored.
+func HasSecret(secret string) bool {
+	return secret != ""
+}
 
 // DecodeKey parses a base64-encoded AES-256 key from REVUES_ENCRYPTION_KEY.
 func DecodeKey(encoded string) ([]byte, error) {

@@ -5,7 +5,7 @@
 {{end}}
 
 <mb-card>
-  {{if .Error}}<mb-alert variant="danger">{{.Error}}</mb-alert>{{end}}
+  {{template "flash_alerts" .}}
   <form method="post" action="{{.FormAction}}" class="stack-form">
     <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
     <mb-input label="Nom" type="text" name="name" required value="{{if .Subject}}{{.Subject.Name}}{{end}}"></mb-input>

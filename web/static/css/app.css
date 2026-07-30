@@ -540,6 +540,23 @@ mb-alert h3 { margin-top: 0; }
 }
 .htmx-indicator{opacity:0}
 .htmx-request.htmx-indicator,.htmx-request .htmx-indicator{opacity:1}
+.filter-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: end;
+}
+.filter-form select { max-width: 16rem; }
+.filter-form label,
+.filter-bar .filter-form label {
+  margin-bottom: 0;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+.filter-form button { margin-top: 0; }
+.filter-bar { margin-bottom: 1rem; }
+.filter-bar .filter-form select { display: block; margin-top: 0.2rem; }
+.filter-form--inline { align-items: center; }
 mb-toolbar.list-toolbar {
   display: block;
   margin-bottom: 1rem;
@@ -661,6 +678,11 @@ mb-toolbar.list-toolbar {
   mb-toolbar.list-toolbar .list-toolbar__form{flex:0 1 auto;width:100%;min-width:0}
   mb-toolbar.list-toolbar .list-toolbar__search{width:100%;max-width:none}
   mb-toolbar.list-toolbar .list-toolbar__action{width:100%;text-align:center}
+  .filter-bar .filter-form {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .filter-bar .filter-form select { max-width: none; width: 100%; }
   .admin-nav{display:none}
   .admin-nav-jump{display:block;margin:0 0 .75rem;padding-inline:var(--content-padding-x)}
   .admin-nav-jump mb-select{width:100%}

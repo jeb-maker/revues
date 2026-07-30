@@ -49,3 +49,24 @@ func TestDecodeKeyInvalid(t *testing.T) {
 		t.Fatal("expected error for short key")
 	}
 }
+
+func TestMergeSecret(t *testing.T) {
+	if got := crypto.MergeSecret("stored", ""); got != "stored" {
+		t.Fatalf("MergeSecret(empty) = %q", got)
+	}
+	if got := crypto.MergeSecret("stored", "  "); got != "stored" {
+		t.Fatalf("MergeSecret(blank) = %q", got)
+	}
+	if got := crypto.MergeSecret("stored", "new"); got != "new" {
+		t.Fatalf("MergeSecret(new) = %q", got)
+	}
+}
+
+func TestHasSecret(t *testing.T) {
+	if crypto.HasSecret("") {
+		t.Fatal("HasSecret(\"\") = true")
+	}
+	if !crypto.HasSecret("x") {
+		t.Fatal("HasSecret(\"x\") = false")
+	}
+}

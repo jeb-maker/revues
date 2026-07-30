@@ -12,7 +12,6 @@ import (
 	chimw "github.com/go-chi/chi/v5/middleware"
 	"github.com/google/uuid"
 
-	"github.com/jeb-maker/revues/internal/auth"
 	"github.com/jeb-maker/revues/internal/store"
 	"github.com/jeb-maker/revues/internal/web/middleware"
 	viewtemplates "github.com/jeb-maker/revues/internal/web/templates"
@@ -43,15 +42,7 @@ type BugReports struct {
 
 // PageData builds shared view data with user and CSRF from the request context.
 func (d *Deps) PageData(r *http.Request, title string) viewtemplates.PageData {
-	data := viewtemplates.PageData{Title: title}
-	if user, ok := middleware.UserFromContext(r.Context()); ok {
-		data.User = user
-		if token := middleware.SessionTokenFromContext(r); token != "" {
-			data.CSRFToken = auth.CSRFToken(token, d.SessionSecret)
-		}
-	}
-	viewtemplates.ApplyHeaderFromContext(r, &data)
-	return data
+	return viewtemplates.NewPageData(r, title, d.SessionSecret)
 }
 
 // Form shows the bug report form with auto-captured context summary.

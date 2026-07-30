@@ -1,8 +1,7 @@
 {{define "bug_report"}}
 {{template "layout_start" .}}
 
-{{if .Message}}<mb-alert variant="success">{{.Message}}</mb-alert>{{end}}
-{{if .Error}}<mb-alert variant="danger">{{.Error}}</mb-alert>{{end}}
+{{template "flash_alerts" .}}
 
 {{if .ReturnURL}}
 <p class="muted content-inset"><a href="{{.ReturnURL}}">Retour à la page précédente</a></p>

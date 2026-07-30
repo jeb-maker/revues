@@ -1,9 +1,0 @@
-{{define "run_progress_oob_fragment"}}
-<div id="run-progress" class="run-progress" hx-swap-oob="true">
-  <mb-progress
-    percent="{{.Percent}}"
-    label="{{.Done}} / {{.Total}}"
-    aria-label="Progression {{.Done}} sur {{.Total}}, {{.Percent}} pourcent"
-  ></mb-progress>
-</div>
-{{end}}

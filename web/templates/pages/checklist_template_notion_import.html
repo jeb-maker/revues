@@ -1,6 +1,6 @@
 {{define "checklist_template_notion_import"}}
 {{template "layout_start" .}}
-{{if .Error}}<mb-alert variant="danger">{{.Error}}</mb-alert>{{end}}
+{{template "flash_alerts" .}}
 
 <mb-card>
 {{if not .NotionConfigured}}

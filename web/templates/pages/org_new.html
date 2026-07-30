@@ -1,7 +1,7 @@
 {{define "org_new"}}
 {{template "layout_start" .}}
 <p>Créez votre organisation pour commencer à utiliser Revues.</p>
-{{if .Error}}<mb-alert variant="danger">{{.Error}}</mb-alert>{{end}}
+{{template "flash_alerts" .}}
 
 <form method="post" action="/org/new" class="stack-form">
   <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">

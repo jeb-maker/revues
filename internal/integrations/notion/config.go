@@ -12,7 +12,7 @@ import (
 	"github.com/jeb-maker/revues/internal/store"
 )
 
-var ErrEncryptionNotConfigured = errors.New("encryption key not configured")
+var ErrEncryptionNotConfigured = crypto.ErrEncryptionNotConfigured
 
 var databaseIDPattern = regexp.MustCompile(`^[0-9a-fA-F]{32}$|^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$`)
 
@@ -100,10 +100,7 @@ func NormalizeDatabaseID(raw string) string {
 }
 
 func MergeSecret(current, submitted string) string {
-	if strings.TrimSpace(submitted) != "" {
-		return submitted
-	}
-	return current
+	return crypto.MergeSecret(current, submitted)
 }
 
-func HasSecret(secret string) bool { return secret != "" }
+func HasSecret(secret string) bool { return crypto.HasSecret(secret) }

@@ -19,7 +19,7 @@ const (
 )
 
 // ErrEncryptionNotConfigured is returned when REVUES_ENCRYPTION_KEY is missing.
-var ErrEncryptionNotConfigured = errors.New("encryption key not configured")
+var ErrEncryptionNotConfigured = crypto.ErrEncryptionNotConfigured
 
 // SMTPConfig holds decrypted SMTP relay settings.
 type SMTPConfig struct {
@@ -229,10 +229,7 @@ func ParsePort(raw string) (int, error) {
 
 // MergePassword keeps the existing password when the form leaves it blank.
 func MergePassword(current SMTPConfig, submitted string) string {
-	if strings.TrimSpace(submitted) != "" {
-		return submitted
-	}
-	return current.Password
+	return crypto.MergeSecret(current.Password, submitted)
 }
 
 // ValidateWebhooks checks required webhook fields.
@@ -264,10 +261,7 @@ func ParseWebhookURLs(raw string) []string {
 
 // MergeWebhookSecret keeps the existing secret when the form leaves it blank.
 func MergeWebhookSecret(current WebhookConfig, submitted string) string {
-	if strings.TrimSpace(submitted) != "" {
-		return submitted
-	}
-	return current.Secret
+	return crypto.MergeSecret(current.Secret, submitted)
 }
 
 func normalizeURLs(urls []string) []string {

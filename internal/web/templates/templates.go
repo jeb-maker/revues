@@ -319,6 +319,7 @@ type AdminIntegrationRow struct {
 type AdminIntegrationsData struct {
 	PageData
 	Integrations []AdminIntegrationRow
+	Message      string
 	Error        string
 }
 
@@ -462,15 +463,17 @@ type SubjectFormData struct {
 	Tags             string
 	FormAction       string
 	CanSetVisibility bool
+	Message          string
 	Error            string
 }
 
 // OrgNewData is view data for the organization creation form.
 type OrgNewData struct {
 	PageData
-	Name  string
-	Slug  string
-	Error string
+	Name    string
+	Slug    string
+	Message string
+	Error   string
 }
 
 // OrgSelectData is view data for the organization selection screen.
@@ -478,6 +481,7 @@ type OrgSelectData struct {
 	PageData
 	Organizations []store.OrganizationMembership
 	DefaultOrgID  int64
+	Message       string
 	Error         string
 }
 
@@ -529,6 +533,7 @@ type TemplatesIndexData struct {
 	CanManage        bool
 	NotionConfigured bool
 	Message          string
+	Error            string
 }
 
 // TemplateEditorRow is one editable checklist point in the form.
@@ -567,6 +572,7 @@ type ChecklistTemplateNotionImportData struct {
 	Mapping          notion.ColumnMapping
 	PreviewItems     []TemplateEditorRow
 	PreviewCount     int
+	Message          string
 	Error            string
 }
 type NotionPropertyOption struct{ Name, Type string }

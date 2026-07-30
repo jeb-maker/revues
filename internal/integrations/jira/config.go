@@ -20,7 +20,7 @@ const (
 )
 
 // ErrEncryptionNotConfigured is returned when REVUES_ENCRYPTION_KEY is missing.
-var ErrEncryptionNotConfigured = errors.New("encryption key not configured")
+var ErrEncryptionNotConfigured = crypto.ErrEncryptionNotConfigured
 
 // Config holds decrypted Jira connection settings.
 type Config struct {
@@ -203,13 +203,10 @@ func NormalizeBaseURL(raw string) string {
 
 // MergeSecret keeps the existing secret when the form leaves it blank.
 func MergeSecret(current, submitted string) string {
-	if strings.TrimSpace(submitted) != "" {
-		return submitted
-	}
-	return current
+	return crypto.MergeSecret(current, submitted)
 }
 
 // HasSecret reports whether a credential is stored.
 func HasSecret(secret string) bool {
-	return secret != ""
+	return crypto.HasSecret(secret)
 }
