@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -57,8 +56,7 @@ func (c *Client) TestConnection(ctx context.Context, cfg Config) (ConnectionInfo
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
-		return ConnectionInfo{}, fmt.Errorf("%w: status %d %s", ErrConnectionFailed, resp.StatusCode, strings.TrimSpace(string(body)))
+		return ConnectionInfo{}, parseAPIError(resp, ErrConnectionFailed)
 	}
 	var me struct {
 		Name string `json:"name"`

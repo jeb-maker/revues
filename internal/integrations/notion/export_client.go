@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -59,8 +58,7 @@ func (c *Client) CreateReviewPage(ctx context.Context, cfg Config, in CreatePage
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		respBody, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
-		return CreatePageResult{}, fmt.Errorf("%w: status %d %s", ErrExportFailed, resp.StatusCode, strings.TrimSpace(string(respBody)))
+		return CreatePageResult{}, parseAPIError(resp, ErrExportFailed)
 	}
 	var created struct {
 		ID  string `json:"id"`

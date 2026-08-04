@@ -205,3 +205,77 @@ func TestRuns_ExportNotion_NotDone(t *testing.T) {
 		t.Errorf("status = %d, want 404", rec.Code)
 	}
 }
+
+func TestRuns_ExportNotion_UnauthorizedShowsActionableError(t *testing.T) {
+	encKey := config.TestEncryptionKey()
+	var hits int
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		hits++
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusUnauthorized)
+		_, _ = w.Write([]byte(`{"object":"error","status":401,"code":"unauthorized","message":"API token is invalid."}`))
+	}))
+	t.Cleanup(srv.Close)
+	handler, db := testNotionExportRouter(t, encKey, &notion.Client{HTTPClient: srv.Client(), APIBaseURL: srv.URL + "/v1"})
+	ctx := context.Background()
+	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
+	setupNotionExport(t, st, ctx, encKey)
+	lead, _ := st.UpsertGitHubUser(ctx, 68, "lead-ux", "lead-ux@example.com", "Lead", "", auth.RoleEditor)
+	project, _ := st.CreateProject(ctx, "Alpha", "", lead.ID, nil)
+	run := setupDoneRun(t, st, ctx, lead, project)
+	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
+	token, _, _ := sessions.CreateLoginSession(ctx, lead.ID, 0)
+	form := url.Values{"csrf_token": {auth.CSRFToken(token, "test-secret-at-least-thirty-two-bytes")}}
+	req := httptest.NewRequest(http.MethodPost, "/runs/"+strconv.FormatInt(run.ID, 10)+"/export/notion", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.AddCookie(&http.Cookie{Name: "revues_session", Value: token})
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want 400 with inline error", rec.Code)
+	}
+	body := rec.Body.String()
+	if !strings.Contains(body, "Jeton Notion invalide") {
+		t.Fatalf("body missing actionable error; got %s", body)
+	}
+	if strings.Contains(body, "API token is invalid") || strings.Contains(body, `"code"`) {
+		t.Fatal("raw Notion payload leaked to UI")
+	}
+	if hits == 0 {
+		t.Fatal("expected Notion API call on export action")
+	}
+}
+
+func TestRuns_ShowDone_NoNotionAPIOnFirstPaint(t *testing.T) {
+	encKey := config.TestEncryptionKey()
+	var hits int
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		hits++
+		http.Error(w, "should not be called", http.StatusInternalServerError)
+	}))
+	t.Cleanup(srv.Close)
+	handler, db := testNotionExportRouter(t, encKey, &notion.Client{HTTPClient: srv.Client(), APIBaseURL: srv.URL + "/v1"})
+	ctx := context.Background()
+	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
+	setupNotionExport(t, st, ctx, encKey)
+	lead, _ := st.UpsertGitHubUser(ctx, 69, "lead-paint", "lead-paint@example.com", "Lead", "", auth.RoleEditor)
+	project, _ := st.CreateProject(ctx, "Alpha", "", lead.ID, nil)
+	run := setupDoneRun(t, st, ctx, lead, project)
+	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
+	token, _, _ := sessions.CreateLoginSession(ctx, lead.ID, 0)
+	req := httptest.NewRequest(http.MethodGet, "/runs/"+strconv.FormatInt(run.ID, 10), nil)
+	req.AddCookie(&http.Cookie{Name: "revues_session", Value: token})
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d", rec.Code)
+	}
+	if hits != 0 {
+		t.Fatalf("Notion API called %d times on first paint; want 0", hits)
+	}
+	if !strings.Contains(rec.Body.String(), "Exporter vers Notion") {
+		t.Fatal("expected export button without calling Notion")
+	}
+}

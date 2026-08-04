@@ -2,7 +2,6 @@ package runs
 
 import (
 	"context"
-	"errors"
 	"net/http"
 	"strconv"
 
@@ -26,7 +25,7 @@ func (h *Runs) ExportNotion(w http.ResponseWriter, r *http.Request) {
 	}
 	if _, err := h.notionExportService().ExportRun(r.Context(), run.ID); err != nil {
 		h.renderRunShow(w, r, run, project, user, access, viewtemplates.RunShowData{
-			NotionExportError: notionExportErrorMessage(err),
+			NotionExportError: notion.UserMessage(err),
 		})
 		return
 	}
@@ -46,24 +45,4 @@ func (h *Runs) notionConfigured(ctx context.Context) bool {
 	s2, _ := h.Store.(*store.Store)
 	cfg, ok, err := (&notion.Service{Store: s2, EncryptionKey: h.EncryptionKey}).Load(ctx)
 	return err == nil && ok && notion.ExportReady(cfg)
-}
-
-func notionExportErrorMessage(err error) string {
-	switch {
-	case errors.Is(err, notion.ErrNotConfigured):
-		return "Notion n'est pas configuré. Contactez un administrateur."
-	case errors.Is(err, notion.ErrDatabaseMissing):
-		return "Aucune base Notion par défaut configurée. Contactez un administrateur."
-	case errors.Is(err, notion.ErrAlreadyExported):
-		return "Cette revue a déjà été exportée vers Notion."
-	case errors.Is(err, notion.ErrRunNotDone):
-		return "Seules les revues terminées peuvent être exportées."
-	case errors.Is(err, notion.ErrExportFailed), errors.Is(err, notion.ErrConnectionFailed):
-		return "Impossible d'exporter vers Notion. Réessayez plus tard."
-	default:
-		if msg := err.Error(); msg != "" {
-			return msg
-		}
-		return "Impossible d'exporter vers Notion."
-	}
 }
