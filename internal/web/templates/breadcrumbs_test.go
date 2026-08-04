@@ -7,33 +7,12 @@ import (
 )
 
 func TestApplyPageMeta_SetsTitleFromLastCrumb(t *testing.T) {
-	data := templates.ApplyPageMeta(templates.PageData{}, templates.BCProjectNew())
+	data := templates.ApplyPageMeta(templates.PageData{}, templates.BCSubjectNew(templates.DefaultUILabels().Subject))
 	if data.Title != "Nouveau sujet" {
 		t.Fatalf("Title = %q, want Nouveau sujet", data.Title)
 	}
 	if len(data.Breadcrumbs) != 2 {
 		t.Fatalf("len(Breadcrumbs) = %d, want 2", len(data.Breadcrumbs))
-	}
-}
-
-func TestBCRunWizardLaunch_Links(t *testing.T) {
-	run := templates.DefaultUILabels().Run
-	crumbs := templates.BCRunWizardLaunch("Alpha", 3, "Checklist QA", 1, 4, run)
-	if len(crumbs) != 4 {
-		t.Fatalf("len = %d, want 4", len(crumbs))
-	}
-	if crumbs[0].URL != templates.PathRevues {
-		t.Fatalf("root URL = %q", crumbs[0].URL)
-	}
-	if crumbs[1].URL != "/subjects/3" || crumbs[1].Label != "Alpha" {
-		t.Fatalf("subject crumb = %+v", crumbs[1])
-	}
-	if crumbs[2].URL != "/subjects/3/modeles?for_run=1" || crumbs[2].Label != "Choisir un modèle" {
-		t.Fatalf("launch crumb = %+v", crumbs[2])
-	}
-	wantLabel := "Checklist QA · v1 · 4 points de contrôle"
-	if crumbs[3].Label != wantLabel || crumbs[3].URL != "" {
-		t.Fatalf("last crumb = %+v, want label %q", crumbs[3], wantLabel)
 	}
 }
 

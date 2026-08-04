@@ -108,5 +108,3 @@ Principes :
 | Tracking gaps | https://github.com/jeb-maker/miniature-broccoli/issues/19 (fermés en 0.3.0) |
 
 ## Dette doc connue
-
-- `docs/DESIGN.md` et `/styleguide` référencés dans la charte mais absents — issue doc dédiée si besoin

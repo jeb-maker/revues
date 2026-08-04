@@ -95,22 +95,13 @@
     <h1 class="page-title">{{breadcrumbCurrent .Breadcrumbs}}</h1>
     {{end}}
     {{$ancestors := breadcrumbAncestors .Breadcrumbs}}
-    {{if or $ancestors .PageActions}}
+    {{if $ancestors}}
     <div class="page-header">
-      {{if $ancestors}}
       <mb-breadcrumbs class="breadcrumb" label="Fil d'Ariane">
         {{range $ancestors}}
         <li>{{if .URL}}<a href="{{.URL}}">{{.Label}}</a>{{else}}<span>{{.Label}}</span>{{end}}</li>
         {{end}}
       </mb-breadcrumbs>
-      {{end}}
-      {{if .PageActions}}
-      <div class="page-actions">
-        {{range .PageActions}}
-        <mb-button href="{{.URL}}"{{if not .Primary}} variant="secondary"{{end}}{{if .IconOnly}} icon-only size="sm"{{end}} aria-label="{{if .Title}}{{.Title}}{{else}}{{.Label}}{{end}}" title="{{if .Title}}{{.Title}}{{else}}{{.Label}}{{end}}">{{.Label}}</mb-button>
-        {{end}}
-      </div>
-      {{end}}
     </div>
     {{end}}
     {{end}}

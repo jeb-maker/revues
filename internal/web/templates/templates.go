@@ -22,35 +22,6 @@ type Breadcrumb struct {
 	Label string
 }
 
-// PageAction is a header action link (primary CTA or secondary).
-type PageAction struct {
-	Label    string
-	Title    string // tooltip and aria-label; defaults to Label when empty
-	URL      string
-	Primary  bool
-	IconOnly bool
-}
-
-// PrimaryAction returns a primary header button action.
-func PrimaryAction(label, url string) PageAction {
-	return PageAction{Label: label, Title: label, URL: url, Primary: true}
-}
-
-// CreateAction returns a compact "+" create button with an accessible title.
-func CreateAction(title, url string) PageAction {
-	return PageAction{Label: "+", Title: title, URL: url, Primary: true, IconOnly: true}
-}
-
-// LaunchAction returns the standard launch-revue header button.
-func LaunchAction(url string, subject SubjectUILabels, run RunUILabels) PageAction {
-	return PageAction{Label: LaunchRunCTA(run), Title: LaunchActionTitle(subject, run), URL: url, Primary: true}
-}
-
-// SecondaryAction returns a secondary header action.
-func SecondaryAction(label, url string) PageAction {
-	return PageAction{Label: label, Title: label, URL: url, Primary: false}
-}
-
 // FormatItemStatus returns a French label for a checklist item status.
 func FormatItemStatus(s string) string {
 	switch s {
@@ -177,7 +148,6 @@ type PageData struct {
 	RequestID           string
 	ReportsAutoOpen     bool // open @jeb-maker/reports widget on load (/signaler)
 	Breadcrumbs         []Breadcrumb
-	PageActions         []PageAction
 	Labels              UILabels
 	ActiveOrganization  *store.Organization
 	UserOrganizations   []store.OrganizationMembership
@@ -636,21 +606,6 @@ type RunWizardSubjectsData struct {
 	CanCreate          bool
 	Message            string
 	Error              string
-}
-
-// RunWizardLaunchData is view data for run wizard step 3.
-type RunWizardLaunchData struct {
-	PageData
-	Subject    *store.Subject
-	Template   *store.ChecklistTemplate
-	Version    *store.TemplateVersion
-	ItemCount  int
-	Title      string
-	DueDate    string
-	FormAction string
-	MemberRole string
-	CanLaunch  bool
-	Error      string
 }
 
 // RunProgressData is view data for the run progress bar fragment.

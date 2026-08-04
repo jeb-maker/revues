@@ -195,11 +195,6 @@ func (s *Store) ListRunsBySubject(ctx context.Context, subjectID int64) ([]Check
 	return runs, nil
 }
 
-// ListRunsByProject is a deprecated alias for ListRunsBySubject.
-func (s *Store) ListRunsByProject(ctx context.Context, subjectID int64) ([]ChecklistRun, error) {
-	return s.ListRunsBySubject(ctx, subjectID)
-}
-
 // ListRunItems returns ordered items for a run.
 func (s *Store) ListRunItems(ctx context.Context, runID int64) ([]RunItem, error) {
 	rows, err := s.db.QueryContext(ctx, `

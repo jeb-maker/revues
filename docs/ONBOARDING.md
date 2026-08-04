@@ -30,14 +30,12 @@ Ouvrir `http://localhost:8080/login`.
 
 Les administrateurs d'organisation (`owner` / `admin`) gèrent la liste blanche depuis **Emails autorisés** (`/admin/users`). Ajoutez les emails GitHub des personnes autorisées à rejoindre l'organisation active, avec leur rôle global (`reader`, `editor`, `admin`).
 
-Une personne peut aussi rejoindre si elle est déjà membre d'une organisation ou si un lead l'ajoute à un projet (adhésion org induite).
+Une personne peut aussi rejoindre si elle est déjà membre d'une organisation, ou via une équipe / grant sujet selon le modèle décrit dans [RBAC.md](./RBAC.md).
 
-## 5. Créer un projet et lancer une revue
+## 5. Créer un sujet et lancer une revue
 
-Depuis le **Tableau de bord** :
+1. Créer un **sujet** (hub Organisation ou `/subjects`)
+2. Créer ou rattacher un **modèle** de checklist (`/modeles`)
+3. **Lancer une revue** via l'assistant (`/revues/nouvelle`)
 
-1. **Créer un projet**
-2. Y ajouter un **modèle de checklist**
-3. **Lancer une revue** via l'assistant (`/runs/new`)
-
-Les lecteurs (`reader`) doivent être ajoutés comme membres d'un projet pour y accéder.
+Les lecteurs (`reader`) voient les sujets auxquels ils ont accès ; ils ne cochent pas.

@@ -19,41 +19,21 @@ Lis AGENTS.md. ./scripts/check.sh avant push. PR : Closes #N.
 
 ## Organisation recommandée
 
-### 1. Milestones (à créer manuellement)
-
-| Milestone | Issues |
-|-----------|--------|
-| **Vague 1 — Cœur métier** | #2 (épique) + #5 à #16 |
-| **Vague 2 — Admin & intégrations** | #3 (épique) + #17 à #24 |
-| **Vague 3 — Companion & fichiers** | #4 (épique) + #25 à #29 |
-
-Création : *Issues → Milestones → New milestone*
-
-### 2. Labels (à créer manuellement)
+### Labels
 
 ```
-epic, vague-1, vague-2, vague-3, vague-thematic
+epic, vague-thematic
 area:infra, area:data, area:auth, area:core, area:ui
 area:admin, area:integrations, area:notifications, area:attachments
 good first issue
 ```
 
-Roadmap thématique post-cœur : [issues/thematic-roadmap-epic.md](./issues/thematic-roadmap-epic.md) —  
+Roadmap thématique : [issues/thematic-roadmap-epic.md](./issues/thematic-roadmap-epic.md) —  
 `./scripts/create-thematic-roadmap-issues.sh` (lots 0–5).
 
-Création : *Issues → Labels → New label*
+### Épiques
 
-### 3. Épiques
-
-Chaque vague a une issue `[Epic][Vague N]` qui regroupe les tâches. Utiliser une **task list** GitHub dans le corps de l'épique :
-
-```markdown
-- [ ] #3 Bootstrap Go
-- [ ] #4 Schéma DB
-...
-```
-
-Ou le **Projects** board (voir ci-dessous).
+Utiliser une **task list** GitHub dans le corps de l'épique, ou un **Projects** board.
 
 ---
 
@@ -73,33 +53,9 @@ flowchart LR
 4. **PR** : titre = titre de l'issue, corps = `Closes #N`
 5. **Merge** → issue fermée automatiquement
 
-### Parallélisation possible (vague 1)
-
-Après auth (#5–#6), en parallèle :
-- Projets (#8) + Modèles (#9)
-- Puis convergence sur Lancer revue (#10)
-
----
-
-## GitHub Projects (optionnel)
-
-Créer un **Project board** « Revues Roadmap » :
-
-| Colonne | Contenu |
-|---------|---------|
-| Backlog | Issues non priorisées |
-| Vague 1 | Issues vague 1 |
-| En cours | Assignées |
-| Revue | PR ouvertes |
-| Terminé | Fermées |
-
-Vue recommandée : **Board** par milestone.
-
 ---
 
 ## Déléguer à des agents Cloud
-
-Dans le prompt agent, référencer :
 
 ```
 Implémente l'issue GitHub #N du repo jeb-maker/revues.
@@ -111,22 +67,7 @@ PR : Closes #N
 
 **Bonnes issues pour agents** : bien définies, critères d'acceptation checklist, périmètre fermé.
 
-| Facile à déléguer | Mieux en binôme |
-|-----------------|-----------------|
-| Bootstrap Go (#3) | Auth OAuth (#5) |
-| Schéma DB (#4) | Jira intégration (#19–#20) |
-| HTMX UI (#13) | Lancer revue snapshot (#10) |
-| Webhooks (#21) | Modèles versionnés (#9) |
-
----
-
-## Script de création d'issues
-
-```bash
-./scripts/create-github-issues.sh
-```
-
-Crée les 28 issues (3 épiques + 25 tâches). Labels et milestones à ajouter manuellement si le token n'a pas les permissions.
+Revue humaine obligatoire : auth OAuth, `area:integrations`, chiffrement, webhooks.
 
 ---
 
@@ -135,7 +76,7 @@ Crée les 28 issues (3 épiques + 25 tâches). Labels et milestones à ajouter m
 - [AGENTS.md](../AGENTS.md) — contrat agents
 - [PLAN.md](./PLAN.md) — vision complète
 - [ROADMAP.md](./ROADMAP.md) — dépendances et ordre
-- [REVIEW_ADVERSE.md](./REVIEW_ADVERSE.md) — revue critique
+- [REVIEW_ADVERSE.md](./REVIEW_ADVERSE.md) — pièges connus
 - [RBAC.md](./RBAC.md) — permissions
 - [DEFINITION_OF_DONE.md](./DEFINITION_OF_DONE.md) — critères merge
 - [Issues](https://github.com/jeb-maker/revues/issues)
