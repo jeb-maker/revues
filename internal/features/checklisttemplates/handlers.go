@@ -75,7 +75,7 @@ func (h *ChecklistTemplates) IndexAll(w http.ResponseWriter, r *http.Request) {
 		FilterQuery:      filterQuery,
 		HasActiveFilters: filterQuery != "",
 		CanManage:        CanManageGlobal(user),
-		NotionConfigured: h.notionImportReady(r),
+		NotionConfigured: pd.HasNotion,
 		Message:          r.URL.Query().Get("msg"),
 	}
 
@@ -178,7 +178,7 @@ func (h *ChecklistTemplates) NewForm(w http.ResponseWriter, r *http.Request) {
 		Sections:         sections,
 		SectionsEnabled:  sectionsEnabled(sections),
 		FormAction:       "/modeles",
-		NotionConfigured: h.notionImportReady(r),
+		NotionConfigured: pd.HasNotion,
 	}
 	applyTemplateFormLimits(&data)
 
@@ -296,7 +296,7 @@ func (h *ChecklistTemplates) EditForm(w http.ResponseWriter, r *http.Request) {
 		Sections:         sections,
 		SectionsEnabled:  sectionsEnabled(sections),
 		FormAction:       "/modeles/" + strconv.FormatInt(template.ID, 10),
-		NotionConfigured: h.notionImportReady(r),
+		NotionConfigured: pd.HasNotion,
 	}
 	applyTemplateFormLimits(&data)
 
@@ -536,7 +536,7 @@ func (h *ChecklistTemplates) renderFormError(w http.ResponseWriter, r *http.Requ
 		FormAction:       action,
 		NameError:        nameErr,
 		ItemsError:       itemsErr,
-		NotionConfigured: h.notionImportReady(r),
+		NotionConfigured: pd.HasNotion,
 	}
 	applyTemplateFormLimits(&data)
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")

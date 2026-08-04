@@ -24,13 +24,17 @@ type HeaderData struct {
 	ShowMyTasks         bool
 	ShowSubjectColumn   bool
 	ShowCollab          bool
+	HasJira             bool // P3 — Jira configured (org)
+	HasNotion           bool // P3 — Notion configured (org)
+	HasWebhooks         bool // P3 — webhooks configured (org)
 	UnlockFlash         string
 	DevAuth             bool
 	DevAuthUsers        []store.User
 }
 
 // LoadHeaderData preloads organization switcher data for authenticated requests.
-func LoadHeaderData(st *store.Store) func(http.Handler) http.Handler {
+// encryptionKey enables P3 capability flags (Jira / Notion / webhooks); may be nil.
+func LoadHeaderData(st *store.Store, encryptionKey []byte) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			user, ok := UserFromContext(r.Context())
@@ -58,13 +62,16 @@ func LoadHeaderData(st *store.Store) func(http.Handler) http.Handler {
 
 			hd.CanManageOrgUsers = CanManageOrgUsers(r.Context(), st, user)
 			hd.ShowOrganisationNav = showOrganisationNav(r.Context(), st, user, hd)
-			caps := resolveUICaps(r.Context(), st, user, hd)
+			caps := resolveUICaps(r.Context(), st, user, hd, encryptionKey)
 			hd.SimpleUI = caps.SimpleUI
 			hd.SimpleSubjectID = caps.SimpleSubjectID
 			hd.ShowAssign = caps.ShowAssign
 			hd.ShowMyTasks = caps.ShowMyTasks
 			hd.ShowSubjectColumn = caps.ShowSubjectColumn
 			hd.ShowCollab = caps.ShowCollab
+			hd.HasJira = caps.HasJira
+			hd.HasNotion = caps.HasNotion
+			hd.HasWebhooks = caps.HasWebhooks
 			hd.UnlockFlash = resolveUnlockFlash(w, r, caps)
 
 			if DevAuthUIActive(r.Context()) {

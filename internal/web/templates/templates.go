@@ -144,6 +144,10 @@ type PageData struct {
 	ShowMyTasks         bool
 	ShowSubjectColumn   bool
 	ShowCollab          bool
+	HasJira             bool   // P3 — Jira configured (org); not masked by SimpleUI
+	HasNotion           bool   // P3 — Notion configured (org); not masked by SimpleUI
+	HasWebhooks         bool   // P3 — webhooks configured (org); not masked by SimpleUI
+	HasEvidence         bool   // P3 — sealed evidence available (page-scoped, set by run handlers)
 	UnlockFlash         string // one-shot progressive-disclosure message (P0→P1 / P1→P2)
 	RequestID           string
 	ReportsAutoOpen     bool // open @jeb-maker/reports widget on load (/signaler)
@@ -173,6 +177,10 @@ func (d PageData) ReportsMetadata() map[string]any {
 			"show_my_tasks":       d.ShowMyTasks,
 			"show_subject_column": d.ShowSubjectColumn,
 			"show_collab":         d.ShowCollab,
+			"has_jira":            d.HasJira,
+			"has_notion":          d.HasNotion,
+			"has_webhooks":        d.HasWebhooks,
+			"has_evidence":        d.HasEvidence,
 		},
 	}
 	if d.ActiveOrganization != nil {
@@ -323,6 +331,10 @@ type BugReportContext struct {
 	ShowMyTasks       bool
 	ShowSubjectColumn bool
 	ShowCollab        bool
+	HasJira           bool
+	HasNotion         bool
+	HasWebhooks       bool
+	HasEvidence       bool
 	Timestamp         string
 	UserAgent         string
 	RequestID         string
@@ -336,6 +348,10 @@ func (c BugReportContext) UICapsMap() map[string]any {
 		"show_my_tasks":       c.ShowMyTasks,
 		"show_subject_column": c.ShowSubjectColumn,
 		"show_collab":         c.ShowCollab,
+		"has_jira":            c.HasJira,
+		"has_notion":          c.HasNotion,
+		"has_webhooks":        c.HasWebhooks,
+		"has_evidence":        c.HasEvidence,
 	}
 }
 

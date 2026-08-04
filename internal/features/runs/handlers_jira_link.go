@@ -148,7 +148,7 @@ func (h *Runs) renderRunItemShow(w http.ResponseWriter, r *http.Request, run *st
 		CanCheck:              CanUpdateAccess(user, access),
 		CanUpload:             CanUpdateAccess(user, access) && run.Status == store.RunStatusInProgress,
 		CanLinkJira:           CanLinkJiraAccess(user, access),
-		JiraConfigured:        h.jiraConfigured(r.Context()),
+		JiraConfigured:        pd.HasJira,
 		CanManageIntegrations: appmiddleware.CanManageOrgUsers(r.Context(), h.Store, user),
 		Message:               extra.Message,
 		LinkError:             extra.LinkError,
