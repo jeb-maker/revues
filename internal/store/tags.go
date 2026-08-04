@@ -265,15 +265,7 @@ func setTemplateDomainsTx(ctx context.Context, tx *sql.Tx, templateID int64, dom
 	return nil
 }
 
-// Deprecated tag/domain aliases.
-
-func (s *Store) ListProjectTags(ctx context.Context, subjectID int64) ([]string, error) {
-	return s.ListSubjectDomains(ctx, subjectID)
-}
-
-func (s *Store) SetProjectTags(ctx context.Context, subjectID int64, domains []string) error {
-	return s.SetSubjectDomains(ctx, subjectID, domains)
-}
+// Deprecated tag/domain aliases (still used by checklisttemplates handlers).
 
 func (s *Store) ListTemplateTags(ctx context.Context, templateID int64) ([]string, error) {
 	return s.ListTemplateDomains(ctx, templateID)
@@ -281,8 +273,4 @@ func (s *Store) ListTemplateTags(ctx context.Context, templateID int64) ([]strin
 
 func (s *Store) SetTemplateTags(ctx context.Context, templateID int64, domains []string) error {
 	return s.SetTemplateDomains(ctx, templateID, domains)
-}
-
-func (s *Store) TemplateMatchesProject(ctx context.Context, subjectID, templateID int64) (bool, error) {
-	return s.TemplateMatchesSubject(ctx, subjectID, templateID)
 }

@@ -30,7 +30,7 @@ Voir [.github/PULL_REQUEST_CHECKLIST.md](.github/PULL_REQUEST_CHECKLIST.md)
 ## Éco (si UI touchée)
 
 - [ ] Pas de SPA
-- [ ] JS ≤ 15 Ko / CSS ≤ 20 Ko
+- [ ] JS ≤ 15 Ko ; CSS core ≤ 24 Ko / total ≤ 40 Ko
 - [ ] ≤ 8 requêtes page touchée
 
 ## Tests exécutés

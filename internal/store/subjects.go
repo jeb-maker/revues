@@ -529,10 +529,6 @@ func (s *Store) CountSubjectLeads(ctx context.Context, subjectID int64) (int, er
 
 type Project = Subject
 
-type ProjectMember = SubjectMember
-
-var ErrProjectNotFound = ErrSubjectNotFound
-
 func (s *Store) CreateProject(ctx context.Context, name, description string, creatorID int64, domains []string) (*Project, error) {
 	return s.CreateSubject(ctx, name, description, creatorID, domains)
 }
@@ -541,34 +537,10 @@ func (s *Store) ProjectByID(ctx context.Context, id int64) (*Project, error) {
 	return s.SubjectByID(ctx, id)
 }
 
-func (s *Store) ProjectByIDUnscoped(ctx context.Context, id int64) (*Project, error) {
-	return s.SubjectByIDUnscoped(ctx, id)
-}
-
 func (s *Store) ListProjects(ctx context.Context, userID int64, admin bool, query string) ([]Project, error) {
 	return s.ListSubjects(ctx, userID, admin, query)
 }
 
-func (s *Store) UpdateProject(ctx context.Context, id int64, name, description string, domains []string) error {
-	return s.UpdateSubject(ctx, id, name, description, domains)
-}
-
-func (s *Store) ArchiveProject(ctx context.Context, id int64) error {
-	return s.ArchiveSubject(ctx, id)
-}
-
-func (s *Store) ListProjectMembers(ctx context.Context, subjectID int64) ([]ProjectMember, error) {
-	return s.ListSubjectMembers(ctx, subjectID)
-}
-
 func (s *Store) AddProjectMember(ctx context.Context, subjectID, userID int64, role string) error {
 	return s.AddSubjectMember(ctx, subjectID, userID, role)
-}
-
-func (s *Store) RemoveProjectMember(ctx context.Context, subjectID, userID int64) error {
-	return s.RemoveSubjectMember(ctx, subjectID, userID)
-}
-
-func (s *Store) CountProjectLeads(ctx context.Context, subjectID int64) (int, error) {
-	return s.CountSubjectLeads(ctx, subjectID)
 }

@@ -26,7 +26,7 @@ Décisions produit actées : [decisions.md](decisions.md)
 Statuts, rôles, vocabulaire métier, messages d'erreur, placeholders vs charte (`.field-hint`).
 
 ### Passe 2 — Composants
-`.button*`, `.card`, `empty-state`, toolbars, messages succès/erreur, cohérence listes ↔ détails.
+`mb-button`, `mb-card`, `mb-alert`, toolbars, messages succès/erreur, cohérence listes ↔ détails.
 
 ### Passe 3 — Parcours
 Navigation, breadcrumbs, CTA, wizard lancer revue, onboarding / états vides.
@@ -45,8 +45,6 @@ Pour chaque point retenu : argumenter pour/contre ; séparer bug produit, dette 
 - Refactor architecture, RBAC, sécurité, perf
 - Harmonisation cosmétique sans impact utilisateur
 - Implémentation large sans validation utilisateur
-
-Dette doc (`docs/DESIGN.md`, `/styleguide`) : noter seulement, ne pas implémenter.
 
 ## Livrable
 
@@ -76,7 +74,7 @@ Dette doc (`docs/DESIGN.md`, `/styleguide`) : noter seulement, ne pas implément
 ## Rappels projet
 
 - Stack : Go + chi + `html/template` + HTMX — pas de SPA
-- Budgets : CSS ≤ 20 Ko, HTML ≤ 50 Ko/page
+- Budgets : CSS core ≤ 24 Ko / total ≤ 40 Ko ; HTML ≤ 50 Ko/page ; JS ≤ 15 Ko
 - `./scripts/check.sh` avant tout push si code modifié
 
 ## Prompt utilisateur type

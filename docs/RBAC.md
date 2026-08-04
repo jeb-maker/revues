@@ -4,7 +4,7 @@ Document normatif. Toute PR touchant une route doit mettre à jour la matrice da
 
 ## Sujets v1 (greenfield — en vigueur)
 
-Modèle actuel après migration `subjects` (épique [subjects-epic.md](./issues/subjects-epic.md)).
+Modèle actuel après migration `subjects`.
 
 | Entité | Accès v1 |
 |--------|----------|
@@ -40,11 +40,10 @@ Modèle actuel après migration `subjects` (épique [subjects-epic.md](./issues/
 
 ---
 
-## Modèle cible équipes (épique access-teams — **non implémenté**)
+## Modèle équipes
 
-Les sections ci-dessous décrivent le modèle **futur** sur `subjects` (plus de `projects`).  
-Spec : [access-teams-epic.md](./issues/access-teams-epic.md).  
-**En vigueur aujourd'hui** : section « Sujets v1 » ci-dessus (accès = membre org).
+Les sections ci-dessous décrivent le modèle équipes / grants sur `subjects`.  
+**Accès org-only (SimpleUI / mono-membre)** : section « Sujets v1 » ci-dessus.
 
 ## Rôles
 
@@ -229,5 +228,3 @@ Fichiers cibles : `internal/web/rbac_test.go`, `internal/store/subject_access_te
 ## Évolution
 
 Modifier ce fichier uniquement via PR dédiée `area:auth` avec validation produit.
-
-Spec épique : [docs/issues/access-teams-epic.md](./issues/access-teams-epic.md).
