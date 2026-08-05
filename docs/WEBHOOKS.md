@@ -6,7 +6,43 @@ Signature header: `X-Revues-Signature: sha256=<hmac-sha256 hex of raw body>`.
 
 Events: `review.completed`, `review.item.nok`, `webhook.test`.
 
-Delivery: 3 retries, 5s timeout, anti-SSRF (block private/metadata IPs, https only except localhost in dev).
+## Delivery & durable retry
+
+- HTTP timeout 5s, max 1 redirect, anti-SSRF (block private/metadata IPs; `https` only except `http://localhost` in dev).
+- **Anti-SSRF is re-checked on every attempt** (URL scheme + DNS/IP + dial).
+- Queue table: `webhook_deliveries` (payload + `state` / `attempts` / `next_attempt_at` / `expires_at`).
+- Drain: in-process cron every **1 minute** (`webhooks.StartDrainScheduler`) and opportunistic drain after emit — **same binary**, no Redis / separate worker.
+- Secret HMAC is loaded from settings at attempt time (not stored on the row).
+
+### Backoff
+
+After each failed attempt `n` (1-based count of failures so far), next try is delayed by:
+
+| After attempt | Delay |
+|---------------|-------|
+| 1 | 1 min |
+| 2 | 2 min |
+| 3 | 4 min |
+| 4 | 8 min |
+| … | … capped at **30 min** |
+
+Formula: `min(1m << (n-1), 30m)`.
+
+### TTL
+
+A delivery expires **24 hours** after enqueue (`DeliveryTTL`). If the next backoff would land past TTL, or a due row is past `expires_at`, the row is marked **poison**.
+
+### Max attempts & poison
+
+- Hard cap: **5** HTTP attempts (`MaxAttempts`), including the first try right after enqueue.
+- **Poison** (`state = poison`): no further retries. Triggers:
+  - `attempts >= MaxAttempts`
+  - TTL expired
+  - permanent policy errors (scheme forbidden, blocked IP, localhost in prod)
+- Successful delivery: `state = done`, `success = 1`.
+- Pending: `state = pending` with `next_attempt_at` in the future.
+
+Poison rows are kept for ops inspection; there is no automatic replay UI in this issue.
 
 ## review.completed
 

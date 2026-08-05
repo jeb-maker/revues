@@ -46,7 +46,7 @@ func TestSubjectLabelPreset_CibleShownInAdminNav(t *testing.T) {
 		t.Fatalf("UpdateOrganizationUISubjectLabel(): %v", err)
 	}
 
-	handler, _, err := appweb.NewRouter(appweb.Deps{
+	handler, _, _, err := appweb.NewRouter(appweb.Deps{
 		Config: config.Config{
 			Addr:          ":8080",
 			BaseURL:       "http://example.com",
@@ -110,7 +110,7 @@ func TestSubjectLabelsSave_UpdatesPreset(t *testing.T) {
 		t.Fatalf("AddOrganizationMember(): %v", err)
 	}
 
-	handler, _, err := appweb.NewRouter(appweb.Deps{
+	handler, _, _, err := appweb.NewRouter(appweb.Deps{
 		Config: config.Config{
 			Addr:          ":8080",
 			BaseURL:       "http://example.com",
@@ -190,7 +190,7 @@ func TestRunLabelPreset_ListesEnCoursInNav(t *testing.T) {
 		t.Fatalf("UpdateOrganizationUIRunLabel(): %v", err)
 	}
 
-	handler, _, err := appweb.NewRouter(appweb.Deps{
+	handler, _, _, err := appweb.NewRouter(appweb.Deps{
 		Config: config.Config{
 			Addr:          ":8080",
 			BaseURL:       "http://example.com",

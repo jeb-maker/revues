@@ -59,7 +59,7 @@ func newRBACFixture(t *testing.T) *rbacFixture {
 		Env:           "development",
 	}
 
-	handler, _, err := appweb.NewRouter(appweb.Deps{Config: cfg, DB: db})
+	handler, _, _, err := appweb.NewRouter(appweb.Deps{Config: cfg, DB: db})
 	if err != nil {
 		t.Fatalf("NewRouter(): %v", err)
 	}

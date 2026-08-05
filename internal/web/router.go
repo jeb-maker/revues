@@ -41,20 +41,20 @@ type Deps struct {
 }
 
 // NewRouter builds the HTTP handler tree for the application.
-func NewRouter(deps Deps) (http.Handler, *notifications.Service, error) {
+func NewRouter(deps Deps) (http.Handler, *notifications.Service, *webhooks.Dispatcher, error) {
 	staticFS, err := fs.Sub(webassets.Static, "static")
 	if err != nil {
-		return nil, nil, fmt.Errorf("static assets: %w", err)
+		return nil, nil, nil, fmt.Errorf("static assets: %w", err)
 	}
 
 	assetVersion, err := StaticAssetVersion(staticFS)
 	if err != nil {
-		return nil, nil, fmt.Errorf("static asset version: %w", err)
+		return nil, nil, nil, fmt.Errorf("static asset version: %w", err)
 	}
 
 	tpl, err := templates.Parse(assetVersion)
 	if err != nil {
-		return nil, nil, fmt.Errorf("load templates: %w", err)
+		return nil, nil, nil, fmt.Errorf("load templates: %w", err)
 	}
 
 	st := store.New(deps.DB)
@@ -78,7 +78,7 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, error) {
 	}
 	adminSMTPKey, err := deps.Config.EncryptionKeyBytes()
 	if err != nil {
-		return nil, nil, fmt.Errorf("encryption key: %w", err)
+		return nil, nil, nil, fmt.Errorf("encryption key: %w", err)
 	}
 	settingsSvc := &adminsettings.SettingsService{
 		Store:         st,
@@ -303,5 +303,5 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, error) {
 		r.Post("/admin/integrations/notion", adminNotion.Save)
 	})
 
-	return r, notificationsSvc, nil
+	return r, notificationsSvc, webhookDispatcher, nil
 }

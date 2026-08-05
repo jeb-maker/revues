@@ -7,10 +7,14 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/jeb-maker/revues/internal/features/admin/settings"
 	"github.com/jeb-maker/revues/internal/integrations/webhooks"
+	"github.com/jeb-maker/revues/internal/store"
 )
 
 func TestWebhook_HMAC(t *testing.T) {
@@ -75,7 +79,8 @@ func TestDispatcher_SendTest(t *testing.T) {
 	}))
 	t.Cleanup(srv.Close)
 	cfg := settings.WebhookConfig{URLs: []string{srv.URL}, Secret: "test-secret", ReviewCompleted: true}
-	d := &webhooks.Dispatcher{Settings: stubSettings{cfg, true}, Store: stubStore{}, DevMode: true, Client: srv.Client()}
+	mem := newMemStore()
+	d := &webhooks.Dispatcher{Settings: stubSettings{cfg, true}, Store: mem, DevMode: true, Client: srv.Client()}
 	if err := d.SendTest(context.Background()); err != nil {
 		t.Fatal(err)
 	}
@@ -85,6 +90,9 @@ func TestDispatcher_SendTest(t *testing.T) {
 	var env webhooks.Envelope
 	if err := json.Unmarshal(gotBody, &env); err != nil || env.EventType != webhooks.EventTest {
 		t.Fatal("bad payload")
+	}
+	if len(mem.byID) != 1 || mem.byID[1].State != store.WebhookDeliveryDone {
+		t.Fatalf("delivery state = %+v", mem.byID)
 	}
 }
 
@@ -106,6 +114,161 @@ func TestValidateTargetURL_ResolvesLoopback(t *testing.T) {
 	_ = resp.Body.Close()
 }
 
+func TestBackoffAfterAttempt(t *testing.T) {
+	tests := []struct {
+		attempt int
+		want    time.Duration
+	}{
+		{1, time.Minute},
+		{2, 2 * time.Minute},
+		{3, 4 * time.Minute},
+		{4, 8 * time.Minute},
+		{5, 16 * time.Minute},
+		{6, 30 * time.Minute},
+		{10, 30 * time.Minute},
+	}
+	for _, tt := range tests {
+		if got := webhooks.BackoffAfterAttempt(tt.attempt); got != tt.want {
+			t.Fatalf("attempt %d: got %v want %v", tt.attempt, got, tt.want)
+		}
+	}
+}
+
+func TestDispatcher_Drain_RetriesThenSucceeds(t *testing.T) {
+	var hits atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		n := hits.Add(1)
+		if n == 1 {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	t.Cleanup(srv.Close)
+
+	now := time.Date(2026, 8, 5, 12, 0, 0, 0, time.UTC)
+	mem := newMemStore()
+	cfg := settings.WebhookConfig{URLs: []string{srv.URL}, Secret: "s", ReviewCompleted: true}
+	d := &webhooks.Dispatcher{
+		Settings: stubSettings{cfg, true},
+		Store:    mem,
+		DevMode:  true,
+		Client:   srv.Client(),
+		Now:      func() time.Time { return now },
+	}
+	if err := d.SendTest(context.Background()); err == nil {
+		t.Fatal("expected first attempt failure")
+	}
+	del := mem.byID[1]
+	if del.State != store.WebhookDeliveryPending || del.Attempts != 1 {
+		t.Fatalf("after fail: %+v", del)
+	}
+	next, err := time.Parse(time.RFC3339, del.NextAttemptAt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	now = next
+	if err := d.Drain(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	del = mem.byID[1]
+	if del.State != store.WebhookDeliveryDone || del.Attempts != 2 || hits.Load() != 2 {
+		t.Fatalf("after drain: %+v hits=%d", del, hits.Load())
+	}
+}
+
+func TestDispatcher_Drain_PoisonAfterMaxAttempts(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+	t.Cleanup(srv.Close)
+
+	now := time.Date(2026, 8, 5, 12, 0, 0, 0, time.UTC)
+	mem := newMemStore()
+	cfg := settings.WebhookConfig{URLs: []string{srv.URL}, Secret: "s", ReviewCompleted: true}
+	d := &webhooks.Dispatcher{
+		Settings: stubSettings{cfg, true},
+		Store:    mem,
+		DevMode:  true,
+		Client:   srv.Client(),
+		Now:      func() time.Time { return now },
+	}
+	_ = d.SendTest(context.Background())
+	for i := 0; i < webhooks.MaxAttempts; i++ {
+		del := mem.byID[1]
+		if del.State != store.WebhookDeliveryPending {
+			break
+		}
+		next, err := time.Parse(time.RFC3339, del.NextAttemptAt)
+		if err != nil {
+			t.Fatal(err)
+		}
+		now = next
+		if err := d.Drain(context.Background()); err != nil {
+			t.Fatal(err)
+		}
+	}
+	del := mem.byID[1]
+	if del.State != store.WebhookDeliveryPoison || del.Attempts != webhooks.MaxAttempts {
+		t.Fatalf("want poison after %d attempts, got %+v", webhooks.MaxAttempts, del)
+	}
+}
+
+func TestDispatcher_Drain_PoisonAfterTTL(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusBadGateway)
+	}))
+	t.Cleanup(srv.Close)
+
+	now := time.Date(2026, 8, 5, 12, 0, 0, 0, time.UTC)
+	mem := newMemStore()
+	cfg := settings.WebhookConfig{URLs: []string{srv.URL}, Secret: "s", ReviewCompleted: true}
+	d := &webhooks.Dispatcher{
+		Settings: stubSettings{cfg, true},
+		Store:    mem,
+		DevMode:  true,
+		Client:   srv.Client(),
+		Now:      func() time.Time { return now },
+	}
+	_ = d.SendTest(context.Background())
+	del := mem.byID[1]
+	if del.State != store.WebhookDeliveryPending {
+		t.Fatalf("expected pending, got %+v", del)
+	}
+	now = now.Add(webhooks.DeliveryTTL + time.Second)
+	if err := d.Drain(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	del = mem.byID[1]
+	if del.State != store.WebhookDeliveryPoison || !strings.Contains(del.LastError, "ttl") {
+		t.Fatalf("want ttl poison, got %+v", del)
+	}
+}
+
+func TestDispatcher_Drain_ReChecksSSRF(t *testing.T) {
+	now := time.Date(2026, 8, 5, 12, 0, 0, 0, time.UTC)
+	mem := newMemStore()
+	id, err := mem.EnqueueWebhookDelivery(context.Background(), "e1", webhooks.EventTest, "https://192.168.1.10/hook", []byte(`{}`), now, now.Add(webhooks.DeliveryTTL))
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg := settings.WebhookConfig{URLs: []string{"https://example.com"}, Secret: "s", ReviewCompleted: true}
+	d := &webhooks.Dispatcher{
+		Settings: stubSettings{cfg, true},
+		Store:    mem,
+		DevMode:  false,
+		Client:   webhooks.NewSafeClient(false),
+		Now:      func() time.Time { return now },
+	}
+	if err := d.Drain(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	del := mem.byID[id]
+	if del.State != store.WebhookDeliveryPoison || !strings.Contains(del.LastError, "blocked ip") {
+		t.Fatalf("want SSRF poison, got %+v", del)
+	}
+}
+
 type stubSettings struct {
 	cfg settings.WebhookConfig
 	ok  bool
@@ -115,8 +278,75 @@ func (s stubSettings) LoadWebhooks(context.Context) (settings.WebhookConfig, boo
 	return s.cfg, s.ok, nil
 }
 
-type stubStore struct{}
+type memStore struct {
+	mu   sync.Mutex
+	seq  int64
+	byID map[int64]store.WebhookDelivery
+}
 
-func (stubStore) InsertWebhookDelivery(context.Context, string, string, string, int, bool) error {
+func newMemStore() *memStore {
+	return &memStore{byID: make(map[int64]store.WebhookDelivery)}
+}
+
+func (m *memStore) EnqueueWebhookDelivery(_ context.Context, eventID, eventType, url string, payload []byte, nextAttemptAt, expiresAt time.Time) (int64, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.seq++
+	id := m.seq
+	m.byID[id] = store.WebhookDelivery{
+		ID:            id,
+		EventID:       eventID,
+		EventType:     eventType,
+		URL:           url,
+		Payload:       append([]byte(nil), payload...),
+		Attempts:      0,
+		NextAttemptAt: nextAttemptAt.UTC().Format(time.RFC3339),
+		ExpiresAt:     expiresAt.UTC().Format(time.RFC3339),
+		State:         store.WebhookDeliveryPending,
+		CreatedAt:     time.Now().UTC().Format(time.RFC3339),
+	}
+	return id, nil
+}
+
+func (m *memStore) ListDueWebhookDeliveries(_ context.Context, now time.Time, limit int) ([]store.WebhookDelivery, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	nowStr := now.UTC().Format(time.RFC3339)
+	var out []store.WebhookDelivery
+	for _, d := range m.byID {
+		if d.State != store.WebhookDeliveryPending || d.NextAttemptAt == "" || d.NextAttemptAt > nowStr {
+			continue
+		}
+		cp := d
+		cp.Payload = append([]byte(nil), d.Payload...)
+		out = append(out, cp)
+		if limit > 0 && len(out) >= limit {
+			break
+		}
+	}
+	return out, nil
+}
+
+func (m *memStore) UpdateWebhookDeliveryAttempt(_ context.Context, id int64, statusCode int, success bool, attempts int, nextAttemptAt *time.Time, state, lastError string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	d, ok := m.byID[id]
+	if !ok {
+		return nil
+	}
+	d.Attempts = attempts
+	d.Success = success
+	d.State = state
+	d.LastError = lastError
+	if statusCode > 0 {
+		d.StatusCode.Valid = true
+		d.StatusCode.Int64 = int64(statusCode)
+	}
+	if nextAttemptAt != nil {
+		d.NextAttemptAt = nextAttemptAt.UTC().Format(time.RFC3339)
+	} else {
+		d.NextAttemptAt = ""
+	}
+	m.byID[id] = d
 	return nil
 }

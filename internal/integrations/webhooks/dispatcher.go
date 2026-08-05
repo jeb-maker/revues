@@ -27,9 +27,22 @@ const (
 	EventReviewCompleted = "review.completed"
 	EventReviewItemNOK   = "review.item.nok"
 	EventTest            = "webhook.test"
-	maxAttempts          = 3
-	requestTimeout       = 5 * time.Second
-	maxRedirects         = 1
+
+	requestTimeout = 5 * time.Second
+	maxRedirects   = 1
+
+	// MaxAttempts is the hard cap on HTTP tries per delivery (including the first).
+	MaxAttempts = 5
+	// DeliveryTTL is how long a pending delivery may stay in the queue.
+	DeliveryTTL = 24 * time.Hour
+	// DrainInterval is the in-process cron cadence for pending deliveries.
+	DrainInterval = time.Minute
+	// DrainBatchSize limits rows processed per drain tick.
+	DrainBatchSize = 50
+	// maxBackoff caps exponential backoff between attempts.
+	maxBackoff = 30 * time.Minute
+	// baseBackoff is the delay after the first failure (attempt 1 → 2).
+	baseBackoff = time.Minute
 )
 
 type SettingsLoader interface {
@@ -37,7 +50,9 @@ type SettingsLoader interface {
 }
 
 type DeliveryStore interface {
-	InsertWebhookDelivery(ctx context.Context, eventID, eventType, url string, statusCode int, success bool) error
+	EnqueueWebhookDelivery(ctx context.Context, eventID, eventType, url string, payload []byte, nextAttemptAt, expiresAt time.Time) (int64, error)
+	ListDueWebhookDeliveries(ctx context.Context, now time.Time, limit int) ([]store.WebhookDelivery, error)
+	UpdateWebhookDeliveryAttempt(ctx context.Context, id int64, statusCode int, success bool, attempts int, nextAttemptAt *time.Time, state, lastError string) error
 }
 
 type RunLoader interface {
@@ -84,7 +99,7 @@ func (d *Dispatcher) SendTest(ctx context.Context) error {
 	}
 	var firstErr error
 	for _, target := range cfg.URLs {
-		if err := d.deliverWithRetry(ctx, cfg, target, eventID, EventTest, body); err != nil {
+		if err := d.enqueueAndAttempt(ctx, cfg, target, eventID, EventTest, body); err != nil {
 			slog.Error("webhook test delivery failed", "event_id", eventID, "url", redactURL(target), "err", err)
 			if firstErr == nil {
 				firstErr = err
@@ -92,6 +107,77 @@ func (d *Dispatcher) SendTest(ctx context.Context) error {
 		}
 	}
 	return firstErr
+}
+
+// Drain processes due pending deliveries (cron or opportunistic request path).
+func (d *Dispatcher) Drain(ctx context.Context) error {
+	if d == nil || d.Settings == nil || d.Store == nil {
+		return nil
+	}
+	cfg, ok, err := d.Settings.LoadWebhooks(ctx)
+	if err != nil {
+		return fmt.Errorf("load webhooks for drain: %w", err)
+	}
+	if !ok || !cfg.Enabled() {
+		return nil
+	}
+	due, err := d.Store.ListDueWebhookDeliveries(ctx, d.now(), DrainBatchSize)
+	if err != nil {
+		return err
+	}
+	for _, del := range due {
+		if err := d.processQueued(ctx, cfg.Secret, del); err != nil {
+			slog.Error("webhook drain attempt failed", "delivery_id", del.ID, "event_id", del.EventID, "url", redactURL(del.URL), "err", err)
+		}
+	}
+	return nil
+}
+
+// StartDrainScheduler runs Drain on startup and every interval in the same process.
+func StartDrainScheduler(ctx context.Context, d *Dispatcher, interval time.Duration) {
+	if d == nil {
+		return
+	}
+	if interval <= 0 {
+		interval = DrainInterval
+	}
+	go func() {
+		run := func() {
+			drainCtx, cancel := context.WithTimeout(context.Background(), requestTimeout*time.Duration(DrainBatchSize)+5*time.Second)
+			defer cancel()
+			if err := d.Drain(drainCtx); err != nil {
+				slog.Error("webhook drain", "err", err)
+			}
+		}
+		run()
+		ticker := time.NewTicker(interval)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				run()
+			}
+		}
+	}()
+}
+
+// BackoffAfterAttempt returns the delay before the next attempt after a failed try.
+// attempt is the number of failed attempts so far (1 after first failure).
+func BackoffAfterAttempt(attempt int) time.Duration {
+	if attempt < 1 {
+		attempt = 1
+	}
+	shift := attempt - 1
+	if shift > 8 {
+		shift = 8
+	}
+	d := baseBackoff << shift
+	if d > maxBackoff {
+		return maxBackoff
+	}
+	return d
 }
 
 func (d *Dispatcher) emitAsync(ctx context.Context, eventType string, build func(context.Context) (any, error)) {
@@ -107,7 +193,7 @@ func (d *Dispatcher) emitAsync(ctx context.Context, eventType string, build func
 		return
 	}
 	go func() {
-		bg, cancel := context.WithTimeout(context.Background(), requestTimeout*time.Duration(maxAttempts)+2*time.Second)
+		bg, cancel := context.WithTimeout(context.Background(), requestTimeout+2*time.Second)
 		defer cancel()
 		data, err := build(bg)
 		if err != nil {
@@ -121,37 +207,100 @@ func (d *Dispatcher) emitAsync(ctx context.Context, eventType string, build func
 			return
 		}
 		for _, target := range cfg.URLs {
-			if err := d.deliverWithRetry(bg, cfg, target, eventID, eventType, body); err != nil {
+			if err := d.enqueueAndAttempt(bg, cfg, target, eventID, eventType, body); err != nil {
 				slog.Error("webhook delivery failed", "event_id", eventID, "event_type", eventType, "url", redactURL(target), "err", err)
 			}
+		}
+		// Opportunistic drain of other due rows on the request/emit path.
+		drainCtx, drainCancel := context.WithTimeout(context.Background(), requestTimeout*3)
+		defer drainCancel()
+		if err := d.Drain(drainCtx); err != nil {
+			slog.Error("webhook opportunistic drain", "err", err)
 		}
 	}()
 }
 
-func (d *Dispatcher) deliverWithRetry(ctx context.Context, cfg settings.WebhookConfig, target, eventID, eventType string, body []byte) error {
-	var lastErr error
-	for attempt := 1; attempt <= maxAttempts; attempt++ {
-		statusCode, err := d.deliverOnce(ctx, cfg.Secret, target, eventID, eventType, body)
-		success := err == nil && statusCode >= 200 && statusCode < 300
-		if logErr := d.Store.InsertWebhookDelivery(ctx, eventID, eventType, target, statusCode, success); logErr != nil {
-			slog.Error("log webhook delivery", "event_id", eventID, "err", logErr)
-		}
-		if success {
-			return nil
-		}
-		if err != nil {
-			lastErr = err
-		} else {
-			lastErr = fmt.Errorf("unexpected status %d", statusCode)
-		}
-		if attempt < maxAttempts {
-			time.Sleep(time.Duration(attempt) * 200 * time.Millisecond)
+func (d *Dispatcher) enqueueAndAttempt(ctx context.Context, cfg settings.WebhookConfig, target, eventID, eventType string, body []byte) error {
+	now := d.now()
+	expires := now.Add(DeliveryTTL)
+	id, err := d.Store.EnqueueWebhookDelivery(ctx, eventID, eventType, target, body, now, expires)
+	if err != nil {
+		return err
+	}
+	del := store.WebhookDelivery{
+		ID:        id,
+		EventID:   eventID,
+		EventType: eventType,
+		URL:       target,
+		Payload:   body,
+		Attempts:  0,
+		ExpiresAt: expires.UTC().Format(time.RFC3339),
+		State:     store.WebhookDeliveryPending,
+	}
+	return d.processQueued(ctx, cfg.Secret, del)
+}
+
+func (d *Dispatcher) processQueued(ctx context.Context, secret string, del store.WebhookDelivery) error {
+	now := d.now()
+	if del.ExpiresAt != "" {
+		if exp, err := time.Parse(time.RFC3339, del.ExpiresAt); err == nil && !now.Before(exp) {
+			if updErr := d.Store.UpdateWebhookDeliveryAttempt(ctx, del.ID, 0, false, del.Attempts, nil, store.WebhookDeliveryPoison, "ttl expired"); updErr != nil {
+				return updErr
+			}
+			return fmt.Errorf("ttl expired")
 		}
 	}
-	return lastErr
+
+	statusCode, err := d.deliverOnce(ctx, secret, del.URL, del.EventID, del.EventType, del.Payload)
+	attempts := del.Attempts + 1
+	success := err == nil && statusCode >= 200 && statusCode < 300
+	if success {
+		return d.Store.UpdateWebhookDeliveryAttempt(ctx, del.ID, statusCode, true, attempts, nil, store.WebhookDeliveryDone, "")
+	}
+
+	lastErr := "unexpected status"
+	if err != nil {
+		lastErr = err.Error()
+	} else {
+		lastErr = fmt.Sprintf("unexpected status %d", statusCode)
+	}
+
+	persist := func(next *time.Time, state string) error {
+		if updErr := d.Store.UpdateWebhookDeliveryAttempt(ctx, del.ID, statusCode, false, attempts, next, state, lastErr); updErr != nil {
+			return updErr
+		}
+		return fmt.Errorf("%s", lastErr)
+	}
+
+	// Permanent policy failures (anti-SSRF) become poison immediately.
+	if err != nil && isPermanentDeliveryError(err) {
+		return persist(nil, store.WebhookDeliveryPoison)
+	}
+
+	if attempts >= MaxAttempts {
+		return persist(nil, store.WebhookDeliveryPoison)
+	}
+
+	next := now.Add(BackoffAfterAttempt(attempts))
+	if del.ExpiresAt != "" {
+		if exp, parseErr := time.Parse(time.RFC3339, del.ExpiresAt); parseErr == nil && !next.Before(exp) {
+			lastErr += "; next backoff past ttl"
+			return persist(nil, store.WebhookDeliveryPoison)
+		}
+	}
+	return persist(&next, store.WebhookDeliveryPending)
+}
+
+func isPermanentDeliveryError(err error) bool {
+	msg := err.Error()
+	return strings.Contains(msg, "scheme not allowed") ||
+		strings.Contains(msg, "blocked ip") ||
+		strings.Contains(msg, "localhost not allowed") ||
+		strings.Contains(msg, "invalid url")
 }
 
 func (d *Dispatcher) deliverOnce(ctx context.Context, secret, target, eventID, eventType string, body []byte) (int, error) {
+	// Anti-SSRF re-checked on every attempt (URL + resolved IPs + dial).
 	if err := ValidateTargetURL(target, d.DevMode); err != nil {
 		return 0, err
 	}
