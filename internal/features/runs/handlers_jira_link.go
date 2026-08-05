@@ -69,11 +69,6 @@ func (h *Runs) jiraLinkService() *jira.LinkService {
 	}
 }
 
-func (h *Runs) jiraConfigured(ctx context.Context) bool {
-	ok, err := h.jiraLinkService().Configured(ctx)
-	return err == nil && ok
-}
-
 func linkErrorMessage(err error) string {
 	switch {
 	case errors.Is(err, jira.ErrNotConfigured):
