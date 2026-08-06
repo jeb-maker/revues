@@ -30,7 +30,7 @@ func TestWebhookDeliveryQueue_EnqueueListUpdate(t *testing.T) {
 	}
 
 	future := now.Add(time.Minute)
-	if err := st.UpdateWebhookDeliveryAttempt(ctx, id, 503, false, 1, &future, store.WebhookDeliveryPending, "unexpected status 503"); err != nil {
+	if err = st.UpdateWebhookDeliveryAttempt(ctx, id, 503, false, 1, &future, store.WebhookDeliveryPending, "unexpected status 503"); err != nil {
 		t.Fatalf("UpdateWebhookDeliveryAttempt: %v", err)
 	}
 
@@ -50,7 +50,7 @@ func TestWebhookDeliveryQueue_EnqueueListUpdate(t *testing.T) {
 		t.Fatalf("due future = %+v", due)
 	}
 
-	if err := st.UpdateWebhookDeliveryAttempt(ctx, id, 200, true, 2, nil, store.WebhookDeliveryDone, ""); err != nil {
+	if err = st.UpdateWebhookDeliveryAttempt(ctx, id, 200, true, 2, nil, store.WebhookDeliveryDone, ""); err != nil {
 		t.Fatalf("mark done: %v", err)
 	}
 	due, err = st.ListDueWebhookDeliveries(ctx, future.Add(time.Hour), 10)
