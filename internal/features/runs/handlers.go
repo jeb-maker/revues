@@ -651,6 +651,8 @@ func (h *Runs) renderRunShow(w http.ResponseWriter, r *http.Request, run *store.
 	pd.Title = pageTitle
 	pd.Breadcrumbs = viewtemplates.BCRunShow(pageTitle, pd.Labels.Run)
 	pd.ActiveTab = "runs"
+	canExportEvidence := run.Status == store.RunStatusDone && strings.TrimSpace(run.EvidenceCSVSHA256) != ""
+	pd.HasEvidence = canExportEvidence
 	data := viewtemplates.RunShowData{
 		PageData:          pd,
 		Subject:           project,
@@ -672,11 +674,11 @@ func (h *Runs) renderRunShow(w http.ResponseWriter, r *http.Request, run *store.
 		CanCheck:          CanUpdateAccess(user, access),
 		CanAssign:         showAssign && CanAssignAccess(user, access),
 		CanLinkJira:       CanLinkJiraAccess(user, access),
-		JiraConfigured:    h.jiraConfigured(r.Context()),
+		JiraConfigured:    pd.HasJira,
 		CanComplete:       CanCompleteAccess(user, access),
 		NotionConfigured:  h.notionConfigured(r.Context()),
 		CanExportNotion:   CanCompleteAccess(user, access) && run.Status == store.RunStatusDone && strings.TrimSpace(run.NotionURL) == "",
-		CanExportEvidence: run.Status == store.RunStatusDone && strings.TrimSpace(run.EvidenceCSVSHA256) != "",
+		CanExportEvidence: canExportEvidence,
 		Progress:          h.progressData(run.ID, runItems),
 		Message:           extra.Message,
 		ItemError:         extra.ItemError,

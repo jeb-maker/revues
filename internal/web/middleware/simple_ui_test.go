@@ -116,7 +116,7 @@ func TestResolveUICaps_DuoUnlocksAssign(t *testing.T) {
 	hd := HeaderData{
 		UserOrganizations: []store.OrganizationMembership{{Organization: *org, Role: store.OrgRoleOwner}},
 	}
-	caps := resolveUICaps(reqCtx, st, owner, hd)
+	caps := resolveUICaps(reqCtx, st, owner, hd, nil)
 	if caps.SimpleUI {
 		t.Fatal("duo must not be SimpleUI")
 	}
@@ -125,6 +125,9 @@ func TestResolveUICaps_DuoUnlocksAssign(t *testing.T) {
 	}
 	if caps.ShowSubjectColumn {
 		t.Fatal("single subject must not show subject column")
+	}
+	if caps.HasJira || caps.HasNotion || caps.HasWebhooks {
+		t.Fatalf("P3 caps without config = %+v", caps)
 	}
 }
 
@@ -159,7 +162,7 @@ func TestResolveUICaps_SoloMultiSubject(t *testing.T) {
 	hd := HeaderData{
 		UserOrganizations: []store.OrganizationMembership{{Organization: *org, Role: store.OrgRoleOwner}},
 	}
-	caps := resolveUICaps(reqCtx, st, user, hd)
+	caps := resolveUICaps(reqCtx, st, user, hd, nil)
 	if caps.SimpleUI {
 		t.Fatal("multi-subject must not be SimpleUI")
 	}

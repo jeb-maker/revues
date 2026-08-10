@@ -215,6 +215,9 @@ func buildContextSummary(r *http.Request, user *store.User) viewtemplates.BugRep
 		ctx.ShowMyTasks = hd.ShowMyTasks
 		ctx.ShowSubjectColumn = hd.ShowSubjectColumn
 		ctx.ShowCollab = hd.ShowCollab
+		ctx.HasJira = hd.HasJira
+		ctx.HasNotion = hd.HasNotion
+		ctx.HasWebhooks = hd.HasWebhooks
 		if hd.ActiveOrg != nil {
 			ctx.OrgID = hd.ActiveOrg.ID
 			ctx.OrgName = hd.ActiveOrg.Name

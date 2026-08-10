@@ -2,10 +2,18 @@
 {{template "layout_start" .}}
 <mb-card>
   <h2>Organisation</h2>
+  {{if .ShowOrganisationNav}}
   {{if .OrganizationName}}
   <p class="muted">Gérez <strong>{{.OrganizationName}}</strong> — membres, {{.Labels.Subject.Plural | lowerFirst}} et intégrations.</p>
   {{else}}
   <p class="muted">Gérez les membres, {{.Labels.Subject.Plural | lowerFirst}} et intégrations de l'organisation.</p>
+  {{end}}
+  {{else}}
+  {{if .OrganizationName}}
+  <p class="muted">Invitez un collègue ou gérez vos {{.Labels.Subject.Plural | lowerFirst}} pour <strong>{{.OrganizationName}}</strong>.</p>
+  {{else}}
+  <p class="muted">Invitez un collègue ou gérez vos {{.Labels.Subject.Plural | lowerFirst}}.</p>
+  {{end}}
   {{end}}
 </mb-card>
 
@@ -13,12 +21,16 @@
   <h2>Accès rapide</h2>
   <div class="empty-state-actions">
     <mb-button href="/admin/users" variant="secondary">Inviter</mb-button>
+    {{if .ShowOrganisationNav}}
     <mb-button href="/admin/teams" variant="secondary">Équipes</mb-button>
+    {{end}}
     <mb-button href="/admin/subjects" variant="secondary">Mes {{.Labels.Subject.Plural | lowerFirst}}</mb-button>
+    {{if .ShowOrganisationNav}}
     <mb-button href="/admin/settings/labels" variant="secondary">Libellé {{.Labels.Subject.Singular | lowerFirst}}</mb-button>
     <mb-button href="/admin/settings/policies" variant="secondary">Politiques</mb-button>
     {{if .CanManageOrgUsers}}
     <mb-button href="/admin/integrations" variant="secondary">Intégrations</mb-button>
+    {{end}}
     {{end}}
   </div>
 </mb-card>
