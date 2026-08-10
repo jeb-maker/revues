@@ -1,12 +1,12 @@
-import { LitElement as c, css as f, nothing as h, html as p } from "lit";
+import { LitElement as c, css as f, nothing as h, html as d } from "lit";
 import { property as l, state as b } from "lit/decorators.js";
 import { repeat as v } from "lit/directives/repeat.js";
 import { setFormValue as y, constraintFlags as m, setValidity as g, clearValidity as $ } from "../lib/form.js";
 import { safeDefine as O } from "../lib/safe-define.js";
 import { sharedStyles as S, fieldStyles as q, fieldLabelState as _ } from "../lib/styles.js";
 var B = Object.defineProperty, i = (a, t, e, n) => {
-  for (var r = void 0, o = a.length - 1, d; o >= 0; o--)
-    (d = a[o]) && (r = d(t, e, r) || r);
+  for (var r = void 0, o = a.length - 1, p; o >= 0; o--)
+    (p = a[o]) && (r = p(t, e, r) || r);
   return r && B(t, e, r), r;
 };
 function C(a) {
@@ -40,7 +40,8 @@ class s extends c {
         display: block;
       }
 
-      slot[name='options'] {
+      /* Options are mirrored into the shadow <select>; keep light-DOM slots invisible. */
+      slot {
         display: none;
       }
     `
@@ -52,14 +53,14 @@ class s extends c {
   #l;
   #r;
   #s;
-  get #p() {
+  get #d() {
     return this.disabled || this.#i;
   }
   get #o() {
     return this._slottedOptions.length ? this._slottedOptions : this.options;
   }
   /** Non-empty options rendered after the placeholder option. */
-  get #d() {
+  get #p() {
     return this.#o.filter((t) => t.value !== "");
   }
   get #u() {
@@ -99,8 +100,8 @@ class s extends c {
     const t = this.renderRoot.querySelector('slot[name="options"]'), e = this.renderRoot.querySelector("slot:not([name])"), r = [
       ...t?.assignedElements({ flatten: !0 }) ?? [],
       ...e?.assignedElements({ flatten: !0 }) ?? []
-    ].map((u) => this.#a(u)).filter((u) => u != null), o = JSON.stringify(this._slottedOptions), d = JSON.stringify(r);
-    o !== d && (this._slottedOptions = r);
+    ].map((u) => this.#a(u)).filter((u) => u != null), o = JSON.stringify(this._slottedOptions), p = JSON.stringify(r);
+    o !== p && (this._slottedOptions = r);
   }
   #n() {
     this.#b();
@@ -130,9 +131,9 @@ class s extends c {
       this.hideLabel,
       this.#c
     );
-    return p`
+    return d`
       <div class="field">
-        ${e ? p`<label
+        ${e ? d`<label
               part="label"
               class="label${n ? " visually-hidden" : ""}"
               for="control"
@@ -143,7 +144,7 @@ class s extends c {
           part="control"
           class="control"
           name=${this.name || h}
-          ?disabled=${this.#p}
+          ?disabled=${this.#d}
           ?required=${this.required}
           aria-invalid=${this.invalid ? "true" : "false"}
           aria-label=${r || h}
@@ -153,17 +154,17 @@ class s extends c {
         >
           <option value="" ?disabled=${this.required}>${this.#u}</option>
           ${v(
-      this.#d,
+      this.#p,
       (o) => o.value,
-      (o) => p`
+      (o) => d`
               <option value=${o.value} ?disabled=${!!o.disabled}>
                 ${o.label}
               </option>
             `
     )}
         </select>
-        ${this.hint && !this.error ? p`<p id="hint" class="hint">${this.hint}</p>` : h}
-        ${this.error ? p`<p id="error" class="error" role="alert">${this.error}</p>` : h}
+        ${this.hint && !this.error ? d`<p id="hint" class="hint">${this.hint}</p>` : h}
+        ${this.error ? d`<p id="error" class="error" role="alert">${this.error}</p>` : h}
       </div>
       <slot name="options" @slotchange=${this.#n}></slot>
       <slot @slotchange=${this.#n}></slot>
