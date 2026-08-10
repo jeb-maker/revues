@@ -148,7 +148,7 @@ type PageData struct {
 	HasNotion           bool   // P3 — Notion configured (org); not masked by SimpleUI
 	HasWebhooks         bool   // P3 — webhooks configured (org); not masked by SimpleUI
 	HasEvidence         bool   // P3 — sealed evidence available (page-scoped, set by run handlers)
-	UnlockFlash         string // one-shot progressive-disclosure message (P0→P1 / P1→P2)
+	UnlockFlash         string // one-shot progressive-disclosure (whitelist→org / P0→P1 / P1→P2)
 	RequestID           string
 	ReportsAutoOpen     bool // open @jeb-maker/reports widget on load (/signaler)
 	Breadcrumbs         []Breadcrumb

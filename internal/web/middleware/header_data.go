@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/jeb-maker/revues/internal/auth"
 	"github.com/jeb-maker/revues/internal/store"
 )
 
@@ -72,7 +73,10 @@ func LoadHeaderData(st *store.Store, encryptionKey []byte) func(http.Handler) ht
 			hd.HasJira = caps.HasJira
 			hd.HasNotion = caps.HasNotion
 			hd.HasWebhooks = caps.HasWebhooks
-			hd.UnlockFlash = resolveUnlockFlash(w, r, caps)
+			hd.UnlockFlash = resolveUnlockFlash(w, r, unlockFlashInput{
+				caps:               caps,
+				whitelistOrgUnlock: isWhitelistOrgUnlock(r.Context(), st, user, hd),
+			})
 
 			if DevAuthUIActive(r.Context()) {
 				hd.DevAuth = true
@@ -93,7 +97,33 @@ func HeaderDataFromContext(ctx context.Context) (HeaderData, bool) {
 	return hd, ok
 }
 
-func resolveUnlockFlash(w http.ResponseWriter, r *http.Request, caps UICaps) string {
+type unlockFlashInput struct {
+	caps               UICaps
+	whitelistOrgUnlock bool
+}
+
+// isWhitelistOrgUnlock is true when the Organisation tab appears because a second
+// whitelist email was added while the org is still solo (1 member) — not admin/global.
+func isWhitelistOrgUnlock(ctx context.Context, st *store.Store, user *store.User, hd HeaderData) bool {
+	if user == nil || !hd.ShowOrganisationNav {
+		return false
+	}
+	if auth.HasMinRole(user.Role, auth.RoleAdmin) {
+		return false
+	}
+	org, ok := OrganizationFromContext(ctx)
+	if !ok {
+		return false
+	}
+	n, err := st.CountOrganizationMembers(ctx, org.ID)
+	if err != nil || n != 1 {
+		return false
+	}
+	allowed, err := st.CountAllowedEmails(ctx)
+	return err == nil && allowed > 1
+}
+
+func resolveUnlockFlash(w http.ResponseWriter, r *http.Request, in unlockFlashInput) string {
 	seen := ""
 	if c, err := r.Cookie(unlockCookieName); err == nil {
 		seen = c.Value
@@ -101,12 +131,15 @@ func resolveUnlockFlash(w http.ResponseWriter, r *http.Request, caps UICaps) str
 	level := ""
 	msg := ""
 	switch {
-	case caps.ShowSubjectColumn && seen != "p2":
+	case in.caps.ShowSubjectColumn && seen != "p2":
 		level = "p2"
 		msg = "Plusieurs sujets sont disponibles : la colonne Sujet et le vocabulaire « Modèles » sont maintenant actifs."
-	case caps.ShowAssign && seen != "p1" && seen != "p2":
+	case in.caps.ShowAssign && seen != "p1" && seen != "p2":
 		level = "p1"
 		msg = "Un second membre a rejoint l'organisation : assignation, Mes tâches et la collaboration sur les sujets sont disponibles."
+	case in.whitelistOrgUnlock && seen != "org" && seen != "p1" && seen != "p2":
+		level = "org"
+		msg = "Un second e-mail a été autorisé : l'onglet Organisation est maintenant disponible."
 	}
 	if msg == "" {
 		return ""
