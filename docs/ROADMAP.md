@@ -47,10 +47,10 @@ Tâches organisées pour délégation via [issues GitHub](https://github.com/jeb
 | [#32](https://github.com/jeb-maker/revues/issues/32) | Échéance revue (`due_date`) | core | ✓ mergé |
 | [#33](https://github.com/jeb-maker/revues/issues/33) | Backup SQLite + doc restauration | infra | ✓ mergé |
 | [#34](https://github.com/jeb-maker/revues/issues/34) | Tests RBAC transversaux | auth | ✓ mergé |
-| [#62](https://github.com/jeb-maker/revues/issues/62) | Tests OAuth GitHub mockés | auth | ouvert |
-| [#63](https://github.com/jeb-maker/revues/issues/63) | Onboarding et états vides | ui | ouvert |
-| [#64](https://github.com/jeb-maker/revues/issues/64) | Centraliser deps handlers (CSRF) | core | ouvert |
-| [#66](https://github.com/jeb-maker/revues/issues/66) | Valider parcours pilote vague 1a | meta | ouvert |
+| [#62](https://github.com/jeb-maker/revues/issues/62) | Tests OAuth GitHub mockés | auth | ✓ mergé |
+| [#63](https://github.com/jeb-maker/revues/issues/63) | Onboarding et états vides | ui | ✓ scindé (#199–#201) |
+| [#64](https://github.com/jeb-maker/revues/issues/64) | Centraliser deps handlers (CSRF) | core | ✓ mergé |
+| [#66](https://github.com/jeb-maker/revues/issues/66) | Valider parcours pilote vague 1a | meta | ouvert (gate humain) |
 
 **Critère de fin** : Marie crée un modèle, Thomas exécute une revue, Sophie exporte en CSV — sans Excel.
 
@@ -127,25 +127,25 @@ Chemin critique : **gates sécu → SimpleUI mince → preuve → #66 PASS → D
 
 ### Épiques
 
-| Vague | Épique |
-|-------|--------|
-| A Adoption | [#184](https://github.com/jeb-maker/revues/issues/184) |
-| B SimpleUI | [#185](https://github.com/jeb-maker/revues/issues/185) |
-| C Preuve | [#186](https://github.com/jeb-maker/revues/issues/186) |
-| D Opérationnel | [#187](https://github.com/jeb-maker/revues/issues/187) |
-| E Intégrations v2 | [#188](https://github.com/jeb-maker/revues/issues/188) |
-| F Gouvernance (icebox) | [#189](https://github.com/jeb-maker/revues/issues/189) |
-| G Hardening | [#190](https://github.com/jeb-maker/revues/issues/190) |
+| Vague | Épique | Statut |
+|-------|--------|--------|
+| A Adoption | [#184](https://github.com/jeb-maker/revues/issues/184) | ouvert (#66 reste) |
+| B SimpleUI | [#185](https://github.com/jeb-maker/revues/issues/185) | ✓ fermé |
+| C Preuve | [#186](https://github.com/jeb-maker/revues/issues/186) | ✓ fermé |
+| D Opérationnel | [#187](https://github.com/jeb-maker/revues/issues/187) | ✓ fermé |
+| E Intégrations v2 | [#188](https://github.com/jeb-maker/revues/issues/188) | ✓ fermé |
+| F Gouvernance (icebox) | [#189](https://github.com/jeb-maker/revues/issues/189) | ✓ fermé (icebox) |
+| G Hardening | [#190](https://github.com/jeb-maker/revues/issues/190) | ✓ fermé |
 
 ### Lots
 
 | Lot | Issues | Notes |
 |-----|--------|-------|
-| **1** Gates | [#62](https://github.com/jeb-maker/revues/issues/62) A4 · [#64](https://github.com/jeb-maker/revues/issues/64) A5 · [#191](https://github.com/jeb-maker/revues/issues/191) A2 · [#192](https://github.com/jeb-maker/revues/issues/192) G2 | Avant intégrations |
-| **2** SimpleUI | [#193](https://github.com/jeb-maker/revues/issues/193)–[#201](https://github.com/jeb-maker/revues/issues/201) (B1→B2→B3→B0→B5→B6→A1a/b/c) | Séquentiel templates ; #63 scindé |
-| **3** Preuve | [#202](https://github.com/jeb-maker/revues/issues/202)–[#205](https://github.com/jeb-maker/revues/issues/205) (C0–C3) | C1 WIP branche evidence |
-| **4** Pilote | [#66](https://github.com/jeb-maker/revues/issues/66) (+ checklist terrain) | Humain, pas agent code |
-| **5** Post-#66 | [#206](https://github.com/jeb-maker/revues/issues/206) D1 · [#207](https://github.com/jeb-maker/revues/issues/207) D6 · [#208](https://github.com/jeb-maker/revues/issues/208) E3' · [#209](https://github.com/jeb-maker/revues/issues/209) E6 · [#210](https://github.com/jeb-maker/revues/issues/210)–[#212](https://github.com/jeb-maker/revues/issues/212) B4 · [#213](https://github.com/jeb-maker/revues/issues/213) D7 | Après #66 PASS |
+| **1** Gates | [#62](https://github.com/jeb-maker/revues/issues/62) A4 · [#64](https://github.com/jeb-maker/revues/issues/64) A5 · [#191](https://github.com/jeb-maker/revues/issues/191) A2 · [#192](https://github.com/jeb-maker/revues/issues/192) G2 | ✓ |
+| **2** SimpleUI | [#193](https://github.com/jeb-maker/revues/issues/193)–[#201](https://github.com/jeb-maker/revues/issues/201) (+ [#195](https://github.com/jeb-maker/revues/issues/195) B3) | ✓ |
+| **3** Preuve | [#202](https://github.com/jeb-maker/revues/issues/202)–[#205](https://github.com/jeb-maker/revues/issues/205) | ✓ |
+| **4** Pilote | [#66](https://github.com/jeb-maker/revues/issues/66) | **ouvert** — humain |
+| **5** Post-#66 | [#206](https://github.com/jeb-maker/revues/issues/206)–[#213](https://github.com/jeb-maker/revues/issues/213) | ✓ livré (avant #66 PASS) |
 
 **Icebox** (pas d’issues tant que signal d’usage) : séries/campagnes moteurs, fusion sujets, rapport org, Slack/Teams, Google OAuth, Jira Server, gouvernance F*, audit admin, concurrency items, antivirus, PostgreSQL.
 
