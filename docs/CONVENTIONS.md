@@ -122,6 +122,8 @@ Préfixe `REVUES_` :
   - Refuser IP privées, loopback, link-local, metadata
   - Timeout 5s, max 1 redirect
   - Pas de schémas autres que `https://` (sauf `http://localhost` en dev)
+  - Re-check à **chaque** tentative (retry durable)
+- Retry durable : table `webhook_deliveries` + drain 1′ in-process — détail backoff / TTL / poison dans [WEBHOOKS.md](./WEBHOOKS.md)
 
 ## Uploads (vague 3)
 

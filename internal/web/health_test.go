@@ -17,7 +17,7 @@ import (
 func TestHealthz(t *testing.T) {
 	t.Parallel()
 
-	handler, _, err := appweb.NewRouter(appweb.Deps{
+	handler, _, _, err := appweb.NewRouter(appweb.Deps{
 		Config: config.Config{SessionSecret: "test-secret-at-least-thirty-two-bytes"},
 		DB:     mustMemoryDB(t),
 	})

@@ -219,7 +219,7 @@ func testRouterAttachments(t *testing.T) (http.Handler, *sql.DB, string) {
 	db, _ := store.Open(ctx, t.TempDir()+"/test.db", 0)
 	t.Cleanup(func() { _ = db.Close() })
 	_ = store.Migrate(ctx, db)
-	h, _, _ := appweb.NewRouter(appweb.Deps{Config: config.Config{
+	h, _, _, _ := appweb.NewRouter(appweb.Deps{Config: config.Config{
 		Addr: ":8080", BaseURL: "http://example.com", SessionSecret: "test-secret-at-least-thirty-two-bytes",
 		Env: "development", AttachmentsDir: dir,
 	}, DB: db})

@@ -43,7 +43,7 @@ func TestLeadPoliciesSave_UpdatesFlags(t *testing.T) {
 		t.Fatalf("AddOrganizationMember(): %v", err)
 	}
 
-	handler, _, err := appweb.NewRouter(appweb.Deps{
+	handler, _, _, err := appweb.NewRouter(appweb.Deps{
 		Config: config.Config{
 			Addr:          ":8080",
 			BaseURL:       "http://example.com",
@@ -128,7 +128,7 @@ func TestLeadPolicies_MemberForbidden(t *testing.T) {
 		t.Fatalf("AddOrganizationMember(): %v", err)
 	}
 
-	handler, _, err := appweb.NewRouter(appweb.Deps{
+	handler, _, _, err := appweb.NewRouter(appweb.Deps{
 		Config: config.Config{
 			Addr:          ":8080",
 			BaseURL:       "http://example.com",

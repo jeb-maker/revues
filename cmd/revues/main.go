@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/jeb-maker/revues/internal/config"
+	"github.com/jeb-maker/revues/internal/integrations/webhooks"
 	"github.com/jeb-maker/revues/internal/notifications"
 	"github.com/jeb-maker/revues/internal/store"
 	appweb "github.com/jeb-maker/revues/internal/web"
@@ -39,7 +40,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	handler, notificationsSvc, err := appweb.NewRouter(appweb.Deps{
+	handler, notificationsSvc, webhookDispatcher, err := appweb.NewRouter(appweb.Deps{
 		Config: cfg,
 		DB:     db,
 	})
@@ -51,6 +52,7 @@ func main() {
 	schedulerCtx, schedulerCancel := context.WithCancel(context.Background())
 	defer schedulerCancel()
 	notifications.StartDueReminderScheduler(schedulerCtx, notificationsSvc, 24*time.Hour)
+	webhooks.StartDrainScheduler(schedulerCtx, webhookDispatcher, webhooks.DrainInterval)
 
 	srv := &http.Server{
 		Addr:              cfg.Addr,

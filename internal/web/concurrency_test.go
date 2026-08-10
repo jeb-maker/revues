@@ -99,7 +99,7 @@ func newHTTPRunLoadFixture(t *testing.T) httpLoadFixture {
 		DBMaxOpenConns: store.DefaultMaxOpenConns,
 	}
 
-	handler, _, err := appweb.NewRouter(appweb.Deps{Config: cfg, DB: db})
+	handler, _, _, err := appweb.NewRouter(appweb.Deps{Config: cfg, DB: db})
 	if err != nil {
 		t.Fatalf("NewRouter(): %v", err)
 	}

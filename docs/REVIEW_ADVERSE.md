@@ -34,7 +34,8 @@ TestWebhook_SSRF_Block, TestUpload_Rejects
 - Ne pas fusionner les feature stores ni remettre le SQL dans les handlers (voir [CONVENTIONS.md](./CONVENTIONS.md)).
 - Jira Cloud d'abord ; Server/DC seulement si demande avérée.
 - Versionnement modèles : versionner au premier snapshot ; édition libre tant qu'aucune revue n'existe.
-- Goroutines email/webhook sans file : acceptable v1, documenter perte au restart.
+- Goroutines email sans file : acceptable v1, documenter perte au restart.
+- Webhooks : retry durable léger via `webhook_deliveries` + drain 1′ in-process (voir [WEBHOOKS.md](./WEBHOOKS.md)) — pas de Redis.
 - Concurrence HTMX : `updated_at` sur `run_items` pour détecter écrasements.
 
 ---
