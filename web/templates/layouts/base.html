@@ -45,7 +45,7 @@
       {{end}}
       {{template "site_nav" .}}
       <div class="header-account">
-        {{if and .CanManageOrgUsers (not .ShowOrganisationNav) (not .SimpleUI)}}
+        {{if and .CanManageOrgUsers (not .ShowOrganisationNav)}}
         <mb-button href="/admin" variant="ghost" size="sm">Organisation</mb-button>
         {{end}}
         {{if and .DevAuth .DevAuthUsers}}

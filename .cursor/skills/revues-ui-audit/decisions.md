@@ -42,11 +42,15 @@ Objectif : **même produit**, complexité révélée par le contexte d’usage �
 
 Flags runtime (`middleware.resolveUICaps` → `PageData`) :
 
-| Flag | Seuil |
-|------|--------|
-| `SimpleUI` | 1 org · 1 membre · ≤1 sujet · whitelist ≤1 · pas admin global |
-| `ShowAssign` / `ShowMyTasks` / `ShowCollab` | ≥2 membres org |
-| `ShowSubjectColumn` | ≥2 sujets visibles |
+| Flag | Seuil | Palier |
+|------|--------|--------|
+| `SimpleUI` | 1 org · 1 membre · ≤1 sujet · whitelist ≤1 · pas admin global | P0 |
+| `ShowAssign` / `ShowMyTasks` / `ShowCollab` | ≥2 membres org | P1 |
+| `ShowSubjectColumn` | ≥2 sujets visibles | P2 |
+| `HasJira` | intégration Jira **configurée** (org active) | P3 |
+| `HasNotion` | intégration Notion **configurée** (token présent) | P3 |
+| `HasWebhooks` | webhooks **activés** (URLs + secret) | P3 |
+| `HasEvidence` | preuve **scellée** sur la fiche revue (`done` + hash CSV) — page-scoped | P3 |
 
 | Palier | Déclencheur | Surface |
 |--------|-------------|---------|
@@ -54,6 +58,23 @@ Flags runtime (`middleware.resolveUICaps` → `PageData`) :
 | **P1 — Duo** | 2ᵉ **membre** (pas seulement whitelist) | + Assignation · Mes tâches · collab fiche sujet · onglet Organisation si whitelist/membres |
 | **P2 — Multi-sujet** | ≥2 sujets | + Colonne Sujet · domaines · vocabulaire « Modèles » |
 | **P3 — Conformité** | Intégration configurée / preuve scellée | Notion/Jira/webhooks/preuve restent **capability-gated** (config ou hash), pas masqués par SimpleUI |
+
+### Matrice capability P3
+
+P3 n’est **pas** un unlock structurel : les flags org (`HasJira` / `HasNotion` / `HasWebhooks`) sont résolus dans `LoadHeaderData` via la config chiffrée ; `HasEvidence` est posé par le handler fiche revue (hash scellé).
+
+| Surface | Gate PageData | Gate page-spécifique (héritage B4b/B4c) | Visible si SimpleUI ? |
+|---------|---------------|------------------------------------------|------------------------|
+| Lien / création Jira (point NOK) | `HasJira` | `JiraConfigured` (= `HasJira`) | Oui, si Jira configuré |
+| Import Notion (`/modeles/…`) | `HasNotion` | `NotionConfigured` (= `HasNotion`) | Oui, si Notion configuré |
+| Export Notion (revue `done`) | `HasNotion` (prérequis token) | `NotionConfigured` = **ExportReady** (token + base) | Oui, si export ready |
+| Admin webhooks / overview | `HasWebhooks` | `Configured` / overview Enabled | N/A (admin org) |
+| Hash + ZIP preuve (revue `done`) | `HasEvidence` | `CanExportEvidence` (= `HasEvidence`) | Oui, si hash scellé |
+
+Règles :
+1. **SimpleUI ne masque jamais** une surface P3 dont la capability est vraie.
+2. **Absence de config / hash** → CTA masqué ou message « non configuré », pas une erreur opaque.
+3. Admin « configurer l’intégration » reste RBAC org owner/admin (voir `docs/RBAC.md`) — orthogonal aux flags UI.
 
 Principes :
 1. **Unlock, don’t fork** — routes et schéma stables ; surface UI seulement.

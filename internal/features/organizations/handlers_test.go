@@ -264,7 +264,7 @@ func TestSwitchOrganization(t *testing.T) {
 	router := chi.NewRouter()
 	router.Use(appmiddleware.LoadUser(st))
 	router.Use(appmiddleware.LoadActiveOrganization(st))
-	router.Use(appmiddleware.LoadHeaderData(st))
+	router.Use(appmiddleware.LoadHeaderData(st, nil))
 	router.Use(appmiddleware.CSRF(testSessionSecret))
 	router.Post("/org/switch", handler.Switch)
 

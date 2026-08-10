@@ -7,7 +7,8 @@ import (
 	"github.com/jeb-maker/revues/internal/store"
 )
 
-// UICaps are progressive-disclosure flags derived from org structure (not a user preference).
+// UICaps are progressive-disclosure flags derived from org structure (P0–P2)
+// and capability gates (P3). Not a user preference.
 type UICaps struct {
 	SimpleUI          bool
 	SimpleSubjectID   int64
@@ -15,10 +16,15 @@ type UICaps struct {
 	ShowMyTasks       bool // ≥2 org members — P1
 	ShowSubjectColumn bool // ≥2 visible subjects — P2
 	ShowCollab        bool // teams / membres sur fiche sujet — P1+
+	// P3 — conformité (org config). Independent of SimpleUI.
+	HasJira     bool
+	HasNotion   bool
+	HasWebhooks bool
 }
 
-// resolveUICaps detects particulier/solo (SimpleUI) and finer unlocks for duo / multi-sujet.
-func resolveUICaps(ctx context.Context, st *store.Store, user *store.User, hd HeaderData) UICaps {
+// resolveUICaps detects particulier/solo (SimpleUI), finer unlocks for duo / multi-sujet,
+// and P3 capability flags when encryptionKey is set.
+func resolveUICaps(ctx context.Context, st *store.Store, user *store.User, hd HeaderData, encryptionKey []byte) UICaps {
 	var caps UICaps
 	if user == nil {
 		return caps
@@ -45,6 +51,8 @@ func resolveUICaps(ctx context.Context, st *store.Store, user *store.User, hd He
 		}
 	}
 
+	caps.HasJira, caps.HasNotion, caps.HasWebhooks = resolveCapabilityCaps(ctx, st, encryptionKey)
+
 	// SimpleUI (P0): one org, one member, ≤1 subject, whitelist ≤1, not global admin.
 	if admin {
 		return caps
@@ -68,6 +76,6 @@ func resolveUICaps(ctx context.Context, st *store.Store, user *store.User, hd He
 
 // resolveSimpleUI keeps the previous signature for focused tests.
 func resolveSimpleUI(ctx context.Context, st *store.Store, user *store.User, hd HeaderData) (bool, int64) {
-	caps := resolveUICaps(ctx, st, user, hd)
+	caps := resolveUICaps(ctx, st, user, hd, nil)
 	return caps.SimpleUI, caps.SimpleSubjectID
 }
