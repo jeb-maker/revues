@@ -121,7 +121,7 @@ Principes :
 
 | Sujet | Décision |
 |-------|----------|
-| Version consommée | **`0.3.0`** (tag Git `v0.3.0`) |
+| Version consommée | **`0.3.1`** (tag Git `v0.3.1`) |
 | Tokens | **`tokens-core.css`** (+ `mb-bridge.css`) — pas de `tokens.css` (évite reset `html`/`body`) ni `typography.css`/woff2 (budget) |
 | JS | `mb-boot.js` sous `web/static/vendor/jeb-maker-mb/` (Lit bundlé) — hors budget 15 KiB app |
 | Shell + formulaires | Migrés vers `mb-*` (nav, breadcrumbs, avatar, spinner, toolbar, tag, card, FACE, toast…) |
