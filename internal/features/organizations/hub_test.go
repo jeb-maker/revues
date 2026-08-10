@@ -171,7 +171,7 @@ func TestAdminHub_SoloMinimalThenWhitelistUnlock(t *testing.T) {
 		t.Fatalf("InsertAllowedEmail(owner): %v", err)
 	}
 
-	handler, _, err := appweb.NewRouter(appweb.Deps{
+	handler, _, _, err := appweb.NewRouter(appweb.Deps{
 		Config: config.Config{
 			Addr:          ":8080",
 			BaseURL:       "http://example.com",
