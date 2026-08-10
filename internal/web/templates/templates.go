@@ -144,7 +144,7 @@ type PageData struct {
 	ShowMyTasks         bool
 	ShowSubjectColumn   bool
 	ShowCollab          bool
-	UnlockFlash         string // one-shot progressive-disclosure message (P0→P1 / P1→P2)
+	UnlockFlash         string // one-shot progressive-disclosure (whitelist→org / P0→P1 / P1→P2)
 	RequestID           string
 	ReportsAutoOpen     bool // open @jeb-maker/reports widget on load (/signaler)
 	Breadcrumbs         []Breadcrumb
