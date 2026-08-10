@@ -1,7 +1,6 @@
 package checklisttemplates
 
 import (
-	"errors"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -102,18 +101,14 @@ func (h *ChecklistTemplates) notionImportFetch(w http.ResponseWriter, r *http.Re
 	}
 	dbID, err := notion.ParseDatabaseRef(ref)
 	if err != nil {
-		data.Error, data.Step = err.Error(), notionImportStepSource
+		data.Error, data.Step = notion.UserMessage(err), notionImportStepSource
 		h.renderNotionImport(w, data)
 		return
 	}
 	db, err := h.notionClient().GetDatabase(r.Context(), cfg, dbID)
 	if err != nil {
-		if errors.Is(err, notion.ErrDatabaseNotFound) {
-			data.Error = "Base Notion introuvable. Vérifiez l'URL ou l'identifiant."
-		} else {
-			data.Error = "Impossible de lire la base Notion. Vérifiez le jeton et les droits d'accès."
-			slog.Error("notion get database", "err", err)
-		}
+		slog.Error("notion get database", "err", err)
+		data.Error = notion.UserMessage(err)
 		data.Step = notionImportStepSource
 		h.renderNotionImport(w, data)
 		return
@@ -133,7 +128,8 @@ func (h *ChecklistTemplates) notionImportFetch(w http.ResponseWriter, r *http.Re
 func (h *ChecklistTemplates) notionImportPreview(w http.ResponseWriter, r *http.Request, cfg notion.Config, data viewtemplates.ChecklistTemplateNotionImportData) {
 	preview, db, err := h.loadNotionPreview(r, cfg, data)
 	if err != nil {
-		data.Error, data.Step = err.Error(), notionImportStepMapping
+		data.Error = notion.UserMessage(err)
+		data.Step = notionImportStepMapping
 		if db.ID != "" {
 			data.DatabaseTitle, data.Properties, data.DatabaseID = db.Title, notionPropertiesToOptions(db.Properties), db.ID
 		}
@@ -148,7 +144,8 @@ func (h *ChecklistTemplates) notionImportPreview(w http.ResponseWriter, r *http.
 func (h *ChecklistTemplates) notionImportCreate(w http.ResponseWriter, r *http.Request, user *store.User, cfg notion.Config, data viewtemplates.ChecklistTemplateNotionImportData) {
 	preview, db, err := h.loadNotionPreview(r, cfg, data)
 	if err != nil {
-		data.Error, data.Step = err.Error(), notionImportStepMapping
+		data.Error = notion.UserMessage(err)
+		data.Step = notionImportStepMapping
 		if db.ID != "" {
 			data.DatabaseTitle, data.Properties, data.DatabaseID = db.Title, notionPropertiesToOptions(db.Properties), db.ID
 		}
@@ -185,12 +182,13 @@ func (h *ChecklistTemplates) loadNotionPreview(r *http.Request, cfg notion.Confi
 	}
 	db, err := h.notionClient().GetDatabase(r.Context(), cfg, dbID)
 	if err != nil {
-		return notion.ImportPreview{}, notion.DatabaseInfo{}, errors.New("impossible de relire la base Notion")
+		slog.Error("notion get database", "err", err)
+		return notion.ImportPreview{}, notion.DatabaseInfo{}, err
 	}
 	pages, err := h.notionClient().QueryDatabase(r.Context(), cfg, db.ID)
 	if err != nil {
 		slog.Error("notion query database", "err", err)
-		return notion.ImportPreview{}, db, errors.New("impossible de lire les lignes Notion")
+		return notion.ImportPreview{}, db, err
 	}
 	preview, err := notion.BuildImportPreview(db, pages, data.Mapping, data.TemplateName)
 	if err != nil {

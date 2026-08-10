@@ -88,8 +88,7 @@ func (c *Client) GetDatabase(ctx context.Context, cfg Config, databaseID string)
 	case http.StatusNotFound:
 		return DatabaseInfo{}, ErrDatabaseNotFound
 	default:
-		body, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
-		return DatabaseInfo{}, fmt.Errorf("%w: status %d %s", ErrConnectionFailed, resp.StatusCode, strings.TrimSpace(string(body)))
+		return DatabaseInfo{}, parseAPIError(resp, ErrConnectionFailed)
 	}
 	var payload struct {
 		ID         string                       `json:"id"`
@@ -130,6 +129,14 @@ func (c *Client) QueryDatabase(ctx context.Context, cfg Config, databaseID strin
 		if err != nil {
 			return nil, err
 		}
+		if resp.StatusCode != http.StatusOK {
+			apiErr := parseAPIError(resp, ErrConnectionFailed)
+			_ = resp.Body.Close()
+			if resp.StatusCode == http.StatusNotFound {
+				return nil, ErrDatabaseNotFound
+			}
+			return nil, apiErr
+		}
 		var payload struct {
 			Results []struct {
 				Properties map[string]json.RawMessage `json:"properties"`
@@ -138,7 +145,7 @@ func (c *Client) QueryDatabase(ctx context.Context, cfg Config, databaseID strin
 			NextCursor string `json:"next_cursor"`
 		}
 		decodeErr := json.NewDecoder(resp.Body).Decode(&payload)
-		resp.Body.Close()
+		_ = resp.Body.Close()
 		if decodeErr != nil {
 			return nil, fmt.Errorf("%w: invalid query response", ErrConnectionFailed)
 		}

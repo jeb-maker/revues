@@ -132,3 +132,92 @@ func TestNotionImport_RedirectsWhenNotConfigured(t *testing.T) {
 		t.Fatal("expected Importer CTA hidden when Notion is not configured")
 	}
 }
+
+func TestNotionImport_FetchUnauthorizedShowsActionableError(t *testing.T) {
+	const dbID = "a1b2c3d4e5f6478990abcdef12345678"
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusUnauthorized)
+		_, _ = w.Write([]byte(`{"object":"error","status":401,"code":"unauthorized","message":"API token is invalid."}`))
+	}))
+	t.Cleanup(srv.Close)
+
+	ctx := context.Background()
+	db := mustMemoryDB(t)
+	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
+	key, _ := crypto.DecodeKey(config.TestEncryptionKey())
+	_ = (&notion.Service{Store: st, EncryptionKey: key}).Save(ctx, notion.Config{APIToken: "secret"})
+	tpl, _ := viewtemplates.Parse("")
+	secret := "test-secret-at-least-thirty-two-bytes"
+	h := &checklisttemplates.ChecklistTemplates{
+		Deps:          checklisttemplates.Deps{Templates: tpl, Store: st, SessionSecret: secret},
+		EncryptionKey: key,
+		NotionClient:  &notion.Client{HTTPClient: srv.Client(), APIBaseURL: srv.URL + "/v1"},
+	}
+	r := chi.NewRouter()
+	r.Use(appmiddleware.LoadUser(st), appmiddleware.LoadActiveOrganization(st), appmiddleware.CSRF(secret))
+	r.Post("/modeles/notion-import", h.NotionImport)
+
+	lead, _ := st.UpsertGitHubUser(ctx, 43, "lead-notion-err", "lead-notion-err@example.com", "Lead", "", auth.RoleEditor)
+	sessions := &auth.SessionManager{Store: st, SessionSecret: secret}
+	token, _, _ := sessions.CreateLoginSession(ctx, lead.ID, 0)
+	form := url.Values{"csrf_token": {auth.CSRFToken(token, secret)}, "action": {"fetch"}, "database_ref": {dbID}}
+	req := httptest.NewRequest(http.MethodPost, "/modeles/notion-import", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.AddCookie(&http.Cookie{Name: "revues_session", Value: token})
+	rec := httptest.NewRecorder()
+	r.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	body := rec.Body.String()
+	if !strings.Contains(body, "Jeton Notion invalide") {
+		t.Fatalf("missing actionable error; body=%s", body)
+	}
+	if strings.Contains(body, "API token is invalid") {
+		t.Fatal("raw Notion message leaked")
+	}
+}
+
+func TestNotionImportForm_NoNotionAPIOnFirstPaint(t *testing.T) {
+	var hits int
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		hits++
+		http.Error(w, "should not be called", http.StatusInternalServerError)
+	}))
+	t.Cleanup(srv.Close)
+
+	ctx := context.Background()
+	db := mustMemoryDB(t)
+	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
+	key, _ := crypto.DecodeKey(config.TestEncryptionKey())
+	_ = (&notion.Service{Store: st, EncryptionKey: key}).Save(ctx, notion.Config{
+		APIToken: "secret", DefaultDatabaseID: "a1b2c3d4e5f6478990abcdef12345678",
+	})
+	tpl, _ := viewtemplates.Parse("")
+	secret := "test-secret-at-least-thirty-two-bytes"
+	h := &checklisttemplates.ChecklistTemplates{
+		Deps:          checklisttemplates.Deps{Templates: tpl, Store: st, SessionSecret: secret},
+		EncryptionKey: key,
+		NotionClient:  &notion.Client{HTTPClient: srv.Client(), APIBaseURL: srv.URL + "/v1"},
+	}
+	r := chi.NewRouter()
+	r.Use(appmiddleware.LoadUser(st), appmiddleware.LoadActiveOrganization(st), appmiddleware.CSRF(secret))
+	r.Get("/modeles/notion-import", h.NotionImportForm)
+
+	lead, _ := st.UpsertGitHubUser(ctx, 44, "lead-notion-paint", "lead-notion-paint@example.com", "Lead", "", auth.RoleEditor)
+	sessions := &auth.SessionManager{Store: st, SessionSecret: secret}
+	token, _, _ := sessions.CreateLoginSession(ctx, lead.ID, 0)
+	req := httptest.NewRequest(http.MethodGet, "/modeles/notion-import", nil)
+	req.AddCookie(&http.Cookie{Name: "revues_session", Value: token})
+	rec := httptest.NewRecorder()
+	r.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	if hits != 0 {
+		t.Fatalf("Notion API called %d times on first paint; want 0", hits)
+	}
+}
