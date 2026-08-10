@@ -192,7 +192,7 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, error) {
 	r.Use(appmiddleware.LoadUser(st))
 	r.Use(appmiddleware.EnsureDevAuth(st, sessions, deps.Config.DevAuthEnabled(), deps.Config.DevAuthEmail))
 	r.Use(appmiddleware.LoadActiveOrganization(st))
-	r.Use(appmiddleware.LoadHeaderData(st))
+	r.Use(appmiddleware.LoadHeaderData(st, adminSMTPKey))
 	r.Use(appmiddleware.CSRF(deps.Config.SessionSecret))
 
 	r.Get("/healthz", Health)

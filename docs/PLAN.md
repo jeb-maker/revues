@@ -216,9 +216,11 @@ Détail runtime : `.cursor/skills/revues-ui-audit/decisions.md`. Backlog : [issu
 | **P0 — Particulier** | `SimpleUI` (1 org · 1 membre · ≤1 sujet · whitelist ≤1 · pas admin global) | Revues · Listes ; cocher ; CSV ; pas assign / tâches / collab |
 | **P1 — Duo** | ≥2 **membres** org | + Assignation · Mes tâches · collab fiche sujet |
 | **P2 — Multi-sujet** | ≥2 sujets visibles | + Colonne Sujet · domaines · vocabulaire « Modèles » |
-| **P3 — Conformité** | Intégration configurée / preuve scellée | Notion/Jira/webhooks/preuve **capability-gated** (pas masqués par SimpleUI) |
+| **P3 — Conformité** | `HasJira` / `HasNotion` / `HasWebhooks` (config org) · `HasEvidence` (hash scellé, page revue) | Notion/Jira/webhooks/preuve **capability-gated** (pas masqués par SimpleUI) |
 
-Principes : unlock don’t fork · vocabulaire suit le palier (Listes → Modèles) · déclencheur structurel (pas de toggle « mode pro »).
+Principes : unlock don’t fork · vocabulaire suit le palier (Listes → Modèles) · déclencheur structurel (pas de toggle « mode pro ») · P3 indépendant de SimpleUI.
+
+Matrice runtime détaillée : `.cursor/skills/revues-ui-audit/decisions.md` (§ Matrice capability P3).
 
 ---
 
