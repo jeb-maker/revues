@@ -14,8 +14,13 @@ import (
 
 	"github.com/jeb-maker/revues/internal/features/admin/settings"
 	"github.com/jeb-maker/revues/internal/integrations/webhooks"
+	"github.com/jeb-maker/revues/internal/orgctx"
 	"github.com/jeb-maker/revues/internal/store"
 )
+
+func testOrgCtx() context.Context {
+	return orgctx.WithOrganizationID(context.Background(), 1)
+}
 
 func TestWebhook_HMAC(t *testing.T) {
 	secret := "super-secret-key"
@@ -81,7 +86,7 @@ func TestDispatcher_SendTest(t *testing.T) {
 	cfg := settings.WebhookConfig{URLs: []string{srv.URL}, Secret: "test-secret", ReviewCompleted: true}
 	mem := newMemStore()
 	d := &webhooks.Dispatcher{Settings: stubSettings{cfg, true}, Store: mem, DevMode: true, Client: srv.Client()}
-	if err := d.SendTest(context.Background()); err != nil {
+	if err := d.SendTest(testOrgCtx()); err != nil {
 		t.Fatal(err)
 	}
 	if !webhooks.VerifySignature(cfg.Secret, gotBody, gotSig) {
@@ -156,7 +161,7 @@ func TestDispatcher_Drain_RetriesThenSucceeds(t *testing.T) {
 		Client:   srv.Client(),
 		Now:      func() time.Time { return now },
 	}
-	if err := d.SendTest(context.Background()); err == nil {
+	if err := d.SendTest(testOrgCtx()); err == nil {
 		t.Fatal("expected first attempt failure")
 	}
 	del := mem.byID[1]
@@ -193,7 +198,7 @@ func TestDispatcher_Drain_PoisonAfterMaxAttempts(t *testing.T) {
 		Client:   srv.Client(),
 		Now:      func() time.Time { return now },
 	}
-	_ = d.SendTest(context.Background())
+	_ = d.SendTest(testOrgCtx())
 	for i := 0; i < webhooks.MaxAttempts; i++ {
 		del := mem.byID[1]
 		if del.State != store.WebhookDeliveryPending {
@@ -230,7 +235,7 @@ func TestDispatcher_Drain_PoisonAfterTTL(t *testing.T) {
 		Client:   srv.Client(),
 		Now:      func() time.Time { return now },
 	}
-	_ = d.SendTest(context.Background())
+	_ = d.SendTest(testOrgCtx())
 	del := mem.byID[1]
 	if del.State != store.WebhookDeliveryPending {
 		t.Fatalf("expected pending, got %+v", del)
@@ -248,7 +253,7 @@ func TestDispatcher_Drain_PoisonAfterTTL(t *testing.T) {
 func TestDispatcher_Drain_ReChecksSSRF(t *testing.T) {
 	now := time.Date(2026, 8, 5, 12, 0, 0, 0, time.UTC)
 	mem := newMemStore()
-	id, err := mem.EnqueueWebhookDelivery(context.Background(), "e1", webhooks.EventTest, "https://192.168.1.10/hook", []byte(`{}`), now, now.Add(webhooks.DeliveryTTL))
+	id, err := mem.EnqueueWebhookDelivery(testOrgCtx(), "e1", webhooks.EventTest, "https://192.168.1.10/hook", []byte(`{}`), now, now.Add(webhooks.DeliveryTTL))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -267,6 +272,63 @@ func TestDispatcher_Drain_ReChecksSSRF(t *testing.T) {
 	if del.State != store.WebhookDeliveryPoison || !strings.Contains(del.LastError, "blocked ip") {
 		t.Fatalf("want SSRF poison, got %+v", del)
 	}
+}
+
+func TestDispatcher_Drain_UsesOrgScopedSecret(t *testing.T) {
+	var gotSig string
+	var gotBody []byte
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotSig = r.Header.Get("X-Revues-Signature")
+		gotBody, _ = io.ReadAll(r.Body)
+		w.WriteHeader(http.StatusOK)
+	}))
+	t.Cleanup(srv.Close)
+
+	now := time.Date(2026, 8, 5, 12, 0, 0, 0, time.UTC)
+	mem := newMemStore()
+	orgA := int64(7)
+	_, err := mem.EnqueueWebhookDelivery(
+		orgctx.WithOrganizationID(context.Background(), orgA),
+		"e-org", webhooks.EventTest, srv.URL, []byte(`{"x":1}`), now, now.Add(webhooks.DeliveryTTL),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	secretA := "secret-for-org-a-only"
+	loader := &orgScopedSettings{byOrg: map[int64]settings.WebhookConfig{
+		orgA: {URLs: []string{srv.URL}, Secret: secretA, ReviewCompleted: true},
+		99:   {URLs: []string{srv.URL}, Secret: "wrong-org-secret!!!!!!!!!!!", ReviewCompleted: true},
+	}}
+	d := &webhooks.Dispatcher{
+		Settings: loader,
+		Store:    mem,
+		DevMode:  true,
+		Client:   srv.Client(),
+		Now:      func() time.Time { return now },
+	}
+	if err := d.Drain(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	if !webhooks.VerifySignature(secretA, gotBody, gotSig) {
+		t.Fatalf("drain signed with wrong org secret: sig=%q body=%s", gotSig, gotBody)
+	}
+	if mem.byID[1].State != store.WebhookDeliveryDone {
+		t.Fatalf("delivery = %+v", mem.byID[1])
+	}
+}
+
+type orgScopedSettings struct {
+	byOrg map[int64]settings.WebhookConfig
+}
+
+func (s *orgScopedSettings) LoadWebhooks(ctx context.Context) (settings.WebhookConfig, bool, error) {
+	orgID, ok := orgctx.OrganizationID(ctx)
+	if !ok {
+		return settings.WebhookConfig{}, false, store.ErrOrganizationRequired
+	}
+	cfg, ok := s.byOrg[orgID]
+	return cfg, ok, nil
 }
 
 type stubSettings struct {
@@ -288,22 +350,27 @@ func newMemStore() *memStore {
 	return &memStore{byID: make(map[int64]store.WebhookDelivery)}
 }
 
-func (m *memStore) EnqueueWebhookDelivery(_ context.Context, eventID, eventType, url string, payload []byte, nextAttemptAt, expiresAt time.Time) (int64, error) {
+func (m *memStore) EnqueueWebhookDelivery(ctx context.Context, eventID, eventType, url string, payload []byte, nextAttemptAt, expiresAt time.Time) (int64, error) {
+	orgID, ok := orgctx.OrganizationID(ctx)
+	if !ok {
+		return 0, store.ErrOrganizationRequired
+	}
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.seq++
 	id := m.seq
 	m.byID[id] = store.WebhookDelivery{
-		ID:            id,
-		EventID:       eventID,
-		EventType:     eventType,
-		URL:           url,
-		Payload:       append([]byte(nil), payload...),
-		Attempts:      0,
-		NextAttemptAt: nextAttemptAt.UTC().Format(time.RFC3339),
-		ExpiresAt:     expiresAt.UTC().Format(time.RFC3339),
-		State:         store.WebhookDeliveryPending,
-		CreatedAt:     time.Now().UTC().Format(time.RFC3339),
+		ID:             id,
+		OrganizationID: orgID,
+		EventID:        eventID,
+		EventType:      eventType,
+		URL:            url,
+		Payload:        append([]byte(nil), payload...),
+		Attempts:       0,
+		NextAttemptAt:  nextAttemptAt.UTC().Format(time.RFC3339),
+		ExpiresAt:      expiresAt.UTC().Format(time.RFC3339),
+		State:          store.WebhookDeliveryPending,
+		CreatedAt:      time.Now().UTC().Format(time.RFC3339),
 	}
 	return id, nil
 }
