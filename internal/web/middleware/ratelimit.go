@@ -13,7 +13,7 @@ type RateLimitConfig struct {
 	Max int
 	// Window is the sliding window duration.
 	Window time.Duration
-	// Key extracts the rate-limit bucket key (default: client IP).
+	// Key extracts the rate-limit bucket key (default: true TCP peer IP).
 	Key func(*http.Request) string
 }
 
@@ -26,7 +26,7 @@ func RateLimit(cfg RateLimitConfig) func(http.Handler) http.Handler {
 		cfg.Window = time.Minute
 	}
 	if cfg.Key == nil {
-		cfg.Key = clientIP
+		cfg.Key = rateLimitKey
 	}
 	lim := &slidingWindow{max: cfg.Max, window: cfg.Window}
 	return func(next http.Handler) http.Handler {
@@ -46,6 +46,15 @@ func RateLimit(cfg RateLimitConfig) func(http.Handler) http.Handler {
 	}
 }
 
+// rateLimitKey prefers the pre-RealIP peer address so X-Forwarded-For cannot
+// bypass the limiter. Falls back to RemoteAddr when CapturePeerAddr is absent.
+func rateLimitKey(r *http.Request) string {
+	if peer, ok := r.Context().Value(peerAddrContextKey).(string); ok && peer != "" {
+		return peer
+	}
+	return clientIP(r)
+}
+
 func clientIP(r *http.Request) string {
 	host, _, err := net.SplitHostPort(r.RemoteAddr)
 	if err != nil {
@@ -59,6 +68,7 @@ type slidingWindow struct {
 	max    int
 	window time.Duration
 	hits   map[string][]time.Time
+	ops    uint64
 }
 
 func (s *slidingWindow) allow(key string, now time.Time) bool {
@@ -79,5 +89,27 @@ func (s *slidingWindow) allow(key string, now time.Time) bool {
 		return false
 	}
 	s.hits[key] = append(kept, now)
+
+	s.ops++
+	if s.ops%64 == 0 {
+		s.gcLocked(now)
+	}
 	return true
+}
+
+func (s *slidingWindow) gcLocked(now time.Time) {
+	cutoff := now.Add(-s.window)
+	for k, times := range s.hits {
+		kept := times[:0]
+		for _, t := range times {
+			if t.After(cutoff) {
+				kept = append(kept, t)
+			}
+		}
+		if len(kept) == 0 {
+			delete(s.hits, k)
+		} else {
+			s.hits[k] = kept
+		}
+	}
 }
