@@ -392,7 +392,7 @@ func (h *Runs) Start(w http.ResponseWriter, r *http.Request) {
 
 // Complete moves a run from in_progress to done.
 func (h *Runs) Complete(w http.ResponseWriter, r *http.Request) {
-	run, _, user, access, ok := h.loadRun(w, r)
+	run, project, user, access, ok := h.loadRun(w, r)
 	if !ok {
 		return
 	}
@@ -407,7 +407,27 @@ func (h *Runs) Complete(w http.ResponseWriter, r *http.Request) {
 
 	closingNote := strings.TrimSpace(r.FormValue("closing_note"))
 
-	if err := h.Store.CompleteRun(r.Context(), run.ID, closingNote); err != nil {
+	runItems, err := h.Store.ListRunItems(r.Context(), run.ID)
+	if err != nil {
+		slog.Error("list run items for complete", "err", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	if err = ValidateComplete(runItems); err != nil {
+		completeErr := "Traitez tous les points obligatoires avant de clôturer."
+		extra := viewtemplates.RunShowData{
+			CompleteError: completeErr,
+			ClosingNote:   closingNote,
+		}
+		if h.isHTMX(r) {
+			h.renderCompleteSectionHTMX(w, r, run, runItems, completeErr, closingNote)
+			return
+		}
+		h.renderRunShow(w, r, run, project, user, access, extra)
+		return
+	}
+
+	if err = h.Store.CompleteRun(r.Context(), run.ID, closingNote); err != nil {
 		if errors.Is(err, store.ErrInvalidRunStatus) {
 			http.Error(w, "Bad Request", http.StatusBadRequest)
 			return
@@ -639,6 +659,8 @@ func (h *Runs) renderRunShow(w http.ResponseWriter, r *http.Request, run *store.
 	}
 
 	sectionGroups := buildRunItemSections(items)
+	pendingRequired := PendingRequiredItems(runItems)
+	progress := h.progressData(run.ID, runItems)
 
 	// Page H1: no #id; in SimpleUI drop subject (already obvious / single-subject).
 	pageTitle := store.RunDisplayLabel(versionInfo.Name, project.Name, run.CreatedAt, 0)
@@ -654,39 +676,41 @@ func (h *Runs) renderRunShow(w http.ResponseWriter, r *http.Request, run *store.
 	canExportEvidence := run.Status == store.RunStatusDone && strings.TrimSpace(run.EvidenceCSVSHA256) != ""
 	pd.HasEvidence = canExportEvidence
 	data := viewtemplates.RunShowData{
-		PageData:          pd,
-		Subject:           project,
-		Run:               run,
-		RunDisplayLabel:   displayLabel,
-		Items:             items,
-		ItemSections:      sectionGroups,
-		NokItems:          nokItems,
-		Sections:          sections,
-		FilterSection:     filterSection,
-		FilterStatus:      filterStatus,
-		JiraLinks:         jiraLinks,
-		Attachments:       attachmentsByItem,
-		Members:           members,
-		TemplateName:      versionInfo.Name,
-		VersionNum:        versionInfo.Version,
-		MemberRole:        subjects.DisplayRole(access),
-		CanLaunch:         CanLaunchAccess(user, access),
-		CanCheck:          CanUpdateAccess(user, access),
-		CanAssign:         showAssign && CanAssignAccess(user, access),
-		CanLinkJira:       CanLinkJiraAccess(user, access),
-		JiraConfigured:    pd.HasJira,
-		CanComplete:       CanCompleteAccess(user, access),
-		NotionConfigured:  h.notionConfigured(r.Context()),
-		CanExportNotion:   CanCompleteAccess(user, access) && run.Status == store.RunStatusDone && strings.TrimSpace(run.NotionURL) == "",
-		CanExportEvidence: canExportEvidence,
-		Progress:          h.progressData(run.ID, runItems),
-		Message:           extra.Message,
-		ItemError:         extra.ItemError,
-		AssignError:       extra.AssignError,
-		CompleteError:     extra.CompleteError,
-		NotionExportError: extra.NotionExportError,
-		ClosingNote:       extra.ClosingNote,
-		Error:             extra.Error,
+		PageData:             pd,
+		Subject:              project,
+		Run:                  run,
+		RunDisplayLabel:      displayLabel,
+		Items:                items,
+		ItemSections:         sectionGroups,
+		NokItems:             nokItems,
+		PendingRequiredItems: pendingRequired,
+		CanSubmitComplete:    len(pendingRequired) == 0,
+		Sections:             sections,
+		FilterSection:        filterSection,
+		FilterStatus:         filterStatus,
+		JiraLinks:            jiraLinks,
+		Attachments:          attachmentsByItem,
+		Members:              members,
+		TemplateName:         versionInfo.Name,
+		VersionNum:           versionInfo.Version,
+		MemberRole:           subjects.DisplayRole(access),
+		CanLaunch:            CanLaunchAccess(user, access),
+		CanCheck:             CanUpdateAccess(user, access),
+		CanAssign:            showAssign && CanAssignAccess(user, access),
+		CanLinkJira:          CanLinkJiraAccess(user, access),
+		JiraConfigured:       pd.HasJira,
+		CanComplete:          CanCompleteAccess(user, access),
+		NotionConfigured:     h.notionConfigured(r.Context()),
+		CanExportNotion:      CanCompleteAccess(user, access) && run.Status == store.RunStatusDone && strings.TrimSpace(run.NotionURL) == "",
+		CanExportEvidence:    canExportEvidence,
+		Progress:             progress,
+		Message:              extra.Message,
+		ItemError:            extra.ItemError,
+		AssignError:          extra.AssignError,
+		CompleteError:        extra.CompleteError,
+		NotionExportError:    extra.NotionExportError,
+		ClosingNote:          extra.ClosingNote,
+		Error:                extra.Error,
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -862,6 +886,30 @@ func (h *Runs) progressData(runID int64, runItems []store.RunItem) viewtemplates
 	}
 }
 
+func (h *Runs) completeStatusData(r *http.Request, run *store.ChecklistRun, runItems []store.RunItem, completeErr, closingNote string) viewtemplates.RunCompleteStatusData {
+	pendingRequired := PendingRequiredItems(runItems)
+	pd := h.PageData(r, "")
+	return viewtemplates.RunCompleteStatusData{
+		Run:                  run,
+		NokItems:             nokItemsFromRunItems(runItems),
+		PendingRequiredItems: pendingRequired,
+		Progress:             h.progressData(run.ID, runItems),
+		CanSubmitComplete:    len(pendingRequired) == 0,
+		CompleteError:        completeErr,
+		ClosingNote:          closingNote,
+		CSRFToken:            pd.CSRFToken,
+	}
+}
+
+func (h *Runs) renderCompleteSectionHTMX(w http.ResponseWriter, r *http.Request, run *store.ChecklistRun, runItems []store.RunItem, completeErr, closingNote string) {
+	data := h.completeStatusData(r, run, runItems, completeErr, closingNote)
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.WriteHeader(http.StatusBadRequest)
+	if err := h.Templates.ExecuteTemplate(w, "run_complete_section_fragment", data); err != nil {
+		slog.Error("render run complete section fragment", "err", err)
+	}
+}
+
 func uniqueSections(items []store.RunItem) []string {
 	seen := make(map[string]bool)
 	var sections []string
@@ -968,13 +1016,9 @@ func (h *Runs) renderRunItemHTMX(w http.ResponseWriter, r *http.Request, run *st
 		slog.Error("render run progress oob fragment", "err", err)
 	}
 	if run.Status == store.RunStatusInProgress && CanCompleteAccess(user, access) {
-		completeStatus := viewtemplates.RunCompleteStatusData{
-			Run:      run,
-			NokItems: nokItemsFromRunItems(runItems),
-			Progress: progress,
-		}
-		if err := h.Templates.ExecuteTemplate(w, "run_complete_status_oob_fragment", completeStatus); err != nil {
-			slog.Error("render run complete status oob fragment", "err", err)
+		completeStatus := h.completeStatusData(r, run, runItems, "", "")
+		if err := h.Templates.ExecuteTemplate(w, "run_complete_section_oob_fragment", completeStatus); err != nil {
+			slog.Error("render run complete section oob fragment", "err", err)
 		}
 	}
 }

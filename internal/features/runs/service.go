@@ -145,6 +145,18 @@ func Progress(runItems []store.RunItem) (done, total int) {
 	return done, total
 }
 
+// PendingRequiredItems returns required items still in pending status.
+// Optional (non-required) pending items do not block completion.
+func PendingRequiredItems(runItems []store.RunItem) []store.RunItem {
+	var pending []store.RunItem
+	for _, item := range runItems {
+		if item.Required && item.Status == StatusPending {
+			pending = append(pending, item)
+		}
+	}
+	return pending
+}
+
 // --- Item status (formerly internal/items/status.go) ---
 
 // ErrCommentRequired is returned when status nok has no comment.
@@ -152,6 +164,18 @@ var ErrCommentRequired = errors.New("comment required for nok status")
 
 // ErrInvalidStatus is returned for unknown item statuses.
 var ErrInvalidStatus = errors.New("invalid item status")
+
+// ErrPendingRequired is returned when closing a run that still has pending required items.
+var ErrPendingRequired = errors.New("pending required items")
+
+// ValidateComplete checks whether a run may be closed.
+// nok items are allowed (warned in UI); required+pending items block closure.
+func ValidateComplete(runItems []store.RunItem) error {
+	if len(PendingRequiredItems(runItems)) > 0 {
+		return ErrPendingRequired
+	}
+	return nil
+}
 
 var validStatuses = map[string]struct{}{
 	StatusPending: {},
