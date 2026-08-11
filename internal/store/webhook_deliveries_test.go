@@ -11,6 +11,7 @@ import (
 func TestWebhookDeliveryQueue_EnqueueListUpdate(t *testing.T) {
 	ctx := context.Background()
 	st, _ := testStore(t)
+	ctx = defaultOrgCtx(ctx, st)
 
 	now := time.Date(2026, 8, 5, 12, 0, 0, 0, time.UTC)
 	id, err := st.EnqueueWebhookDelivery(ctx, "evt-1", "webhook.test", "https://example.com/hook", []byte(`{"ok":true}`), now, now.Add(24*time.Hour))
@@ -27,6 +28,9 @@ func TestWebhookDeliveryQueue_EnqueueListUpdate(t *testing.T) {
 	}
 	if len(due) != 1 || due[0].ID != id || due[0].State != store.WebhookDeliveryPending {
 		t.Fatalf("due = %+v", due)
+	}
+	if due[0].OrganizationID <= 0 {
+		t.Fatalf("OrganizationID = %d, want > 0", due[0].OrganizationID)
 	}
 
 	future := now.Add(time.Minute)
@@ -62,6 +66,15 @@ func TestWebhookDeliveryQueue_EnqueueListUpdate(t *testing.T) {
 	}
 }
 
+func TestWebhookDeliveryQueue_RequiresOrg(t *testing.T) {
+	st, _ := testStore(t)
+	now := time.Now().UTC()
+	_, err := st.EnqueueWebhookDelivery(context.Background(), "e", "webhook.test", "https://example.com", nil, now, now.Add(time.Hour))
+	if err == nil {
+		t.Fatal("expected organization context required")
+	}
+}
+
 func TestWebhookDeliveryQueue_MigrationColumns(t *testing.T) {
 	ctx := context.Background()
 	_, db := testStore(t)
@@ -81,7 +94,7 @@ func TestWebhookDeliveryQueue_MigrationColumns(t *testing.T) {
 		}
 		cols[name] = true
 	}
-	for _, want := range []string{"payload", "attempts", "next_attempt_at", "expires_at", "state", "last_error"} {
+	for _, want := range []string{"payload", "attempts", "next_attempt_at", "expires_at", "state", "last_error", "organization_id"} {
 		if !cols[want] {
 			t.Fatalf("missing column %q", want)
 		}
