@@ -1,9 +1,11 @@
 package middleware
 
 import (
+	"errors"
 	"net/http"
 	"strings"
 
+	"github.com/jeb-maker/revues/internal/attachments"
 	"github.com/jeb-maker/revues/internal/auth"
 )
 
@@ -27,11 +29,19 @@ func CSRF(sessionSecret string) func(http.Handler) http.Handler {
 				ct := r.Header.Get("Content-Type")
 				var parseErr error
 				if strings.HasPrefix(ct, "multipart/form-data") {
-					parseErr = r.ParseMultipartForm(10 << 20)
+					// Cap body before ParseMultipartForm — its memory arg is not a hard limit
+					// and oversized parts spill to disk unbounded (DoS).
+					r.Body = http.MaxBytesReader(w, r.Body, attachments.MaxMultipartBodyBytes)
+					parseErr = r.ParseMultipartForm(attachments.MaxMultipartBodyBytes)
 				} else {
 					parseErr = r.ParseForm()
 				}
 				if parseErr != nil {
+					var maxBytesErr *http.MaxBytesError
+					if errors.As(parseErr, &maxBytesErr) {
+						http.Error(w, "Request Entity Too Large", http.StatusRequestEntityTooLarge)
+						return
+					}
 					http.Error(w, "Forbidden", http.StatusForbidden)
 					return
 				}

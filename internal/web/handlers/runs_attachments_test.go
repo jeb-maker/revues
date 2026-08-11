@@ -57,6 +57,25 @@ func TestUpload_RejectsOversize(t *testing.T) {
 	}
 }
 
+func TestUpload_RejectsBodyTooLarge(t *testing.T) {
+	handler, db, _ := testRouterAttachments(t)
+	st := store.New(db)
+	ctx := testutil.DefaultOrgContext(context.Background(), st)
+	run, item, token, csrf := seedRunItemForUpload(t, ctx, st)
+	// Larger than MaxMultipartBodyBytes so MaxBytesReader trips before file processing.
+	data := make([]byte, 7*1024*1024)
+	data[0], data[1], data[2] = 0xFF, 0xD8, 0xFF
+	body, ct := multipartUpload(t, csrf, "huge.jpg", data)
+	req := httptest.NewRequest(http.MethodPost, uploadURL(run.ID, item.ID), body)
+	req.Header.Set("Content-Type", ct)
+	req.AddCookie(&http.Cookie{Name: "revues_session", Value: token})
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+	if rec.Code != http.StatusRequestEntityTooLarge {
+		t.Fatalf("status=%d body=%s, want 413", rec.Code, rec.Body.String())
+	}
+}
+
 func TestUpload_SuccessJPEG(t *testing.T) {
 	handler, db, dir := testRouterAttachments(t)
 	ctx := context.Background()
