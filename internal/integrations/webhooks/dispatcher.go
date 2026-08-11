@@ -412,10 +412,6 @@ func validateResolvedIPs(ctx context.Context, host string, devMode bool) error {
 	return err
 }
 
-func isLocalhostHost(host string) bool {
-	return safehttp.IsLocalhostHost(host)
-}
-
 func newEventID() string { return uuid.NewString() }
 
 func nullString(v sql.NullString) string {
