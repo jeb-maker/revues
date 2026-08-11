@@ -37,6 +37,7 @@ func (d *Deps) PageDataTab(r *http.Request, title, activeTab string) viewtemplat
 }
 
 const defaultTemplateEditorRows = 3
+const defaultListEditorRows = 3
 
 const queryForRun = "for_run"
 const queryTemplate = "template"
@@ -169,7 +170,7 @@ func (h *ChecklistTemplates) NewForm(w http.ResponseWriter, r *http.Request) {
 	rowFallback := defaultTemplateEditorRows
 	if listUI {
 		pd.Title = "Nouvelle liste"
-		rowFallback = 1
+		rowFallback = defaultListEditorRows
 	}
 	sections := emptyEditorSections(extraRows(r, rowFallback))
 	pd.Breadcrumbs = viewtemplates.BCTemplatesNewWizard(listUI)
@@ -508,7 +509,7 @@ func (h *ChecklistTemplates) renderFormError(w http.ResponseWriter, r *http.Requ
 	if len(sections) == 0 {
 		rows := defaultTemplateEditorRows
 		if listUI {
-			rows = 1
+			rows = defaultListEditorRows
 		}
 		sections = emptyEditorSections(rows)
 	}

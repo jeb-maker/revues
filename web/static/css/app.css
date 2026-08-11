@@ -400,6 +400,21 @@ mb-alert h3 { margin-top: 0; }
   flex-wrap: wrap;
   gap: 0.5rem;
 }
+.hub-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: 0 0 1.25rem;
+}
+.hub-stat {
+  flex: 1 1 9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+.hub-stat__value { font-size: 1.75rem; font-weight: 700; line-height: 1.1; }
+.hub-stat__label { color: var(--muted); font-size: 0.9rem; }
+.hub-stat__link { margin-top: 0.35rem; font-size: 0.85rem; }
 .onboarding-hint code { background: transparent; padding: 0; }
 .admin-nav-jump { display: none; }
 .admin-nav {
