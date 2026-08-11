@@ -376,6 +376,11 @@ func (s *Store) RemoveOrganizationMember(ctx context.Context, organizationID, us
 		return sql.ErrNoRows
 	}
 
+	// Drop sessions so removed members cannot keep acting until natural expiry.
+	if err := s.DeleteUserSessions(ctx, userID); err != nil {
+		return fmt.Errorf("revoke sessions after org member remove: %w", err)
+	}
+
 	return nil
 }
 
