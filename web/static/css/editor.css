@@ -130,6 +130,8 @@
 @media (max-width: 40rem) {
   .template-editor__move { display: none !important; }
   .template-editor__reorder { display: inline-block; }
+  .template-editor--compact .template-editor__move { display: inline-flex !important; }
+  .template-editor--compact .template-editor__reorder { display: none !important; }
   .template-editor__section-actions {
     display: flex;
     flex-wrap: wrap;

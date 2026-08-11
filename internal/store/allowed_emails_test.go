@@ -90,6 +90,79 @@ func TestResolveLoginRole(t *testing.T) {
 			t.Errorf("role = %q, want editor", role)
 		}
 	})
+
+	t.Run("whitelist admin capped to editor", func(t *testing.T) {
+		orgCtx := defaultOrgCtx(ctx, st)
+		// Legacy rows may still contain role=admin (CHECK allows it); login must not elevate.
+		if _, err := db.ExecContext(orgCtx, `
+			INSERT INTO allowed_emails (organization_id, email, role, created_at)
+			VALUES (?, ?, ?, ?)
+			ON CONFLICT(organization_id, email) DO UPDATE SET role = excluded.role
+		`, orgIDFrom(orgCtx), "evil@example.com", auth.RoleAdmin, "2026-01-01T00:00:00Z"); err != nil {
+			t.Fatalf("seed legacy admin whitelist: %v", err)
+		}
+		role, err := st.ResolveLoginRole(ctx, "evil@example.com", "")
+		if err != nil {
+			t.Fatalf("ResolveLoginRole() error = %v", err)
+		}
+		if role != auth.RoleEditor {
+			t.Errorf("role = %q, want editor (admin whitelist must not elevate)", role)
+		}
+	})
+
+	t.Run("bootstrap wins over whitelist", func(t *testing.T) {
+		orgCtx := defaultOrgCtx(ctx, st)
+		if err := st.InsertAllowedEmail(orgCtx, "boot@example.com", auth.RoleReader); err != nil {
+			t.Fatalf("InsertAllowedEmail(): %v", err)
+		}
+		role, err := st.ResolveLoginRole(ctx, "boot@example.com", "boot@example.com")
+		if err != nil {
+			t.Fatalf("ResolveLoginRole() error = %v", err)
+		}
+		if role != auth.RoleAdmin {
+			t.Errorf("role = %q, want admin", role)
+		}
+	})
+
+	t.Run("existing admin without bootstrap demoted", func(t *testing.T) {
+		user, err := st.UpsertGitHubUser(ctx, 99, "exadmin", "exadmin@example.com", "Ex", "", auth.RoleAdmin)
+		if err != nil {
+			t.Fatalf("UpsertGitHubUser(): %v", err)
+		}
+		defaultOrg, err := st.OrganizationBySlug(ctx, "default")
+		if err != nil {
+			t.Fatalf("OrganizationBySlug(): %v", err)
+		}
+		if err = st.AddOrganizationMember(ctx, defaultOrg.ID, user.ID, store.OrgRoleMember); err != nil {
+			t.Fatalf("AddOrganizationMember(): %v", err)
+		}
+		role, err := st.ResolveLoginRole(ctx, "exadmin@example.com", "")
+		if err != nil {
+			t.Fatalf("ResolveLoginRole() error = %v", err)
+		}
+		if role != auth.RoleEditor {
+			t.Errorf("role = %q, want editor", role)
+		}
+	})
+}
+
+func TestInsertAllowedEmailRejectsAdmin(t *testing.T) {
+	ctx := context.Background()
+	db := openMemoryDB(t)
+	st := store.New(db)
+	ctx = defaultOrgCtx(ctx, st)
+
+	if err := st.InsertAllowedEmail(ctx, "x@example.com", auth.RoleAdmin); !errors.Is(err, store.ErrInvalidAllowedRole) {
+		t.Fatalf("InsertAllowedEmail(admin) error = %v, want ErrInvalidAllowedRole", err)
+	}
+}
+
+func orgIDFrom(ctx context.Context) int64 {
+	id, ok := orgctx.OrganizationID(ctx)
+	if !ok {
+		panic("missing org id")
+	}
+	return id
 }
 
 func TestEnsureBootstrapOrgOwner(t *testing.T) {
@@ -145,6 +218,47 @@ func TestListAndDeleteAllowedEmail(t *testing.T) {
 	}
 	if err := st.DeleteAllowedEmail(ctx, "missing@example.com"); !errors.Is(err, store.ErrAllowedEmailNotFound) {
 		t.Fatalf("DeleteAllowedEmail missing error = %v", err)
+	}
+}
+
+func TestWhitelistChange_RevokesSessions(t *testing.T) {
+	ctx := context.Background()
+	db := openMemoryDB(t)
+	st := store.New(db)
+	orgCtx := defaultOrgCtx(ctx, st)
+
+	user, err := st.UpsertGitHubUser(ctx, 10, "victim", "victim@example.com", "V", "", auth.RoleEditor)
+	if err != nil {
+		t.Fatalf("UpsertGitHubUser(): %v", err)
+	}
+	if err := st.InsertAllowedEmail(orgCtx, user.Email, auth.RoleEditor); err != nil {
+		t.Fatalf("InsertAllowedEmail(): %v", err)
+	}
+	if err := st.CreateSession(ctx, user.ID, 1, "hash-active"); err != nil {
+		t.Fatalf("CreateSession(): %v", err)
+	}
+	if _, err := st.UserIDByTokenHash(ctx, "hash-active"); err != nil {
+		t.Fatalf("session should be active: %v", err)
+	}
+
+	if err := st.DeleteAllowedEmail(orgCtx, user.Email); err != nil {
+		t.Fatalf("DeleteAllowedEmail(): %v", err)
+	}
+	if _, err := st.UserIDByTokenHash(ctx, "hash-active"); !errors.Is(err, store.ErrSessionNotFound) {
+		t.Fatalf("session after whitelist remove = %v, want ErrSessionNotFound", err)
+	}
+
+	if err := st.InsertAllowedEmail(orgCtx, user.Email, auth.RoleReader); err != nil {
+		t.Fatalf("re-InsertAllowedEmail(): %v", err)
+	}
+	if err := st.CreateSession(ctx, user.ID, 1, "hash-2"); err != nil {
+		t.Fatalf("CreateSession(2): %v", err)
+	}
+	if err := st.InsertAllowedEmail(orgCtx, user.Email, auth.RoleEditor); err != nil {
+		t.Fatalf("role change InsertAllowedEmail(): %v", err)
+	}
+	if _, err := st.UserIDByTokenHash(ctx, "hash-2"); !errors.Is(err, store.ErrSessionNotFound) {
+		t.Fatalf("session after role change = %v, want ErrSessionNotFound", err)
 	}
 }
 

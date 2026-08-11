@@ -17,6 +17,10 @@ var ErrEmailNotAllowed = errors.New("email not allowed")
 // ErrAllowedEmailNotFound is returned when a whitelist entry is missing.
 var ErrAllowedEmailNotFound = errors.New("allowed email not found")
 
+// ErrInvalidAllowedRole is returned when a whitelist role is not editor or reader.
+// Global admin is never granted via org whitelist (only REVUES_BOOTSTRAP_ADMIN_EMAIL).
+var ErrInvalidAllowedRole = errors.New("allowed email role must be editor or reader")
+
 // AllowedEmail is a whitelisted login email scoped to an organization.
 type AllowedEmail struct {
 	Email     string
@@ -46,10 +50,17 @@ func (s *Store) AllowedRole(ctx context.Context, email string) (string, bool, er
 }
 
 // InsertAllowedEmail adds an email to the whitelist for the active organization.
+// Role must be editor or reader — never admin (prevents org-scoped whitelist from
+// minting a global admin on the next login).
 func (s *Store) InsertAllowedEmail(ctx context.Context, email, role string) error {
 	orgID, err := organizationIDFromContext(ctx)
 	if err != nil {
 		return err
+	}
+
+	role = strings.TrimSpace(role)
+	if !ValidWhitelistRole(role) {
+		return ErrInvalidAllowedRole
 	}
 
 	email = strings.ToLower(strings.TrimSpace(email))
@@ -63,7 +74,17 @@ func (s *Store) InsertAllowedEmail(ctx context.Context, email, role string) erro
 		return fmt.Errorf("insert allowed email: %w", err)
 	}
 
+	// Force re-login so ResolveLoginRole reapplies (role change or first grant).
+	if err := s.revokeSessionsByEmail(ctx, email); err != nil {
+		return err
+	}
+
 	return nil
+}
+
+// ValidWhitelistRole reports whether role may be stored on allowed_emails.
+func ValidWhitelistRole(role string) bool {
+	return role == auth.RoleEditor || role == auth.RoleReader
 }
 
 // CountAllowedEmails returns whitelist size for the active organization.
@@ -139,6 +160,25 @@ func (s *Store) DeleteAllowedEmail(ctx context.Context, email string) error {
 		return ErrAllowedEmailNotFound
 	}
 
+	if err := s.revokeSessionsByEmail(ctx, email); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// revokeSessionsByEmail drops all sessions for the user with this email, if any.
+func (s *Store) revokeSessionsByEmail(ctx context.Context, email string) error {
+	user, err := s.UserByEmail(ctx, email)
+	if errors.Is(err, ErrUserNotFound) {
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("lookup user for session revoke: %w", err)
+	}
+	if err := s.DeleteUserSessions(ctx, user.ID); err != nil {
+		return fmt.Errorf("revoke sessions for user %d: %w", user.ID, err)
+	}
 	return nil
 }
 
@@ -154,14 +194,22 @@ func (s *Store) ResolveLoginRole(ctx context.Context, email, bootstrapAdmin stri
 // When requireWhitelist is true, unknown emails without org membership, bootstrap
 // match, or pending invitation are rejected with ErrEmailNotAllowed (same message
 // path for anti-enumeration — no distinction unknown vs not listed).
+//
+// Global admin is granted only via REVUES_BOOTSTRAP_ADMIN_EMAIL. Org whitelist
+// entries never elevate to admin (legacy admin rows are capped to editor).
 func (s *Store) ResolveLoginRoleStrict(ctx context.Context, email, bootstrapAdmin string, requireWhitelist bool) (string, error) {
 	email = strings.ToLower(strings.TrimSpace(email))
 	bootstrapAdmin = strings.ToLower(strings.TrimSpace(bootstrapAdmin))
 
+	// Bootstrap must win over any org whitelist row for the same email.
+	if bootstrapAdmin != "" && email == bootstrapAdmin {
+		return auth.RoleAdmin, nil
+	}
+
 	if role, ok, err := s.allowedRoleAnyOrg(ctx, email); err != nil {
 		return "", err
 	} else if ok {
-		return role, nil
+		return capWhitelistLoginRole(role), nil
 	}
 
 	if user, err := s.UserByEmail(ctx, email); err == nil {
@@ -170,14 +218,10 @@ func (s *Store) ResolveLoginRoleStrict(ctx context.Context, email, bootstrapAdmi
 			return "", fmt.Errorf("count user organizations: %w", countErr)
 		}
 		if count > 0 {
-			return user.Role, nil
+			return capWhitelistLoginRole(user.Role), nil
 		}
 	} else if !errors.Is(err, ErrUserNotFound) {
 		return "", err
-	}
-
-	if bootstrapAdmin != "" && email == bootstrapAdmin {
-		return auth.RoleAdmin, nil
 	}
 
 	if ok, err := s.HasPendingInvitationByEmail(ctx, email); err != nil {
@@ -191,6 +235,18 @@ func (s *Store) ResolveLoginRoleStrict(ctx context.Context, email, bootstrapAdmi
 	}
 
 	return auth.RoleEditor, nil
+}
+
+// capWhitelistLoginRole ensures org-scoped sources cannot mint global admin.
+func capWhitelistLoginRole(role string) string {
+	switch role {
+	case auth.RoleReader:
+		return auth.RoleReader
+	case auth.RoleEditor, auth.RoleAdmin:
+		return auth.RoleEditor
+	default:
+		return auth.RoleEditor
+	}
 }
 
 // EnsureBootstrapOrgOwner adds the bootstrap admin as owner of the default org.

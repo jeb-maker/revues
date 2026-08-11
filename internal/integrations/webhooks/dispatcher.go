@@ -19,6 +19,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/jeb-maker/revues/internal/features/admin/settings"
+	"github.com/jeb-maker/revues/internal/orgctx"
 	"github.com/jeb-maker/revues/internal/safehttp"
 	"github.com/jeb-maker/revues/internal/store"
 )
@@ -110,15 +111,10 @@ func (d *Dispatcher) SendTest(ctx context.Context) error {
 }
 
 // Drain processes due pending deliveries (cron or opportunistic request path).
+// Each row carries organization_id; webhook secrets are loaded in that org scope
+// (same pattern as notifications.SendDueReminders).
 func (d *Dispatcher) Drain(ctx context.Context) error {
 	if d == nil || d.Settings == nil || d.Store == nil {
-		return nil
-	}
-	cfg, ok, err := d.Settings.LoadWebhooks(ctx)
-	if err != nil {
-		return fmt.Errorf("load webhooks for drain: %w", err)
-	}
-	if !ok || !cfg.Enabled() {
 		return nil
 	}
 	due, err := d.Store.ListDueWebhookDeliveries(ctx, d.now(), DrainBatchSize)
@@ -126,7 +122,25 @@ func (d *Dispatcher) Drain(ctx context.Context) error {
 		return err
 	}
 	for _, del := range due {
-		if err := d.processQueued(ctx, cfg.Secret, del); err != nil {
+		if del.OrganizationID <= 0 {
+			if updErr := d.Store.UpdateWebhookDeliveryAttempt(ctx, del.ID, 0, false, del.Attempts, nil, store.WebhookDeliveryPoison, "missing organization_id"); updErr != nil {
+				slog.Error("webhook poison missing org", "delivery_id", del.ID, "err", updErr)
+			}
+			continue
+		}
+		orgCtx := orgctx.WithOrganizationID(ctx, del.OrganizationID)
+		cfg, ok, loadErr := d.Settings.LoadWebhooks(orgCtx)
+		if loadErr != nil {
+			slog.Error("load webhooks for drain", "delivery_id", del.ID, "organization_id", del.OrganizationID, "err", loadErr)
+			continue
+		}
+		if !ok || !cfg.Enabled() {
+			if updErr := d.Store.UpdateWebhookDeliveryAttempt(orgCtx, del.ID, 0, false, del.Attempts, nil, store.WebhookDeliveryPoison, "webhooks disabled"); updErr != nil {
+				slog.Error("webhook poison disabled", "delivery_id", del.ID, "err", updErr)
+			}
+			continue
+		}
+		if err := d.processQueued(orgCtx, cfg.Secret, del); err != nil {
 			slog.Error("webhook drain attempt failed", "delivery_id", del.ID, "event_id", del.EventID, "url", redactURL(del.URL), "err", err)
 		}
 	}
@@ -192,8 +206,13 @@ func (d *Dispatcher) emitAsync(ctx context.Context, eventType string, build func
 	if !ok || !cfg.Enabled() || !cfg.EventEnabled(eventType) {
 		return
 	}
+	orgID, hasOrg := orgctx.OrganizationID(ctx)
 	go func() {
-		bg, cancel := context.WithTimeout(context.Background(), requestTimeout+2*time.Second)
+		bg := context.Background()
+		if hasOrg {
+			bg = orgctx.WithOrganizationID(bg, orgID)
+		}
+		bg, cancel := context.WithTimeout(bg, requestTimeout+2*time.Second)
 		defer cancel()
 		data, err := build(bg)
 		if err != nil {
@@ -227,15 +246,17 @@ func (d *Dispatcher) enqueueAndAttempt(ctx context.Context, cfg settings.Webhook
 	if err != nil {
 		return err
 	}
+	orgID, _ := orgctx.OrganizationID(ctx)
 	del := store.WebhookDelivery{
-		ID:        id,
-		EventID:   eventID,
-		EventType: eventType,
-		URL:       target,
-		Payload:   body,
-		Attempts:  0,
-		ExpiresAt: expires.UTC().Format(time.RFC3339),
-		State:     store.WebhookDeliveryPending,
+		ID:             id,
+		OrganizationID: orgID,
+		EventID:        eventID,
+		EventType:      eventType,
+		URL:            target,
+		Payload:        body,
+		Attempts:       0,
+		ExpiresAt:      expires.UTC().Format(time.RFC3339),
+		State:          store.WebhookDeliveryPending,
 	}
 	return d.processQueued(ctx, cfg.Secret, del)
 }

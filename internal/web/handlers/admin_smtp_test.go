@@ -60,7 +60,7 @@ func TestAdminSMTP_SaveAndTest(t *testing.T) {
 	if err != nil {
 		t.Fatalf("UpsertGitHubUser(): %v", err)
 	}
-	if insertErr := st.InsertAllowedEmail(ctx, "admin@example.com", auth.RoleAdmin); insertErr != nil {
+	if insertErr := st.InsertAllowedEmail(ctx, "admin@example.com", auth.RoleEditor); insertErr != nil {
 		t.Fatalf("InsertAllowedEmail(): %v", insertErr)
 	}
 

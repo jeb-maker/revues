@@ -254,6 +254,24 @@ func (s *Store) ListSubjects(ctx context.Context, userID int64, admin bool, quer
 	return subjects, nil
 }
 
+// CountOrganizationSubjects returns the number of non-archived subjects in the
+// active organization. Org-scoped via context.
+func (s *Store) CountOrganizationSubjects(ctx context.Context) (int, error) {
+	orgID, err := organizationIDFromContext(ctx)
+	if err != nil {
+		return 0, err
+	}
+	var count int
+	err = s.db.QueryRowContext(ctx, `
+		SELECT COUNT(*) FROM subjects
+		WHERE organization_id = ? AND archived_at IS NULL
+	`, orgID).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("count organization subjects: %w", err)
+	}
+	return count, nil
+}
+
 // ListVisibleSubjectIDs returns up to limit subject ids visible to the user (name order).
 // Used for simple-UI detection without loading full subject rows.
 func (s *Store) ListVisibleSubjectIDs(ctx context.Context, userID int64, admin bool, limit int) ([]int64, error) {
