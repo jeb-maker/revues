@@ -21,6 +21,10 @@ import (
 func main() {
 	cfg := config.Load()
 	initLogging(cfg.Env)
+	if err := cfg.Validate(); err != nil {
+		slog.Error("invalid configuration", "err", err)
+		os.Exit(1)
+	}
 
 	ctx := context.Background()
 

@@ -16,30 +16,37 @@ const (
 
 // WebhookDelivery is one durable outbound webhook attempt queue row.
 type WebhookDelivery struct {
-	ID            int64
-	EventID       string
-	EventType     string
-	URL           string
-	Payload       []byte
-	StatusCode    sql.NullInt64
-	Success       bool
-	Attempts      int
-	NextAttemptAt string
-	ExpiresAt     string
-	State         string
-	LastError     string
-	CreatedAt     string
+	ID             int64
+	OrganizationID int64
+	EventID        string
+	EventType      string
+	URL            string
+	Payload        []byte
+	StatusCode     sql.NullInt64
+	Success        bool
+	Attempts       int
+	NextAttemptAt  string
+	ExpiresAt      string
+	State          string
+	LastError      string
+	CreatedAt      string
 }
 
 // EnqueueWebhookDelivery inserts a pending delivery for durable retry.
+// Requires an active organization in ctx (used to load the correct signing secret on drain).
 func (s *Store) EnqueueWebhookDelivery(ctx context.Context, eventID, eventType, url string, payload []byte, nextAttemptAt, expiresAt time.Time) (int64, error) {
+	orgID, err := organizationIDFromContext(ctx)
+	if err != nil {
+		return 0, err
+	}
+
 	now := time.Now().UTC().Format(time.RFC3339)
 	res, err := s.db.ExecContext(ctx, `
 		INSERT INTO webhook_deliveries (
-			event_id, event_type, url, status_code, success, created_at,
+			organization_id, event_id, event_type, url, status_code, success, created_at,
 			payload, attempts, next_attempt_at, expires_at, state, last_error
-		) VALUES (?, ?, ?, NULL, 0, ?, ?, 0, ?, ?, ?, NULL)
-	`, eventID, eventType, url, now, payload, nextAttemptAt.UTC().Format(time.RFC3339), expiresAt.UTC().Format(time.RFC3339), WebhookDeliveryPending)
+		) VALUES (?, ?, ?, ?, NULL, 0, ?, ?, 0, ?, ?, ?, NULL)
+	`, orgID, eventID, eventType, url, now, payload, nextAttemptAt.UTC().Format(time.RFC3339), expiresAt.UTC().Format(time.RFC3339), WebhookDeliveryPending)
 	if err != nil {
 		return 0, fmt.Errorf("enqueue webhook delivery: %w", err)
 	}
@@ -50,13 +57,14 @@ func (s *Store) EnqueueWebhookDelivery(ctx context.Context, eventID, eventType, 
 	return id, nil
 }
 
-// ListDueWebhookDeliveries returns pending deliveries ready to attempt.
+// ListDueWebhookDeliveries returns pending deliveries ready to attempt (all orgs).
+// Callers must re-inject organization_id into ctx before loading per-org webhook secrets.
 func (s *Store) ListDueWebhookDeliveries(ctx context.Context, now time.Time, limit int) ([]WebhookDelivery, error) {
 	if limit <= 0 {
 		limit = 50
 	}
 	rows, err := s.db.QueryContext(ctx, `
-		SELECT id, event_id, event_type, url, payload, status_code, success,
+		SELECT id, COALESCE(organization_id, 0), event_id, event_type, url, payload, status_code, success,
 		       attempts, COALESCE(next_attempt_at, ''), COALESCE(expires_at, ''),
 		       state, COALESCE(last_error, ''), created_at
 		FROM webhook_deliveries
@@ -75,7 +83,7 @@ func (s *Store) ListDueWebhookDeliveries(ctx context.Context, now time.Time, lim
 		var successInt int
 		var payload []byte
 		if err := rows.Scan(
-			&d.ID, &d.EventID, &d.EventType, &d.URL, &payload, &d.StatusCode, &successInt,
+			&d.ID, &d.OrganizationID, &d.EventID, &d.EventType, &d.URL, &payload, &d.StatusCode, &successInt,
 			&d.Attempts, &d.NextAttemptAt, &d.ExpiresAt, &d.State, &d.LastError, &d.CreatedAt,
 		); err != nil {
 			return nil, fmt.Errorf("scan webhook delivery: %w", err)
@@ -122,6 +130,11 @@ func (s *Store) UpdateWebhookDeliveryAttempt(ctx context.Context, id int64, stat
 // InsertWebhookDelivery records a one-shot delivery log row (legacy / immediate success path).
 // Prefer EnqueueWebhookDelivery + UpdateWebhookDeliveryAttempt for durable retries.
 func (s *Store) InsertWebhookDelivery(ctx context.Context, eventID, eventType, url string, statusCode int, success bool) error {
+	orgID, err := organizationIDFromContext(ctx)
+	if err != nil {
+		return err
+	}
+
 	now := time.Now().UTC().Format(time.RFC3339)
 	var code any
 	if statusCode > 0 {
@@ -135,12 +148,12 @@ func (s *Store) InsertWebhookDelivery(ctx context.Context, eventID, eventType, u
 	if !success {
 		state = WebhookDeliveryPoison
 	}
-	_, err := s.db.ExecContext(ctx, `
+	_, err = s.db.ExecContext(ctx, `
 		INSERT INTO webhook_deliveries (
-			event_id, event_type, url, status_code, success, created_at,
+			organization_id, event_id, event_type, url, status_code, success, created_at,
 			payload, attempts, next_attempt_at, expires_at, state, last_error
-		) VALUES (?, ?, ?, ?, ?, ?, NULL, 1, NULL, NULL, ?, NULL)
-	`, eventID, eventType, url, code, successInt, now, state)
+		) VALUES (?, ?, ?, ?, ?, ?, ?, NULL, 1, NULL, NULL, ?, NULL)
+	`, orgID, eventID, eventType, url, code, successInt, now, state)
 	if err != nil {
 		return fmt.Errorf("insert webhook delivery: %w", err)
 	}

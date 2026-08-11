@@ -2,9 +2,9 @@
 {{template "layout_start" .}}
 <mb-card>
   {{if .OrganizationName}}
-  <p class="muted">Gérez les emails autorisés à rejoindre <strong>{{.OrganizationName}}</strong> via GitHub et leur rôle global.</p>
+  <p class="muted">Gérez les emails autorisés à rejoindre <strong>{{.OrganizationName}}</strong> via GitHub et leur rôle (lecteur ou éditeur). L'admin global se configure uniquement via <code>REVUES_BOOTSTRAP_ADMIN_EMAIL</code>.</p>
   {{else}}
-  <p class="muted">Gérez les emails autorisés à rejoindre cette organisation via GitHub et leur rôle global.</p>
+  <p class="muted">Gérez les emails autorisés à rejoindre cette organisation via GitHub et leur rôle (lecteur ou éditeur). L'admin global se configure uniquement via <code>REVUES_BOOTSTRAP_ADMIN_EMAIL</code>.</p>
   {{end}}
 </mb-card>
 
@@ -30,7 +30,6 @@
     <mb-select label="Rôle" name="role" required value="reader">
       <option value="reader">{{formatRole "reader"}}</option>
       <option value="editor">{{formatRole "editor"}}</option>
-      <option value="admin">{{formatRole "admin"}}</option>
     </mb-select>
     <div class="form-actions">
       <mb-button type="submit">Enregistrer</mb-button>
