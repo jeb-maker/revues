@@ -9,8 +9,11 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
+
+	"github.com/jeb-maker/revues/internal/safehttp"
 )
 
 const (
@@ -48,10 +51,7 @@ func (c *Client) TestConnection(ctx context.Context, cfg Config) error {
 		return errors.New("configuration Jira incomplète")
 	}
 
-	client := c.HTTPClient
-	if client == nil {
-		client = &http.Client{Timeout: 10 * time.Second}
-	}
+	client := c.httpClient(cfg.BaseURL, 10*time.Second)
 
 	baseURL := NormalizeBaseURL(cfg.BaseURL)
 	var req *http.Request
@@ -106,10 +106,7 @@ func (c *Client) GetIssue(ctx context.Context, cfg Config, key string) (string, 
 		return "", errors.New("configuration Jira incomplète")
 	}
 
-	client := c.HTTPClient
-	if client == nil {
-		client = &http.Client{Timeout: 10 * time.Second}
-	}
+	client := c.httpClient(cfg.BaseURL, 10*time.Second)
 
 	baseURL := NormalizeBaseURL(cfg.BaseURL)
 	issueKey := strings.ToUpper(strings.TrimSpace(key))
@@ -185,10 +182,7 @@ func (c *Client) CreateIssue(ctx context.Context, cfg Config, input CreateIssueI
 		issueType = DefaultIssueType
 	}
 
-	client := c.HTTPClient
-	if client == nil {
-		client = &http.Client{Timeout: 15 * time.Second}
-	}
+	client := c.httpClient(cfg.BaseURL, 15*time.Second)
 
 	baseURL := NormalizeBaseURL(cfg.BaseURL)
 	var body []byte
@@ -304,4 +298,20 @@ func cloudDescriptionADF(text string) map[string]any {
 		"version": 1,
 		"content": content,
 	}
+}
+
+func (c *Client) httpClient(baseURL string, timeout time.Duration) *http.Client {
+	if c != nil && c.HTTPClient != nil {
+		return c.HTTPClient
+	}
+	host := ""
+	if u, err := url.Parse(NormalizeBaseURL(baseURL)); err == nil {
+		host = u.Hostname()
+	}
+	return safehttp.NewClient(safehttp.Options{
+		Timeout:           timeout,
+		DialTimeout:       timeout,
+		MaxRedirects:      1,
+		AllowDevLocalhost: safehttp.IsLocalhostHost(host),
+	})
 }

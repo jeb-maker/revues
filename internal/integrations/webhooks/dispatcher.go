@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
-	"net"
 	"net/http"
 	"net/url"
 	"strings"
@@ -20,6 +19,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/jeb-maker/revues/internal/features/admin/settings"
+	"github.com/jeb-maker/revues/internal/safehttp"
 	"github.com/jeb-maker/revues/internal/store"
 )
 
@@ -389,69 +389,31 @@ func VerifySignature(secret string, body []byte, signature string) bool {
 }
 
 func ValidateTargetURL(raw string, devMode bool) error {
-	u, err := url.Parse(raw)
-	if err != nil {
-		return fmt.Errorf("invalid url: %w", err)
-	}
-	if u.Scheme == "https" {
-		return nil
-	}
-	if devMode && u.Scheme == "http" && isLocalhostHost(u.Hostname()) {
-		return nil
-	}
-	return fmt.Errorf("webhook url scheme not allowed")
-}
-
-func NewSafeClient(devMode bool) *http.Client {
-	return &http.Client{Timeout: requestTimeout, CheckRedirect: func(req *http.Request, via []*http.Request) error {
-		if len(via) >= maxRedirects {
-			return fmt.Errorf("too many redirects")
+	if err := safehttp.ValidateURL(raw, devMode); err != nil {
+		if strings.Contains(err.Error(), "scheme") {
+			return fmt.Errorf("webhook url scheme not allowed")
 		}
-		if err := ValidateTargetURL(req.URL.String(), devMode); err != nil {
-			return err
-		}
-		return validateResolvedIPs(req.Context(), req.URL.Hostname(), devMode)
-	}, Transport: &http.Transport{DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
-		host, _, err := net.SplitHostPort(addr)
-		if err != nil {
-			host = addr
-		}
-		if err := validateResolvedIPs(ctx, host, devMode); err != nil {
-			return nil, err
-		}
-		return (&net.Dialer{Timeout: requestTimeout}).DialContext(ctx, network, addr)
-	}}}
-}
-
-func validateResolvedIPs(ctx context.Context, host string, devMode bool) error {
-	if isLocalhostHost(host) {
-		if devMode {
-			return nil
-		}
-		return fmt.Errorf("localhost not allowed")
-	}
-	ips, err := net.DefaultResolver.LookupIPAddr(ctx, host)
-	if err != nil {
-		return fmt.Errorf("resolve host: %w", err)
-	}
-	for _, ipAddr := range ips {
-		if blockedIP(ipAddr.IP) {
-			return fmt.Errorf("blocked ip address")
-		}
+		return err
 	}
 	return nil
 }
 
-func blockedIP(ip net.IP) bool {
-	if ip == nil || ip.IsLoopback() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() || ip.IsPrivate() || ip.IsUnspecified() {
-		return true
-	}
-	return ip.Equal(net.ParseIP("169.254.169.254"))
+func NewSafeClient(devMode bool) *http.Client {
+	return safehttp.NewClient(safehttp.Options{
+		AllowDevLocalhost: devMode,
+		Timeout:           requestTimeout,
+		DialTimeout:       requestTimeout,
+		MaxRedirects:      maxRedirects,
+	})
+}
+
+func validateResolvedIPs(ctx context.Context, host string, devMode bool) error {
+	_, err := safehttp.ResolveAllowedIP(ctx, host, devMode)
+	return err
 }
 
 func isLocalhostHost(host string) bool {
-	host = strings.ToLower(strings.TrimSpace(host))
-	return host == "localhost" || host == "127.0.0.1" || host == "::1"
+	return safehttp.IsLocalhostHost(host)
 }
 
 func newEventID() string { return uuid.NewString() }

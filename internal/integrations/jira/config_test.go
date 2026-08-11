@@ -120,6 +120,31 @@ func TestValidateBaseURLRequiresHTTPS(t *testing.T) {
 	}
 }
 
+func TestValidateBaseURL_RejectsPrivateIP(t *testing.T) {
+	for _, raw := range []string{
+		"https://169.254.169.254/latest/meta-data",
+		"https://10.0.0.5/",
+		"https://192.168.1.10:8443",
+	} {
+		if err := jira.ValidateBaseURL(raw); err == nil {
+			t.Fatalf("expected reject for %s", raw)
+		}
+	}
+}
+
+func TestClient_BlocksPrivateBaseURLDial(t *testing.T) {
+	client := &jira.Client{} // default safehttp client
+	err := client.TestConnection(context.Background(), jira.Config{
+		InstanceType: jira.InstanceCloud,
+		BaseURL:      "https://10.0.0.8",
+		Email:        "u@example.com",
+		APIToken:     "token",
+	})
+	if err == nil {
+		t.Fatal("expected connection failure to private IP")
+	}
+}
+
 func TestClientTestConnectionCloud(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/rest/api/3/myself" {
