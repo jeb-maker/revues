@@ -63,6 +63,11 @@ func (s *Store) InsertAllowedEmail(ctx context.Context, email, role string) erro
 		return fmt.Errorf("insert allowed email: %w", err)
 	}
 
+	// Force re-login so ResolveLoginRole reapplies (role change or first grant).
+	if err := s.revokeSessionsByEmail(ctx, email); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -139,6 +144,25 @@ func (s *Store) DeleteAllowedEmail(ctx context.Context, email string) error {
 		return ErrAllowedEmailNotFound
 	}
 
+	if err := s.revokeSessionsByEmail(ctx, email); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// revokeSessionsByEmail drops all sessions for the user with this email, if any.
+func (s *Store) revokeSessionsByEmail(ctx context.Context, email string) error {
+	user, err := s.UserByEmail(ctx, email)
+	if errors.Is(err, ErrUserNotFound) {
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("lookup user for session revoke: %w", err)
+	}
+	if err := s.DeleteUserSessions(ctx, user.ID); err != nil {
+		return fmt.Errorf("revoke sessions for user %d: %w", user.ID, err)
+	}
 	return nil
 }
 

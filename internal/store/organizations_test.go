@@ -147,8 +147,15 @@ func TestOrganizationMemberships(t *testing.T) {
 		t.Fatalf("ListUserOrganizations() = %+v", memberships)
 	}
 
+	if err := st.CreateSession(ctx, member.ID, org.ID, "org-member-session"); err != nil {
+		t.Fatalf("CreateSession(): %v", err)
+	}
+
 	if err = st.RemoveOrganizationMember(ctx, org.ID, member.ID); err != nil {
 		t.Fatalf("RemoveOrganizationMember(): %v", err)
+	}
+	if _, err := st.UserIDByTokenHash(ctx, "org-member-session"); !errors.Is(err, store.ErrSessionNotFound) {
+		t.Fatalf("session after org remove = %v, want ErrSessionNotFound", err)
 	}
 	if err = st.RemoveOrganizationMember(ctx, org.ID, member.ID); !errors.Is(err, sql.ErrNoRows) {
 		t.Fatalf("RemoveOrganizationMember() missing error = %v", err)

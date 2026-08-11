@@ -148,6 +148,47 @@ func TestListAndDeleteAllowedEmail(t *testing.T) {
 	}
 }
 
+func TestWhitelistChange_RevokesSessions(t *testing.T) {
+	ctx := context.Background()
+	db := openMemoryDB(t)
+	st := store.New(db)
+	orgCtx := defaultOrgCtx(ctx, st)
+
+	user, err := st.UpsertGitHubUser(ctx, 10, "victim", "victim@example.com", "V", "", auth.RoleEditor)
+	if err != nil {
+		t.Fatalf("UpsertGitHubUser(): %v", err)
+	}
+	if err := st.InsertAllowedEmail(orgCtx, user.Email, auth.RoleEditor); err != nil {
+		t.Fatalf("InsertAllowedEmail(): %v", err)
+	}
+	if err := st.CreateSession(ctx, user.ID, 1, "hash-active"); err != nil {
+		t.Fatalf("CreateSession(): %v", err)
+	}
+	if _, err := st.UserIDByTokenHash(ctx, "hash-active"); err != nil {
+		t.Fatalf("session should be active: %v", err)
+	}
+
+	if err := st.DeleteAllowedEmail(orgCtx, user.Email); err != nil {
+		t.Fatalf("DeleteAllowedEmail(): %v", err)
+	}
+	if _, err := st.UserIDByTokenHash(ctx, "hash-active"); !errors.Is(err, store.ErrSessionNotFound) {
+		t.Fatalf("session after whitelist remove = %v, want ErrSessionNotFound", err)
+	}
+
+	if err := st.InsertAllowedEmail(orgCtx, user.Email, auth.RoleReader); err != nil {
+		t.Fatalf("re-InsertAllowedEmail(): %v", err)
+	}
+	if err := st.CreateSession(ctx, user.ID, 1, "hash-2"); err != nil {
+		t.Fatalf("CreateSession(2): %v", err)
+	}
+	if err := st.InsertAllowedEmail(orgCtx, user.Email, auth.RoleEditor); err != nil {
+		t.Fatalf("role change InsertAllowedEmail(): %v", err)
+	}
+	if _, err := st.UserIDByTokenHash(ctx, "hash-2"); !errors.Is(err, store.ErrSessionNotFound) {
+		t.Fatalf("session after role change = %v, want ErrSessionNotFound", err)
+	}
+}
+
 func openMemoryDB(t *testing.T) *sql.DB {
 	t.Helper()
 
