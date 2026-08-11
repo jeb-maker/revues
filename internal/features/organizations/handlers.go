@@ -33,6 +33,8 @@ type OrgStore interface {
 	UpdateOrganizationUISubjectLabel(ctx context.Context, organizationID int64, label string) error
 	UpdateOrganizationUIRunLabel(ctx context.Context, organizationID int64, label string) error
 	UpdateOrganizationLeadPolicies(ctx context.Context, organizationID int64, policies store.OrgLeadPolicies) error
+	CountOrganizationMembers(ctx context.Context, organizationID int64) (int, error)
+	CountOrganizationSubjects(ctx context.Context) (int, error)
 }
 
 // Deps holds shared dependencies for organization HTTP handlers.

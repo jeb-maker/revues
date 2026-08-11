@@ -1,21 +1,28 @@
 {{define "admin_org_hub"}}
 {{template "layout_start" .}}
+
 <mb-card>
-  <h2>Organisation</h2>
-  {{if .ShowOrganisationNav}}
   {{if .OrganizationName}}
-  <p class="muted">Gérez <strong>{{.OrganizationName}}</strong> — membres, {{.Labels.Subject.Plural | lowerFirst}} et intégrations.</p>
+  <p class="muted">Organisation <strong>{{.OrganizationName}}</strong>{{if .CreatedAt}} · créée le {{formatDateTime .CreatedAt}}{{end}}.</p>
   {{else}}
   <p class="muted">Gérez les membres, {{.Labels.Subject.Plural | lowerFirst}} et intégrations de l'organisation.</p>
   {{end}}
-  {{else}}
-  {{if .OrganizationName}}
-  <p class="muted">Invitez un collègue ou gérez vos {{.Labels.Subject.Plural | lowerFirst}} pour <strong>{{.OrganizationName}}</strong>.</p>
-  {{else}}
-  <p class="muted">Invitez un collègue ou gérez vos {{.Labels.Subject.Plural | lowerFirst}}.</p>
-  {{end}}
-  {{end}}
 </mb-card>
+
+<div class="hub-stats">
+  <mb-card class="hub-stat">
+    <span class="hub-stat__value">{{.MemberCount}}</span>
+    <span class="hub-stat__label">Membre{{if ne .MemberCount 1}}s{{end}}</span>
+  </mb-card>
+  <mb-card class="hub-stat">
+    <span class="hub-stat__value">{{.SubjectCount}}</span>
+    <span class="hub-stat__label">{{.Labels.Subject.Plural}}</span>
+  </mb-card>
+</div>
+
+{{if .ShowOrganisationNav}}
+{{template "admin_nav" .}}
+{{end}}
 
 <mb-card>
   <h2>Accès rapide</h2>
@@ -34,6 +41,7 @@
     {{end}}
   </div>
 </mb-card>
+
 {{template "layout_end" .}}
 {{end}}
 {{define "main_class"}} site-main--wide{{end}}

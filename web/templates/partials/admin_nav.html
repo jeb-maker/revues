@@ -1,7 +1,8 @@
 {{define "admin_nav"}}
 <label class="admin-nav-jump">
   <span class="visually-hidden">Section administration</span>
-  <mb-select class="admin-nav-jump__select" density="compact" hide-label aria-label="Section administration" placeholder="Aller à…" value="{{if eq .AdminSection "users"}}/admin/users{{else if eq .AdminSection "teams"}}/admin/teams{{else if eq .AdminSection "subjects"}}/admin/subjects{{else if eq .AdminSection "labels"}}/admin/settings/labels{{else if eq .AdminSection "policies"}}/admin/settings/policies{{else if eq .AdminSection "integrations"}}/admin/integrations{{else if eq .AdminSection "smtp"}}/admin/settings/smtp{{else if eq .AdminSection "webhooks"}}/admin/settings/webhooks{{else if eq .AdminSection "jira"}}/admin/integrations/jira{{else if eq .AdminSection "notion"}}/admin/integrations/notion{{end}}">
+  <mb-select class="admin-nav-jump__select" density="compact" hide-label aria-label="Section administration" placeholder="Aller à…" value="{{if eq .AdminSection "hub"}}/admin{{else if eq .AdminSection "users"}}/admin/users{{else if eq .AdminSection "teams"}}/admin/teams{{else if eq .AdminSection "subjects"}}/admin/subjects{{else if eq .AdminSection "labels"}}/admin/settings/labels{{else if eq .AdminSection "policies"}}/admin/settings/policies{{else if eq .AdminSection "integrations"}}/admin/integrations{{else if eq .AdminSection "smtp"}}/admin/settings/smtp{{else if eq .AdminSection "webhooks"}}/admin/settings/webhooks{{else if eq .AdminSection "jira"}}/admin/integrations/jira{{else if eq .AdminSection "notion"}}/admin/integrations/notion{{end}}">
+    <option value="/admin">Organisation</option>
     <option value="/admin/users">Emails autorisés</option>
     <option value="/admin/teams">Équipes</option>
     <option value="/admin/subjects">{{.Labels.Subject.Plural}}</option>
@@ -19,6 +20,7 @@
 <nav class="admin-nav" aria-label="Administration">
   <div class="admin-nav__group">
     <span class="admin-nav__group-label">Gestion</span>
+    <a href="/admin"{{if eq .AdminSection "hub"}} aria-current="page"{{end}}>Organisation</a>
     <a href="/admin/users"{{if eq .AdminSection "users"}} aria-current="page"{{end}}>Emails autorisés</a>
     <a href="/admin/teams"{{if eq .AdminSection "teams"}} aria-current="page"{{end}}>Équipes</a>
     <a href="/admin/subjects"{{if eq .AdminSection "subjects"}} aria-current="page"{{end}}>{{.Labels.Subject.Plural}}</a>

@@ -224,6 +224,10 @@ type AdminTeamDetailData struct {
 type AdminOrgHubData struct {
 	PageData
 	OrganizationName string
+	OrganizationSlug string
+	CreatedAt        string
+	MemberCount      int
+	SubjectCount     int
 }
 
 // AdminSubjectLabelsData is view data for the org subject + run label preset screen.
