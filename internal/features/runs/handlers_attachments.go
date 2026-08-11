@@ -18,7 +18,7 @@ import (
 	viewtemplates "github.com/jeb-maker/revues/internal/web/templates"
 )
 
-const multipartMaxMemory = 6 << 20
+const multipartMaxMemory = attachments.MaxMultipartBodyBytes
 
 func (h *Runs) UploadAttachment(w http.ResponseWriter, r *http.Request) {
 	run, project, user, access, ok := h.loadRun(w, r)
@@ -47,7 +47,14 @@ func (h *Runs) UploadAttachment(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
+	// Hard cap when CSRF used X-CSRF-Token (body not yet limited/parsed).
+	r.Body = http.MaxBytesReader(w, r.Body, attachments.MaxMultipartBodyBytes)
 	if err = r.ParseMultipartForm(multipartMaxMemory); err != nil {
+		var maxBytesErr *http.MaxBytesError
+		if errors.As(err, &maxBytesErr) {
+			http.Error(w, "Request Entity Too Large", http.StatusRequestEntityTooLarge)
+			return
+		}
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
 	}

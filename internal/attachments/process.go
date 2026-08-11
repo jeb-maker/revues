@@ -18,8 +18,9 @@ import (
 )
 
 const (
-	MaxUploadBytes    = 5 * 1024 * 1024
-	MaxImageDimension = 1920
+	MaxUploadBytes        = 5 * 1024 * 1024
+	MaxMultipartBodyBytes = MaxUploadBytes + (1 << 20) // file + multipart framing/fields
+	MaxImageDimension     = 1920
 )
 
 var (
