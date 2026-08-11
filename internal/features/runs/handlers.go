@@ -413,7 +413,7 @@ func (h *Runs) Complete(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
-	if err := ValidateComplete(runItems); err != nil {
+	if err = ValidateComplete(runItems); err != nil {
 		completeErr := "Traitez tous les points obligatoires avant de clôturer."
 		extra := viewtemplates.RunShowData{
 			CompleteError: completeErr,
@@ -427,7 +427,7 @@ func (h *Runs) Complete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.Store.CompleteRun(r.Context(), run.ID, closingNote); err != nil {
+	if err = h.Store.CompleteRun(r.Context(), run.ID, closingNote); err != nil {
 		if errors.Is(err, store.ErrInvalidRunStatus) {
 			http.Error(w, "Bad Request", http.StatusBadRequest)
 			return
