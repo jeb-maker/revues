@@ -105,7 +105,7 @@ func TestIsWhitelistOrgUnlock_GlobalAdminNever(t *testing.T) {
 		t.Fatal(err)
 	}
 	octx := orgctx.WithOrganizationID(ctx, org.ID)
-	if err := st.InsertAllowedEmail(octx, "admin@example.com", auth.RoleAdmin); err != nil {
+	if err := st.InsertAllowedEmail(octx, "admin@example.com", auth.RoleEditor); err != nil {
 		t.Fatal(err)
 	}
 	if err := st.InsertAllowedEmail(octx, "other@example.com", auth.RoleReader); err != nil {
