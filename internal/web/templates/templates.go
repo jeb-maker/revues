@@ -634,9 +634,14 @@ type RunProgressData struct {
 
 // RunCompleteStatusData is view data for the run complete-section status fragment.
 type RunCompleteStatusData struct {
-	Run      *store.ChecklistRun
-	NokItems []store.RunItem
-	Progress RunProgressData
+	Run                  *store.ChecklistRun
+	NokItems             []store.RunItem
+	PendingRequiredItems []store.RunItem
+	Progress             RunProgressData
+	CanSubmitComplete    bool
+	CompleteError        string
+	ClosingNote          string
+	CSRFToken            string
 }
 
 // RunItemRowData is view data for a single run item table row fragment.
@@ -670,38 +675,40 @@ type RunItemSectionData struct {
 // RunShowData is view data for run detail.
 type RunShowData struct {
 	PageData
-	Subject           *store.Subject
-	Run               *store.ChecklistRun
-	RunDisplayLabel   string
-	Items             []store.RunItem
-	ItemSections      []RunItemSectionData
-	NokItems          []store.RunItem
-	Sections          []string
-	FilterSection     string
-	FilterStatus      string
-	JiraLinks         map[int64]store.IntegrationLink
-	Attachments       map[int64]*store.Attachment
-	Members           []store.SubjectMember
-	TemplateName      string
-	VersionNum        int
-	MemberRole        string
-	CanLaunch         bool
-	CanCheck          bool
-	CanAssign         bool
-	CanLinkJira       bool
-	JiraConfigured    bool
-	CanComplete       bool
-	NotionConfigured  bool
-	CanExportNotion   bool
-	CanExportEvidence bool
-	Progress          RunProgressData
-	ClosingNote       string
-	Message           string
-	ItemError         string
-	AssignError       string
-	CompleteError     string
-	NotionExportError string
-	Error             string
+	Subject              *store.Subject
+	Run                  *store.ChecklistRun
+	RunDisplayLabel      string
+	Items                []store.RunItem
+	ItemSections         []RunItemSectionData
+	NokItems             []store.RunItem
+	PendingRequiredItems []store.RunItem
+	CanSubmitComplete    bool
+	Sections             []string
+	FilterSection        string
+	FilterStatus         string
+	JiraLinks            map[int64]store.IntegrationLink
+	Attachments          map[int64]*store.Attachment
+	Members              []store.SubjectMember
+	TemplateName         string
+	VersionNum           int
+	MemberRole           string
+	CanLaunch            bool
+	CanCheck             bool
+	CanAssign            bool
+	CanLinkJira          bool
+	JiraConfigured       bool
+	CanComplete          bool
+	NotionConfigured     bool
+	CanExportNotion      bool
+	CanExportEvidence    bool
+	Progress             RunProgressData
+	ClosingNote          string
+	Message              string
+	ItemError            string
+	AssignError          string
+	CompleteError        string
+	NotionExportError    string
+	Error                string
 }
 
 // MyTasksData is view data for assigned tasks list.

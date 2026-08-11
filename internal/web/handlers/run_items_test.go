@@ -100,6 +100,13 @@ func TestRunComplete_OptionalClosingNote(t *testing.T) {
 	if err = st.StartRun(ctx, run.ID); err != nil {
 		t.Fatalf("StartRun(): %v", err)
 	}
+	runItems, err := st.ListRunItems(ctx, run.ID)
+	if err != nil || len(runItems) != 1 {
+		t.Fatalf("ListRunItems() = %v, %v", runItems, err)
+	}
+	if err = st.UpdateRunItemStatus(ctx, run.ID, runItems[0].ID, lead.ID, runs.StatusOK, ""); err != nil {
+		t.Fatalf("UpdateRunItemStatus(): %v", err)
+	}
 
 	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
 	token, _, err := sessions.CreateLoginSession(ctx, lead.ID, 0)
@@ -118,6 +125,119 @@ func TestRunComplete_OptionalClosingNote(t *testing.T) {
 
 	if rec.Code != http.StatusSeeOther {
 		t.Fatalf("status = %d, want %d", rec.Code, http.StatusSeeOther)
+	}
+}
+
+func TestRunComplete_BlocksPendingRequired(t *testing.T) {
+	handler, db := testRouter(t)
+	ctx := context.Background()
+	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
+
+	lead, err := st.UpsertGitHubUser(ctx, 42, "lead2", "lead2@example.com", "Lead2", "", auth.RoleEditor)
+	if err != nil {
+		t.Fatalf("UpsertGitHubUser(): %v", err)
+	}
+	project, err := st.CreateProject(ctx, "P2", "", lead.ID, nil)
+	if err != nil {
+		t.Fatalf("CreateProject(): %v", err)
+	}
+	template, _, err := st.CreateChecklistTemplate(ctx, "Modèle", lead.ID, nil, []store.TemplateItemInput{
+		{Label: "Point obligatoire", Required: true},
+	})
+	if err != nil {
+		t.Fatalf("CreateChecklistTemplate(): %v", err)
+	}
+	run, err := st.CreateChecklistRun(ctx, project.ID, template.ID, lead.ID)
+	if err != nil {
+		t.Fatalf("CreateChecklistRun(): %v", err)
+	}
+	if err = st.StartRun(ctx, run.ID); err != nil {
+		t.Fatalf("StartRun(): %v", err)
+	}
+
+	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
+	token, _, err := sessions.CreateLoginSession(ctx, lead.ID, 0)
+	if err != nil {
+		t.Fatalf("CreateLoginSession(): %v", err)
+	}
+
+	form := url.Values{}
+	form.Set("csrf_token", auth.CSRFToken(token, "test-secret-at-least-thirty-two-bytes"))
+	form.Set("closing_note", "trop tôt")
+	req := httptest.NewRequest(http.MethodPost, "/runs/"+strconv.FormatInt(run.ID, 10)+"/complete", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.AddCookie(&http.Cookie{Name: "revues_session", Value: token})
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want %d; body=%s", rec.Code, http.StatusBadRequest, rec.Body.String())
+	}
+	body := rec.Body.String()
+	if !strings.Contains(body, "points obligatoires") && !strings.Contains(body, "Traitez tous les points obligatoires") {
+		t.Fatalf("expected pending required guard message, body=%s", body)
+	}
+	updated, err := st.RunByID(ctx, run.ID)
+	if err != nil {
+		t.Fatalf("RunByID(): %v", err)
+	}
+	if updated.Status != store.RunStatusInProgress {
+		t.Fatalf("status = %q, want in_progress", updated.Status)
+	}
+}
+
+func TestRunComplete_AllowsNok(t *testing.T) {
+	handler, db := testRouter(t)
+	ctx := context.Background()
+	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
+
+	lead, err := st.UpsertGitHubUser(ctx, 43, "lead3", "lead3@example.com", "Lead3", "", auth.RoleEditor)
+	if err != nil {
+		t.Fatalf("UpsertGitHubUser(): %v", err)
+	}
+	project, err := st.CreateProject(ctx, "P3", "", lead.ID, nil)
+	if err != nil {
+		t.Fatalf("CreateProject(): %v", err)
+	}
+	template, _, err := st.CreateChecklistTemplate(ctx, "Modèle", lead.ID, nil, []store.TemplateItemInput{
+		{Label: "Point", Required: true},
+	})
+	if err != nil {
+		t.Fatalf("CreateChecklistTemplate(): %v", err)
+	}
+	run, err := st.CreateChecklistRun(ctx, project.ID, template.ID, lead.ID)
+	if err != nil {
+		t.Fatalf("CreateChecklistRun(): %v", err)
+	}
+	if err = st.StartRun(ctx, run.ID); err != nil {
+		t.Fatalf("StartRun(): %v", err)
+	}
+	runItems, err := st.ListRunItems(ctx, run.ID)
+	if err != nil || len(runItems) != 1 {
+		t.Fatalf("ListRunItems() = %v, %v", runItems, err)
+	}
+	if err = st.UpdateRunItemStatus(ctx, run.ID, runItems[0].ID, lead.ID, runs.StatusNOK, "écart connu"); err != nil {
+		t.Fatalf("UpdateRunItemStatus(): %v", err)
+	}
+
+	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
+	token, _, err := sessions.CreateLoginSession(ctx, lead.ID, 0)
+	if err != nil {
+		t.Fatalf("CreateLoginSession(): %v", err)
+	}
+
+	form := url.Values{}
+	form.Set("csrf_token", auth.CSRFToken(token, "test-secret-at-least-thirty-two-bytes"))
+	req := httptest.NewRequest(http.MethodPost, "/runs/"+strconv.FormatInt(run.ID, 10)+"/complete", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.AddCookie(&http.Cookie{Name: "revues_session", Value: token})
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusSeeOther {
+		t.Fatalf("status = %d, want %d; body=%s", rec.Code, http.StatusSeeOther, rec.Body.String())
 	}
 }
 

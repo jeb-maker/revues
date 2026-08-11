@@ -1,5 +1,17 @@
 {{define "run_complete_status_inner"}}
-{{if .NokItems}}
+{{if .CompleteError}}
+<mb-alert variant="danger">{{.CompleteError}}</mb-alert>
+{{end}}
+{{if .PendingRequiredItems}}
+<mb-alert variant="warning" class="closing-pending">
+  <h3>{{icon "alert"}} Points obligatoires en attente ({{len .PendingRequiredItems}})</h3>
+  <ul class="item-list">
+    {{range .PendingRequiredItems}}
+    <li><a href="/runs/{{$.Run.ID}}/items/{{.ID}}"><strong>{{.Label}}</strong></a></li>
+    {{end}}
+  </ul>
+</mb-alert>
+{{else if .NokItems}}
 <mb-alert variant="warning" class="closing-nok">
   <h3>{{icon "alert"}} Points non validés ({{len .NokItems}})</h3>
   <ul class="item-list">
@@ -15,6 +27,30 @@
 <p class="muted">Aucun point non validé. {{sub .Progress.Total .Progress.Done}} encore en attente.</p>
 {{end}}
 {{end}}
+{{end}}
+
+{{define "run_complete_section_inner"}}
+  <h2>Clôturer la revue</h2>
+  <div id="complete-section-status">
+  {{template "run_complete_status_inner" .}}
+  </div>
+  <form method="post" action="/runs/{{.Run.ID}}/complete" class="stack-form" hx-post="/runs/{{.Run.ID}}/complete" hx-target="#complete-section" hx-swap="outerHTML" {{if .CanSubmitComplete}}hx-confirm="Confirmer la clôture de la revue ?"{{end}}>
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+    <mb-textarea name="closing_note" label="Note de clôture (optionnelle)" rows="4" placeholder="Note optionnelle…" value="{{.ClosingNote}}"></mb-textarea>
+    <mb-button type="submit" {{if not .CanSubmitComplete}}disabled{{end}}>{{icon "check"}} Terminer la revue</mb-button>
+  </form>
+{{end}}
+
+{{define "run_complete_section_fragment"}}
+<mb-card id="complete-section">
+{{template "run_complete_section_inner" .}}
+</mb-card>
+{{end}}
+
+{{define "run_complete_section_oob_fragment"}}
+<mb-card id="complete-section" hx-swap-oob="true">
+{{template "run_complete_section_inner" .}}
+</mb-card>
 {{end}}
 
 {{define "run_complete_status_oob_fragment"}}
