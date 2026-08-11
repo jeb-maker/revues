@@ -28,7 +28,7 @@ Ouvrir `http://localhost:8080/login`.
 
 ## 4. Autoriser les utilisateurs
 
-Les administrateurs d'organisation (`owner` / `admin`) gèrent la liste blanche depuis **Emails autorisés** (`/admin/users`). Ajoutez les emails GitHub des personnes autorisées à rejoindre l'organisation active, avec leur rôle global (`reader`, `editor`, `admin`).
+Les administrateurs d'organisation (`owner` / `admin`) gèrent la liste blanche depuis **Emails autorisés** (`/admin/users`). Ajoutez les emails GitHub des personnes autorisées à rejoindre l'organisation active, avec le rôle `reader` ou `editor`. Le rôle global **admin** n'est jamais attribué via la whitelist (uniquement via `REVUES_BOOTSTRAP_ADMIN_EMAIL`) — cela empêche une organisation self-service d'élever un compte au rang d'admin global.
 
 Une personne peut aussi rejoindre si elle est déjà membre d'une organisation, ou via une équipe / grant sujet selon le modèle décrit dans [RBAC.md](./RBAC.md).
 
