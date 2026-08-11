@@ -8,7 +8,7 @@ import (
 	"net/mail"
 	"strings"
 
-	"github.com/jeb-maker/revues/internal/auth"
+	"github.com/jeb-maker/revues/internal/store"
 	"github.com/jeb-maker/revues/internal/web/middleware"
 	"github.com/jeb-maker/revues/internal/web/templates"
 )
@@ -66,12 +66,16 @@ func (h *AdminUsers) Add(w http.ResponseWriter, r *http.Request) {
 	}
 
 	role := strings.TrimSpace(r.FormValue("role"))
-	if !auth.ValidRole(role) {
-		h.renderError(w, r, "Rôle invalide.")
+	if !store.ValidWhitelistRole(role) {
+		h.renderError(w, r, "Rôle invalide. La whitelist n'accepte que lecteur ou éditeur ; l'admin global passe par REVUES_BOOTSTRAP_ADMIN_EMAIL.")
 		return
 	}
 
 	if err := h.Store.InsertAllowedEmail(r.Context(), email, role); err != nil {
+		if errors.Is(err, store.ErrInvalidAllowedRole) {
+			h.renderError(w, r, "Rôle invalide. La whitelist n'accepte que lecteur ou éditeur.")
+			return
+		}
 		slog.Error("insert allowed email", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return

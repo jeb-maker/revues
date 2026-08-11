@@ -30,7 +30,7 @@ func TestAdminUsers_AddAndRemove(t *testing.T) {
 	if err = st.AddOrganizationMember(ctx, defaultOrg.ID, admin.ID, store.OrgRoleOwner); err != nil {
 		t.Fatalf("AddOrganizationMember(): %v", err)
 	}
-	if insertErr := st.InsertAllowedEmail(ctx, "admin@example.com", auth.RoleAdmin); insertErr != nil {
+	if insertErr := st.InsertAllowedEmail(ctx, "admin@example.com", auth.RoleEditor); insertErr != nil {
 		t.Fatalf("InsertAllowedEmail(): %v", insertErr)
 	}
 
@@ -104,6 +104,51 @@ func TestAdminUsers_ReaderForbidden(t *testing.T) {
 
 	if rec.Code != http.StatusForbidden {
 		t.Errorf("status = %d, want %d", rec.Code, http.StatusForbidden)
+	}
+}
+
+func TestAdminUsers_RejectsAdminRole(t *testing.T) {
+	handler, db := testRouter(t)
+	ctx := context.Background()
+	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
+	defaultOrg, err := st.OrganizationBySlug(ctx, "default")
+	if err != nil {
+		t.Fatalf("OrganizationBySlug(): %v", err)
+	}
+
+	orgAdmin, err := st.UpsertGitHubUser(ctx, 7, "orgadmin2", "orgadmin2@example.com", "OrgAdmin2", "", auth.RoleEditor)
+	if err != nil {
+		t.Fatalf("UpsertGitHubUser(): %v", err)
+	}
+	if err = st.AddOrganizationMember(ctx, defaultOrg.ID, orgAdmin.ID, store.OrgRoleOwner); err != nil {
+		t.Fatalf("AddOrganizationMember(): %v", err)
+	}
+	if err = st.InsertAllowedEmail(ctx, orgAdmin.Email, auth.RoleEditor); err != nil {
+		t.Fatalf("InsertAllowedEmail(): %v", err)
+	}
+
+	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
+	token, _, err := sessions.CreateLoginSession(ctx, orgAdmin.ID, defaultOrg.ID)
+	if err != nil {
+		t.Fatalf("CreateLoginSession(): %v", err)
+	}
+	csrf := auth.CSRFToken(token, "test-secret-at-least-thirty-two-bytes")
+
+	form := url.Values{}
+	form.Set("csrf_token", csrf)
+	form.Set("email", "escalate@example.com")
+	form.Set("role", auth.RoleAdmin)
+	req := httptest.NewRequest(http.MethodPost, "/admin/users", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.AddCookie(&http.Cookie{Name: "revues_session", Value: token})
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusBadRequest)
+	}
+	if _, ok, err := st.AllowedRole(ctx, "escalate@example.com"); err != nil || ok {
+		t.Fatalf("AllowedRole() ok=%v err=%v, want not present", ok, err)
 	}
 }
 
