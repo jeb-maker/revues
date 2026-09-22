@@ -5,11 +5,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net"
 	"net/mail"
 	"net/url"
 	"strings"
 
 	"github.com/jeb-maker/revues/internal/crypto"
+	"github.com/jeb-maker/revues/internal/safehttp"
 	"github.com/jeb-maker/revues/internal/store"
 )
 
@@ -170,7 +172,8 @@ func Validate(cfg Config) error {
 	return nil
 }
 
-// ValidateBaseURL checks that the Jira URL uses HTTPS (localhost HTTP allowed).
+// ValidateBaseURL checks that the Jira URL uses HTTPS (localhost HTTP allowed)
+// and rejects literal private/metadata IP targets (SSRF).
 func ValidateBaseURL(raw string) error {
 	raw = strings.TrimSpace(raw)
 	if raw == "" {
@@ -184,16 +187,25 @@ func ValidateBaseURL(raw string) error {
 
 	switch u.Scheme {
 	case "https":
-		return nil
+		// ok
 	case "http":
 		host := u.Hostname()
 		if host == "localhost" || host == "127.0.0.1" {
-			return nil
+			break
 		}
 		return errors.New("URL Jira doit utiliser HTTPS")
 	default:
 		return errors.New("URL Jira doit utiliser HTTPS")
 	}
+
+	host := u.Hostname()
+	if safehttp.IsLocalhostHost(host) {
+		return nil
+	}
+	if ip := net.ParseIP(host); ip != nil && safehttp.BlockedIP(ip) {
+		return errors.New("URL Jira pointe vers une adresse non autorisée")
+	}
+	return nil
 }
 
 // NormalizeBaseURL trims trailing slashes from the Jira base URL.
