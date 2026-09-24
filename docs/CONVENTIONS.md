@@ -5,22 +5,17 @@ Normes de code et d'architecture. Tout agent et contributeur les suit.
 ## Arborescence
 
 ```
-cmd/revues/main.go          # point d'entrée
+cmd/revues/                 # point d'entrée
 internal/
-  auth/                     # OAuth, sessions, CSRF
-  subjects/                 # sujets, domaines
-  templates/                # modèles versionnés
-  runs/                     # exécutions
-  items/                    # points, statuts, audit
-  notifications/            # email SMTP
+  features/                 # handlers + services métier (vertical)
+  auth/                     # OAuth, sessions, CSRF, RBAC
+  store/                    # SQL uniquement
+  web/                      # router, middleware, templates Go
   integrations/             # jira, notion, webhooks
-  admin/                    # users, settings
-  store/                    # SQL (seul endroit avec requêtes)
-  web/                      # handlers, middleware, templates
+  notifications/ attachments/ crypto/ config/
 migrations/                 # goose SQL
-web/templates/              # html/template
-web/static/                 # CSS, HTMX
-data/                       # SQLite + attachments (gitignored)
+web/templates/ web/static/  # HTML + CSS/JS
+data/                       # SQLite + PJ (gitignored)
 ```
 
 ## Go
