@@ -54,8 +54,8 @@
 .template-form__advanced{margin-top:.75rem}
 .template-form__advanced summary,.template-editor--compact .template-editor__more summary{cursor:pointer;color:var(--muted);font-size:.9rem}
 .template-editor--compact{gap:.5rem}
-.template-editor--compact .template-editor__point{padding:.35rem 0;background:0 0;border:0;border-bottom:1px solid var(--border);border-radius:0;align-items:center}
-.template-editor--compact .template-editor__point-fields{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center}
+.template-editor--compact .template-editor__point{padding:.35rem 0;background:0 0;border:0;border-bottom:1px solid var(--border);border-radius:0;align-items:flex-end}
+.template-editor--compact .template-editor__point-fields{display:flex;flex-wrap:wrap;gap:.5rem;align-items:flex-end}
 .template-editor--compact .template-editor__field{flex:1 1 12rem}
 .template-editor--compact .template-editor__more{flex:0 0 auto}
 .template-editor--compact .template-editor__more[open]{flex:1 1 100%}

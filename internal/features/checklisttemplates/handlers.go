@@ -37,7 +37,7 @@ func (d *Deps) PageDataTab(r *http.Request, title, activeTab string) viewtemplat
 }
 
 const defaultTemplateEditorRows = 3
-const defaultListEditorRows = 3
+const defaultListEditorRows = 1
 
 const queryForRun = "for_run"
 const queryTemplate = "template"
@@ -574,7 +574,7 @@ func formFieldErrors(name, itemErr string, itemCount int, listUI bool) (nameErr,
 		itemsErr = itemErr
 	} else if itemCount == 0 {
 		if listUI {
-			itemsErr = "Ajoutez au moins un point à la liste."
+			itemsErr = "Ajoutez au moins une case à la liste."
 		} else {
 			itemsErr = "Ajoutez au moins un point au modèle."
 		}
