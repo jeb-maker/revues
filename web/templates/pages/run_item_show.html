@@ -18,11 +18,13 @@
 {{if .CreateError}}<mb-alert variant="danger">{{.CreateError}}</mb-alert>{{end}}
 {{if .UploadError}}<mb-alert variant="danger">{{.UploadError}}</mb-alert>{{end}}
 
+{{/* P3 capability-gated : pas de carte vide si Jira absent et pas de lien. */}}
+{{if or .JiraLink .JiraConfigured .CanLinkJira .ShowJiraCreate}}
 <mb-card>
   <h2>{{icon "external-link"}} Issue Jira</h2>
   {{if .JiraLink}}
   <p>Liée à : <a href="{{.JiraLink.ExternalURL}}" target="_blank" rel="noopener noreferrer">{{.JiraLink.ExternalKey}}</a></p>
-  {{else}}
+  {{else if .JiraConfigured}}
   <p class="muted">Aucune issue Jira liée.</p>
   {{end}}
   {{if and .CanLinkJira .JiraConfigured}}
@@ -48,6 +50,7 @@
   </form>
   {{end}}
 </mb-card>
+{{end}}
 
 <mb-card>
   <h2>{{icon "download"}} Pièce jointe</h2>

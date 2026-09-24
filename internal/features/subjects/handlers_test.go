@@ -839,7 +839,7 @@ func TestSubjectTeams_AddPreviewRemove_RBAC(t *testing.T) {
 	if !strings.Contains(showBody, "Équipes") || !strings.Contains(showBody, "Membres directs") {
 		t.Fatalf("show missing teams/direct members sections")
 	}
-	if !strings.Contains(showBody, `tag">direct`) && !strings.Contains(showBody, ">direct<") {
+	if !strings.Contains(showBody, `tag">accès direct`) && !strings.Contains(showBody, ">accès direct<") {
 		t.Fatalf("show missing direct access source badge")
 	}
 
