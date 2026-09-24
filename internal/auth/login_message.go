@@ -7,6 +7,8 @@ func LoginErrorMessage(code string) string {
 	switch strings.TrimSpace(code) {
 	case "":
 		return ""
+	case "identifiants invalides":
+		return "Email ou mot de passe incorrect."
 	case "email non autorisé":
 		// Generic copy — no confirmation whether the email exists in any whitelist.
 		return "Connexion impossible avec ce compte GitHub. " +

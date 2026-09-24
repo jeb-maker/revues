@@ -24,11 +24,21 @@
 </mb-card>
 {{else}}
 <div class="content-inset">
-<p>Connectez-vous avec votre compte GitHub pour accéder à Revues.</p>
+<p>Connectez-vous pour accéder à Revues.</p>
 {{if .LoginError}}
 <mb-alert variant="danger">{{.LoginError}}</mb-alert>
 {{end}}
-<p><mb-button href="/auth/github/start">Se connecter avec GitHub</mb-button></p>
+
+<form method="post" action="/auth/login" class="stack-form">
+  <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+  <mb-input label="Email" type="email" name="email" required autocomplete="username" value="{{.FormEmail}}"></mb-input>
+  <mb-input label="Mot de passe" type="password" name="password" required autocomplete="current-password"></mb-input>
+  <mb-button type="submit">Se connecter</mb-button>
+</form>
+
+<p class="muted">Pas encore de compte ? <a href="/register">Créer un compte</a></p>
+
+<p><mb-button href="/auth/github/start" variant="secondary">Se connecter avec GitHub</mb-button></p>
 </div>
 {{end}}
 {{template "layout_end" .}}

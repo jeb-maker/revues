@@ -206,6 +206,9 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, *webhooks.Dispa
 
 	authLimit := appmiddleware.RateLimit(appmiddleware.RateLimitConfig{Max: 30, Window: time.Minute})
 	r.With(authLimit).Get("/login", authHandler.Login)
+	r.With(authLimit).Get("/register", authHandler.RegisterForm)
+	r.With(authLimit).Post("/auth/login", authHandler.PasswordLogin)
+	r.With(authLimit).Post("/auth/register", authHandler.Register)
 	r.With(authLimit).Get("/auth/github/start", authHandler.StartGitHub)
 	r.With(authLimit).Get("/auth/github/callback", authHandler.Callback)
 	r.With(authLimit).Post("/auth/dev/login", authHandler.DevLogin)

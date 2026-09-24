@@ -132,6 +132,8 @@ type PageData struct {
 	User                *store.User
 	CSRFToken           string
 	LoginError          string
+	FormEmail           string
+	FormDisplayName     string
 	DevAuth             bool
 	DevAuthUsers        []store.User
 	ActiveTab           string
