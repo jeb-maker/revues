@@ -97,13 +97,15 @@ func TestAdminHub_RBAC(t *testing.T) {
 			name:       "global admin ok with integrations link",
 			tokenKey:   "globalAdmin",
 			wantStatus: http.StatusOK,
-			wantBody:   []string{"Inviter", "/admin/users", "Équipes", "/admin/teams", "Mes sujets", "/admin/subjects", "Libellé sujet", "/admin/settings/labels", "Politiques", "/admin/settings/policies", "Intégrations", "/admin/integrations"},
+			wantBody:   []string{"Emails autorisés", "/admin/users", "Équipes", "/admin/teams", "Sujets", "/admin/subjects", "Libellé", "/admin/settings/labels", "Politiques", "/admin/settings/policies", "Intégrations", "/admin/integrations", "admin-nav"},
+			notWant:    []string{"Accès rapide", "Inviter"},
 		},
 		{
 			name:       "org admin ok with integrations link",
 			tokenKey:   "orgAdmin",
 			wantStatus: http.StatusOK,
-			wantBody:   []string{"Inviter", "/admin/users", "Équipes", "/admin/teams", "Mes sujets", "/admin/subjects", "Libellé sujet", "/admin/settings/labels", "Politiques", "/admin/settings/policies", "Intégrations", "/admin/integrations"},
+			wantBody:   []string{"Emails autorisés", "/admin/users", "Équipes", "/admin/teams", "Sujets", "/admin/subjects", "Libellé", "/admin/settings/labels", "Politiques", "/admin/settings/policies", "Intégrations", "/admin/integrations", "admin-nav"},
+			notWant:    []string{"Accès rapide", "Inviter"},
 		},
 		{
 			name:       "org member denied",
@@ -207,7 +209,7 @@ func TestAdminHub_SoloMinimalThenWhitelistUnlock(t *testing.T) {
 			t.Errorf("solo hub missing %q", want)
 		}
 	}
-	for _, not := range []string{">Équipes<", "/admin/teams", "Libellé", "Politiques", "Intégrations"} {
+	for _, not := range []string{"Accès rapide", ">Équipes<", "/admin/teams", "Libellé", "Politiques", "Intégrations", "admin-nav"} {
 		if strings.Contains(body, not) {
 			t.Errorf("solo hub must not contain %q", not)
 		}
@@ -229,16 +231,22 @@ func TestAdminHub_SoloMinimalThenWhitelistUnlock(t *testing.T) {
 		t.Fatalf("unlocked hub status = %d", code)
 	}
 	for _, want := range []string{
-		"Inviter", "/admin/users",
+		"Emails autorisés", "/admin/users",
 		"Équipes", "/admin/teams",
-		"Mes sujets", "/admin/subjects",
+		"Sujets", "/admin/subjects",
 		"Libellé", "/admin/settings/labels",
 		"Politiques", "/admin/settings/policies",
 		"Intégrations", "/admin/integrations",
+		"admin-nav",
 		">Organisation</a>",
 	} {
 		if !strings.Contains(body, want) {
 			t.Errorf("unlocked hub/nav missing %q", want)
+		}
+	}
+	for _, not := range []string{"Accès rapide", "Inviter"} {
+		if strings.Contains(body, not) {
+			t.Errorf("unlocked hub must not contain %q", not)
 		}
 	}
 	if !strings.Contains(body, "Un second e-mail a été autorisé") {
