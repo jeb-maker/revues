@@ -18,7 +18,7 @@
 
 {{if eq .Run.Status "done"}}
 <mb-card>
-  <h2>{{icon "check"}} Revue terminée</h2>
+  <h2>Revue terminée</h2>
   {{if .Run.ClosingNote}}
   <div class="closing-note">
     <h3>Note de clôture</h3>
@@ -73,7 +73,7 @@
 {{end}}
 
 <mb-card>
-  <h2>{{icon "list"}} Points ({{len .Items}})</h2>
+  <h2>Points ({{len .Items}})</h2>
   {{if and (ne .Run.Status "draft") (gt .Progress.Total 0)}}
   {{template "run_progress_fragment" .Progress}}
   {{end}}
@@ -136,10 +136,12 @@
       <tbody class="run-section" data-auto-collapse="1" data-all-ok="{{if .AllOKOrNA}}1{{else}}0{{end}}">
         <tr class="run-section__head">
           <td colspan="{{$colspan}}">
-            <div class="run-section__label">
-              <strong>{{if eq .Title "Sans section"}}Point{{else}}{{.Title}}{{end}}</strong>
-              <span class="muted">{{.Total}} point{{if ne .Total 1}}s{{end}}{{if .AllOKOrNA}} · terminé{{else}} · {{.OKCount}} / {{.Total}} OK{{end}}</span>
-            </div>
+            <button type="button" class="run-section__toggle" aria-expanded="{{if .AllOKOrNA}}false{{else}}true{{end}}">
+              <span class="run-section__label">
+                <strong>{{if eq .Title "Sans section"}}Point{{else}}{{.Title}}{{end}}</strong>
+                <span class="muted">{{.Total}} point{{if ne .Total 1}}s{{end}}{{if .AllOKOrNA}} · terminé{{else}} · {{.OKCount}} / {{.Total}} OK{{end}}</span>
+              </span>
+            </button>
           </td>
         </tr>
         {{range .Items}}
@@ -156,20 +158,25 @@
 
 <script>
   (function () {
+    function syncExpanded(section, toggle) {
+      var collapsed = section.classList.contains('is-collapsed');
+      toggle.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+    }
     var sections = document.querySelectorAll('tbody.run-section[data-auto-collapse="1"]');
     for (var i = 0; i < sections.length; i++) {
-      if (sections[i].getAttribute('data-all-ok') === '1') {
-        sections[i].classList.add('is-collapsed');
+      var section = sections[i];
+      var toggle = section.querySelector('.run-section__toggle');
+      if (!toggle) continue;
+      if (section.getAttribute('data-all-ok') === '1') {
+        section.classList.add('is-collapsed');
       }
-      var head = sections[i].querySelector('.run-section__head');
-      if (head) {
-        head.addEventListener('click', function () {
-          var section = this.closest('tbody.run-section');
-          if (section) {
-            section.classList.toggle('is-collapsed');
-          }
-        });
-      }
+      syncExpanded(section, toggle);
+      toggle.addEventListener('click', function () {
+        var tbody = this.closest('tbody.run-section');
+        if (!tbody) return;
+        tbody.classList.toggle('is-collapsed');
+        syncExpanded(tbody, this);
+      });
     }
   })();
 </script>
