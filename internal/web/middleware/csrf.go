@@ -20,6 +20,13 @@ func CSRF(sessionSecret string) func(http.Handler) http.Handler {
 
 			sessionToken := SessionTokenFromContext(r)
 			if sessionToken == "" {
+				// Unauthenticated login/register forms use a short-lived guest cookie.
+				path := r.URL.Path
+				if path == "/auth/login" || path == "/auth/register" {
+					sessionToken = auth.GuestTokenFromRequest(r)
+				}
+			}
+			if sessionToken == "" {
 				http.Error(w, "Forbidden", http.StatusForbidden)
 				return
 			}

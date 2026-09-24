@@ -1,0 +1,21 @@
+{{define "register"}}
+{{template "layout_start" .}}
+<div class="content-inset">
+<p>Créez un compte avec votre email pour utiliser Revues.</p>
+{{if .LoginError}}
+<mb-alert variant="danger">{{.LoginError}}</mb-alert>
+{{end}}
+
+<form method="post" action="/auth/register" class="stack-form">
+  <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+  <mb-input label="Email" type="email" name="email" required autocomplete="username" value="{{.FormEmail}}"></mb-input>
+  <mb-input label="Nom affiché" type="text" name="display_name" required autocomplete="name" value="{{.FormDisplayName}}"></mb-input>
+  <mb-input label="Mot de passe" type="password" name="password" required autocomplete="new-password" hint="8 caractères minimum."></mb-input>
+  <mb-input label="Confirmer le mot de passe" type="password" name="password_confirm" required autocomplete="new-password"></mb-input>
+  <mb-button type="submit">Créer mon compte</mb-button>
+</form>
+
+<p class="muted">Déjà un compte ? <a href="/login">Se connecter</a></p>
+</div>
+{{template "layout_end" .}}
+{{end}}

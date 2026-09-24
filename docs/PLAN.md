@@ -131,9 +131,10 @@ erDiagram
 ### Auth
 
 - **GitHub OAuth** en v1 (Authorization Code + PKCE, flux serveur)
-- Liste blanche admin (emails ou domaine `@entreprise.com`) — email GitHub **vérifié** obligatoire
+- **Inscription manuelle** (email + mot de passe argon2id) en complément de GitHub
+- Liste blanche admin (emails ou domaine `@entreprise.com`) — email GitHub **vérifié** obligatoire ; mêmes règles whitelist pour l'inscription locale
 - Sessions cookie `HttpOnly` + `Secure` + `SameSite=Lax`, ID hashé en base, rotation au login
-- CSRF sur tous les POST **y compris HTMX** (`hx-headers`)
+- CSRF sur tous les POST **y compris HTMX** (`hx-headers`) ; cookie guest pour formulaires login/register non authentifiés
 - Matrice RBAC : voir [RBAC.md](./RBAC.md)
 - Google OAuth en v2
 
@@ -209,7 +210,7 @@ Emails déclenchés : revue terminée, point assigné, échéance J-1.
 ## Paliers UI (progressive disclosure)
 
 **Même produit** — complexité révélée par la structure d’usage, pas un mode « lite » forké.  
-Détail runtime : `.cursor/skills/revues-ui-audit/decisions.md`. Backlog : [issues/thematic-roadmap-epic.md](./issues/thematic-roadmap-epic.md).
+Détail runtime : `.cursor/skills/revues-ui-audit/decisions.md`.
 
 | Palier | Déclencheur | Surface |
 |--------|-------------|---------|
@@ -224,23 +225,18 @@ Matrice runtime détaillée : `.cursor/skills/revues-ui-audit/decisions.md` (§ 
 
 ---
 
-## Roadmap en 3 vagues
+## Roadmap
 
-Voir [ROADMAP.md](./ROADMAP.md) (y compris **vagues thématiques post-cœur**), [DELEGATION.md](./DELEGATION.md), [REVIEW_ADVERSE.md](./REVIEW_ADVERSE.md), [AGENTS.md](../AGENTS.md) et les [issues GitHub](https://github.com/jeb-maker/revues/issues).
-
-| Vague | Objectif | Livrable clé |
-|-------|----------|--------------|
-| **1 — Cœur** | App utilisable sans intégrations | Revues complètes, auth, export CSV |
-| **2 — Admin & intégrations** | Brancher la stack existante | SMTP, Jira, webhooks |
-| **3 — Companion** | Archivage & fichiers | Notion, pièces jointes |
-| **Thématique** | Adoption → preuve → vision | Voir ROADMAP § vagues thématiques |
+Vagues 1–3 (cœur, intégrations, companion) et paliers thématiques sont **livrés**.  
+Reste et icebox : [ROADMAP.md](./ROADMAP.md). Délégation : [DELEGATION.md](./DELEGATION.md) · [AGENTS.md](../AGENTS.md).
 
 ---
 
 ## Décisions figées
 
 - [x] GitHub OAuth en premier
-- [x] Jira Cloud + Server/DC
+- [x] Jira Cloud (Server/DC en icebox #65)
+
 - [x] Webhooks : `review.completed` + `review.item.nok`
 - [x] SMTP configurable par admin
 - [x] Notion en companion (export prioritaire, import ensuite)

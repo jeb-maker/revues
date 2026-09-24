@@ -68,8 +68,10 @@ func TestDevLogin_SwitchesUser(t *testing.T) {
 	if rec.Code != http.StatusSeeOther {
 		t.Fatalf("status = %d, body=%s", rec.Code, rec.Body.String())
 	}
+	res := rec.Result()
+	defer res.Body.Close()
 	var cookie string
-	for _, c := range rec.Result().Cookies() {
+	for _, c := range res.Cookies() {
 		if c.Name == "revues_session" {
 			cookie = c.Value
 		}

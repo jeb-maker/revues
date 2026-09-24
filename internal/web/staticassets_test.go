@@ -102,9 +102,8 @@ func TestVendoredMBBundlePresent(t *testing.T) {
 		"vendor/jeb-maker-mb/mb-boot.js",
 		"vendor/jeb-maker-mb/mb-bridge.css",
 		"vendor/jeb-maker-mb/tokens/tokens-core.css",
-		"vendor/jeb-maker-mb/components/button.js",
-		"vendor/jeb-maker-mb/components/select.js",
-		"vendor/jeb-maker-mb/components/progress.js",
+		"vendor/jeb-maker-mb/tokens/reference.css",
+		"vendor/jeb-maker-mb/tokens/semantic.css",
 	} {
 		data, readErr := fs.ReadFile(staticFS, path)
 		if readErr != nil {

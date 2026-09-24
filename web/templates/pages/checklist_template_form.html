@@ -103,8 +103,11 @@
             <input type="hidden" name="item_section_idx" value="{{$sec.SectionIndex}}">
             <div class="template-editor__point-fields">
               <mb-input class="template-editor__field" label="Libellé" type="text" id="item_label_{{$sec.SectionIndex}}_{{$i}}" name="item_label" value="{{$row.Label}}" hint="Court — affiché dans la liste de revue ({{$.MaxItemLabelLen}} caractères max)."{{if $.ItemsError}} aria-describedby="template-items-error"{{end}}></mb-input>
-              <mb-textarea class="template-editor__field template-editor__help" label="Texte d'aide" id="item_help_{{$sec.SectionIndex}}_{{$i}}" name="item_help" rows="2" value="{{$row.HelpText}}" hint="Optionnel — visible sur la fiche point ({{$.MaxItemHelpLen}} caractères max)."></mb-textarea>
-              <mb-checkbox class="template-editor__required" label="Requis" name="item_required" value="{{if $row.RowIndex}}{{$row.RowIndex}}{{else}}{{$i}}{{end}}"{{if $row.Required}} checked{{end}}></mb-checkbox>
+              <details class="template-editor__more">
+                <summary>Options</summary>
+                <mb-textarea class="template-editor__field template-editor__help" label="Texte d'aide" id="item_help_{{$sec.SectionIndex}}_{{$i}}" name="item_help" rows="2" value="{{$row.HelpText}}" hint="Optionnel — visible sur la fiche point ({{$.MaxItemHelpLen}} caractères max)."></mb-textarea>
+                <mb-checkbox class="template-editor__required" label="Requis" name="item_required" value="{{if $row.RowIndex}}{{$row.RowIndex}}{{else}}{{$i}}{{end}}"{{if $row.Required}} checked{{end}}></mb-checkbox>
+              </details>
             </div>
             <div class="template-editor__point-actions">
               <details class="template-editor__reorder">

@@ -122,6 +122,11 @@ func BCLogin() []Breadcrumb {
 	return []Breadcrumb{current("Connexion")}
 }
 
+// BCRegister is the registration page breadcrumb.
+func BCRegister() []Breadcrumb {
+	return []Breadcrumb{current("Inscription")}
+}
+
 // BCOrgNew is the organization creation form breadcrumb.
 func BCOrgNew() []Breadcrumb {
 	return []Breadcrumb{current("Nouvelle organisation")}

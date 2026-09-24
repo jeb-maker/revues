@@ -116,7 +116,7 @@ func ensureDevUser(ctx context.Context, st *store.Store, email string) (*store.U
 
 func isDevAuthExemptPath(path string) bool {
 	switch {
-	case path == "/healthz", path == "/sw.js", path == "/login":
+	case path == "/healthz", path == "/sw.js", path == "/login", path == "/register":
 		return true
 	case strings.HasPrefix(path, "/auth/dev/"):
 		return true
