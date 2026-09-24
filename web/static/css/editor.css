@@ -57,20 +57,26 @@
 /* listUI: table desktop, cartes mobile (via .data-table--cards) */
 .template-editor--list{gap:.75rem}
 .template-editor--list .template-editor__section{padding:0;border:0;background:transparent}
-.template-editor-table{width:100%;margin:0}
+.template-editor-table{width:100%;margin:0;table-layout:fixed;border-collapse:collapse}
 .template-editor-table .template-editor__field{margin:0;max-width:none;width:100%}
 .template-editor-table .template-editor__more{margin:0}
 .template-editor-table .template-editor__point-actions{
-  display:flex;flex-wrap:wrap;gap:.25rem;justify-content:flex-end;align-items:center;
-  white-space:nowrap;vertical-align:middle;
+  display:flex;flex-wrap:nowrap;gap:.15rem;justify-content:flex-end;align-items:center;
+  white-space:nowrap;
 }
-.template-editor-table td{vertical-align:top}
+.template-editor-table th,
+.template-editor-table td{vertical-align:middle;padding-block:.4rem}
 .template-editor-table th:first-child,
-.template-editor-table td.template-editor__drag{width:1%;padding-inline:.35rem}
+.template-editor-table td.template-editor__drag{width:2.5rem;padding-inline:.25rem;text-align:center}
+.template-editor-table .template-editor__case-cell{width:38%}
+.template-editor-table .template-editor__help-cell{width:auto}
+.template-editor-table th.template-editor__col-required,
+.template-editor-table td.template-editor__required-cell{
+  width:7.5rem;white-space:nowrap;text-align:center;
+}
 .template-editor-table th:last-child,
-.template-editor-table td.template-editor__point-actions{width:1%;}
-.template-editor__help-cell{min-width:12rem}
-.template-editor__help-cell .template-editor__required{margin-top:.35rem;display:block}
+.template-editor-table td.template-editor__point-actions{width:3.5rem;padding-inline:.25rem}
+.template-editor__required-cell .template-editor__required{margin:0;display:inline-flex;justify-content:center}
 .template-editor__drag-handle{
   display:inline-flex;align-items:center;justify-content:center;
   min-block-size:2.25rem;min-inline-size:2rem;padding:.25rem;
@@ -218,7 +224,13 @@
     max-width: 100%;
     order: 99;
   }
-  .data-table--cards.template-editor-table td.template-editor__point-actions[data-label]::before { display: none; }
+  .data-table--cards.template-editor-table td.template-editor__point-actions[data-label]::before,
+  .data-table--cards.template-editor-table td.template-editor__required-cell[data-label]::before { display: none; }
+  .template-editor-table td.template-editor__required-cell {
+    width: auto;
+    text-align: start;
+    white-space: normal;
+  }
   .template-editor--list .template-editor__move,
   .template-editor--list .template-editor__remove {
     min-block-size: 2.75rem;

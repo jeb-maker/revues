@@ -30,6 +30,7 @@
                 <th scope="col" class="template-editor__col-drag"><span class="visually-hidden">Ordre</span></th>
                 <th scope="col">Case</th>
                 <th scope="col">Aide</th>
+                <th scope="col" class="template-editor__col-required">Obligatoire</th>
                 <th scope="col" class="data-table__col--end"><span class="visually-hidden">Actions</span></th>
               </tr>
             </thead>
@@ -39,13 +40,15 @@
                 <td class="template-editor__drag" data-label="Ordre">
                   <button type="button" class="template-editor__drag-handle" draggable="true" aria-label="Déplacer cette case" title="Glisser pour réordonner">⋮⋮</button>
                 </td>
-                <td data-label="Case">
+                <td data-label="Case" class="template-editor__case-cell">
                   <input type="hidden" name="item_row_idx" value="{{if $row.RowIndex}}{{$row.RowIndex}}{{else}}{{$i}}{{end}}">
                   <input type="hidden" name="item_section_idx" value="{{$sec.SectionIndex}}">
                   <mb-input class="template-editor__field" type="text" id="item_label_{{$sec.SectionIndex}}_{{$i}}" name="item_label" value="{{$row.Label}}" aria-label="Case"{{if $.ItemsError}} aria-describedby="template-items-error"{{end}}></mb-input>
                 </td>
                 <td data-label="Aide" class="template-editor__help-cell">
-                  <mb-textarea class="template-editor__field template-editor__help" id="item_help_{{$sec.SectionIndex}}_{{$i}}" name="item_help" rows="2" value="{{$row.HelpText}}" aria-label="Aide" hint="Optionnel — précisions pendant le contrôle."></mb-textarea>
+                  <mb-input class="template-editor__field template-editor__help" type="text" id="item_help_{{$sec.SectionIndex}}_{{$i}}" name="item_help" value="{{$row.HelpText}}" aria-label="Aide"></mb-input>
+                </td>
+                <td class="template-editor__required-cell" data-label="Obligatoire">
                   <mb-checkbox class="template-editor__required" label="Obligatoire" name="item_required" value="{{if $row.RowIndex}}{{$row.RowIndex}}{{else}}{{$i}}{{end}}"{{if $row.Required}} checked{{end}}></mb-checkbox>
                 </td>
                 <td class="template-editor__point-actions data-table__col--end" data-label="Actions">
