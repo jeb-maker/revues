@@ -8,6 +8,9 @@ import (
 
 type AuthStore interface {
 	UpsertGitHubUser(ctx context.Context, githubID int64, login, email, displayName, avatarURL, role string) (*store.User, error)
+	CreateLocalUser(ctx context.Context, email, login, displayName, role, passwordHash string) (*store.User, error)
+	UserCredentialsByEmail(ctx context.Context, email string) (*store.User, string, error)
+	TouchLastLogin(ctx context.Context, userID int64) error
 	UserByID(ctx context.Context, id int64) (*store.User, error)
 	ListUsers(ctx context.Context) ([]store.User, error)
 	ResolveLoginRole(ctx context.Context, email, bootstrapAdmin string) (string, error)

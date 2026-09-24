@@ -13,6 +13,7 @@ func TestLoginErrorMessage(t *testing.T) {
 		want string
 	}{
 		{"", ""},
+		{"identifiants invalides", "Email ou mot de passe incorrect"},
 		{"email non autorisé", "Connexion impossible avec ce compte GitHub"},
 		{"oauth non configuré", "REVUES_GITHUB_CLIENT_ID"},
 		{"unknown", "unknown"},

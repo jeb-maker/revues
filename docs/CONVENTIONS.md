@@ -52,7 +52,10 @@ Résumé :
 ```
 GET  /healthz
 GET  /login
+GET  /register
 GET  /auth/github/callback
+POST /auth/login
+POST /auth/register
 POST /logout
 
 GET|POST /subjects/...
