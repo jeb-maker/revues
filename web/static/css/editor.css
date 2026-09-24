@@ -86,14 +86,26 @@
 .template-editor__required-cell .template-editor__required{
   margin:0;display:inline-flex;justify-content:center;align-items:center;
 }
-/* Desktop: en-tête de colonne suffit — masque le texte du libellé (pas les descendants ::part) */
+/* Desktop listUI */
 @media (min-width: 36.01rem) {
+  .template-editor--list .template-editor__move { display: none !important; }
   .template-editor-table .template-editor__required-cell mb-checkbox::part(label) {
     font-size: 0;
     gap: 0;
   }
   .template-editor-table .template-editor__required-cell {
     width: 5.5rem;
+  }
+  .template-editor-table td.template-editor__point-actions .template-editor__remove {
+    min-block-size: 2.5rem;
+    min-inline-size: 2.5rem;
+  }
+  .template-editor-table td.template-editor__point-actions .template-editor__remove::part(base) {
+    min-block-size: 2.5rem;
+    min-inline-size: 2.5rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
 }
 .template-editor__drag-handle{
@@ -208,9 +220,6 @@
     gap: 0.35rem;
     align-items: center;
   }
-}
-@media (min-width: 36.01rem) {
-  .template-editor--list .template-editor__move { display: none !important; }
 }
 @media (max-width: 36rem) {
   .template-editor-table .template-editor__points {
