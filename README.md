@@ -2,84 +2,22 @@
 
 Application de gestion de check-lists pour revues de projets — simple d'utilisation, éco-conçue, riche fonctionnellement.
 
-## Documentation
+## Docs
 
-- [Plan produit & technique](docs/PLAN.md)
-- [Onboarding (5 étapes)](docs/ONBOARDING.md)
-- [Roadmap & tâches déléguables](docs/ROADMAP.md)
-- [Guide de délégation GitHub](docs/DELEGATION.md)
-- [Revue adverse (juin 2026)](docs/REVIEW_ADVERSE.md)
-- [Instructions agents Cloud](AGENTS.md)
-- [Bonnes pratiques Go](docs/GO.md)
-- [Issues GitHub](https://github.com/jeb-maker/revues/issues)
-
-## Harness agents
-
-Avant toute délégation, lire [AGENTS.md](AGENTS.md) et exécuter :
-
-```bash
-./scripts/check.sh
-```
+- [AGENTS.md](AGENTS.md) — contrat agents · `./scripts/check.sh`
+- [Onboarding](docs/ONBOARDING.md) · [Plan](docs/PLAN.md) · [Roadmap](docs/ROADMAP.md)
+- [GO.md](docs/GO.md) · [RBAC.md](docs/RBAC.md) · [REVIEW_ADVERSE.md](docs/REVIEW_ADVERSE.md)
+- [Déploiement](deploy/README.md) · [Issues](https://github.com/jeb-maker/revues/issues)
 
 ## Démarrage
 
 ```bash
-go mod tidy
-go run ./cmd/revues
+go run ./cmd/revues   # :8080 — migrations goose au boot
+curl -sf http://localhost:8080/healthz   # → ok
 ```
 
-Le serveur écoute sur `:8080` par défaut (`REVUES_ADDR`).
+Variables : [.env.example](.env.example) (pas de chargement auto de `.env`).
 
-Vérifications :
+## Stack
 
-```bash
-curl http://localhost:8080/healthz   # → ok
-curl -I http://localhost:8080/       # → page HTML d'accueil
-open http://localhost:8080/login     # → connexion GitHub OAuth
-```
-
-Variables d'environnement : voir [.env.example](.env.example) (`REVUES_DATABASE_PATH`, `REVUES_GITHUB_CLIENT_*`, `REVUES_SESSION_SECRET`, `REVUES_BOOTSTRAP_ADMIN_EMAIL`).
-
-Au démarrage, les migrations goose s'appliquent automatiquement.
-
-## Déploiement Docker
-
-VPS avec Caddy hôte : voir [deploy/README.md](deploy/README.md) (`Dockerfile`, `docker-compose.yml`).
-
-## Structure
-
-```
-cmd/revues/           # point d entrée, wiring serveur
-internal/
-  features/           # code métier par feature (vertical)
-    projects/         # store + service + handlers
-    runs/             # store + service + handlers (inclut items)
-    checklisttemplates/  # store + service + handlers
-    admin/            # users, smtp, webhooks, integrations config
-    mytasks/          # handlers
-    home/             # handlers
-    auth/             # handler OAuth (service dans internal/auth/)
-  store/              # connexion SQLite, migrations goose, requêtes SQL
-  web/                # router chi, middleware, templating, health
-  auth/               # OAuth, sessions, CSRF, RBAC types
-  config/             # REVUES_* env vars
-  integrations/       # clients API externes (jira, notion, webhooks)
-  notifications/      # mailing
-  attachments/        # upload et mime
-  crypto/             # chiffrement settings
-web/static/           # CSS, JS (servi sur /static/)
-web/templates/        # html/template (layout + pages)
-migrations/           # SQL goose
-data/                 # SQLite (gitignored)
-```
-
-## Principes
-
-- **Revues** exécute et trace les revues
-- **Jira** traite les points `nok`
-- **Webhooks** notifient la stack
-- **Notion** archive et documente
-
-## Stack (cible)
-
-Go · SQLite · HTML + HTMX · GitHub OAuth · SMTP admin · intégrations Jira / webhooks / Notion
+Go · SQLite · HTML + HTMX · GitHub OAuth · SMTP · Jira / webhooks / Notion

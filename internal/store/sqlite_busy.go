@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-const sqliteBusyRetryAttempts = 5
+const sqliteBusyRetryAttempts = 8
 
 func isSQLiteBusy(err error) bool {
 	if err == nil {
@@ -31,7 +31,11 @@ func withSQLiteBusyRetry(ctx context.Context, fn func() error) error {
 		if attempt == sqliteBusyRetryAttempts-1 {
 			break
 		}
-		wait := time.Duration(10*(attempt+1)) * time.Millisecond
+		// Exponential backoff: 15ms, 30ms, 60ms, … capped at 250ms.
+		wait := time.Duration(15*(1<<attempt)) * time.Millisecond
+		if wait > 250*time.Millisecond {
+			wait = 250 * time.Millisecond
+		}
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
