@@ -60,9 +60,17 @@
 .template-editor-table{width:100%;margin:0;table-layout:fixed;border-collapse:collapse}
 .template-editor-table .template-editor__field{margin:0;max-width:none;width:100%}
 .template-editor-table .template-editor__more{margin:0}
-.template-editor-table .template-editor__point-actions{
-  display:flex;flex-wrap:nowrap;gap:.15rem;justify-content:flex-end;align-items:center;
+/* Garder table-cell : display:flex sur le td casse vertical-align avec Case/Aide */
+.template-editor-table td.template-editor__point-actions{
+  display:table-cell;
+  vertical-align:middle;
+  text-align:end;
   white-space:nowrap;
+  width:3.5rem;
+  padding-inline:.25rem;
+}
+.template-editor-table td.template-editor__point-actions mb-button{
+  vertical-align:middle;
 }
 .template-editor-table th,
 .template-editor-table td{vertical-align:middle;padding-block:.4rem}
@@ -74,8 +82,7 @@
 .template-editor-table td.template-editor__required-cell{
   width:6.5rem;white-space:nowrap;text-align:center;
 }
-.template-editor-table th.data-table__col--end,
-.template-editor-table td.template-editor__point-actions{width:3.5rem;padding-inline:.25rem}
+.template-editor-table th.data-table__col--end{width:3.5rem;padding-inline:.25rem}
 .template-editor__required-cell .template-editor__required{
   margin:0;display:inline-flex;justify-content:center;align-items:center;
 }
