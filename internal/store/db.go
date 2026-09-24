@@ -29,7 +29,12 @@ func Open(ctx context.Context, path string, maxOpenConns int) (*sql.DB, error) {
 		return nil, fmt.Errorf("ensure database directory: %w", err)
 	}
 
-	dsn := fmt.Sprintf("file:%s?_pragma=foreign_keys(1)&_pragma=journal_mode(WAL)&_pragma=busy_timeout(%d)", path, DefaultBusyTimeoutMS)
+	// _txlock=immediate: writers take the write lock at BEGIN, avoiding the
+	// deferred SELECT→UPDATE upgrade deadlock (SQLITE_BUSY) under dual writers.
+	dsn := fmt.Sprintf(
+		"file:%s?_pragma=foreign_keys(1)&_pragma=journal_mode(WAL)&_pragma=busy_timeout(%d)&_txlock=immediate",
+		path, DefaultBusyTimeoutMS,
+	)
 	db, err := sql.Open("sqlite", dsn)
 	if err != nil {
 		return nil, fmt.Errorf("open sqlite: %w", err)
