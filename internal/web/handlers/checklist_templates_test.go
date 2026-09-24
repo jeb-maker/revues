@@ -480,14 +480,23 @@ func TestChecklistTemplates_NewFormListUIClarity(t *testing.T) {
 		"Nom de la liste",
 		">À cocher</h2>",
 		"Une ligne = une case",
-		`label="Case"`,
+		`aria-label="Case"`,
+		`data-label="Case"`,
+		`data-table--cards`,
 		"Créer la liste",
 		"+ Ajouter une case",
 		"Aide (optionnel)",
+		"form-actions--list-submit",
 	} {
 		if !strings.Contains(body, want) {
 			t.Fatalf("expected %q in new list form, body=%s", want, body)
 		}
+	}
+	if !strings.Contains(body, "<th scope=\"col\">Case</th>") {
+		t.Fatal("expected table column header Case for desktop layout")
+	}
+	if !strings.Contains(body, "/static/css/editor.css") {
+		t.Fatal("expected editor.css stylesheet on list form")
 	}
 	if strings.Contains(body, ">Nouvelle</h1>") {
 		t.Fatal("H1 must not be truncated to « Nouvelle »")

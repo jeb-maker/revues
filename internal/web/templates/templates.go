@@ -158,6 +158,7 @@ type PageData struct {
 	ActiveOrganization  *store.Organization
 	UserOrganizations   []store.OrganizationMembership
 	PendingInvitations  []store.OrganizationInvitation
+	ExtraCSS            []string // page-scoped stylesheets (avoids colliding {{define "page_styles"}})
 }
 
 // ReportsMetadata returns trusted session context for the @jeb-maker/reports widget.

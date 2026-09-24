@@ -23,6 +23,9 @@
   <link rel="stylesheet" href="{{assetURL `/static/css/app.css`}}">
   <link rel="stylesheet" href="{{assetURL `/static/vendor/jeb-maker-mb/tokens/tokens-core.css`}}">
   <link rel="stylesheet" href="{{assetURL `/static/vendor/jeb-maker-mb/mb-bridge.css`}}">
+  {{range .ExtraCSS}}
+  <link rel="stylesheet" href="{{assetURL .}}">
+  {{end}}
   {{block "page_styles" .}}{{end}}
   <noscript><style>@media (max-width:36rem){mb-nav{display:block!important}mb-nav-toggle{display:none!important}}</style></noscript>
 </head>

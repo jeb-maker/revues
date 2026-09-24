@@ -259,6 +259,7 @@ func (h *ChecklistTemplates) Show(w http.ResponseWriter, r *http.Request) {
 		CanLaunch:    subjects.CanLaunchRun(user, orgMember),
 		Message:      r.URL.Query().Get("msg"),
 	}
+	data.ExtraCSS = appendEditorCSS(data.ExtraCSS)
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	if err := h.Templates.ExecuteTemplate(w, "checklist_template_show", data); err != nil {
