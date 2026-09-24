@@ -61,7 +61,9 @@
         {{end}}
         <mb-avatar class="header-account__avatar" size="sm" src="{{.User.AvatarURL}}" name="{{if .User.DisplayName}}{{.User.DisplayName}}{{else}}{{.User.Login}}{{end}}" alt=""></mb-avatar>
         <span class="header-account__name">{{if .User.DisplayName}}{{.User.DisplayName}}{{else}}{{.User.Login}}{{end}}</span>
+        {{if not .SimpleUI}}
         <mb-badge variant="{{badgeVariant .User.Role}}" class="role-badge">{{formatRole .User.Role}}</mb-badge>
+        {{end}}
         <form method="post" action="/logout" class="inline-form">
           <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
           <mb-button type="submit" variant="ghost" size="sm">Déconnexion</mb-button>
