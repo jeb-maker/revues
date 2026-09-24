@@ -205,8 +205,8 @@
   }
   .template-editor-table .template-editor__col-drag,
   .template-editor-table td.template-editor__drag { display: none !important; }
-  .template-editor-table td.template-editor__point-actions[data-label]::before { display: none; }
-  .template-editor-table .template-editor__point-actions {
+  .data-table--cards.template-editor-table td.template-editor__point-actions,
+  .data-table--cards.template-editor-table td.template-editor__point-actions.data-table__col--end {
     display: flex;
     flex-direction: row;
     flex-wrap: nowrap;
@@ -215,14 +215,17 @@
     gap: .5rem;
     margin-top: .35rem;
     width: 100%;
+    max-width: 100%;
     order: 99;
   }
+  .data-table--cards.template-editor-table td.template-editor__point-actions[data-label]::before { display: none; }
   .template-editor--list .template-editor__move,
   .template-editor--list .template-editor__remove {
     min-block-size: 2.75rem;
     min-inline-size: 2.75rem;
     font-size: 1.35rem;
     line-height: 1;
+    flex: 0 0 auto;
   }
   .form-actions--list-submit {
     margin-top: 1.25rem;
