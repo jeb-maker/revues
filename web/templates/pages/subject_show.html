@@ -60,10 +60,9 @@
 </mb-card>
 {{end}}
 
-{{/* Sans collab (P0 / solo) : checklists d'abord — pas d'Équipes / Membres. */}}
-{{if not .ShowCollab}}
+{{/* Revues d'abord ; collab (P1+) : Équipes / Membres après les runs. */}}
 {{template "subject_runs_table" .}}
-{{else}}
+{{if .ShowCollab}}
 
 <mb-card>
   <h2>Équipes ({{len .Teams}})</h2>
@@ -127,7 +126,7 @@
     </mb-select>
     <p id="team-assign-preview" class="muted">Sélectionnez une équipe et un rôle.</p>
     <div class="form-actions">
-      <mb-button type="submit">Ajouter</mb-button>
+      <mb-button type="submit" variant="secondary">Ajouter</mb-button>
     </div>
   </form>
   {{else}}
@@ -158,7 +157,7 @@
       <tr>
         <td>{{.Login}} <span class="muted">{{.Email}}</span></td>
         <td>{{formatRole .Role}}</td>
-        <td><mb-tag size="sm">direct</mb-tag></td>
+        <td><mb-tag size="sm">accès direct</mb-tag></td>
         {{if $.CanManageMembers}}
         <td class="data-table__col--end">
           <form method="post" action="/subjects/{{$.Subject.ID}}/members/remove" class="inline-form" onsubmit="return confirm('Retirer ce membre du sujet ?');">
@@ -199,8 +198,7 @@
   {{end}}
 </mb-card>
 
-{{template "subject_runs_table" .}}
-{{end}}{{/* end ShowCollab blocks */}}
+{{end}}{{/* end ShowCollab */}}
 {{template "layout_end" .}}
 {{end}}
 {{define "main_class"}} site-main--wide{{end}}

@@ -85,7 +85,7 @@ func FormatRole(s string) string {
 func FormatAccessSource(source string, teamNames map[int64]string) string {
 	switch {
 	case source == store.AccessSourceDirect:
-		return "direct"
+		return "accès direct"
 	case source == store.AccessSourceOrgAdmin:
 		return "admin organisation"
 	case source == store.AccessSourceGlobalAdmin:
