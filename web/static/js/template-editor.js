@@ -41,8 +41,12 @@ var req = row.querySelector('mb-checkbox[name="item_required"]');
 req.setAttribute('value', ri);
 req.value = String(ri);
 var lab = row.querySelector('mb-input[name="item_label"]'), hlp = row.querySelector('[name="item_help"]');
+var cat = row.querySelector('[name="item_section"]');
 lab.id = 'item_label_' + si + '_' + ri;
 hlp.id = 'item_help_' + si + '_' + ri;
+if (cat) cat.id = 'item_section_' + si + '_' + ri;
+var pick = row.querySelector('.template-editor__pick');
+if (pick) pick.checked = false;
 }
 function clearFieldValue(el) {
 if (!el) return;
@@ -52,9 +56,12 @@ el.setAttribute('value', '');
 function clearRow(row) {
 clearFieldValue(row.querySelector('mb-input[name="item_label"]'));
 clearFieldValue(row.querySelector('[name="item_help"]'));
+clearFieldValue(row.querySelector('[name="item_section"]'));
 var req = row.querySelector('mb-checkbox[name="item_required"]');
 req.checked = false;
 req.removeAttribute('checked');
+var pick = row.querySelector('.template-editor__pick');
+if (pick) pick.checked = false;
 }
 function resyncFields(root) {
 root.querySelectorAll('mb-input,mb-textarea,mb-select,mb-checkbox').forEach(function (el) {
@@ -120,6 +127,23 @@ var b = e.target.closest('[data-action]');
 if (!b || b.type !== 'button') return;
 var a = b.getAttribute('data-action'), sec = b.closest('.template-editor__section'), row = b.closest('.template-editor__point');
 if (a === 'add-point') return addPoint(sec);
+if (a === 'apply-category') {
+var bulk = document.getElementById('bulk-category');
+var cat = bulk ? String(bulk.value || '').trim() : '';
+var n = 0;
+box.querySelectorAll('.template-editor__point').forEach(function (r) {
+var pick = r.querySelector('.template-editor__pick');
+if (!pick || !pick.checked) return;
+var el = r.querySelector('[name="item_section"]');
+if (!el) return;
+el.value = cat;
+el.setAttribute('value', cat);
+if (el.requestUpdate) el.requestUpdate('value');
+n++;
+});
+if (n === 0 && bulk) bulk.focus();
+return;
+}
 if (a === 'section-remove') {
 if (secs().length > 1) {
 sec.remove(); secBtns();
@@ -145,6 +169,13 @@ container.insertBefore(row, row.previousElementSibling); rowBtns(container); res
 } else if (a === 'move-down' && row.nextElementSibling) {
 var movedRow = row.nextElementSibling;
 container.insertBefore(movedRow, row); rowBtns(container); resyncFields(movedRow);
+}
+});
+box.addEventListener('change', function (e) {
+var t = e.target;
+if (t && t.classList && t.classList.contains('template-editor__pick-all')) {
+var on = !!t.checked;
+box.querySelectorAll('.template-editor__pick').forEach(function (el) { el.checked = on; });
 }
 });
 box.addEventListener('dragstart', function (e) {

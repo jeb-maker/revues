@@ -76,8 +76,16 @@
 .template-editor-table td{vertical-align:middle;padding-block:.4rem}
 .template-editor-table .template-editor__col-drag,
 .template-editor-table td.template-editor__drag{width:2.5rem;padding-inline:.25rem;text-align:center}
-.template-editor-table .template-editor__case-cell{width:42%}
+.template-editor-table .template-editor__col-pick,
+.template-editor-table td.template-editor__pick-cell{width:2.25rem;padding-inline:.25rem;text-align:center;vertical-align:middle}
+.template-editor-table .template-editor__case-cell{width:32%}
+.template-editor-table .template-editor__cat-cell{width:18%}
 .template-editor-table .template-editor__help-cell{width:auto}
+.template-editor__bulk{
+  display:flex;flex-wrap:wrap;align-items:center;gap:.5rem;
+  margin:0 0 .75rem;
+}
+.template-editor__bulk-cat{margin:0;flex:1 1 10rem;max-width:16rem}
 .template-editor-table th.template-editor__col-required,
 .template-editor-table td.template-editor__required-cell{
   width:6.5rem;white-space:nowrap;text-align:center;
@@ -239,6 +247,19 @@
   }
   .template-editor-table .template-editor__col-drag,
   .template-editor-table td.template-editor__drag { display: none !important; }
+  .template-editor-table .template-editor__col-pick,
+  .template-editor-table td.template-editor__pick-cell {
+    display: block;
+    width: auto;
+    text-align: start;
+    padding: 0;
+  }
+  .data-table--cards.template-editor-table td.template-editor__pick-cell[data-label]::before { display: none; }
+  .template-editor__bulk {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .template-editor__bulk-cat { max-width: none; }
   .data-table--cards.template-editor-table td.template-editor__point-actions,
   .data-table--cards.template-editor-table td.template-editor__point-actions.data-table__col--end {
     display: flex;

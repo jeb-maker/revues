@@ -286,9 +286,12 @@ func (h *ChecklistTemplates) EditForm(w http.ResponseWriter, r *http.Request) {
 	}
 
 	sections := itemsToEditorSections(items)
-
 	pd := h.PageDataTab(r, "Modifier "+template.Name, "templates")
-	pd.Breadcrumbs = viewtemplates.BCTemplateGlobalEdit(template.Name, template.ID, !pd.ShowSubjectColumn)
+	listUI := !pd.ShowSubjectColumn
+	if listUI {
+		sections = itemsToFlatListEditor(items)
+	}
+	pd.Breadcrumbs = viewtemplates.BCTemplateGlobalEdit(template.Name, template.ID, listUI)
 	data := viewtemplates.ChecklistTemplateFormData{
 		PageData:         pd,
 		Template:         template,

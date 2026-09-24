@@ -535,6 +535,7 @@ type TemplateEditorRow struct {
 	Label    string
 	HelpText string
 	Required bool
+	Section  string // per-row category (listUI); block Title used for multi-sujet sections
 }
 
 // TemplateEditorSection is a group of checklist points under one section title.

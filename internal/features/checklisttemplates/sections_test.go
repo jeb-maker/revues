@@ -83,6 +83,50 @@ func TestParseTemplateItems_LegacyFlatRows(t *testing.T) {
 	}
 }
 
+func TestParseTemplateItems_PerItemCategoryWinsOverSectionIdx(t *testing.T) {
+	form := url.Values{}
+	form.Add("section_idx", "0")
+	form.Add("section_title", "")
+	form.Add("item_section_idx", "0")
+	form.Add("item_section_idx", "0")
+	form.Add("item_section", "Moteur")
+	form.Add("item_section", "Sécurité")
+	form.Add("item_row_idx", "0")
+	form.Add("item_row_idx", "1")
+	form.Add("item_label", "Huile")
+	form.Add("item_label", "Freins")
+	form.Add("item_help", "")
+	form.Add("item_help", "")
+
+	req := &http.Request{Method: http.MethodPost, Form: form}
+	items, errMsg := parseTemplateItems(req)
+	if errMsg != "" {
+		t.Fatalf("parse error: %s", errMsg)
+	}
+	if len(items) != 2 {
+		t.Fatalf("len(items) = %d, want 2", len(items))
+	}
+	if items[0].Section != "Moteur" || items[1].Section != "Sécurité" {
+		t.Fatalf("sections = %q, %q", items[0].Section, items[1].Section)
+	}
+}
+
+func TestItemsToFlatListEditor_KeepsPerRowCategory(t *testing.T) {
+	sections := itemsToFlatListEditor([]store.TemplateItem{
+		{Section: "Moteur", Label: "Huile"},
+		{Section: "Sécurité", Label: "Freins"},
+	})
+	if len(sections) != 1 {
+		t.Fatalf("len(sections) = %d, want 1", len(sections))
+	}
+	if len(sections[0].Items) != 2 {
+		t.Fatalf("items = %d, want 2", len(sections[0].Items))
+	}
+	if sections[0].Items[0].Section != "Moteur" || sections[0].Items[1].Section != "Sécurité" {
+		t.Fatalf("row sections = %+v", sections[0].Items)
+	}
+}
+
 func TestParseTemplateItems_RejectsLongLabel(t *testing.T) {
 	form := url.Values{}
 	form.Add("item_label", strings.Repeat("a", MaxTemplateItemLabelLen+1))
