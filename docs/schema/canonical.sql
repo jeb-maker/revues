@@ -14,16 +14,19 @@
 
 CREATE TABLE users (
     id              INTEGER PRIMARY KEY,
-    github_id       INTEGER NOT NULL UNIQUE,
+    github_id       INTEGER UNIQUE,              -- NULL = compte local (email + mot de passe)
     login           TEXT NOT NULL,
     email           TEXT NOT NULL,
     display_name    TEXT NOT NULL DEFAULT '',
     avatar_url      TEXT NOT NULL DEFAULT '',
     role            TEXT NOT NULL DEFAULT 'reader'
                     CHECK (role IN ('admin', 'editor', 'reader')),
+    password_hash   TEXT NOT NULL DEFAULT '',    -- argon2id ; vide si OAuth-only
     created_at      TEXT NOT NULL,
     last_login_at   TEXT
 );
+
+CREATE UNIQUE INDEX idx_users_email_lower ON users (lower(email));
 
 CREATE TABLE sessions (
     id              INTEGER PRIMARY KEY,

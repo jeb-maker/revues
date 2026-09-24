@@ -131,9 +131,10 @@ erDiagram
 ### Auth
 
 - **GitHub OAuth** en v1 (Authorization Code + PKCE, flux serveur)
-- Liste blanche admin (emails ou domaine `@entreprise.com`) — email GitHub **vérifié** obligatoire
+- **Inscription manuelle** (email + mot de passe argon2id) en complément de GitHub
+- Liste blanche admin (emails ou domaine `@entreprise.com`) — email GitHub **vérifié** obligatoire ; mêmes règles whitelist pour l'inscription locale
 - Sessions cookie `HttpOnly` + `Secure` + `SameSite=Lax`, ID hashé en base, rotation au login
-- CSRF sur tous les POST **y compris HTMX** (`hx-headers`)
+- CSRF sur tous les POST **y compris HTMX** (`hx-headers`) ; cookie guest pour formulaires login/register non authentifiés
 - Matrice RBAC : voir [RBAC.md](./RBAC.md)
 - Google OAuth en v2
 

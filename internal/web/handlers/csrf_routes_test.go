@@ -14,6 +14,8 @@ import (
 // Keep in sync when adding new mutating endpoints (HTMX included).
 var mutatingRoutes = []string{
 	"/logout",
+	"/auth/login",
+	"/auth/register",
 	"/org/new",
 	"/org/select",
 	"/org/switch",
