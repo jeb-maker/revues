@@ -69,12 +69,12 @@
 .template-editor-table td.template-editor__point-actions{width:1%;}
 .template-editor--list .template-editor__add{
   margin-top:1rem;
-  margin-bottom:2rem;
+  margin-bottom:0;
 }
 .form-actions--list-submit{
-  margin-top:0;
-  padding-top:1.75rem;
-  border-top:1px solid var(--border);
+  margin-top:1.5rem;
+  padding-top:0;
+  border-top:0;
 }
 .template-editor__section {
   padding-top: 0.85rem;
@@ -190,10 +190,7 @@
     margin-top: .25rem;
     width: 100%;
   }
-  .template-editor--list .template-editor__add {
-    margin-bottom: 1.75rem;
-  }
   .form-actions--list-submit {
-    padding-top: 1.5rem;
+    margin-top: 1.25rem;
   }
 }

@@ -63,15 +63,15 @@
       </div>
     {{end}}
     </div>
-    <div class="form-actions form-actions--list-submit">
-      <mb-button type="submit">{{if .Template}}Enregistrer{{else}}Créer la liste{{end}}</mb-button>
-      {{if .Template}}
-      <mb-button href="/modeles/{{.Template.ID}}" variant="ghost">Annuler</mb-button>
-      {{else}}
-      <mb-button href="/modeles" variant="ghost">Annuler</mb-button>
-      {{end}}
-    </div>
   </mb-card>
+  <div class="form-actions form-actions--list-submit">
+    <mb-button type="submit">{{if .Template}}Enregistrer{{else}}Créer la liste{{end}}</mb-button>
+    {{if .Template}}
+    <mb-button href="/modeles/{{.Template.ID}}" variant="ghost">Annuler</mb-button>
+    {{else}}
+    <mb-button href="/modeles" variant="ghost">Annuler</mb-button>
+    {{end}}
+  </div>
   {{else}}
   <mb-card>
     <h2>Identité</h2>
