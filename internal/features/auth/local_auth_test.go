@@ -61,7 +61,9 @@ func guestCSRF(t *testing.T, sessions *auth.SessionManager) (cookie *http.Cookie
 	if err != nil {
 		t.Fatalf("EnsureGuestToken(): %v", err)
 	}
-	for _, c := range rec.Result().Cookies() {
+	res := rec.Result()
+	defer res.Body.Close()
+	for _, c := range res.Cookies() {
 		if c.Name == "revues_guest" {
 			return c, csrf
 		}
@@ -93,8 +95,10 @@ func TestRegister_CreatesSession(t *testing.T) {
 		t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
 	}
 
+	res := rec.Result()
+	defer res.Body.Close()
 	var sessionCookie string
-	for _, c := range rec.Result().Cookies() {
+	for _, c := range res.Cookies() {
 		if c.Name == "revues_session" && c.Value != "" {
 			sessionCookie = c.Value
 		}
@@ -200,8 +204,10 @@ func TestPasswordLogin_SuccessAndFailure(t *testing.T) {
 	if rec.Code != http.StatusSeeOther {
 		t.Fatalf("good login status = %d body=%s", rec.Code, rec.Body.String())
 	}
+	res := rec.Result()
+	defer res.Body.Close()
 	found := false
-	for _, c := range rec.Result().Cookies() {
+	for _, c := range res.Cookies() {
 		if c.Name == "revues_session" && c.Value != "" {
 			found = true
 		}

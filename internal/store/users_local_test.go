@@ -2,6 +2,7 @@ package store_test
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/jeb-maker/revues/internal/auth"
@@ -47,7 +48,7 @@ func TestCreateLocalUser_AndCredentials(t *testing.T) {
 	}
 
 	_, err = st.CreateLocalUser(ctx, "local@example.com", "local2", "Dup", auth.RoleReader, hash)
-	if err != store.ErrEmailTaken {
+	if !errors.Is(err, store.ErrEmailTaken) {
 		t.Fatalf("duplicate email err = %v, want ErrEmailTaken", err)
 	}
 }
