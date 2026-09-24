@@ -92,7 +92,7 @@ Principes :
 | Route `/subjects` (liste membre) | **Conservée** (deep link) mais **hors nav** en org classique — liste admin = `/admin/subjects` |
 | Mode SimpleUI (particulier) | **Oui** — 1 org / 1 membre / ≤1 sujet / pas admin global. Nav = **Listes en cours · Listes** via preset `ui_run_label=listes_en_cours` (routes `/modeles` / `/revues` inchangées). Vocabulaire « liste » à la place de « modèle ». Fiche sujet = hub checklists ; pas d'Équipes / Membres / domaines. |
 | Vocabulaire Listes / Modèles | Piloté par **`!ShowSubjectColumn`** (mono-sujet = Listes), pas seulement `SimpleUI` — évite schisme P1 nav vs formulaires |
-| Formulaire `/modeles/new` (listUI) | **Tableau** desktop une ligne (sélection · Case · Catégorie · Aide · Obligatoire · actions) / **cartes** mobile ; catégorie = `section` ; bulk « Appliquer à la sélection » ; Aide sans « optionnel » ; DnD desktop ; flèches mobile ; CTA hors carte |
+| Formulaire `/modeles/new` (listUI) | **Tableau** desktop une ligne (Case · Catégorie · Aide · Obligatoire · actions) / **cartes** mobile ; catégorie = `section` ; **nouvelle ligne hérite** de la catégorie précédente ; Aide sans « optionnel » ; DnD desktop ; flèches mobile ; CTA hors carte |
 | CSS assets | **Découpage** : `app.css` (core) + `run.css` + `editor.css` à la demande ; budget CI = gzip cumulé ≤ 12 Ko ; Compress gzip middleware |
 | Modèles pour lecteurs | **Masqués** — rôle `reader` seul n'a pas l'onglet Modèles |
 | Deep links `/subjects/{id}` | **Conservés** — accessibles à tous les membres org |

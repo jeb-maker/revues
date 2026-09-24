@@ -45,8 +45,6 @@ var cat = row.querySelector('[name="item_section"]');
 lab.id = 'item_label_' + si + '_' + ri;
 hlp.id = 'item_help_' + si + '_' + ri;
 if (cat) cat.id = 'item_section_' + si + '_' + ri;
-var pick = row.querySelector('.template-editor__pick');
-if (pick) pick.checked = false;
 }
 function clearFieldValue(el) {
 if (!el) return;
@@ -60,8 +58,11 @@ clearFieldValue(row.querySelector('[name="item_section"]'));
 var req = row.querySelector('mb-checkbox[name="item_required"]');
 req.checked = false;
 req.removeAttribute('checked');
-var pick = row.querySelector('.template-editor__pick');
-if (pick) pick.checked = false;
+}
+function setFieldValue(el, v) {
+if (!el) return;
+el.value = v;
+el.setAttribute('value', v);
 }
 function resyncFields(root) {
 root.querySelectorAll('mb-input,mb-textarea,mb-select,mb-checkbox').forEach(function (el) {
@@ -91,12 +92,24 @@ setDisabled(sec, 'section-remove', all.length <= 1);
 });
 }
 function addPoint(sec) {
-var container = sec.querySelector('.template-editor__points'), tpl = container.querySelector('.template-editor__point'),
-si = sec.getAttribute('data-section-idx'), row = tpl.cloneNode(true);
+var container = sec.querySelector('.template-editor__points'),
+rows = container.querySelectorAll('.template-editor__point'),
+last = rows[rows.length - 1],
+tpl = rows[0],
+si = sec.getAttribute('data-section-idx'),
+prevCat = '',
+row;
+if (last) {
+var prev = last.querySelector('[name="item_section"]');
+if (prev) prevCat = String(prev.value || '');
+}
+row = tpl.cloneNode(true);
 clearRow(row);
+if (prevCat) setFieldValue(row.querySelector('[name="item_section"]'), prevCat);
 syncRow(row, ++maxRow, si);
 container.appendChild(row);
 rowBtns(container);
+resyncFields(row);
 row.querySelector('mb-input[name="item_label"]').focus();
 }
 function addSec() {
@@ -127,23 +140,6 @@ var b = e.target.closest('[data-action]');
 if (!b || b.type !== 'button') return;
 var a = b.getAttribute('data-action'), sec = b.closest('.template-editor__section'), row = b.closest('.template-editor__point');
 if (a === 'add-point') return addPoint(sec);
-if (a === 'apply-category') {
-var bulk = document.getElementById('bulk-category');
-var cat = bulk ? String(bulk.value || '').trim() : '';
-var n = 0;
-box.querySelectorAll('.template-editor__point').forEach(function (r) {
-var pick = r.querySelector('.template-editor__pick');
-if (!pick || !pick.checked) return;
-var el = r.querySelector('[name="item_section"]');
-if (!el) return;
-el.value = cat;
-el.setAttribute('value', cat);
-if (el.requestUpdate) el.requestUpdate('value');
-n++;
-});
-if (n === 0 && bulk) bulk.focus();
-return;
-}
 if (a === 'section-remove') {
 if (secs().length > 1) {
 sec.remove(); secBtns();
@@ -169,13 +165,6 @@ container.insertBefore(row, row.previousElementSibling); rowBtns(container); res
 } else if (a === 'move-down' && row.nextElementSibling) {
 var movedRow = row.nextElementSibling;
 container.insertBefore(movedRow, row); rowBtns(container); resyncFields(movedRow);
-}
-});
-box.addEventListener('change', function (e) {
-var t = e.target;
-if (t && t.classList && t.classList.contains('template-editor__pick-all')) {
-var on = !!t.checked;
-box.querySelectorAll('.template-editor__pick').forEach(function (el) { el.checked = on; });
 }
 });
 box.addEventListener('dragstart', function (e) {

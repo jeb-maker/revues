@@ -23,17 +23,10 @@
     {{range $sec := .Sections}}
       <div class="template-editor__section" data-section-idx="{{$sec.SectionIndex}}">
         <input type="hidden" name="section_idx" value="{{$sec.SectionIndex}}">
-        <div class="template-editor__bulk" id="template-bulk-category">
-          <mb-input class="template-editor__bulk-cat" type="text" id="bulk-category" aria-label="Catégorie à appliquer"></mb-input>
-          <mb-button type="button" variant="ghost" size="sm" data-action="apply-category">Appliquer à la sélection</mb-button>
-        </div>
         <div class="table-scroll">
           <table class="data-table data-table--cards template-editor-table">
             <thead>
               <tr>
-                <th scope="col" class="template-editor__col-pick">
-                  <input type="checkbox" class="template-editor__pick-all" aria-label="Tout sélectionner" title="Tout sélectionner">
-                </th>
                 <th scope="col" class="template-editor__col-drag"><span class="visually-hidden">Ordre</span></th>
                 <th scope="col" class="template-editor__case-cell">Case</th>
                 <th scope="col" class="template-editor__cat-cell">Catégorie</th>
@@ -45,9 +38,6 @@
             <tbody class="template-editor__points">
             {{range $i, $row := $sec.Items}}
               <tr class="template-editor__point">
-                <td class="template-editor__pick-cell" data-label="Sélection">
-                  <input type="checkbox" class="template-editor__pick" aria-label="Sélectionner cette case">
-                </td>
                 <td class="template-editor__drag" data-label="Ordre">
                   <button type="button" class="template-editor__drag-handle" draggable="true" aria-label="Déplacer cette case" title="Glisser pour réordonner">⋮⋮</button>
                 </td>

@@ -484,7 +484,6 @@ func TestChecklistTemplates_NewFormListUIClarity(t *testing.T) {
 		`aria-label="Aide"`,
 		`aria-label="Catégorie"`,
 		`name="item_section"`,
-		`data-action="apply-category"`,
 		`data-label="Case"`,
 		`data-table--cards`,
 		"Créer la liste",
@@ -497,8 +496,8 @@ func TestChecklistTemplates_NewFormListUIClarity(t *testing.T) {
 			t.Fatalf("expected %q in new list form, body=%s", want, body)
 		}
 	}
-	if strings.Contains(body, "Aide (optionnel)") {
-		t.Fatal("Aide must be always visible, not collapsed behind details")
+	if strings.Contains(body, "apply-category") || strings.Contains(body, "template-editor__pick") {
+		t.Fatal("bulk selection UI must be gone; new rows inherit previous category")
 	}
 	if strings.Contains(body, "Optionnel — précisions") {
 		t.Fatal("Aide must not advertise optionality")
