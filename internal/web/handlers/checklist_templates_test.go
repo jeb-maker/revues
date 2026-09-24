@@ -481,16 +481,21 @@ func TestChecklistTemplates_NewFormListUIClarity(t *testing.T) {
 		">À cocher</h2>",
 		"Une ligne = une case",
 		`aria-label="Case"`,
+		`aria-label="Aide"`,
 		`data-label="Case"`,
 		`data-table--cards`,
 		"Créer la liste",
 		"+ Ajouter une case",
-		"Aide (optionnel)",
+		"template-editor__drag-handle",
 		"form-actions--list-submit",
+		`name="item_help"`,
 	} {
 		if !strings.Contains(body, want) {
 			t.Fatalf("expected %q in new list form, body=%s", want, body)
 		}
+	}
+	if strings.Contains(body, "Aide (optionnel)") {
+		t.Fatal("Aide must be always visible, not collapsed behind details")
 	}
 	if !strings.Contains(body, "<th scope=\"col\">Case</th>") {
 		t.Fatal("expected table column header Case for desktop layout")

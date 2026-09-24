@@ -6,7 +6,7 @@ var addSecBtn = document.getElementById('template-add-section'),
 enableSecBtn = document.getElementById('template-enable-sections-btn'),
 secTools = document.getElementById('template-section-tools'),
 enableWrap = document.getElementById('template-enable-sections'),
-maxRow = 0, maxSec = 0, forceSec = false;
+maxRow = 0, maxSec = 0, forceSec = false, dragRow = null;
 function n(v, d) { var x = parseInt(v, 10); return isNaN(x) ? d : x; }
 function secs() { return box.querySelectorAll('.template-editor__section'); }
 function sectioned() {
@@ -46,9 +46,6 @@ hlp.id = 'item_help_' + si + '_' + ri;
 }
 function clearFieldValue(el) {
 if (!el) return;
-// Keep value="" attribute: Lit maps a missing attr to value=null, and
-// form-associated setFormValue(null) omits the control from FormData
-// (len(item_label)≠len(item_help) → "lignes incohérentes").
 el.value = '';
 el.setAttribute('value', '');
 }
@@ -68,14 +65,16 @@ function setDisabled(root, action, on) {
 root.querySelectorAll('[data-action="' + action + '"]').forEach(function (btn) { btn.disabled = on; });
 }
 function rowBtns(container) {
-var rows = container.querySelectorAll('.template-editor__point');
-var multi = rows.length > 1;
+var rows = container.querySelectorAll('.template-editor__point'), multi = rows.length > 1;
 rows.forEach(function (row, i) {
 setDisabled(row, 'move-up', i === 0);
 setDisabled(row, 'move-down', i === rows.length - 1);
 setDisabled(row, 'remove', !multi);
-row.querySelectorAll('.template-editor__point-actions').forEach(function (el) {
+row.querySelectorAll('.template-editor__point-actions,.template-editor__drag').forEach(function (el) {
 el.hidden = !multi;
+});
+row.querySelectorAll('.template-editor__drag-handle').forEach(function (el) {
+el.draggable = multi; el.disabled = !multi;
 });
 });
 }
@@ -112,6 +111,11 @@ rowBtns(container);
 syncMode();
 sec.querySelector('.template-editor__section-title').focus();
 }
+function clearDrag() {
+if (dragRow) dragRow.classList.remove('is-dragging');
+box.querySelectorAll('.is-drag-over').forEach(function (el) { el.classList.remove('is-drag-over'); });
+dragRow = null;
+}
 scan();
 box.addEventListener('click', function (e) {
 var b = e.target.closest('[data-action]');
@@ -120,8 +124,7 @@ var a = b.getAttribute('data-action'), sec = b.closest('.template-editor__sectio
 if (a === 'add-point') return addPoint(sec);
 if (a === 'section-remove') {
 if (secs().length > 1) {
-sec.remove();
-secBtns();
+sec.remove(); secBtns();
 box.querySelectorAll('.template-editor__points').forEach(rowBtns);
 if (secs().length === 1) forceSec = false;
 syncMode();
@@ -146,13 +149,42 @@ var movedRow = row.nextElementSibling;
 container.insertBefore(movedRow, row); rowBtns(container); resyncFields(movedRow);
 }
 });
+box.addEventListener('dragstart', function (e) {
+var handle = e.target.closest('.template-editor__drag-handle');
+if (!handle || handle.disabled) return;
+dragRow = handle.closest('.template-editor__point');
+if (!dragRow) return;
+dragRow.classList.add('is-dragging');
+e.dataTransfer.effectAllowed = 'move';
+e.dataTransfer.setData('text/plain', 'row');
+});
+box.addEventListener('dragend', clearDrag);
+box.addEventListener('dragover', function (e) {
+var row = e.target.closest('.template-editor__point');
+if (!dragRow || !row || row === dragRow || row.parentNode !== dragRow.parentNode) return;
+e.preventDefault();
+e.dataTransfer.dropEffect = 'move';
+box.querySelectorAll('.is-drag-over').forEach(function (el) {
+if (el !== row) el.classList.remove('is-drag-over');
+});
+row.classList.add('is-drag-over');
+var rect = row.getBoundingClientRect();
+if (e.clientY < rect.top + rect.height / 2) row.parentNode.insertBefore(dragRow, row);
+else row.parentNode.insertBefore(dragRow, row.nextElementSibling);
+});
+box.addEventListener('drop', function (e) {
+if (!dragRow) return;
+e.preventDefault();
+rowBtns(dragRow.closest('.template-editor__points'));
+resyncFields(dragRow);
+clearDrag();
+});
 box.addEventListener('mb-input', function (e) {
 if (e.target.classList.contains('template-editor__section-title')) syncMode();
 });
 if (addSecBtn) addSecBtn.addEventListener('click', addSec);
 if (enableSecBtn) enableSecBtn.addEventListener('click', function () {
-forceSec = true;
-syncMode();
+forceSec = true; syncMode();
 box.querySelector('.template-editor__section-title').focus();
 });
 secBtns();

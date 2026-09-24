@@ -27,6 +27,7 @@
           <table class="data-table data-table--cards template-editor-table">
             <thead>
               <tr>
+                <th scope="col" class="template-editor__col-drag"><span class="visually-hidden">Ordre</span></th>
                 <th scope="col">Case</th>
                 <th scope="col">Aide</th>
                 <th scope="col" class="data-table__col--end"><span class="visually-hidden">Actions</span></th>
@@ -35,22 +36,22 @@
             <tbody class="template-editor__points">
             {{range $i, $row := $sec.Items}}
               <tr class="template-editor__point">
+                <td class="template-editor__drag" data-label="Ordre">
+                  <button type="button" class="template-editor__drag-handle" draggable="true" aria-label="Déplacer cette case" title="Glisser pour réordonner">⋮⋮</button>
+                </td>
                 <td data-label="Case">
                   <input type="hidden" name="item_row_idx" value="{{if $row.RowIndex}}{{$row.RowIndex}}{{else}}{{$i}}{{end}}">
                   <input type="hidden" name="item_section_idx" value="{{$sec.SectionIndex}}">
                   <mb-input class="template-editor__field" type="text" id="item_label_{{$sec.SectionIndex}}_{{$i}}" name="item_label" value="{{$row.Label}}" aria-label="Case"{{if $.ItemsError}} aria-describedby="template-items-error"{{end}}></mb-input>
                 </td>
-                <td data-label="Aide">
-                  <details class="template-editor__more">
-                    <summary>Aide (optionnel)</summary>
-                    <mb-textarea class="template-editor__field template-editor__help" label="Texte d'aide" id="item_help_{{$sec.SectionIndex}}_{{$i}}" name="item_help" rows="2" value="{{$row.HelpText}}" hint="Affiché pendant le contrôle pour préciser ce qu’il faut vérifier."></mb-textarea>
-                    <mb-checkbox class="template-editor__required" label="Obligatoire" name="item_required" value="{{if $row.RowIndex}}{{$row.RowIndex}}{{else}}{{$i}}{{end}}"{{if $row.Required}} checked{{end}}></mb-checkbox>
-                  </details>
+                <td data-label="Aide" class="template-editor__help-cell">
+                  <mb-textarea class="template-editor__field template-editor__help" id="item_help_{{$sec.SectionIndex}}_{{$i}}" name="item_help" rows="2" value="{{$row.HelpText}}" aria-label="Aide" hint="Optionnel — précisions pendant le contrôle."></mb-textarea>
+                  <mb-checkbox class="template-editor__required" label="Obligatoire" name="item_required" value="{{if $row.RowIndex}}{{$row.RowIndex}}{{else}}{{$i}}{{end}}"{{if $row.Required}} checked{{end}}></mb-checkbox>
                 </td>
                 <td class="template-editor__point-actions data-table__col--end" data-label="Actions">
                   <mb-button variant="ghost" size="sm" class="template-editor__move" data-action="move-up" aria-label="Monter cette case">↑</mb-button>
                   <mb-button variant="ghost" size="sm" class="template-editor__move" data-action="move-down" aria-label="Descendre cette case">↓</mb-button>
-                  <mb-button variant="ghost" size="sm" data-action="remove" aria-label="Supprimer cette case">×</mb-button>
+                  <mb-button variant="ghost" size="sm" class="template-editor__remove" data-action="remove" aria-label="Supprimer cette case">×</mb-button>
                 </td>
               </tr>
             {{end}}

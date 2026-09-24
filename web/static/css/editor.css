@@ -64,9 +64,25 @@
   display:flex;flex-wrap:wrap;gap:.25rem;justify-content:flex-end;align-items:center;
   white-space:nowrap;vertical-align:middle;
 }
-.template-editor-table td{vertical-align:middle}
+.template-editor-table td{vertical-align:top}
+.template-editor-table th:first-child,
+.template-editor-table td.template-editor__drag{width:1%;padding-inline:.35rem}
 .template-editor-table th:last-child,
 .template-editor-table td.template-editor__point-actions{width:1%;}
+.template-editor__help-cell{min-width:12rem}
+.template-editor__help-cell .template-editor__required{margin-top:.35rem;display:block}
+.template-editor__drag-handle{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-block-size:2.25rem;min-inline-size:2rem;padding:.25rem;
+  border:0;border-radius:var(--r-sm, .35rem);background:transparent;
+  color:var(--muted);cursor:grab;font-size:1rem;letter-spacing:-.05em;line-height:1;
+}
+.template-editor__drag-handle:hover,
+.template-editor__drag-handle:focus-visible{color:var(--fg);background:var(--surface-2)}
+.template-editor__drag-handle:active{cursor:grabbing}
+.template-editor__drag-handle:disabled{opacity:.35;cursor:default}
+.template-editor-table .template-editor__point.is-dragging{opacity:.55}
+.template-editor-table .template-editor__point.is-drag-over{outline:2px solid var(--accent, #2f6fed);outline-offset:-2px}
 .template-editor--list .template-editor__add{
   margin-top:1rem;
   margin-bottom:0;
@@ -168,6 +184,9 @@
     align-items: center;
   }
 }
+@media (min-width: 36.01rem) {
+  .template-editor--list .template-editor__move { display: none !important; }
+}
 @media (max-width: 36rem) {
   .template-editor-table .template-editor__points {
     display: block;
@@ -184,11 +203,26 @@
     border: 1px solid var(--border);
     border-radius: var(--r-md);
   }
+  .template-editor-table .template-editor__col-drag,
+  .template-editor-table td.template-editor__drag { display: none !important; }
   .template-editor-table td.template-editor__point-actions[data-label]::before { display: none; }
   .template-editor-table .template-editor__point-actions {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
     justify-content: flex-start;
-    margin-top: .25rem;
+    align-items: center;
+    gap: .5rem;
+    margin-top: .35rem;
     width: 100%;
+    order: 99;
+  }
+  .template-editor--list .template-editor__move,
+  .template-editor--list .template-editor__remove {
+    min-block-size: 2.75rem;
+    min-inline-size: 2.75rem;
+    font-size: 1.35rem;
+    line-height: 1;
   }
   .form-actions--list-submit {
     margin-top: 1.25rem;
