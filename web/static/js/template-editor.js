@@ -70,9 +70,7 @@ rows.forEach(function (row, i) {
 setDisabled(row, 'move-up', i === 0);
 setDisabled(row, 'move-down', i === rows.length - 1);
 setDisabled(row, 'remove', !multi);
-row.querySelectorAll('.template-editor__point-actions,.template-editor__drag').forEach(function (el) {
-el.hidden = !multi;
-});
+/* Keep drag/actions cells visible so desktop columns stay aligned. */
 row.querySelectorAll('.template-editor__drag-handle').forEach(function (el) {
 el.draggable = multi; el.disabled = !multi;
 });

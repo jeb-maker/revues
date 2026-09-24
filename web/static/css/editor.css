@@ -66,15 +66,15 @@
 }
 .template-editor-table th,
 .template-editor-table td{vertical-align:middle;padding-block:.4rem}
-.template-editor-table th:first-child,
+.template-editor-table .template-editor__col-drag,
 .template-editor-table td.template-editor__drag{width:2.5rem;padding-inline:.25rem;text-align:center}
-.template-editor-table .template-editor__case-cell{width:38%}
+.template-editor-table .template-editor__case-cell{width:42%}
 .template-editor-table .template-editor__help-cell{width:auto}
 .template-editor-table th.template-editor__col-required,
 .template-editor-table td.template-editor__required-cell{
   width:6.5rem;white-space:nowrap;text-align:center;
 }
-.template-editor-table th:last-child,
+.template-editor-table th.data-table__col--end,
 .template-editor-table td.template-editor__point-actions{width:3.5rem;padding-inline:.25rem}
 .template-editor__required-cell .template-editor__required{
   margin:0;display:inline-flex;justify-content:center;align-items:center;

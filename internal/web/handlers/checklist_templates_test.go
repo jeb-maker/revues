@@ -500,7 +500,7 @@ func TestChecklistTemplates_NewFormListUIClarity(t *testing.T) {
 	if strings.Contains(body, "Optionnel — précisions") {
 		t.Fatal("Aide must not advertise optionality")
 	}
-	if !strings.Contains(body, "<th scope=\"col\">Case</th>") {
+	if !strings.Contains(body, "template-editor__case-cell\">Case</th>") {
 		t.Fatal("expected table column header Case for desktop layout")
 	}
 	if !strings.Contains(body, `class="template-editor__col-required"`) {
