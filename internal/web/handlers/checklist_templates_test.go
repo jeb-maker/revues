@@ -438,3 +438,86 @@ func TestChecklistTemplates_ForRunPreselectsTemplate(t *testing.T) {
 		t.Fatal("expected highlighted row for preselected template")
 	}
 }
+
+func TestChecklistTemplates_NewFormListUIClarity(t *testing.T) {
+	handler, db := testRouter(t)
+	ctx := context.Background()
+	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
+	defaultOrg, err := st.OrganizationBySlug(ctx, "default")
+	if err != nil {
+		t.Fatalf("OrganizationBySlug(): %v", err)
+	}
+
+	editor, err := st.UpsertGitHubUser(ctx, 37, "list-ui-new", "list-ui-new@example.com", "Editor", "", auth.RoleEditor)
+	if err != nil {
+		t.Fatalf("UpsertGitHubUser(): %v", err)
+	}
+	if err = st.AddOrganizationMember(ctx, defaultOrg.ID, editor.ID, store.OrgRoleMember); err != nil {
+		t.Fatalf("AddOrganizationMember(): %v", err)
+	}
+	if _, err = st.CreateProject(ctx, "Seul sujet", "", editor.ID, nil); err != nil {
+		t.Fatalf("CreateProject(): %v", err)
+	}
+
+	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
+	token, _, err := sessions.CreateLoginSession(ctx, editor.ID, defaultOrg.ID)
+	if err != nil {
+		t.Fatalf("CreateLoginSession(): %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/modeles/new", nil)
+	req.AddCookie(&http.Cookie{Name: "revues_session", Value: token})
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+	body := rec.Body.String()
+	for _, want := range []string{
+		">Nouvelle liste</h1>",
+		"Une liste sert à cocher",
+		"Nom de la liste",
+		">À cocher</h2>",
+		"Une ligne = une case",
+		`aria-label="Case"`,
+		`aria-label="Aide"`,
+		`aria-label="Catégorie"`,
+		`name="item_section"`,
+		`data-label="Case"`,
+		`data-table--cards`,
+		"Créer la liste",
+		"+ Ajouter une case",
+		"template-editor__drag-handle",
+		"form-actions--list-submit",
+		`name="item_help"`,
+	} {
+		if !strings.Contains(body, want) {
+			t.Fatalf("expected %q in new list form, body=%s", want, body)
+		}
+	}
+	if strings.Contains(body, "apply-category") || strings.Contains(body, "template-editor__pick") {
+		t.Fatal("bulk selection UI must be gone; new rows inherit previous category")
+	}
+	if strings.Contains(body, "Optionnel — précisions") {
+		t.Fatal("Aide must not advertise optionality")
+	}
+	if !strings.Contains(body, "template-editor__case-cell\">Case</th>") {
+		t.Fatal("expected table column header Case for desktop layout")
+	}
+	if !strings.Contains(body, `class="template-editor__col-required"`) {
+		t.Fatal("expected Obligatoire as its own desktop column")
+	}
+	if !strings.Contains(body, "/static/css/editor.css") {
+		t.Fatal("expected editor.css stylesheet on list form")
+	}
+	if strings.Contains(body, ">Nouvelle</h1>") {
+		t.Fatal("H1 must not be truncated to « Nouvelle »")
+	}
+	if strings.Contains(body, "Un libellé = une case à cocher dans la revue") {
+		t.Fatal("legacy jargon hint must be gone")
+	}
+	if n := strings.Count(body, `name="item_label"`); n != 1 {
+		t.Fatalf("default empty cases = %d, want 1", n)
+	}
+}

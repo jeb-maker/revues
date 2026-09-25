@@ -54,12 +54,82 @@
 .template-form__advanced{margin-top:.75rem}
 .template-form__advanced summary,.template-editor__more summary{cursor:pointer;color:var(--muted);font-size:.9rem}
 .template-editor__more{margin-top:.15rem}
-.template-editor--compact{gap:.5rem}
-.template-editor--compact .template-editor__point{padding:.35rem 0;background:0 0;border:0;border-bottom:1px solid var(--border);border-radius:0;align-items:center}
-.template-editor--compact .template-editor__point-fields{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center}
-.template-editor--compact .template-editor__field{flex:1 1 12rem}
-.template-editor--compact .template-editor__more{flex:0 0 auto;margin-top:0}
-.template-editor--compact .template-editor__more[open]{flex:1 1 100%}
+/* listUI: table desktop, cartes mobile (via .data-table--cards) */
+.template-editor--list{gap:.75rem}
+.template-editor--list .template-editor__section{padding:0;border:0;background:transparent}
+.template-editor-table{width:100%;margin:0;table-layout:fixed;border-collapse:collapse}
+.template-editor-table .template-editor__field{margin:0;max-width:none;width:100%}
+.template-editor-table .template-editor__more{margin:0}
+/* Garder table-cell : display:flex sur le td casse vertical-align avec Case/Aide */
+.template-editor-table td.template-editor__point-actions{
+  display:table-cell;
+  vertical-align:middle;
+  text-align:end;
+  white-space:nowrap;
+  width:3.5rem;
+  padding-inline:.25rem;
+}
+.template-editor-table td.template-editor__point-actions mb-button{
+  vertical-align:middle;
+}
+.template-editor-table th,
+.template-editor-table td{vertical-align:middle;padding-block:.4rem}
+.template-editor-table .template-editor__col-drag,
+.template-editor-table td.template-editor__drag{width:2.5rem;padding-inline:.25rem;text-align:center}
+.template-editor-table .template-editor__case-cell{width:32%}
+.template-editor-table .template-editor__cat-cell{width:18%}
+.template-editor-table .template-editor__help-cell{width:auto}
+.template-editor-table th.template-editor__col-required,
+.template-editor-table td.template-editor__required-cell{
+  width:6.5rem;white-space:nowrap;text-align:center;
+}
+.template-editor-table th.data-table__col--end{width:3.5rem;padding-inline:.25rem}
+.template-editor__required-cell .template-editor__required{
+  margin:0;display:inline-flex;justify-content:center;align-items:center;
+}
+/* Desktop listUI */
+@media (min-width: 36.01rem) {
+  .template-editor--list .template-editor__move { display: none !important; }
+  .template-editor-table .template-editor__required-cell mb-checkbox::part(label) {
+    font-size: 0;
+    gap: 0;
+  }
+  .template-editor-table .template-editor__required-cell {
+    width: 5.5rem;
+  }
+  .template-editor-table td.template-editor__point-actions .template-editor__remove {
+    min-block-size: 2.5rem;
+    min-inline-size: 2.5rem;
+  }
+  .template-editor-table td.template-editor__point-actions .template-editor__remove::part(base) {
+    min-block-size: 2.5rem;
+    min-inline-size: 2.5rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+.template-editor__drag-handle{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-block-size:2.25rem;min-inline-size:2rem;padding:.25rem;
+  border:0;border-radius:var(--r-sm, .35rem);background:transparent;
+  color:var(--muted);cursor:grab;font-size:1rem;letter-spacing:-.05em;line-height:1;
+}
+.template-editor__drag-handle:hover,
+.template-editor__drag-handle:focus-visible{color:var(--fg);background:var(--surface-2)}
+.template-editor__drag-handle:active{cursor:grabbing}
+.template-editor__drag-handle:disabled{opacity:.35;cursor:default}
+.template-editor-table .template-editor__point.is-dragging{opacity:.55}
+.template-editor-table .template-editor__point.is-drag-over{outline:2px solid var(--accent, #2f6fed);outline-offset:-2px}
+.template-editor--list .template-editor__add{
+  margin-top:1rem;
+  margin-bottom:0;
+}
+.form-actions--list-submit{
+  margin-top:1.5rem;
+  padding-top:0;
+  border-top:0;
+}
 .template-editor__section {
   padding-top: 0.85rem;
   border-top: 1px solid var(--border);
@@ -91,6 +161,10 @@
   flex-direction: column;
   gap: 0.65rem;
 }
+.template-editor-table .template-editor__points {
+  display: table-row-group;
+  gap: 0;
+}
 .template-editor__point {
   display: flex;
   flex-wrap: wrap;
@@ -100,6 +174,14 @@
   background: var(--surface-2);
   border: 1px solid var(--border);
   border-radius: var(--r-md);
+}
+.template-editor-table .template-editor__point {
+  display: table-row;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  gap: 0;
 }
 .template-editor__point-fields {
   flex: 1 1 14rem;
@@ -131,12 +213,62 @@
 @media (max-width: 40rem) {
   .template-editor__move { display: none !important; }
   .template-editor__reorder { display: inline-block; }
-  .template-editor--compact .template-editor__move { display: inline-flex !important; }
-  .template-editor--compact .template-editor__reorder { display: none !important; }
+  .template-editor--list .template-editor__move { display: inline-flex !important; }
+  .template-editor--list .template-editor__reorder { display: none !important; }
   .template-editor__section-actions {
     display: flex;
     flex-wrap: wrap;
     gap: 0.35rem;
     align-items: center;
+  }
+}
+@media (max-width: 36rem) {
+  .template-editor-table .template-editor__points {
+    display: block;
+    width: 100%;
+  }
+  .template-editor-table .template-editor__point {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--s-2);
+    margin: 0 0 .75rem;
+    padding: .75rem;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+  }
+  .template-editor-table .template-editor__col-drag,
+  .template-editor-table td.template-editor__drag { display: none !important; }
+  .data-table--cards.template-editor-table td.template-editor__point-actions,
+  .data-table--cards.template-editor-table td.template-editor__point-actions.data-table__col--end {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    align-items: center;
+    gap: .5rem;
+    margin-top: .35rem;
+    width: 100%;
+    max-width: 100%;
+    order: 99;
+  }
+  .data-table--cards.template-editor-table td.template-editor__point-actions[data-label]::before,
+  .data-table--cards.template-editor-table td.template-editor__required-cell[data-label]::before { display: none; }
+  .template-editor-table td.template-editor__required-cell {
+    width: auto;
+    text-align: start;
+    white-space: normal;
+  }
+  .template-editor--list .template-editor__move,
+  .template-editor--list .template-editor__remove {
+    min-block-size: 2.75rem;
+    min-inline-size: 2.75rem;
+    font-size: 1.35rem;
+    line-height: 1;
+    flex: 0 0 auto;
+  }
+  .form-actions--list-submit {
+    margin-top: 1.25rem;
   }
 }

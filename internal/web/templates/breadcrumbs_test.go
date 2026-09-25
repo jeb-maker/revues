@@ -51,6 +51,26 @@ func TestBreadcrumbAncestors(t *testing.T) {
 	}
 }
 
+func TestBCTemplatesNewWizard_Labels(t *testing.T) {
+	list := templates.BCTemplatesNewWizard(true)
+	if len(list) != 2 {
+		t.Fatalf("listUI len = %d, want 2", len(list))
+	}
+	if list[0].Label != "Listes" || list[0].URL != templates.PathTemplates {
+		t.Fatalf("listUI parent = %+v", list[0])
+	}
+	if list[1].Label != "Nouvelle liste" || list[1].URL != "" {
+		t.Fatalf("listUI current = %+v", list[1])
+	}
+	org := templates.BCTemplatesNewWizard(false)
+	if len(org) != 2 {
+		t.Fatalf("org len = %d, want 2", len(org))
+	}
+	if org[0].Label != "Modèles" || org[1].Label != "Nouveau modèle" {
+		t.Fatalf("org crumbs = %+v", org)
+	}
+}
+
 func TestBCAdminIntegrations_UsesOrganisationHub(t *testing.T) {
 	crumbs := templates.BCAdminIntegrations()
 	if len(crumbs) != 2 {

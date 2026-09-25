@@ -37,4 +37,15 @@ func validateTemplateItems(items []store.TemplateItemInput) string {
 func applyTemplateFormLimits(data *viewtemplates.ChecklistTemplateFormData) {
 	data.MaxItemLabelLen = MaxTemplateItemLabelLen
 	data.MaxItemHelpLen = MaxTemplateItemHelpLen
+	data.ExtraCSS = appendEditorCSS(data.ExtraCSS)
+}
+
+func appendEditorCSS(css []string) []string {
+	const path = "/static/css/editor.css"
+	for _, existing := range css {
+		if existing == path {
+			return css
+		}
+	}
+	return append(css, path)
 }

@@ -195,9 +195,9 @@ func runNav(run RunUILabels) string {
 // BCTemplatesNewWizard is the global new template wizard breadcrumb.
 func BCTemplatesNewWizard(simpleUI bool) []Breadcrumb {
 	sec := TemplatesSectionLabel(simpleUI)
-	newLabel := "Nouveau"
+	newLabel := "Nouveau modèle"
 	if simpleUI {
-		newLabel = "Nouvelle"
+		newLabel = "Nouvelle liste"
 	}
 	return []Breadcrumb{crumb(sec, PathTemplates), current(newLabel)}
 }

@@ -42,10 +42,32 @@ func itemsToEditorSections(items []store.TemplateItem) []viewtemplates.TemplateE
 			Label:    item.Label,
 			HelpText: item.HelpText,
 			Required: item.Required,
+			Section:  item.Section,
 		})
 		rowIdx++
 	}
 	return sections
+}
+
+// itemsToFlatListEditor keeps one table for listUI with a per-row category (section).
+func itemsToFlatListEditor(items []store.TemplateItem) []viewtemplates.TemplateEditorSection {
+	if len(items) == 0 {
+		return emptyEditorSections(1)
+	}
+	rows := make([]viewtemplates.TemplateEditorRow, len(items))
+	for i, item := range items {
+		rows[i] = viewtemplates.TemplateEditorRow{
+			RowIndex: i,
+			Label:    item.Label,
+			HelpText: item.HelpText,
+			Required: item.Required,
+			Section:  item.Section,
+		}
+	}
+	return []viewtemplates.TemplateEditorSection{{
+		SectionIndex: 0,
+		Items:        rows,
+	}}
 }
 
 func groupTemplateItems(items []store.TemplateItem) []viewtemplates.TemplateItemSection {
@@ -85,7 +107,8 @@ func parseTemplateItems(r *http.Request) ([]store.TemplateItemInput, string) {
 	sectionIdxs := r.Form["item_section_idx"]
 	sectionBlockIdxs := r.Form["section_idx"]
 	sectionTitles := r.Form["section_title"]
-	legacySections := r.Form["item_section"]
+	perItemSections := r.Form["item_section"]
+	legacySections := perItemSections
 
 	if len(labels) != len(helps) {
 		return nil, "Les lignes du modèle sont incohérentes."
@@ -94,8 +117,9 @@ func parseTemplateItems(r *http.Request) ([]store.TemplateItemInput, string) {
 		return nil, "Les lignes du modèle sont incohérentes."
 	}
 
-	useSectionIdx := len(sectionIdxs) == len(labels)
-	if !useSectionIdx {
+	usePerItemSection := len(perItemSections) == len(labels)
+	useSectionIdx := !usePerItemSection && len(sectionIdxs) == len(labels)
+	if !usePerItemSection && !useSectionIdx {
 		if len(legacySections) != len(labels) {
 			return nil, "Les lignes du modèle sont incohérentes."
 		}
@@ -122,7 +146,9 @@ func parseTemplateItems(r *http.Request) ([]store.TemplateItemInput, string) {
 		}
 
 		section := ""
-		if useSectionIdx {
+		if usePerItemSection {
+			section = strings.TrimSpace(perItemSections[i])
+		} else if useSectionIdx {
 			if si, err := strconv.Atoi(sectionIdxs[i]); err == nil {
 				section = titleBySection[si]
 			}
@@ -176,7 +202,8 @@ func parseTemplateItemsToSections(r *http.Request) []viewtemplates.TemplateEdito
 	sectionIdxs := r.Form["item_section_idx"]
 	sectionBlockIdxs := r.Form["section_idx"]
 	sectionTitles := r.Form["section_title"]
-	legacySections := r.Form["item_section"]
+	perItemSections := r.Form["item_section"]
+	legacySections := perItemSections
 
 	maxLen := len(labels)
 	if len(helps) > maxLen {
@@ -192,7 +219,8 @@ func parseTemplateItemsToSections(r *http.Request) []viewtemplates.TemplateEdito
 	}
 
 	useRowIdx := len(rowIndices) == maxLen
-	useSectionIdx := len(sectionIdxs) == maxLen
+	usePerItemSection := len(perItemSections) == maxLen
+	useSectionIdx := !usePerItemSection && len(sectionIdxs) == maxLen
 
 	rows := make([]viewtemplates.TemplateEditorRow, maxLen)
 	for i := 0; i < maxLen; i++ {
@@ -201,6 +229,9 @@ func parseTemplateItemsToSections(r *http.Request) []viewtemplates.TemplateEdito
 		}
 		if i < len(helps) {
 			rows[i].HelpText = helps[i]
+		}
+		if usePerItemSection && i < len(perItemSections) {
+			rows[i].Section = perItemSections[i]
 		}
 		if useRowIdx {
 			if idx, err := strconv.Atoi(rowIndices[i]); err == nil {
@@ -211,6 +242,16 @@ func parseTemplateItemsToSections(r *http.Request) []viewtemplates.TemplateEdito
 			rows[i].RowIndex = i
 			rows[i].Required = required[i]
 		}
+	}
+
+	if usePerItemSection {
+		if len(rows) == 0 {
+			return emptyEditorSections(1)
+		}
+		return []viewtemplates.TemplateEditorSection{{
+			SectionIndex: 0,
+			Items:        rows,
+		}}
 	}
 
 	if useSectionIdx {

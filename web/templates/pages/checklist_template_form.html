@@ -8,57 +8,78 @@
   {{if $listUI}}
   <mb-card>
     {{if .Template}}
-    <p class="field-hint">Les prochaines revues utiliseront la liste mise à jour. Les revues déjà lancées restent inchangées.</p>
+    <p class="field-hint">Les prochaines {{.Labels.Run.Plural}} utiliseront cette version. Celles déjà lancées ne changent pas.</p>
     {{else}}
-    <p class="field-hint">Nommez votre liste, puis ajoutez ce que vous voulez cocher.</p>
+    <p class="field-hint">Une liste sert à cocher des contrôles. Donnez-lui un nom, puis écrivez chaque case.</p>
     {{end}}
-    <mb-input label="Nom de la liste" type="text" name="name" required value="{{if .Name}}{{.Name}}{{else if .Template}}{{.Template.Name}}{{end}}"{{if .NameError}} error="{{.NameError}}"{{end}}></mb-input>
+    <mb-input label="Nom de la liste" type="text" name="name" required value="{{if .Name}}{{.Name}}{{else if .Template}}{{.Template.Name}}{{end}}"{{if .NameError}} error="{{.NameError}}"{{end}} hint="Ex. : Contrôle voiture, Ouverture de magasin."></mb-input>
     <input type="hidden" name="tags" value="">
 
-    <h2 class="template-form__points-title">Points</h2>
-    <p class="field-hint">Un libellé = une case à cocher dans la revue.</p>
+    <h2 class="template-form__points-title">À cocher</h2>
+    <p class="field-hint">Une ligne = une case. Ex. : Vérifier les freins. La catégorie regroupe les cases à l'exécution.</p>
     {{if .ItemsError}}<p class="field-error" id="template-items-error" role="alert">{{.ItemsError}}</p>{{end}}
 
-    <div id="template-sections" class="template-editor template-editor--compact{{if .SectionsEnabled}} is-sectioned{{end}}">
+    <div id="template-sections" class="template-editor template-editor--list{{if .SectionsEnabled}} is-sectioned{{end}}">
     {{range $sec := .Sections}}
       <div class="template-editor__section" data-section-idx="{{$sec.SectionIndex}}">
         <input type="hidden" name="section_idx" value="{{$sec.SectionIndex}}">
-        <div class="template-editor__points">
-        {{range $i, $row := $sec.Items}}
-          <div class="template-editor__point">
-            <input type="hidden" name="item_row_idx" value="{{if $row.RowIndex}}{{$row.RowIndex}}{{else}}{{$i}}{{end}}">
-            <input type="hidden" name="item_section_idx" value="{{$sec.SectionIndex}}">
-            <div class="template-editor__point-fields">
-              <mb-input class="template-editor__field" type="text" id="item_label_{{$sec.SectionIndex}}_{{$i}}" name="item_label" value="{{$row.Label}}" aria-label="Libellé du point"{{if $.ItemsError}} aria-describedby="template-items-error"{{end}}></mb-input>
-              <details class="template-editor__more">
-                <summary>Options</summary>
-                <mb-textarea class="template-editor__field template-editor__help" label="Texte d'aide" id="item_help_{{$sec.SectionIndex}}_{{$i}}" name="item_help" rows="2" value="{{$row.HelpText}}"></mb-textarea>
-                <mb-checkbox class="template-editor__required" label="Requis" name="item_required" value="{{if $row.RowIndex}}{{$row.RowIndex}}{{else}}{{$i}}{{end}}"{{if $row.Required}} checked{{end}}></mb-checkbox>
-              </details>
-            </div>
-            <div class="template-editor__point-actions">
-              <mb-button variant="ghost" size="sm" class="template-editor__move" data-action="move-up" aria-label="Monter ce point">↑</mb-button>
-              <mb-button variant="ghost" size="sm" class="template-editor__move" data-action="move-down" aria-label="Descendre ce point">↓</mb-button>
-              <mb-button variant="ghost" size="sm" data-action="remove" aria-label="Supprimer ce point">×</mb-button>
-            </div>
-          </div>
-        {{end}}
+        <div class="table-scroll">
+          <table class="data-table data-table--cards template-editor-table">
+            <thead>
+              <tr>
+                <th scope="col" class="template-editor__col-drag"><span class="visually-hidden">Ordre</span></th>
+                <th scope="col" class="template-editor__case-cell">Case</th>
+                <th scope="col" class="template-editor__cat-cell">Catégorie</th>
+                <th scope="col" class="template-editor__help-cell">Aide</th>
+                <th scope="col" class="template-editor__col-required">Obligatoire</th>
+                <th scope="col" class="data-table__col--end"><span class="visually-hidden">Actions</span></th>
+              </tr>
+            </thead>
+            <tbody class="template-editor__points">
+            {{range $i, $row := $sec.Items}}
+              <tr class="template-editor__point">
+                <td class="template-editor__drag" data-label="Ordre">
+                  <button type="button" class="template-editor__drag-handle" draggable="true" aria-label="Déplacer cette case" title="Glisser pour réordonner">⋮⋮</button>
+                </td>
+                <td data-label="Case" class="template-editor__case-cell">
+                  <input type="hidden" name="item_row_idx" value="{{if $row.RowIndex}}{{$row.RowIndex}}{{else}}{{$i}}{{end}}">
+                  <input type="hidden" name="item_section_idx" value="{{$sec.SectionIndex}}">
+                  <mb-input class="template-editor__field" type="text" id="item_label_{{$sec.SectionIndex}}_{{$i}}" name="item_label" value="{{$row.Label}}" aria-label="Case"{{if $.ItemsError}} aria-describedby="template-items-error"{{end}}></mb-input>
+                </td>
+                <td data-label="Catégorie" class="template-editor__cat-cell">
+                  <mb-input class="template-editor__field template-editor__category" type="text" id="item_section_{{$sec.SectionIndex}}_{{$i}}" name="item_section" value="{{$row.Section}}" aria-label="Catégorie"></mb-input>
+                </td>
+                <td data-label="Aide" class="template-editor__help-cell">
+                  <mb-input class="template-editor__field template-editor__help" type="text" id="item_help_{{$sec.SectionIndex}}_{{$i}}" name="item_help" value="{{$row.HelpText}}" aria-label="Aide"></mb-input>
+                </td>
+                <td class="template-editor__required-cell" data-label="Obligatoire">
+                  <mb-checkbox class="template-editor__required" label="Obligatoire" name="item_required" value="{{if $row.RowIndex}}{{$row.RowIndex}}{{else}}{{$i}}{{end}}"{{if $row.Required}} checked{{end}}></mb-checkbox>
+                </td>
+                <td class="template-editor__point-actions data-table__col--end" data-label="Actions">
+                  <mb-button variant="ghost" size="sm" class="template-editor__move" data-action="move-up" aria-label="Monter cette case">↑</mb-button>
+                  <mb-button variant="ghost" size="sm" class="template-editor__move" data-action="move-down" aria-label="Descendre cette case">↓</mb-button>
+                  <mb-button variant="ghost" size="sm" class="template-editor__remove" data-action="remove" aria-label="Supprimer cette case">×</mb-button>
+                </td>
+              </tr>
+            {{end}}
+            </tbody>
+          </table>
         </div>
         <p class="template-editor__add">
-          <mb-button variant="ghost" size="sm" data-action="add-point">+ Ajouter un point</mb-button>
+          <mb-button variant="ghost" size="sm" data-action="add-point">+ Ajouter une case</mb-button>
         </p>
       </div>
     {{end}}
     </div>
-    <div class="form-actions">
-      <mb-button type="submit">{{if .Template}}Enregistrer{{else}}Créer la liste{{end}}</mb-button>
-      {{if .Template}}
-      <mb-button href="/modeles/{{.Template.ID}}" variant="ghost">Annuler</mb-button>
-      {{else}}
-      <mb-button href="/modeles" variant="ghost">Annuler</mb-button>
-      {{end}}
-    </div>
   </mb-card>
+  <div class="form-actions form-actions--list-submit">
+    <mb-button type="submit">{{if .Template}}Enregistrer{{else}}Créer la liste{{end}}</mb-button>
+    {{if .Template}}
+    <mb-button href="/modeles/{{.Template.ID}}" variant="ghost">Annuler</mb-button>
+    {{else}}
+    <mb-button href="/modeles" variant="ghost">Annuler</mb-button>
+    {{end}}
+  </div>
   {{else}}
   <mb-card>
     <h2>Identité</h2>
@@ -148,7 +169,7 @@
 
 {{if .Template}}
 <mb-card class="form-danger-zone">
-  <p class="form-danger-zone__text">{{if $listUI}}Archiver retire la liste des listes actives. Les revues déjà lancées restent inchangées.{{else}}Archiver retire le modèle de la liste active. Les revues déjà lancées conservent leur snapshot.{{end}}</p>
+  <p class="form-danger-zone__text">{{if $listUI}}Archiver retire la liste des listes actives. Les {{.Labels.Run.Plural}} déjà lancées restent inchangées.{{else}}Archiver retire le modèle de la liste active. Les {{.Labels.Run.Plural}} déjà lancées conservent leur snapshot.{{end}}</p>
   <form method="post" action="/modeles/{{.Template.ID}}/archive" onsubmit="return confirm('{{if $listUI}}Archiver cette liste ?{{else}}Archiver ce modèle ?{{end}}');">
     <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
     <mb-button type="submit" variant="danger">{{if $listUI}}Archiver la liste{{else}}Archiver le modèle{{end}}</mb-button>

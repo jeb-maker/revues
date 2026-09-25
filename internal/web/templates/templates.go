@@ -158,6 +158,7 @@ type PageData struct {
 	ActiveOrganization  *store.Organization
 	UserOrganizations   []store.OrganizationMembership
 	PendingInvitations  []store.OrganizationInvitation
+	ExtraCSS            []string // page-scoped stylesheets (avoids colliding {{define "page_styles"}})
 }
 
 // ReportsMetadata returns trusted session context for the @jeb-maker/reports widget.
@@ -534,6 +535,7 @@ type TemplateEditorRow struct {
 	Label    string
 	HelpText string
 	Required bool
+	Section  string // per-row category (listUI); block Title used for multi-sujet sections
 }
 
 // TemplateEditorSection is a group of checklist points under one section title.

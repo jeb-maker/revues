@@ -37,7 +37,7 @@ func (d *Deps) PageDataTab(r *http.Request, title, activeTab string) viewtemplat
 }
 
 const defaultTemplateEditorRows = 3
-const defaultListEditorRows = 3
+const defaultListEditorRows = 1
 
 const queryForRun = "for_run"
 const queryTemplate = "template"
@@ -259,6 +259,7 @@ func (h *ChecklistTemplates) Show(w http.ResponseWriter, r *http.Request) {
 		CanLaunch:    subjects.CanLaunchRun(user, orgMember),
 		Message:      r.URL.Query().Get("msg"),
 	}
+	data.ExtraCSS = appendEditorCSS(data.ExtraCSS)
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	if err := h.Templates.ExecuteTemplate(w, "checklist_template_show", data); err != nil {
@@ -285,9 +286,12 @@ func (h *ChecklistTemplates) EditForm(w http.ResponseWriter, r *http.Request) {
 	}
 
 	sections := itemsToEditorSections(items)
-
 	pd := h.PageDataTab(r, "Modifier "+template.Name, "templates")
-	pd.Breadcrumbs = viewtemplates.BCTemplateGlobalEdit(template.Name, template.ID, !pd.ShowSubjectColumn)
+	listUI := !pd.ShowSubjectColumn
+	if listUI {
+		sections = itemsToFlatListEditor(items)
+	}
+	pd.Breadcrumbs = viewtemplates.BCTemplateGlobalEdit(template.Name, template.ID, listUI)
 	data := viewtemplates.ChecklistTemplateFormData{
 		PageData:         pd,
 		Template:         template,
@@ -574,7 +578,7 @@ func formFieldErrors(name, itemErr string, itemCount int, listUI bool) (nameErr,
 		itemsErr = itemErr
 	} else if itemCount == 0 {
 		if listUI {
-			itemsErr = "Ajoutez au moins un point à la liste."
+			itemsErr = "Ajoutez au moins une case à la liste."
 		} else {
 			itemsErr = "Ajoutez au moins un point au modèle."
 		}
