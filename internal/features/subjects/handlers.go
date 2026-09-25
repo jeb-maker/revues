@@ -278,7 +278,7 @@ func (h *Subjects) denyAssignTeams(w http.ResponseWriter, r *http.Request, subje
 		return false
 	}
 	if leadBlockedByAssignTeamsPolicy(user, access, policies) {
-		h.renderShowError(w, r, subject, user, access, "La politique de l'organisation n'autorise pas les leads à affecter des équipes.")
+		h.renderShowError(w, r, subject, user, access, "La politique de l'organisation n'autorise pas les responsables à affecter des équipes.")
 		return true
 	}
 	http.NotFound(w, r)
@@ -436,7 +436,7 @@ func (h *Subjects) AddMember(w http.ResponseWriter, r *http.Request) {
 	policies := requestOrgPolicies(r)
 	if !CanManageSubjectMembers(user, access, policies) {
 		if CanLeadAccess(user, access) {
-			h.renderShowError(w, r, subject, user, access, "La politique de l'organisation n'autorise pas les leads à inviter des membres.")
+			h.renderShowError(w, r, subject, user, access, "La politique de l'organisation n'autorise pas les responsables à inviter des membres.")
 			return
 		}
 		http.NotFound(w, r)
@@ -475,9 +475,9 @@ func (h *Subjects) AddMember(w http.ResponseWriter, r *http.Request) {
 	}
 	if !CanInviteSubjectMember(user, access, policies, inviteeIsOrgMember) {
 		if inviteeIsOrgMember {
-			h.renderShowError(w, r, subject, user, access, "La politique de l'organisation n'autorise pas les leads à inviter des membres.")
+			h.renderShowError(w, r, subject, user, access, "La politique de l'organisation n'autorise pas les responsables à inviter des membres.")
 		} else {
-			h.renderShowError(w, r, subject, user, access, "La politique de l'organisation n'autorise pas les leads à inviter des externes.")
+			h.renderShowError(w, r, subject, user, access, "La politique de l'organisation n'autorise pas les responsables à inviter des externes.")
 		}
 		return
 	}
@@ -504,7 +504,7 @@ func (h *Subjects) RemoveMember(w http.ResponseWriter, r *http.Request) {
 	policies := requestOrgPolicies(r)
 	if !CanManageSubjectMembers(user, access, policies) {
 		if CanLeadAccess(user, access) {
-			h.renderShowError(w, r, subject, user, access, "La politique de l'organisation n'autorise pas les leads à gérer les membres.")
+			h.renderShowError(w, r, subject, user, access, "La politique de l'organisation n'autorise pas les responsables à gérer les membres.")
 			return
 		}
 		http.NotFound(w, r)

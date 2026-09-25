@@ -17,7 +17,7 @@ func TestApplyPageMeta_SetsTitleFromLastCrumb(t *testing.T) {
 }
 
 func TestBCRunWizardTemplates_Links(t *testing.T) {
-	crumbs := templates.BCRunWizardTemplates("Alpha", 3, templates.DefaultUILabels().Run)
+	crumbs := templates.BCRunWizardTemplates("Alpha", 3, templates.DefaultUILabels().Run, false)
 	if len(crumbs) != 3 {
 		t.Fatalf("len = %d, want 3", len(crumbs))
 	}
@@ -26,6 +26,10 @@ func TestBCRunWizardTemplates_Links(t *testing.T) {
 	}
 	if crumbs[2].Label != "Choisir un modèle" || crumbs[2].URL != "" {
 		t.Fatalf("last crumb = %+v", crumbs[2])
+	}
+	listUI := templates.BCRunWizardTemplates("Alpha", 3, templates.DefaultUILabels().Run, true)
+	if listUI[2].Label != "Choisir une liste" {
+		t.Fatalf("listUI last crumb = %+v", listUI[2])
 	}
 }
 
@@ -44,7 +48,7 @@ func TestBreadcrumbAncestors(t *testing.T) {
 	if got := templates.BreadcrumbAncestors(one); got != nil {
 		t.Fatalf("single crumb = %v, want nil", got)
 	}
-	deep := templates.BCRunWizardTemplates("Alpha", 3, run)
+	deep := templates.BCRunWizardTemplates("Alpha", 3, run, false)
 	got := templates.BreadcrumbAncestors(deep)
 	if len(got) != 2 || got[0].Label != "Revues" || got[1].Label != "Alpha" {
 		t.Fatalf("ancestors = %+v", got)

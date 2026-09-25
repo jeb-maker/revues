@@ -76,7 +76,7 @@ func linkErrorMessage(err error) string {
 	case errors.Is(err, jira.ErrInvalidIssueReference):
 		return "Clé ou URL Jira invalide (ex. PROJ-123)."
 	case errors.Is(err, jira.ErrIssueNotFound):
-		return "Issue Jira introuvable."
+		return "Ticket Jira introuvable."
 	case errors.Is(err, jira.ErrConnectionFailed):
 		return "Impossible de contacter Jira. Réessayez plus tard."
 	default:

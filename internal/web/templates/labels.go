@@ -20,6 +20,7 @@ type RunUILabels struct {
 	Singular    string // lowercase phrase form: "revue", "liste"
 	Plural      string // lowercase: "revues", "listes"
 	Article     string // "une" | "un" for CTA
+	Definite    string // "la " | "l'" | "le " for "Retour à la revue"
 	NoneArticle string // "Aucune" | "Aucun" for empty states
 }
 
@@ -110,6 +111,7 @@ func RunLabelsForPreset(preset string) RunUILabels {
 			Singular:    "liste",
 			Plural:      "listes",
 			Article:     "une",
+			Definite:    "la ",
 			NoneArticle: "Aucune",
 		}
 	case store.UIRunLabelAudits:
@@ -119,6 +121,7 @@ func RunLabelsForPreset(preset string) RunUILabels {
 			Singular:    "audit",
 			Plural:      "audits",
 			Article:     "un",
+			Definite:    "l'",
 			NoneArticle: "Aucun",
 		}
 	case store.UIRunLabelChecklists:
@@ -128,6 +131,7 @@ func RunLabelsForPreset(preset string) RunUILabels {
 			Singular:    "checklist",
 			Plural:      "checklists",
 			Article:     "une",
+			Definite:    "la ",
 			NoneArticle: "Aucune",
 		}
 	default:
@@ -137,6 +141,7 @@ func RunLabelsForPreset(preset string) RunUILabels {
 			Singular:    "revue",
 			Plural:      "revues",
 			Article:     "une",
+			Definite:    "la ",
 			NoneArticle: "Aucune",
 		}
 	}
@@ -176,9 +181,56 @@ func LaunchRunCTA(run RunUILabels) string {
 	return fmt.Sprintf("Lancer %s %s", run.Article, run.Singular)
 }
 
+// LaunchAnotherRunCTA returns the secondary launch label (e.g. "Lancer une autre revue").
+func LaunchAnotherRunCTA(run RunUILabels) string {
+	return fmt.Sprintf("Lancer %s autre %s", run.Article, run.Singular)
+}
+
 // LaunchActionTitle returns the tooltip for the launch-review header button.
 func LaunchActionTitle(subject SubjectUILabels, run RunUILabels) string {
 	return fmt.Sprintf("Lancer %s %s sur ce %s", run.Article, run.Singular, lowerFirst(subject.Singular))
+}
+
+// CloseRunHeading returns the close-run card H2 (e.g. "Clôturer la revue").
+func CloseRunHeading(run RunUILabels) string {
+	return "Clôturer " + run.Definite + run.Singular
+}
+
+// CompleteRunCTA returns the submit label to finish a run (e.g. "Terminer la revue").
+func CompleteRunCTA(run RunUILabels) string {
+	return "Terminer " + run.Definite + run.Singular
+}
+
+// CompleteRunConfirm returns the hx-confirm / confirm text for closing a run.
+func CompleteRunConfirm(run RunUILabels) string {
+	return fmt.Sprintf("Confirmer la clôture de %s %s ?", run.Article, run.Singular)
+}
+
+// StartRunCTA returns the legacy draft start button (e.g. "Démarrer la revue").
+func StartRunCTA(run RunUILabels) string {
+	return "Démarrer " + run.Definite + run.Singular
+}
+
+// RunDoneHeading returns the done-state card H2 (e.g. "Revue terminée").
+func RunDoneHeading(run RunUILabels) string {
+	adj := "terminée"
+	if run.Article == "un" {
+		adj = "terminé"
+	}
+	return CapitalizeFirst(run.Singular) + " " + adj
+}
+
+// ReturnToRunCTA returns the back-link to the run (e.g. "Retour à la revue").
+func ReturnToRunCTA(run RunUILabels) string {
+	return "Retour à " + run.Definite + run.Singular
+}
+
+// ChooseTemplateCrumb is the wizard step-2 / subject-templates current crumb.
+func ChooseTemplateCrumb(listUI bool) string {
+	if listUI {
+		return "Choisir une liste"
+	}
+	return "Choisir un modèle"
 }
 
 func lowerFirst(s string) string {
@@ -191,11 +243,20 @@ func LowerFirst(s string) string {
 		return s
 	}
 	r := []rune(s)
-	if len(r) == 1 {
-		return string(r)
-	}
 	if r[0] >= 'A' && r[0] <= 'Z' {
 		r[0] += 'a' - 'A'
+	}
+	return string(r)
+}
+
+// CapitalizeFirst uppercases the first rune for French UI headings.
+func CapitalizeFirst(s string) string {
+	if s == "" {
+		return s
+	}
+	r := []rune(s)
+	if r[0] >= 'a' && r[0] <= 'z' {
+		r[0] -= 'a' - 'A'
 	}
 	return string(r)
 }

@@ -1071,7 +1071,7 @@ func TestOrgPolicies_LeadAssignTeamsDenied(t *testing.T) {
 		t.Fatalf("show status = %d", showRec.Code)
 	}
 	body := showRec.Body.String()
-	if !strings.Contains(body, "n'autorise pas les leads à affecter des équipes") {
+	if !strings.Contains(body, "n'autorise pas les responsables à affecter des équipes") {
 		t.Fatalf("expected teams policy denial message in body")
 	}
 	if strings.Contains(body, `action="`+subjectPath+`/teams"`) {
@@ -1090,7 +1090,7 @@ func TestOrgPolicies_LeadAssignTeamsDenied(t *testing.T) {
 	if leadRec.Code != http.StatusBadRequest {
 		t.Fatalf("lead add status = %d, want %d", leadRec.Code, http.StatusBadRequest)
 	}
-	if !strings.Contains(leadRec.Body.String(), "autorise pas les leads") ||
+	if !strings.Contains(leadRec.Body.String(), "autorise pas les responsables") ||
 		!strings.Contains(leadRec.Body.String(), "affecter des équipes") {
 		t.Fatalf("expected denial message on POST")
 	}
@@ -1176,7 +1176,7 @@ func TestOrgPolicies_LeadInviteMembersDenied(t *testing.T) {
 	if showRec.Code != http.StatusOK {
 		t.Fatalf("show status = %d", showRec.Code)
 	}
-	if !strings.Contains(showRec.Body.String(), "n'autorise pas les leads à inviter des membres") {
+	if !strings.Contains(showRec.Body.String(), "n'autorise pas les responsables à inviter des membres") {
 		t.Fatalf("expected members policy denial message")
 	}
 
@@ -1278,7 +1278,7 @@ func TestOrgPolicies_LeadInviteExternals(t *testing.T) {
 	if denyRec.Code != http.StatusBadRequest {
 		t.Fatalf("invite org member status = %d, want %d", denyRec.Code, http.StatusBadRequest)
 	}
-	if !strings.Contains(denyRec.Body.String(), "autorise pas les leads") ||
+	if !strings.Contains(denyRec.Body.String(), "autorise pas les responsables") ||
 		!strings.Contains(denyRec.Body.String(), "inviter des membres") {
 		t.Fatalf("expected members policy denial, body=%q", denyRec.Body.String())
 	}
