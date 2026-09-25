@@ -93,7 +93,7 @@ func TestRBAC_OrgLeadPolicies(t *testing.T) {
 	if showRec.Code != http.StatusOK {
 		t.Fatalf("show status = %d", showRec.Code)
 	}
-	if !strings.Contains(showRec.Body.String(), "n'autorise pas les leads à affecter des équipes") {
+	if !strings.Contains(showRec.Body.String(), "n'autorise pas les responsables à affecter des équipes") {
 		t.Fatalf("show missing teams policy denial message")
 	}
 
@@ -109,7 +109,7 @@ func TestRBAC_OrgLeadPolicies(t *testing.T) {
 	if leadTeamRec.Code != http.StatusBadRequest {
 		t.Fatalf("lead denied assign status = %d, want 400 with error message", leadTeamRec.Code)
 	}
-	if !strings.Contains(leadTeamRec.Body.String(), "autorise pas les leads") ||
+	if !strings.Contains(leadTeamRec.Body.String(), "autorise pas les responsables") ||
 		!strings.Contains(leadTeamRec.Body.String(), "affecter des équipes") {
 		t.Fatalf("lead denied assign body missing policy message")
 	}
@@ -153,7 +153,7 @@ func TestRBAC_OrgLeadPolicies(t *testing.T) {
 	if leadInviteRec.Code != http.StatusBadRequest {
 		t.Fatalf("lead denied invite member status = %d, want 400", leadInviteRec.Code)
 	}
-	if !strings.Contains(leadInviteRec.Body.String(), "autorise pas les leads") ||
+	if !strings.Contains(leadInviteRec.Body.String(), "autorise pas les responsables") ||
 		!strings.Contains(leadInviteRec.Body.String(), "inviter des membres") {
 		t.Fatalf("lead denied invite body missing policy message: %s", leadInviteRec.Body.String())
 	}
@@ -192,7 +192,7 @@ func TestRBAC_OrgLeadPolicies(t *testing.T) {
 	if leadExtRec.Code != http.StatusBadRequest {
 		t.Fatalf("lead denied invite external status = %d, want 400", leadExtRec.Code)
 	}
-	if !strings.Contains(leadExtRec.Body.String(), "autorise pas les leads") ||
+	if !strings.Contains(leadExtRec.Body.String(), "autorise pas les responsables") ||
 		!strings.Contains(leadExtRec.Body.String(), "inviter des externes") {
 		t.Fatalf("lead denied external body missing policy message: %s", leadExtRec.Body.String())
 	}

@@ -35,7 +35,7 @@ func TestLayout_BreadcrumbAncestorsOnly(t *testing.T) {
 		t.Fatalf("expected H1 Revues, got %s", root)
 	}
 
-	deep := render(templates.BCRunWizardTemplates("Alpha", 3, run))
+	deep := render(templates.BCRunWizardTemplates("Alpha", 3, run, false))
 	if !strings.Contains(deep, `Fil d'Ariane`) {
 		t.Fatal("deep page should show ancestor breadcrumb")
 	}

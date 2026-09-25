@@ -125,11 +125,15 @@ func (h *ChecklistTemplates) List(w http.ResponseWriter, r *http.Request) {
 	var pd viewtemplates.PageData
 	if forRun {
 		pd = h.PageData(r, "Lancer")
-		pd.Breadcrumbs = viewtemplates.BCRunWizardTemplates(subject.Name, subject.ID, pd.Labels.Run)
+		listUI := !pd.ShowSubjectColumn
+		pd.Breadcrumbs = viewtemplates.BCRunWizardTemplates(subject.Name, subject.ID, pd.Labels.Run, listUI)
 		pd.ActiveTab = "runs"
 	} else {
-		pd = h.PageDataTab(r, "Modèles — "+subject.Name, "templates")
-		pd.Breadcrumbs = viewtemplates.BCSubjectTemplatesList(subject.Name, subject.ID, pd.Labels.Subject)
+		pd = h.PageDataTab(r, "", "templates")
+		listUI := !pd.ShowSubjectColumn
+		sec := viewtemplates.TemplatesSectionLabel(listUI)
+		pd.Title = sec + " — " + subject.Name
+		pd.Breadcrumbs = viewtemplates.BCSubjectTemplatesList(subject.Name, subject.ID, pd.Labels.Subject, listUI)
 	}
 	data := viewtemplates.ChecklistTemplatesListData{
 		PageData:                   pd,

@@ -177,11 +177,12 @@ func BCRunWizardSubjects(run RunUILabels) []Breadcrumb {
 }
 
 // BCRunWizardTemplates is run wizard step 2 (subject already chosen).
-func BCRunWizardTemplates(subjectName string, subjectID int64, run RunUILabels) []Breadcrumb {
+// listUI (mono-sujet) → « Choisir une liste » ; multi-sujet → « Choisir un modèle ».
+func BCRunWizardTemplates(subjectName string, subjectID int64, run RunUILabels, listUI bool) []Breadcrumb {
 	return []Breadcrumb{
 		crumb(runNav(run), PathRevues),
 		crumb(subjectName, subjectPath(subjectID)),
-		current("Choisir un modèle"),
+		current(ChooseTemplateCrumb(listUI)),
 	}
 }
 
@@ -225,8 +226,8 @@ func BCTemplateNotionImportGlobal(simpleUI bool) []Breadcrumb {
 }
 
 // BCSubjectTemplatesList is a subject's template list breadcrumb.
-func BCSubjectTemplatesList(subjectName string, subjectID int64, labels SubjectUILabels) []Breadcrumb {
-	return []Breadcrumb{crumb(labels.Plural, PathSubjects), crumb(subjectName, subjectPath(subjectID)), current("Modèles")}
+func BCSubjectTemplatesList(subjectName string, subjectID int64, labels SubjectUILabels, listUI bool) []Breadcrumb {
+	return []Breadcrumb{crumb(labels.Plural, PathSubjects), crumb(subjectName, subjectPath(subjectID)), current(TemplatesSectionLabel(listUI))}
 }
 
 // BCAdminOrgHub is the organisation admin landing page breadcrumb.

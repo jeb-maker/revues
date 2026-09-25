@@ -17,7 +17,7 @@
   {{if .Subject.Description}}
   <p class="subject-meta__description">{{.Subject.Description}}</p>
   {{else if not .ShowCollab}}
-  <p class="muted subject-meta__description">Vos checklists (revues) pour ce {{.Labels.Subject.Singular | lowerFirst}}.</p>
+  <p class="muted subject-meta__description">Vos checklists ({{.Labels.Run.Plural}}) pour ce {{.Labels.Subject.Singular | lowerFirst}}.</p>
   {{end}}
   {{if and .AccessSources .ShowCollab}}
   <p class="muted subject-meta__line">
@@ -52,7 +52,7 @@
     {{range .NokItems}}
     <li>
       <a href="/runs/{{.RunID}}/items/{{.ID}}"><strong>{{.Label}}</strong></a>
-      <span class="muted"> — revue <a href="/runs/{{.RunID}}">{{.RunTitle}}</a></span>
+      <span class="muted"> — {{$.Labels.Run.Singular}} <a href="/runs/{{.RunID}}">{{.RunTitle}}</a></span>
       {{if .Comment}} · {{.Comment}}{{end}}
     </li>
     {{end}}
@@ -67,7 +67,7 @@
 <mb-card>
   <h2>Équipes ({{len .Teams}})</h2>
   {{if .Teams}}
-  <mb-table label="Équipes du sujet" columns="{{if $.CanAssignTeams}}2fr 1fr auto auto{{else}}2fr 1fr auto{{end}}">
+  <mb-table label="Équipes du {{.Labels.Subject.Singular | lowerFirst}}" columns="{{if $.CanAssignTeams}}2fr 1fr auto auto{{else}}2fr 1fr auto{{end}}">
     <mb-table-row slot="head">
       <mb-table-cell>Équipe</mb-table-cell>
       <mb-table-cell>Rôle</mb-table-cell>
@@ -81,7 +81,7 @@
       <mb-table-cell align="end"><span class="muted">{{.MemberCount}}</span></mb-table-cell>
       {{if $.CanAssignTeams}}
       <mb-table-cell actions>
-        <form method="post" action="/subjects/{{$.Subject.ID}}/teams/remove" class="inline-form" onsubmit="return confirm('Retirer cette équipe du sujet ?');">
+        <form method="post" action="/subjects/{{$.Subject.ID}}/teams/remove" class="inline-form" onsubmit="return confirm('Retirer cette équipe du {{$.Labels.Subject.Singular | lowerFirst}} ?');">
           <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
           <input type="hidden" name="team_id" value="{{.TeamID}}">
           <mb-button type="submit" variant="ghost" size="sm">Retirer</mb-button>
@@ -96,7 +96,7 @@
   {{end}}
 
   {{if .TeamsPolicyDenied}}
-  <p class="muted" role="status">La politique de l'organisation n'autorise pas les leads à affecter des équipes.</p>
+  <p class="muted" role="status">La politique de l'organisation n'autorise pas les responsables à affecter des équipes.</p>
   {{end}}
 
   {{if .CanAssignTeams}}
@@ -127,7 +127,7 @@
   {{if eq (len .Teams) 0}}
   <p class="muted">Aucune équipe n'existe encore dans l'organisation.{{if .CanManageOrgUsers}} <a href="/admin/teams">Créer une équipe</a>.{{else}} Demandez à un administrateur d'en créer une.{{end}}</p>
   {{else}}
-  <p class="muted">Toutes les équipes de l'organisation sont déjà affectées à ce sujet.</p>
+  <p class="muted">Toutes les équipes de l'organisation sont déjà affectées à ce {{.Labels.Subject.Singular | lowerFirst}}.</p>
   {{end}}
   {{end}}
   {{end}}
@@ -150,7 +150,7 @@
       <mb-table-cell><mb-tag size="sm">accès direct</mb-tag></mb-table-cell>
       {{if $.CanManageMembers}}
       <mb-table-cell actions>
-        <form method="post" action="/subjects/{{$.Subject.ID}}/members/remove" class="inline-form" onsubmit="return confirm('Retirer ce membre du sujet ?');">
+        <form method="post" action="/subjects/{{$.Subject.ID}}/members/remove" class="inline-form" onsubmit="return confirm('Retirer ce membre du {{$.Labels.Subject.Singular | lowerFirst}} ?');">
           <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
           <input type="hidden" name="user_id" value="{{.UserID}}">
           <mb-button type="submit" variant="ghost" size="sm">Retirer</mb-button>
@@ -165,7 +165,7 @@
   {{end}}
 
   {{if .MembersPolicyDenied}}
-  <p class="muted" role="status">La politique de l'organisation n'autorise pas les leads à inviter des membres.</p>
+  <p class="muted" role="status">La politique de l'organisation n'autorise pas les responsables à inviter des membres.</p>
   {{end}}
 
   {{if .CanManageMembers}}

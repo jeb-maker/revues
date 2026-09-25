@@ -378,7 +378,7 @@ func TestChecklistTemplateShow_LaunchCTA(t *testing.T) {
 			t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
 		}
 		body := rec.Body.String()
-		hasCTA := strings.Contains(body, "Lancer avec ce modèle") &&
+		hasCTA := (strings.Contains(body, "Lancer avec ce modèle") || strings.Contains(body, "Lancer cette liste")) &&
 			strings.Contains(body, "/revues/nouvelle?template="+strconv.FormatInt(template.ID, 10))
 		if hasCTA != wantCTA {
 			t.Fatalf("launch CTA present = %v, want %v", hasCTA, wantCTA)

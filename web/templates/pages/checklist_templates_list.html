@@ -6,9 +6,9 @@
   {{template "flash_alerts" .}}
   {{if .ForRun}}
   {{if $listUI}}
-  <p class="muted">Choisissez une liste pour lancer la revue.</p>
+  <p class="muted">Choisissez une liste pour lancer {{.Labels.Run.Article}} {{.Labels.Run.Singular}}.</p>
   {{else}}
-  <p class="muted">{{.Labels.Subject.Singular}} <strong>{{.Subject.Name}}</strong> — choisissez un modèle de revue.</p>
+  <p class="muted">{{.Labels.Subject.Singular}} <strong>{{.Subject.Name}}</strong> — choisissez un modèle de {{.Labels.Run.Singular}}.</p>
   {{end}}
   {{if .SelectedTemplateName}}
     {{if .SelectedTemplateCompatible}}
