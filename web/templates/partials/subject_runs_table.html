@@ -15,7 +15,7 @@
       {{if not $.SimpleUI}}
       <mb-table-cell align="center" class="run-card__status">{{if ne .Status "in_progress"}}<mb-badge variant="{{badgeVariant .Status}}">{{formatRunStatus .Status}}</mb-badge>{{end}}</mb-table-cell>
       {{end}}
-      <mb-table-cell align="center" class="run-card__due{{if not .DueDate.Valid}} run-card__due--empty{{end}}">{{if .DueDate.Valid}}{{formatDueDate .DueDate}}{{else}}<span class="muted">—</span>{{end}}</mb-table-cell>
+      <mb-table-cell align="center" class="run-card__due{{if not .DueDate.Valid}} run-card__due--empty{{end}}{{if dueDateOverdue .DueDate .Status}} run-card__due--overdue{{end}}">{{if .DueDate.Valid}}{{formatDueDate .DueDate}}{{if dueDateOverdue .DueDate .Status}} <mb-badge variant="danger">En retard</mb-badge>{{end}}{{else}}<span class="muted">—</span>{{end}}</mb-table-cell>
       <mb-table-cell align="end" class="run-card__progress">
         {{if or (eq .Status "in_progress") (gt .Total 0)}}
         <mb-progress percent="{{if eq .Status "in_progress"}}{{.Percent}}{{else}}0{{end}}" label="{{.Done}}/{{.Total}}{{if eq .Status "in_progress"}} ({{.Percent}}%){{end}}" aria-label="{{if eq .Status "in_progress"}}Progression {{.Done}} sur {{.Total}}, {{.Percent}} pourcent{{else}}Progression {{.Done}} sur {{.Total}}{{end}}"></mb-progress>

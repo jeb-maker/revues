@@ -1,12 +1,13 @@
 {{define "checklist_template_show"}}
 {{template "layout_start" .}}
+{{$listUI := not .ShowSubjectColumn}}
 
 <mb-card class="template-meta">
   {{template "flash_alerts" .}}
   <div class="template-meta__head">
     {{if or .CanLaunch .CanManage}}
     <div class="template-meta__actions">
-      {{if .CanLaunch}}<mb-button href="/revues/nouvelle?template={{.Template.ID}}">{{if .SimpleUI}}Lancer cette liste{{else}}Lancer avec ce modèle{{end}}</mb-button>{{end}}
+      {{if .CanLaunch}}<mb-button href="/revues/nouvelle?template={{.Template.ID}}">{{if $listUI}}Lancer cette liste{{else}}Lancer avec ce modèle{{end}}</mb-button>{{end}}
       {{if .CanManage}}<mb-button href="/modeles/{{.Template.ID}}/edit" variant="secondary">Modifier</mb-button>{{end}}
     </div>
     {{end}}
@@ -66,7 +67,7 @@
   {{end}}
   {{else}}
   <mb-empty-state heading="Aucun point dans cette version">
-    <p>{{if .SimpleUI}}Ajoutez des points pour utiliser cette liste.{{else}}Ajoutez des points de check-list pour utiliser ce modèle dans une revue.{{end}}</p>
+    <p>{{if $listUI}}Ajoutez des points pour utiliser cette liste.{{else}}Ajoutez des points de check-list pour utiliser ce modèle dans {{$.Labels.Run.Article}} {{$.Labels.Run.Singular}}.{{end}}</p>
     {{if .CanManage}}
     <div slot="actions">
       <mb-button href="/modeles/{{.Template.ID}}/edit" variant="secondary">Ajouter des points</mb-button>

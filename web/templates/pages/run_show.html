@@ -18,7 +18,7 @@
 
 {{if eq .Run.Status "done"}}
 <mb-card>
-  <h2>Revue terminée</h2>
+  <h2>{{icon "check"}} {{runDoneHeading .Labels.Run}}</h2>
   {{if .Run.ClosingNote}}
   <div class="closing-note">
     <h3>Note de clôture</h3>
@@ -63,7 +63,7 @@
   {{if .CanLaunch}}
   <form method="post" action="/runs/{{.Run.ID}}/start" class="inline-form">
     <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
-    <mb-button type="submit">{{icon "check"}} Démarrer la revue</mb-button>
+    <mb-button type="submit">{{icon "check"}} {{startRunCTA .Labels.Run}}</mb-button>
   </form>
   {{end}}
 </mb-card>
@@ -132,14 +132,14 @@
 {{if eq .Run.Status "in_progress"}}
 {{if .CanComplete}}
 <mb-card id="complete-section">
-  <h2>Clôturer la revue</h2>
+  <h2>{{closeRunHeading .Labels.Run}}</h2>
   <div id="complete-section-status">
   {{template "run_complete_status_inner" .}}
   </div>
-  <form method="post" action="/runs/{{.Run.ID}}/complete" class="stack-form" hx-post="/runs/{{.Run.ID}}/complete" hx-target="#complete-section" hx-swap="outerHTML" {{if .CanSubmitComplete}}hx-confirm="Confirmer la clôture de la revue ?"{{end}}>
+  <form method="post" action="/runs/{{.Run.ID}}/complete" class="stack-form" hx-post="/runs/{{.Run.ID}}/complete" hx-target="#complete-section" hx-swap="outerHTML" {{if .CanSubmitComplete}}hx-confirm="{{completeRunConfirm .Labels.Run}}"{{end}}>
     <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
     <mb-textarea name="closing_note" label="Note de clôture (optionnelle)" rows="4" placeholder="Note optionnelle…" value="{{.ClosingNote}}"></mb-textarea>
-    <mb-button type="submit" {{if not .CanSubmitComplete}}disabled{{end}}>{{icon "check"}} Terminer la revue</mb-button>
+    <mb-button type="submit" {{if not .CanSubmitComplete}}disabled{{end}}>{{icon "check"}} {{completeRunCTA .Labels.Run}}</mb-button>
   </form>
 </mb-card>
 {{end}}
@@ -149,7 +149,7 @@
 <mb-card class="post-closure-links">
   <p>
     <mb-button href="/subjects/{{.Subject.ID}}" variant="ghost">{{icon "arrow-left"}} Retour au {{.Labels.Subject.Singular | lowerFirst}}</mb-button>
-    {{if .CanLaunch}}<mb-button href="/subjects/{{.Subject.ID}}/modeles?for_run=1" variant="ghost">Lancer une autre revue</mb-button>{{end}}
+    {{if .CanLaunch}}<mb-button href="/subjects/{{.Subject.ID}}/modeles?for_run=1" variant="ghost">{{launchAnotherRunCTA .Labels.Run}}</mb-button>{{end}}
   </p>
 </mb-card>
 {{end}}

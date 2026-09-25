@@ -10,12 +10,12 @@ Ne pas remonter ces choix comme des problèmes UX. Mettre à jour ce fichier qua
 | Post-login (1 org) | **`/revues`** — plus `/subjects` |
 | CTA « Lancer une revue » sur `/revues` | **Oui** — toolbar + empty states ; wizard `/revues/nouvelle` |
 | CTA fiche sujet | **Conservé** — lancement depuis un sujet connu reste possible |
-| CTA fiche modèle `/modeles/{id}` | **Oui** — « Lancer avec ce modèle » → wizard étape 1 (choix sujet), modèle présélectionné à l'étape 2 ; pas de lancement sans sujet (matching domaines) |
+| CTA fiche modèle `/modeles/{id}` | **Oui** — « Lancer avec ce modèle » (listUI : « Lancer cette liste ») → wizard étape 1 (choix sujet), modèle présélectionné à l'étape 2 ; pas de lancement sans sujet (matching domaines) |
 | Stepper wizard | **Supprimé** — fil d'Ariane ; **2 étapes** (sujet → modèle, clic = lancer) |
 | Titre de page (H1) | **Visible** — `.page-title` = dernier crumb |
 | Fil d'Ariane | **Ancêtres seulement** (≥ 2 niveaux) ; **absent** sur pages racine (1 crumb) — le courant = H1 |
 | Saisie points (revue en cours) | **Sans confirm** sur changement de statut ; confirm **uniquement** à la clôture |
-| Clôturer | Bouton **primary** (`.button`) + `hx-confirm` ; pas `.button-danger` |
+| Clôturer | `mb-button` **primary** (sans `variant`) + `hx-confirm` ; pas `variant="danger"` |
 | Fiche point | **Satellite** PJ / Jira / historique — saisie statut/commentaire dans la grille ; lien **Détails** discret |
 | Statut revue à la création | **Directement `in_progress`** — pas d'étape brouillon ni CTA « Démarrer » (legacy `draft` encore démarable) |
 | Liste `/revues` | **Pagination** — 25 par page (`?page=`), total affiché ; pas de SPA |
@@ -31,10 +31,12 @@ Ne pas remonter ces choix comme des problèmes UX. Mettre à jour ce fichier qua
 | Colonne Sujet `/revues` | **`ShowSubjectColumn`** — ≥2 sujets visibles (P2) |
 | Nav « Mes tâches » | **`ShowMyTasks`** — ≥2 membres org (P1) |
 | Fiche sujet Équipes/Membres | **`ShowCollab`** — ≥2 membres ; sinon layout « revues d’abord » |
-| Placement CTA | **Listes** : primaire dans la toolbar de la carte (pas sous le H1). **Formulaires** : primaire en bas **dans** la dernière carte. **Un seul** `.button` plein par écran ; secondaires en `.button-secondary` / ghost. Export CSV revue terminée = secondary. |
+| Placement CTA | **Listes** : primaire dans la toolbar de la carte (pas sous le H1). **Formulaires** : primaire en bas **dans** la dernière carte (carte Archiver / danger-zone = exception). **Un seul** `mb-button` primary par écran ; secondaires en `variant="secondary"` / `ghost`. Export CSV revue terminée = secondary. |
 | Statut vs progression (cartes revue) | **Option 1+5** : badge omis si `in_progress` (la progression suffit) ; colonne Statut **absente en SimpleUI**. Badge conservé pour brouillon / terminée / archivée hors SimpleUI. |
 | Libellé runs (instances) | Preset org `ui_run_label` : `revues` (défaut) · `listes_en_cours` · `audits` · `checklists`. Surface : nav, H1, breadcrumbs, empty states, CTA. Particulier (seed) = `listes_en_cours` ; mobile nav short = « En cours ». Marque produit « Revues » inchangée. |
-| Accès revues terminées | Liste `/revues` : onglets **Tous · En cours · Terminées** (`?status=`). Clôture HTMX via `HX-Redirect` (client minimal). |
+| Accès revues terminées / filtres | Liste `/revues` : onglets **Tous · En cours · En retard · Terminées** (`?status=` ; `overdue` = en retard). Clôture HTMX via `HX-Redirect` (client minimal). |
+| Colonne Sujet `/mes-taches` | **Toujours visible** quand `ShowMyTasks` (P1) — pas gated par `ShowSubjectColumn` (utile même en mono-sujet pour distinguer les tâches) |
+| Breadcrumb fiche sujet | Ancêtre → **`/subjects`** (surface membre) ; l’admin org utilise `BCAdminSubject*` seulement sur les formulaires admin |
 
 ## Progressive disclosure (paliers)
 
@@ -112,9 +114,10 @@ Principes :
 
 ## Charte
 
-- Un seul `.button` plein par écran (sauf empty states onboarding à justifier)
-- Destructif : `.button-danger` + `confirm()`
-- Info essentielle : `.field-hint`, pas placeholder seul
+- Un seul `mb-button` primary par écran (sauf empty states onboarding à justifier)
+- Destructif (archiver, actions irréversibles de formulaire) : `variant="danger"` + `confirm()` / `hx-confirm`
+- Row-actions « Retirer » (membre / équipe / email) : **`ghost` + `confirm()`** — exception Basecamp ; pas `danger` en masse dans les tableaux
+- Info essentielle : `hint` / `.field-hint`, pas placeholder seul
 - Domaines / étiquettes sujet : **`<details>` options avancées** (formulaire et fiche)
 
 ## Design system (`@jeb-maker/mb`)

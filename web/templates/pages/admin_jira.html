@@ -1,7 +1,7 @@
 {{define "admin_jira"}}
 {{template "layout_start" .}}
 <mb-card>
-  <p class="muted">Jira Cloud ou Server/Data Center pour cette organisation — lier et créer des tickets depuis les revues.</p>
+  <p class="muted">Jira Cloud ou Server/Data Center pour cette organisation — lier et créer des tickets depuis les {{.Labels.Run.Plural}}.</p>
 </mb-card>
 
 {{template "admin_nav" .}}
@@ -28,13 +28,13 @@
 
     <mb-input label="URL de l'instance" type="url" name="base_url" value="{{.BaseURL}}" required placeholder="https://votre-domaine.atlassian.net"></mb-input>
 
-    <mb-input label="Clé projet par défaut" type="text" name="project_key" value="{{.ProjectKey}}" placeholder="REV (requis pour créer des tickets)"></mb-input>
+    <mb-input label="Clé projet par défaut" type="text" name="project_key" value="{{.ProjectKey}}" placeholder="REV" hint="Requis pour créer des tickets."></mb-input>
 
     <mb-input label="Type d'issue par défaut" type="text" name="issue_type" value="{{if .IssueType}}{{.IssueType}}{{else}}Task{{end}}" placeholder="Task"></mb-input>
 
     <fieldset>
       <legend>Jira Cloud</legend>
-      <mb-input label="Email Atlassian" type="email" name="email" value="{{.Email}}" placeholder="Requis pour Cloud"></mb-input>
+      <mb-input label="Email Atlassian" type="email" name="email" value="{{.Email}}" hint="Requis pour Jira Cloud."></mb-input>
       <mb-input label="Jeton API" type="password" name="api_token" placeholder="{{if .HasAPIToken}}Laisser vide pour conserver{{else}}Jeton API Atlassian{{end}}"></mb-input>
     </fieldset>
 

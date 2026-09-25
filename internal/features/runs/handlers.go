@@ -899,6 +899,7 @@ func (h *Runs) completeStatusData(r *http.Request, run *store.ChecklistRun, runI
 		CompleteError:        completeErr,
 		ClosingNote:          closingNote,
 		CSRFToken:            pd.CSRFToken,
+		Labels:               pd.Labels,
 	}
 }
 
