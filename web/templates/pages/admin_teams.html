@@ -28,26 +28,20 @@
 <mb-card>
   <h2>Équipes ({{len .Teams}})</h2>
   {{if .Teams}}
-  <div class="table-scroll">
-  <table class="data-table">
-    <thead>
-      <tr>
-        <th scope="col">Nom</th>
-        <th scope="col">Slug</th>
-        <th scope="col">Description</th>
-      </tr>
-    </thead>
-    <tbody>
-      {{range .Teams}}
-      <tr>
-        <td><a href="/admin/teams/{{.ID}}">{{.Name}}</a></td>
-        <td><code>{{.Slug}}</code></td>
-        <td class="muted">{{if .Description}}{{.Description}}{{else}}—{{end}}</td>
-      </tr>
-      {{end}}
-    </tbody>
-  </table>
-  </div>
+  <mb-table label="Équipes" columns="1fr 1fr 2fr">
+    <mb-table-row slot="head">
+      <mb-table-cell>Nom</mb-table-cell>
+      <mb-table-cell>Slug</mb-table-cell>
+      <mb-table-cell>Description</mb-table-cell>
+    </mb-table-row>
+    {{range .Teams}}
+    <mb-table-row>
+      <mb-table-cell primary><a href="/admin/teams/{{.ID}}">{{.Name}}</a></mb-table-cell>
+      <mb-table-cell><code>{{.Slug}}</code></mb-table-cell>
+      <mb-table-cell><span class="muted">{{if .Description}}{{.Description}}{{else}}—{{end}}</span></mb-table-cell>
+    </mb-table-row>
+    {{end}}
+  </mb-table>
   {{else}}
   <p class="muted">Aucune équipe pour cette organisation.</p>
   {{end}}

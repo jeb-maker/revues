@@ -40,34 +40,28 @@
 <mb-card>
   <h2>Liste ({{len .Emails}})</h2>
   {{if .Emails}}
-  <div class="table-scroll">
-  <table class="data-table">
-    <thead>
-      <tr>
-        <th scope="col">Email</th>
-        <th scope="col" class="data-table__col--center">Rôle</th>
-        <th scope="col" class="data-table__col--center">Ajouté</th>
-        <th scope="col" class="data-table__col--end"></th>
-      </tr>
-    </thead>
-    <tbody>
-      {{range .Emails}}
-      <tr>
-        <td>{{.Email}}</td>
-        <td class="data-table__col--center">{{formatRole .Role}}</td>
-        <td class="data-table__col--center">{{.CreatedAt}}</td>
-        <td class="data-table__col--end">
-          <form method="post" action="/admin/users/remove" class="inline-form" onsubmit="return confirm('Retirer cet email de la liste autorisée ?');">
-            <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
-            <input type="hidden" name="email" value="{{.Email}}">
-            <mb-button type="submit" variant="ghost" size="sm">Retirer</mb-button>
-          </form>
-        </td>
-      </tr>
-      {{end}}
-    </tbody>
-  </table>
-  </div>
+  <mb-table label="Emails autorisés" columns="2fr 1fr 1fr auto">
+    <mb-table-row slot="head">
+      <mb-table-cell>Email</mb-table-cell>
+      <mb-table-cell align="center">Rôle</mb-table-cell>
+      <mb-table-cell align="center">Ajouté</mb-table-cell>
+      <mb-table-cell actions></mb-table-cell>
+    </mb-table-row>
+    {{range .Emails}}
+    <mb-table-row>
+      <mb-table-cell primary>{{.Email}}</mb-table-cell>
+      <mb-table-cell align="center">{{formatRole .Role}}</mb-table-cell>
+      <mb-table-cell align="center">{{.CreatedAt}}</mb-table-cell>
+      <mb-table-cell actions>
+        <form method="post" action="/admin/users/remove" class="inline-form" onsubmit="return confirm('Retirer cet email de la liste autorisée ?');">
+          <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
+          <input type="hidden" name="email" value="{{.Email}}">
+          <mb-button type="submit" variant="ghost" size="sm">Retirer</mb-button>
+        </form>
+      </mb-table-cell>
+    </mb-table-row>
+    {{end}}
+  </mb-table>
   {{else}}
   <p class="muted">Aucun email autorisé pour cette organisation.</p>
   {{end}}

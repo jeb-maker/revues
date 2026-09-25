@@ -101,85 +101,33 @@
   {{if .ItemSections}}
   {{$showAssign := .ShowAssign}}
   {{$canAssign := and .CanAssign $showAssign}}
-  {{$colspan := runItemTableColspan .Run.Status .CanCheck $canAssign $showAssign}}
-  <div class="table-scroll">
-    <table class="data-table data-table--run-items">
-      {{if and (eq .Run.Status "in_progress") (or .CanCheck $canAssign)}}
-      <colgroup>
-        <col style="width:{{if $showAssign}}26%{{else}}32%{{end}}">
-        <col style="width:14%">
-        {{if $showAssign}}<col style="width:12%">{{end}}
-        <col style="width:{{if $showAssign}}32%{{else}}38%{{end}}">
-        <col style="width:8%">
-        <col style="width:8%">
-      </colgroup>
-      {{else}}
-      <colgroup>
-        <col style="width:{{if $showAssign}}28%{{else}}34%{{end}}">
-        <col style="width:14%">
-        {{if $showAssign}}<col style="width:14%">{{end}}
-        <col style="width:{{if $showAssign}}36%{{else}}44%{{end}}">
-        <col style="width:8%">
-      </colgroup>
-      {{end}}
-      <thead class="table-sticky">
-        <tr>
-          <th scope="col">Point</th>
-          <th scope="col" class="data-table__col--center">Statut</th>
-          {{if $showAssign}}<th scope="col">Assigné</th>{{end}}
-          <th scope="col">Commentaire</th>
-          <th scope="col" class="data-table__col--center">PJ</th>
-          {{if and (eq .Run.Status "in_progress") (or .CanCheck $canAssign)}}<th scope="col" class="data-table__col--end"><span class="visually-hidden">Actions</span></th>{{end}}
-        </tr>
-      </thead>
-      {{range .ItemSections}}
-      <tbody class="run-section" data-auto-collapse="1" data-all-ok="{{if .AllOKOrNA}}1{{else}}0{{end}}">
-        <tr class="run-section__head">
-          <td colspan="{{$colspan}}">
-            <button type="button" class="run-section__toggle" aria-expanded="{{if .AllOKOrNA}}false{{else}}true{{end}}">
-              <span class="run-section__label">
-                <strong>{{if eq .Title "Sans section"}}Point{{else}}{{.Title}}{{end}}</strong>
-                <span class="muted">{{.Total}} point{{if ne .Total 1}}s{{end}}{{if .AllOKOrNA}} · terminé{{else}} · {{.OKCount}} / {{.Total}} OK{{end}}</span>
-              </span>
-            </button>
-          </td>
-        </tr>
-        {{range .Items}}
-        {{template "run_item_row_fragment" (runItemRow $.Run . $.Members $.CSRFToken $.CanCheck $canAssign $showAssign $.CanLinkJira $.JiraConfigured (index $.JiraLinks .ID) (index $.Attachments .ID) "" "")}}
-        {{end}}
-      </tbody>
-      {{end}}
-    </table>
-  </div>
+  <mb-table
+    id="run-items-table"
+    label="Points de la revue"
+    density="compact"
+    sticky-header
+    columns="{{if and (eq .Run.Status "in_progress") (or .CanCheck $canAssign)}}{{if $showAssign}}2fr 1fr 1fr 2fr auto auto{{else}}2fr 1fr 2fr auto auto{{end}}{{else}}{{if $showAssign}}2fr 1fr 1fr 2fr auto{{else}}2fr 1fr 2fr auto{{end}}{{end}}"
+    sections='{{toJSON (mbTableSections .ItemSections)}}'
+  >
+    <mb-table-row slot="head">
+      <mb-table-cell>Point</mb-table-cell>
+      <mb-table-cell align="center">Statut</mb-table-cell>
+      {{if $showAssign}}<mb-table-cell>Assigné</mb-table-cell>{{end}}
+      <mb-table-cell>Commentaire</mb-table-cell>
+      <mb-table-cell align="center">PJ</mb-table-cell>
+      {{if and (eq .Run.Status "in_progress") (or .CanCheck $canAssign)}}<mb-table-cell actions><span class="visually-hidden">Actions</span></mb-table-cell>{{end}}
+    </mb-table-row>
+    {{range .ItemSections}}
+    {{$secID := .ID}}
+    {{range .Items}}
+    {{template "run_item_row_fragment" (runItemRow $.Run . $.Members $.CSRFToken $.CanCheck $canAssign $showAssign $.CanLinkJira $.JiraConfigured (index $.JiraLinks .ID) (index $.Attachments .ID) "" "" $secID)}}
+    {{end}}
+    {{end}}
+  </mb-table>
   {{else}}
   <p class="muted">Aucun point trouvé pour ce filtre.</p>
   {{end}}
 </mb-card>
-
-<script>
-  (function () {
-    function syncExpanded(section, toggle) {
-      var collapsed = section.classList.contains('is-collapsed');
-      toggle.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
-    }
-    var sections = document.querySelectorAll('tbody.run-section[data-auto-collapse="1"]');
-    for (var i = 0; i < sections.length; i++) {
-      var section = sections[i];
-      var toggle = section.querySelector('.run-section__toggle');
-      if (!toggle) continue;
-      if (section.getAttribute('data-all-ok') === '1') {
-        section.classList.add('is-collapsed');
-      }
-      syncExpanded(section, toggle);
-      toggle.addEventListener('click', function () {
-        var tbody = this.closest('tbody.run-section');
-        if (!tbody) return;
-        tbody.classList.toggle('is-collapsed');
-        syncExpanded(tbody, this);
-      });
-    }
-  })();
-</script>
 
 {{if eq .Run.Status "in_progress"}}
 {{if .CanComplete}}

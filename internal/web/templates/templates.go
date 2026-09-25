@@ -1,6 +1,7 @@
 package templates
 
 import (
+	"crypto/sha256"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -657,6 +658,7 @@ type RunItemRowData struct {
 	RunID          int64
 	RunStatus      string
 	Item           store.RunItem
+	SectionID      string // mb-table section=… (must match RunItemSectionData.ID)
 	Members        []store.SubjectMember
 	CSRFToken      string
 	CanCheck       bool
@@ -672,12 +674,71 @@ type RunItemRowData struct {
 
 // RunItemSectionData is view data for one collapsible section of run items.
 type RunItemSectionData struct {
+	ID         string // stable id for mb-table sections / row section=
 	Title      string
 	Items      []store.RunItem
 	Total      int
 	OKCount    int
 	NonOKCount int
 	AllOKOrNA  bool
+}
+
+// MBTableSectionAttr is the JSON shape for mb-table sections="…".
+type MBTableSectionAttr struct {
+	ID        string `json:"id"`
+	Label     string `json:"label"`
+	Meta      string `json:"meta,omitempty"`
+	Count     bool   `json:"count"` // false hides the auto row count
+	Collapsed bool   `json:"collapsed,omitempty"`
+}
+
+// SectionIDForTitle returns a stable mb-table section id for a run-item section title.
+func SectionIDForTitle(title string) string {
+	t := strings.TrimSpace(title)
+	if t == "" {
+		t = "Sans section"
+	}
+	sum := sha256.Sum256([]byte(t))
+	return fmt.Sprintf("sec-%x", sum[:8])
+}
+
+// RunSectionDisplayLabel maps internal section titles to UI labels.
+func RunSectionDisplayLabel(title string) string {
+	if strings.TrimSpace(title) == "Sans section" {
+		return "Point"
+	}
+	return title
+}
+
+// RunSectionMeta builds the section-head meta line (points · OK / terminé).
+func RunSectionMeta(s RunItemSectionData) string {
+	unit := "point"
+	if s.Total != 1 {
+		unit = "points"
+	}
+	if s.AllOKOrNA {
+		return fmt.Sprintf("%d %s · terminé", s.Total, unit)
+	}
+	return fmt.Sprintf("%d %s · %d / %d OK", s.Total, unit, s.OKCount, s.Total)
+}
+
+// ToMBTableSections maps run item sections to mb-table sections JSON attrs.
+func ToMBTableSections(sections []RunItemSectionData) []MBTableSectionAttr {
+	out := make([]MBTableSectionAttr, 0, len(sections))
+	for _, s := range sections {
+		id := s.ID
+		if id == "" {
+			id = SectionIDForTitle(s.Title)
+		}
+		out = append(out, MBTableSectionAttr{
+			ID:        id,
+			Label:     RunSectionDisplayLabel(s.Title),
+			Meta:      RunSectionMeta(s),
+			Count:     false,
+			Collapsed: s.AllOKOrNA,
+		})
+	}
+	return out
 }
 
 // RunShowData is view data for run detail.
@@ -828,6 +889,8 @@ func Parse(assetVersion string) (*template.Template, error) {
 		"launchActionTitle":   LaunchActionTitle,
 		"launchRunCTA":        LaunchRunCTA,
 		"runItemTableColspan": RunItemTableColspan,
+		"mbTableSections":     ToMBTableSections,
+		"sectionIDForTitle":   SectionIDForTitle,
 		"formatDueDate":       formatDueDate,
 		"dueDateOverdue":      dueDateOverdue,
 		"badgeVariant":        badgeVariant,
@@ -860,11 +923,15 @@ func Parse(assetVersion string) (*template.Template, error) {
 			}
 			return attachments.IsImageMime(att.MimeType)
 		},
-		"runItemRow": func(run *store.ChecklistRun, item store.RunItem, members []store.SubjectMember, csrf string, canCheck, canAssign, showAssign, canLinkJira, jiraConfigured bool, jiraLink store.IntegrationLink, attachment *store.Attachment, itemErr, assignErr string) RunItemRowData {
+		"runItemRow": func(run *store.ChecklistRun, item store.RunItem, members []store.SubjectMember, csrf string, canCheck, canAssign, showAssign, canLinkJira, jiraConfigured bool, jiraLink store.IntegrationLink, attachment *store.Attachment, itemErr, assignErr, sectionID string) RunItemRowData {
+			if sectionID == "" {
+				sectionID = SectionIDForTitle(item.Section)
+			}
 			return RunItemRowData{
 				RunID:          run.ID,
 				RunStatus:      run.Status,
 				Item:           item,
+				SectionID:      sectionID,
 				Members:        members,
 				CSRFToken:      csrf,
 				CanCheck:       canCheck,

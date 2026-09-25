@@ -8,7 +8,7 @@ alwaysApply: true
 ## Invariants
 
 - Esprit **Basecamp** : lisible, accessible, hiérarchie typographique, chrome minimal.
-- Composants UI : préférer `mb-*` (card, button, alert, badge, toolbar, breadcrumbs, input/select/textarea) ; CSS hôte pour layout (`.data-table`, `.stack-form`, `.field-hint`/`.field-error`, `.table-scroll`, `.page-header`).
+- Composants UI : préférer `mb-*` (card, button, alert, badge, toolbar, breadcrumbs, input/select/textarea, **table**) ; CSS hôte pour layout (`.stack-form`, `.field-hint`/`.field-error`, `.table-scroll`, `.page-header`) ; `.data-table` réservé à l'éditeur de modèle.
 - Un seul bouton primaire plein par écran ; destructif = variante danger + `confirm()` ; pas d'info essentielle en `placeholder` (utiliser `.field-hint`).
 - Budgets éco : CSS core ≤ 24 Ko / 8 Ko gzip ; CSS total ≤ 40 Ko / 12 Ko gzip cumulé ; JS ≤ 15 Ko ; HTML ≤ 50 Ko/page — feuilles `run.css` / `editor.css` à la demande ; pas d'animation décorative, emoji, webfont ni image décorative.
 - UI **100 % en français** ; libellés via `formatItemStatus`, `formatRunStatus`, `formatRole` et `{{.Labels.*}}`.

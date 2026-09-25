@@ -12,34 +12,28 @@
 <mb-card>
   <h2>Statut</h2>
   {{if .Integrations}}
-  <div class="table-scroll">
-  <table class="data-table">
-    <thead>
-      <tr>
-        <th scope="col">Intégration</th>
-        <th scope="col">Description</th>
-        <th scope="col" class="data-table__col--center">Statut</th>
-        <th scope="col" class="data-table__col--end"></th>
-      </tr>
-    </thead>
-    <tbody>
-      {{range .Integrations}}
-      <tr>
-        <td>{{.Name}}</td>
-        <td class="muted">{{.Description}}</td>
-        <td class="data-table__col--center">
-          {{if .Enabled}}
-          <mb-badge variant="success">Activé</mb-badge>
-          {{else}}
-          <mb-badge variant="neutral">Désactivé</mb-badge>
-          {{end}}
-        </td>
-        <td class="data-table__col--end"><a href="{{.ConfigPath}}">Configurer</a></td>
-      </tr>
-      {{end}}
-    </tbody>
-  </table>
-  </div>
+  <mb-table label="Intégrations" columns="1fr 2fr auto auto">
+    <mb-table-row slot="head">
+      <mb-table-cell>Intégration</mb-table-cell>
+      <mb-table-cell>Description</mb-table-cell>
+      <mb-table-cell align="center">Statut</mb-table-cell>
+      <mb-table-cell actions></mb-table-cell>
+    </mb-table-row>
+    {{range .Integrations}}
+    <mb-table-row>
+      <mb-table-cell primary>{{.Name}}</mb-table-cell>
+      <mb-table-cell><span class="muted">{{.Description}}</span></mb-table-cell>
+      <mb-table-cell align="center">
+        {{if .Enabled}}
+        <mb-badge variant="success">Activé</mb-badge>
+        {{else}}
+        <mb-badge variant="neutral">Désactivé</mb-badge>
+        {{end}}
+      </mb-table-cell>
+      <mb-table-cell actions><a href="{{.ConfigPath}}">Configurer</a></mb-table-cell>
+    </mb-table-row>
+    {{end}}
+  </mb-table>
   {{else}}
   <p class="muted">Aucune intégration disponible.</p>
   {{end}}

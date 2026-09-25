@@ -2,36 +2,30 @@
 <mb-card>
   <h2>{{.Labels.Run.Nav}} ({{len .Runs}})</h2>
   {{if .Runs}}
-  <div class="table-scroll">
-  <table class="data-table data-table--cards">
-    <thead>
-      <tr>
-        <th scope="col">{{.Labels.Run.Nav}}</th>
-        {{if not .SimpleUI}}<th scope="col" class="data-table__col--center">Statut</th>{{end}}
-        <th scope="col" class="data-table__col--center">Échéance</th>
-        <th scope="col" class="data-table__col--end">Progression</th>
-      </tr>
-    </thead>
-    <tbody>
-      {{range .Runs}}
-      <tr class="run-card">
-        <td class="run-card__title data-row__primary"><a href="/runs/{{.ID}}">{{.DisplayLabel}}</a></td>
-        {{if not $.SimpleUI}}
-        <td class="run-card__status data-table__col--center">{{if ne .Status "in_progress"}}<mb-badge variant="{{badgeVariant .Status}}">{{formatRunStatus .Status}}</mb-badge>{{end}}</td>
-        {{end}}
-        <td class="run-card__due data-table__col--center{{if not .DueDate.Valid}} run-card__due--empty{{end}}">{{if .DueDate.Valid}}{{formatDueDate .DueDate}}{{else}}<span class="muted">—</span>{{end}}</td>
-        <td class="run-card__progress data-table__stats data-table__progress muted" style="--run-progress: {{if eq .Status "in_progress"}}{{.Percent}}{{else}}0{{end}}%"{{if eq .Status "in_progress"}} aria-label="Progression {{.Done}} sur {{.Total}}, {{.Percent}} pourcent"{{else if gt .Total 0}} aria-label="Progression {{.Done}} sur {{.Total}}"{{end}}>
-          {{if or (eq .Status "in_progress") (gt .Total 0)}}
-          <span class="run-card__fraction">{{.Done}}/{{.Total}}</span><span class="run-card__bar" aria-hidden="true"></span>{{if eq .Status "in_progress"}}<span class="run-card__pct"> ({{.Percent}}%)</span>{{end}}
-          {{else}}
-          <span class="run-card__fraction muted">—</span><span class="run-card__bar" aria-hidden="true"></span>
-          {{end}}
-        </td>
-      </tr>
+  <mb-table label="{{.Labels.Run.Nav}}" sticky-header columns="{{if not .SimpleUI}}2fr 1fr 1fr 1fr{{else}}2fr 1fr 1fr{{end}}">
+    <mb-table-row slot="head">
+      <mb-table-cell>{{.Labels.Run.Nav}}</mb-table-cell>
+      {{if not .SimpleUI}}<mb-table-cell align="center">Statut</mb-table-cell>{{end}}
+      <mb-table-cell align="center">Échéance</mb-table-cell>
+      <mb-table-cell align="end">Progression</mb-table-cell>
+    </mb-table-row>
+    {{range .Runs}}
+    <mb-table-row class="run-card">
+      <mb-table-cell primary class="run-card__title"><a href="/runs/{{.ID}}">{{.DisplayLabel}}</a></mb-table-cell>
+      {{if not $.SimpleUI}}
+      <mb-table-cell align="center" class="run-card__status">{{if ne .Status "in_progress"}}<mb-badge variant="{{badgeVariant .Status}}">{{formatRunStatus .Status}}</mb-badge>{{end}}</mb-table-cell>
       {{end}}
-    </tbody>
-  </table>
-  </div>
+      <mb-table-cell align="center" class="run-card__due{{if not .DueDate.Valid}} run-card__due--empty{{end}}">{{if .DueDate.Valid}}{{formatDueDate .DueDate}}{{else}}<span class="muted">—</span>{{end}}</mb-table-cell>
+      <mb-table-cell align="end" class="run-card__progress">
+        {{if or (eq .Status "in_progress") (gt .Total 0)}}
+        <mb-progress percent="{{if eq .Status "in_progress"}}{{.Percent}}{{else}}0{{end}}" label="{{.Done}}/{{.Total}}{{if eq .Status "in_progress"}} ({{.Percent}}%){{end}}" aria-label="{{if eq .Status "in_progress"}}Progression {{.Done}} sur {{.Total}}, {{.Percent}} pourcent{{else}}Progression {{.Done}} sur {{.Total}}{{end}}"></mb-progress>
+        {{else}}
+        <span class="muted">—</span>
+        {{end}}
+      </mb-table-cell>
+    </mb-table-row>
+    {{end}}
+  </mb-table>
   {{else}}
   <p class="muted">{{.Labels.Run.NoneArticle}} {{.Labels.Run.Singular}} sur ce {{.Labels.Subject.Singular | lowerFirst}}.{{if .CanLaunch}} <a href="/subjects/{{.Subject.ID}}/modeles?for_run=1">{{launchRunCTA .Labels.Run}}</a>.{{end}}</p>
   {{end}}

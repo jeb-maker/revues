@@ -1,5 +1,3 @@
-.data-table--run-items{table-layout:fixed;width:100%}
-.data-table--run-items .status-select,.data-table--run-items .assign-select,.data-table--run-items .comment-inline{width:100%;max-width:100%}
 .run-item-label{display:inline;font-weight:500;margin-right:.4rem}
 .run-item-details{
   font-size:.78rem;
@@ -12,15 +10,10 @@
 .item-inline-error { margin: 0 0 0.3rem; font-size: 0.78rem; }
 .run-statusline{margin:0 0 .5rem;font-size:.9rem}
 .run-progress{margin:0 0 .85rem}
-.run-section__head td{background:var(--accent-soft);border-top:2px var(--border-strong);padding:0}
-.run-section__toggle{
-  display:block;width:100%;margin:0;padding:.55rem .75rem;
-  border:0;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer;
-}
-.run-section__toggle:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
-.run-section__label{display:flex;justify-content:space-between;align-items:baseline;gap:.5rem;font-weight:600}
-.run-section:first-of-type .run-section__head td{border-top:0}
-.run-section.is-collapsed tr:not(.run-section__head){display:none}
+mb-table .status-select,
+mb-table .assign-select,
+mb-table .comment-inline{width:100%;max-width:100%}
+mb-table-cell.run-item-row__pj--empty{display:none}
 .attachment-display { margin: 0.25rem 0; }
 .attachment-display-compact { margin: 0; }
 .attachment-thumb-link { display: inline-block; line-height: 0; border-radius: var(--r-sm); }
@@ -115,94 +108,9 @@
   background: var(--surface-2);
   border-radius: var(--r-xs);
 }
-.run-card__bar{display:none}
+.run-item-help{margin:.35rem 0 0;font-size:.85rem}
+.run-item-help .help-text{margin:.35rem 0 0}
 @media (max-width: 36rem) {
-  .table-scroll:has(.data-table--run-items) { overflow: visible; }
-  .data-table--run-items { table-layout: auto; border: 0; display: block; width: 100%; }
-  .data-table--run-items thead,
-  .data-table--run-items colgroup { display: none; }
-  .data-table--run-items tbody { display: block; width: 100%; margin: 0 0 1rem; }
-  .data-table--run-items tr.run-section__head { display: block; margin: 0 0 .5rem; }
-  .data-table--run-items tr.run-item-row {
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
-    gap: var(--s-2, .5rem);
-    margin: 0 0 .75rem;
-    padding: .75rem;
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    border-radius: var(--r-md);
-  }
-  .data-table--run-items .run-section.is-collapsed tr.run-item-row { display: none; }
-  .data-table--run-items td,
-  .data-table--run-items td.data-table__col--center,
-  .data-table--run-items td.data-table__col--end {
-    display: block;
-    width: 100%;
-    max-width: 100%;
-    border: 0;
-    padding: 0;
-    text-align: left;
-  }
-  .data-table--run-items td[data-label]::before {
-    content: attr(data-label);
-    display: block;
-    font-size: .75rem;
-    font-weight: 600;
-    color: var(--muted);
-    margin-bottom: .2rem;
-  }
-  .data-table--run-items .run-item-row__pj--empty { display: none; }
-  .data-table--run-items .item-actions { min-width: 0; }
-  .data-table--run-items .run-section__head td {
-    display: block;
-    padding: 0;
-    border-radius: var(--r-md);
-    border-top: 0;
-  }
-  .data-table--run-items .run-section__toggle {
-    padding: .65rem .85rem;
-    border-radius: var(--r-md);
-  }
-  .data-table--cards tbody tr.run-card{
-    display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:.35rem .6rem;align-items:center;
-  }
-  .data-table--cards tr.run-card .run-card__title{grid-column:1;grid-row:1;min-width:0;font-weight:600}
-  .data-table--cards tr.run-card .run-card__title a{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .data-table--cards tr.run-card .run-card__status{grid-column:2;grid-row:1;width:auto;justify-self:end}
-  .data-table--cards tr.run-card .run-card__status:not(:has(mb-badge)){display:none}
-  .data-table--cards tr.run-card .run-card__subject{grid-column:1/-1;grid-row:2;font-size:.85rem}
-  .data-table--cards tr.run-card .run-card__subject a{font-weight:450;color:var(--muted)}
-  .data-table--cards tr.run-card .run-card__progress{display:contents;background-image:none}
-  .data-table--cards tr.run-card .run-card__fraction{
-    grid-column:3;grid-row:1;justify-self:end;align-self:center;flex-shrink:0;
-    font-variant-numeric:tabular-nums;font-size:.9rem;font-weight:500;color:var(--muted);
-  }
-  .data-table--cards tr.run-card:not(:has(.run-card__status mb-badge)) .run-card__fraction{grid-column:2/-1}
-  .data-table--cards tr.run-card .run-card__bar{
-    grid-column:1/-1;grid-row:3;display:block;height:.35rem;border-radius:999px;border:1px solid var(--border);
-    background:linear-gradient(var(--accent),var(--accent)) 0/var(--run-progress) 100% no-repeat,var(--surface);
-  }
-  .data-table--cards tr.run-card .run-card__pct{display:none}
-  .data-table--cards tr.run-card .run-card__due{grid-column:1/-1;grid-row:4;font-size:.85rem;color:var(--muted)}
-  .data-table--cards tr.run-card .run-card__due::before{content:"Échéance "}
-  .data-table--cards tr.run-card .run-card__due--empty{display:none}
-  .data-table--cards tr.run-card:not(:has(.run-card__subject)) .run-card__bar{grid-row:2}
-  .data-table--cards tr.run-card:not(:has(.run-card__subject)) .run-card__due{grid-row:3}
-  .data-table--cards tbody tr.task-card{
-    display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.35rem .6rem;align-items:center;
-  }
-  .data-table--cards tr.task-card .task-card__point{grid-column:1;grid-row:1;min-width:0;font-weight:600}
-  .data-table--cards tr.task-card .task-card__status{grid-column:2;grid-row:1;width:auto;justify-self:end}
-  .data-table--cards tr.task-card .task-card__run{grid-column:1/-1;grid-row:2;font-size:.85rem}
-  .data-table--cards tr.task-card .task-card__subject{grid-column:1/-1;grid-row:3;font-size:.85rem;color:var(--muted)}
-  .run-item-row__point{order:1}
-  .run-item-row__status{order:2}
-  .run-item-row__comment{order:3}
-  .run-item-row__assign{order:4}
-  .run-item-row__pj{order:5}
-  .run-item-row .item-actions{order:6}
-  .run-item-help{margin:.35rem 0 0;font-size:.85rem}
-  .run-item-help .help-text{margin:.35rem 0 0}
+  .table-scroll:has(mb-table){overflow:visible}
+  .item-actions { min-width: 0; }
 }

@@ -1,6 +1,6 @@
 {{define "run_item_row_fragment"}}
-<tr id="run-item-{{.Item.ID}}" class="run-item-row">
-  <td class="run-item-row__point">
+<mb-table-row id="run-item-{{.Item.ID}}" class="run-item-row" section="{{.SectionID}}">
+  <mb-table-cell primary class="run-item-row__point">
     <span class="run-item-label">{{.Item.Label}}</span>
     <a href="/runs/{{.RunID}}/items/{{.Item.ID}}" class="run-item-details">Détails</a>
     {{if .Item.HelpText}}
@@ -9,8 +9,8 @@
       <blockquote class="help-text">{{.Item.HelpText}}</blockquote>
     </details>
     {{end}}
-  </td>
-  <td class="run-item-row__status data-table__col--center" data-label="Statut">
+  </mb-table-cell>
+  <mb-table-cell align="center" class="run-item-row__status">
     {{if and (eq .RunStatus "in_progress") .CanCheck}}
     <mb-select name="status" form="item-form-{{.Item.ID}}" required density="compact" class="status-select" aria-label="Statut" value="{{.Item.Status}}">
       <option value="pending">{{formatItemStatus "pending"}}</option>
@@ -21,9 +21,9 @@
     {{else}}
     <mb-badge variant="{{badgeVariant .Item.Status}}">{{formatItemStatus .Item.Status}}</mb-badge>
     {{end}}
-  </td>
+  </mb-table-cell>
   {{if .ShowAssign}}
-  <td class="run-item-row__assign" data-label="Assigné">
+  <mb-table-cell class="run-item-row__assign">
     {{if and (eq .RunStatus "in_progress") .CanAssign}}
     <mb-select name="assignee_id" form="assign-form-{{.Item.ID}}" density="compact" class="assign-select" aria-label="Assigné" hx-indicator="#spinner-{{.Item.ID}}" value="{{if .Item.AssignedTo.Valid}}{{.Item.AssignedTo.Int64}}{{else}}0{{end}}">
       <option value="0">Non assigné</option>
@@ -32,15 +32,15 @@
       {{end}}
     </mb-select>
     {{else if .Item.AssignedLogin}}{{.Item.AssignedLogin}}{{else}}<span class="muted">—</span>{{end}}
-  </td>
+  </mb-table-cell>
   {{end}}
-  <td class="run-item-row__comment" data-label="Commentaire">
+  <mb-table-cell class="run-item-row__comment">
     {{if and (eq .RunStatus "in_progress") .CanCheck}}
     <span class="visually-hidden" id="comment-hint-{{.Item.ID}}">Contexte + impact + prochaine action (obligatoire si Non validé)</span>
     <mb-textarea name="comment" form="item-form-{{.Item.ID}}" rows="1" density="compact" class="comment-inline{{if .Item.Comment}} is-filled{{end}}" aria-label="Commentaire" aria-describedby="comment-hint-{{.Item.ID}}" hx-indicator="#spinner-{{.Item.ID}}" value="{{.Item.Comment}}"></mb-textarea>
     {{else if .Item.Comment}}{{.Item.Comment}}{{else}}<span class="muted">—</span>{{end}}
-  </td>
-  <td class="run-item-row__pj data-table__col--center{{if not .Attachment}} run-item-row__pj--empty{{end}}" data-label="PJ">
+  </mb-table-cell>
+  <mb-table-cell align="center" class="run-item-row__pj{{if not .Attachment}} run-item-row__pj--empty{{end}}"{{if not .Attachment}} hide-label{{end}}>
     {{if .Attachment}}
     <div class="attachment-display attachment-display-compact">
       {{if attachmentIsImage .Attachment}}
@@ -52,9 +52,9 @@
       {{end}}
     </div>
     {{else}}<span class="muted">—</span>{{end}}
-  </td>
+  </mb-table-cell>
   {{if and (eq .RunStatus "in_progress") (or .CanCheck .CanAssign)}}
-  <td class="data-table__col--end item-actions">
+  <mb-table-cell actions class="item-actions">
     <mb-spinner id="spinner-{{.Item.ID}}" class="htmx-indicator" size="sm" label="Enregistrement"></mb-spinner>
     {{if .ItemError}}<p class="error item-inline-error" role="alert">{{.ItemError}}</p>{{end}}
     {{if .AssignError}}<p class="error item-inline-error" role="alert">{{.AssignError}}</p>{{end}}
@@ -68,7 +68,7 @@
       <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
     </form>
     {{end}}
-  </td>
+  </mb-table-cell>
   {{end}}
-</tr>
+</mb-table-row>
 {{end}}

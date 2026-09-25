@@ -25,27 +25,26 @@
     </mb-segmented-control>
   </mb-toolbar>
   <div class="table-scroll">
-  <table class="data-table data-table--cards table-sticky">
-    <thead>
-      <tr><th scope="col">Point</th><th scope="col" class="data-table__col--center">Statut</th><th scope="col">{{.Labels.Run.Nav}}</th><th scope="col">{{.Labels.Subject.Singular}}</th></tr>
-    </thead>
-    <tbody>
-      {{if .Tasks}}
-      {{range .Tasks}}
-      <tr class="task-card">
-        <td class="task-card__point data-row__primary"><a href="/runs/{{.RunID}}/items/{{.ID}}">{{if .Section}}{{.Section}} — {{end}}{{.Label}}</a></td>
-        <td class="task-card__status data-table__col--center"><mb-badge variant="{{badgeVariant .Status}}">{{formatItemStatus .Status}}</mb-badge></td>
-        <td class="task-card__run"><a href="/runs/{{.RunID}}">{{.RunTitle}}</a></td>
-        <td class="task-card__subject">{{.SubjectName}}</td>
-      </tr>
-      {{end}}
-      {{else}}
-      <tr>
-        <td colspan="4" class="muted">Aucune tâche pour cette recherche. <a href="/mes-taches">Effacer</a></td>
-      </tr>
-      {{end}}
-    </tbody>
-  </table>
+  <mb-table label="Mes tâches" sticky-header columns="2fr 1fr 1fr 1fr">
+    <mb-table-row slot="head">
+      <mb-table-cell>Point</mb-table-cell>
+      <mb-table-cell align="center">Statut</mb-table-cell>
+      <mb-table-cell>{{.Labels.Run.Nav}}</mb-table-cell>
+      <mb-table-cell>{{.Labels.Subject.Singular}}</mb-table-cell>
+    </mb-table-row>
+    {{if .Tasks}}
+    {{range .Tasks}}
+    <mb-table-row class="task-card">
+      <mb-table-cell primary class="task-card__point"><a href="/runs/{{.RunID}}/items/{{.ID}}">{{if .Section}}{{.Section}} — {{end}}{{.Label}}</a></mb-table-cell>
+      <mb-table-cell align="center" class="task-card__status"><mb-badge variant="{{badgeVariant .Status}}">{{formatItemStatus .Status}}</mb-badge></mb-table-cell>
+      <mb-table-cell class="task-card__run"><a href="/runs/{{.RunID}}">{{.RunTitle}}</a></mb-table-cell>
+      <mb-table-cell class="task-card__subject">{{.SubjectName}}</mb-table-cell>
+    </mb-table-row>
+    {{end}}
+    {{else}}
+    <p slot="empty" class="muted">Aucune tâche pour cette recherche. <a href="/mes-taches">Effacer</a></p>
+    {{end}}
+  </mb-table>
   </div>
 </mb-card>
 {{end}}

@@ -760,6 +760,7 @@ func buildRunItemSections(items []store.RunItem) []viewtemplates.RunItemSectionD
 			}
 		}
 		out = append(out, viewtemplates.RunItemSectionData{
+			ID:         viewtemplates.SectionIDForTitle(title),
 			Title:      a.title,
 			Items:      a.items,
 			Total:      len(a.items),
@@ -981,6 +982,7 @@ func (h *Runs) renderRunItemHTMX(w http.ResponseWriter, r *http.Request, run *st
 		RunID:       run.ID,
 		RunStatus:   run.Status,
 		Item:        item,
+		SectionID:   viewtemplates.SectionIDForTitle(item.Section),
 		Members:     members,
 		CSRFToken:   pd.CSRFToken,
 		CanCheck:    CanUpdateAccess(user, access),

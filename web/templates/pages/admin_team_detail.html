@@ -31,32 +31,26 @@
 <mb-card>
   <h2>Membres ({{len .Members}})</h2>
   {{if .Members}}
-  <div class="table-scroll">
-  <table class="data-table">
-    <thead>
-      <tr>
-        <th scope="col">Login</th>
-        <th scope="col">Email</th>
-        <th scope="col" class="data-table__col--end"></th>
-      </tr>
-    </thead>
-    <tbody>
-      {{range .Members}}
-      <tr>
-        <td>{{.Login}}</td>
-        <td>{{.Email}}</td>
-        <td class="data-table__col--end">
-          <form method="post" action="/admin/teams/{{$.Team.ID}}/members/remove" class="inline-form" onsubmit="return confirm('Retirer ce membre de l\'équipe ?');">
-            <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
-            <input type="hidden" name="user_id" value="{{.UserID}}">
-            <mb-button type="submit" variant="ghost" size="sm">Retirer</mb-button>
-          </form>
-        </td>
-      </tr>
-      {{end}}
-    </tbody>
-  </table>
-  </div>
+  <mb-table label="Membres de l'équipe" columns="1fr 2fr auto">
+    <mb-table-row slot="head">
+      <mb-table-cell>Login</mb-table-cell>
+      <mb-table-cell>Email</mb-table-cell>
+      <mb-table-cell actions></mb-table-cell>
+    </mb-table-row>
+    {{range .Members}}
+    <mb-table-row>
+      <mb-table-cell primary>{{.Login}}</mb-table-cell>
+      <mb-table-cell>{{.Email}}</mb-table-cell>
+      <mb-table-cell actions>
+        <form method="post" action="/admin/teams/{{$.Team.ID}}/members/remove" class="inline-form" onsubmit="return confirm('Retirer ce membre de l\'équipe ?');">
+          <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
+          <input type="hidden" name="user_id" value="{{.UserID}}">
+          <mb-button type="submit" variant="ghost" size="sm">Retirer</mb-button>
+        </form>
+      </mb-table-cell>
+    </mb-table-row>
+    {{end}}
+  </mb-table>
   {{else}}
   <p class="muted">Aucun membre dans cette équipe.</p>
   {{end}}
