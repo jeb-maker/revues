@@ -53,40 +53,34 @@
     </mb-segmented-control>
   </mb-toolbar>
   <div class="table-scroll">
-  <table class="data-table data-table--cards table-sticky">
-    <thead>
-      <tr>
-        <th scope="col">{{.Labels.Run.Nav}}</th>
-        {{if .ShowSubjectColumn}}<th scope="col">{{.Labels.Subject.Singular}}</th>{{end}}
-        {{if not .SimpleUI}}<th scope="col" class="data-table__col--center">Statut</th>{{end}}
-        <th scope="col" class="data-table__col--center">Échéance</th>
-        <th scope="col" class="data-table__col--end">Progression</th>
-      </tr>
-    </thead>
-    <tbody>
-      {{if .Runs}}
-      {{range .Runs}}
-      <tr class="run-card">
-        <td class="run-card__title data-row__primary"><a href="/runs/{{.RunID}}">{{.Title}}</a></td>
-        {{if $.ShowSubjectColumn}}<td class="run-card__subject"><a href="/subjects/{{.SubjectID}}">{{.SubjectName}}</a></td>{{end}}
-        {{if not $.SimpleUI}}
-        <td class="run-card__status data-table__col--center">{{if ne .Status "in_progress"}}<mb-badge variant="{{badgeVariant .Status}}">{{formatRunStatus .Status}}</mb-badge>{{end}}</td>
-        {{end}}
-        <td class="run-card__due data-table__col--center{{if not .DueDate.Valid}} run-card__due--empty{{end}}{{if dueDateOverdue .DueDate .Status}} run-card__due--overdue{{end}}">{{if .DueDate.Valid}}{{formatDueDate .DueDate}}{{if dueDateOverdue .DueDate .Status}} <mb-badge variant="danger">En retard</mb-badge>{{end}}{{else}}<span class="muted">—</span>{{end}}</td>
-        <td class="run-card__progress data-table__stats data-table__progress muted" style="--run-progress: {{.Percent}}%" aria-label="Progression {{.Done}} sur {{.Total}}, {{.Percent}} pourcent"><span class="run-card__fraction">{{.Done}}/{{.Total}}</span><span class="run-card__bar" aria-hidden="true"></span><span class="run-card__pct"> ({{.Percent}}%)</span></td>
-      </tr>
+  <mb-table label="{{.Labels.Run.Nav}}" sticky-header columns="{{if and .ShowSubjectColumn (not .SimpleUI)}}2fr 1fr 1fr 1fr 1fr{{else if or .ShowSubjectColumn (not .SimpleUI)}}2fr 1fr 1fr 1fr{{else}}2fr 1fr 1fr{{end}}">
+    <mb-table-row slot="head">
+      <mb-table-cell>{{.Labels.Run.Nav}}</mb-table-cell>
+      {{if .ShowSubjectColumn}}<mb-table-cell>{{.Labels.Subject.Singular}}</mb-table-cell>{{end}}
+      {{if not .SimpleUI}}<mb-table-cell align="center">Statut</mb-table-cell>{{end}}
+      <mb-table-cell align="center">Échéance</mb-table-cell>
+      <mb-table-cell align="end">Progression</mb-table-cell>
+    </mb-table-row>
+    {{if .Runs}}
+    {{range .Runs}}
+    <mb-table-row class="run-card">
+      <mb-table-cell primary class="run-card__title"><a href="/runs/{{.RunID}}">{{.Title}}</a></mb-table-cell>
+      {{if $.ShowSubjectColumn}}<mb-table-cell class="run-card__subject"><a href="/subjects/{{.SubjectID}}">{{.SubjectName}}</a></mb-table-cell>{{end}}
+      {{if not $.SimpleUI}}
+      <mb-table-cell align="center" class="run-card__status">{{if ne .Status "in_progress"}}<mb-badge variant="{{badgeVariant .Status}}">{{formatRunStatus .Status}}</mb-badge>{{end}}</mb-table-cell>
       {{end}}
-      {{else if .HasActiveFilters}}
-      <tr>
-        <td colspan="{{if and $.ShowSubjectColumn (not $.SimpleUI)}}5{{else if or $.ShowSubjectColumn (not $.SimpleUI)}}4{{else}}3{{end}}" class="muted">{{$.Labels.Run.NoneArticle}} {{$.Labels.Run.Singular}} pour cette recherche. <a href="/revues">Effacer</a></td>
-      </tr>
-      {{else}}
-      <tr>
-        <td colspan="{{if and $.ShowSubjectColumn (not $.SimpleUI)}}5{{else if or $.ShowSubjectColumn (not $.SimpleUI)}}4{{else}}3{{end}}" class="muted">{{.Labels.Run.NoneArticle}} {{.Labels.Run.Singular}} pour l'instant. {{if .CanLaunch}}<a href="/revues/nouvelle">{{launchRunCTA .Labels.Run}}</a>{{else}}Demandez à un éditeur d'en lancer {{.Labels.Run.Article}}.{{end}}</td>
-      </tr>
-      {{end}}
-    </tbody>
-  </table>
+      <mb-table-cell align="center" class="run-card__due{{if not .DueDate.Valid}} run-card__due--empty{{end}}{{if dueDateOverdue .DueDate .Status}} run-card__due--overdue{{end}}">{{if .DueDate.Valid}}{{formatDueDate .DueDate}}{{if dueDateOverdue .DueDate .Status}} <mb-badge variant="danger">En retard</mb-badge>{{end}}{{else}}<span class="muted">—</span>{{end}}</mb-table-cell>
+      <mb-table-cell align="end" class="run-card__progress">
+        <mb-progress percent="{{.Percent}}" label="{{.Done}}/{{.Total}} ({{.Percent}}%)" aria-label="Progression {{.Done}} sur {{.Total}}, {{.Percent}} pourcent"></mb-progress>
+      </mb-table-cell>
+    </mb-table-row>
+    {{end}}
+    {{else if .HasActiveFilters}}
+    <p slot="empty" class="muted">{{$.Labels.Run.NoneArticle}} {{$.Labels.Run.Singular}} pour cette recherche. <a href="/revues">Effacer</a></p>
+    {{else}}
+    <p slot="empty" class="muted">{{.Labels.Run.NoneArticle}} {{.Labels.Run.Singular}} pour l'instant. {{if .CanLaunch}}<a href="/revues/nouvelle">{{launchRunCTA .Labels.Run}}</a>{{else}}Demandez à un éditeur d'en lancer {{.Labels.Run.Article}}.{{end}}</p>
+    {{end}}
+  </mb-table>
   </div>
   {{if gt .Pagination.TotalPages 1}}
   <mb-pagination

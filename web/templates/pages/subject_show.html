@@ -67,36 +67,30 @@
 <mb-card>
   <h2>Équipes ({{len .Teams}})</h2>
   {{if .Teams}}
-  <div class="table-scroll">
-  <table class="data-table">
-    <thead>
-      <tr>
-        <th scope="col">Équipe</th>
-        <th scope="col">Rôle</th>
-        <th scope="col" class="data-table__col--end">Membres</th>
-        {{if $.CanAssignTeams}}<th scope="col" class="data-table__col--end"></th>{{end}}
-      </tr>
-    </thead>
-    <tbody>
-      {{range .Teams}}
-      <tr>
-        <td>{{.TeamName}}</td>
-        <td>{{formatRole .Role}}</td>
-        <td class="data-table__col--end muted">{{.MemberCount}}</td>
-        {{if $.CanAssignTeams}}
-        <td class="data-table__col--end">
-          <form method="post" action="/subjects/{{$.Subject.ID}}/teams/remove" class="inline-form" onsubmit="return confirm('Retirer cette équipe du sujet ?');">
-            <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
-            <input type="hidden" name="team_id" value="{{.TeamID}}">
-            <mb-button type="submit" variant="ghost" size="sm">Retirer</mb-button>
-          </form>
-        </td>
-        {{end}}
-      </tr>
+  <mb-table label="Équipes du sujet" columns="{{if $.CanAssignTeams}}2fr 1fr auto auto{{else}}2fr 1fr auto{{end}}">
+    <mb-table-row slot="head">
+      <mb-table-cell>Équipe</mb-table-cell>
+      <mb-table-cell>Rôle</mb-table-cell>
+      <mb-table-cell align="end">Membres</mb-table-cell>
+      {{if $.CanAssignTeams}}<mb-table-cell actions></mb-table-cell>{{end}}
+    </mb-table-row>
+    {{range .Teams}}
+    <mb-table-row>
+      <mb-table-cell primary>{{.TeamName}}</mb-table-cell>
+      <mb-table-cell>{{formatRole .Role}}</mb-table-cell>
+      <mb-table-cell align="end"><span class="muted">{{.MemberCount}}</span></mb-table-cell>
+      {{if $.CanAssignTeams}}
+      <mb-table-cell actions>
+        <form method="post" action="/subjects/{{$.Subject.ID}}/teams/remove" class="inline-form" onsubmit="return confirm('Retirer cette équipe du sujet ?');">
+          <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
+          <input type="hidden" name="team_id" value="{{.TeamID}}">
+          <mb-button type="submit" variant="ghost" size="sm">Retirer</mb-button>
+        </form>
+      </mb-table-cell>
       {{end}}
-    </tbody>
-  </table>
-  </div>
+    </mb-table-row>
+    {{end}}
+  </mb-table>
   {{else}}
   <p class="muted">Aucune équipe affectée à ce {{.Labels.Subject.Singular | lowerFirst}}.</p>
   {{end}}
@@ -142,36 +136,30 @@
 <mb-card>
   <h2>Membres directs ({{len .DirectMembers}})</h2>
   {{if .DirectMembers}}
-  <div class="table-scroll">
-  <table class="data-table">
-    <thead>
-      <tr>
-        <th scope="col">Membre</th>
-        <th scope="col">Rôle</th>
-        <th scope="col">Source</th>
-        {{if $.CanManageMembers}}<th scope="col" class="data-table__col--end"></th>{{end}}
-      </tr>
-    </thead>
-    <tbody>
-      {{range .DirectMembers}}
-      <tr>
-        <td>{{.Login}} <span class="muted">{{.Email}}</span></td>
-        <td>{{formatRole .Role}}</td>
-        <td><mb-tag size="sm">accès direct</mb-tag></td>
-        {{if $.CanManageMembers}}
-        <td class="data-table__col--end">
-          <form method="post" action="/subjects/{{$.Subject.ID}}/members/remove" class="inline-form" onsubmit="return confirm('Retirer ce membre du sujet ?');">
-            <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
-            <input type="hidden" name="user_id" value="{{.UserID}}">
-            <mb-button type="submit" variant="ghost" size="sm">Retirer</mb-button>
-          </form>
-        </td>
-        {{end}}
-      </tr>
+  <mb-table label="Membres directs" columns="{{if $.CanManageMembers}}2fr 1fr 1fr auto{{else}}2fr 1fr 1fr{{end}}">
+    <mb-table-row slot="head">
+      <mb-table-cell>Membre</mb-table-cell>
+      <mb-table-cell>Rôle</mb-table-cell>
+      <mb-table-cell>Source</mb-table-cell>
+      {{if $.CanManageMembers}}<mb-table-cell actions></mb-table-cell>{{end}}
+    </mb-table-row>
+    {{range .DirectMembers}}
+    <mb-table-row>
+      <mb-table-cell primary>{{.Login}} <span class="muted">{{.Email}}</span></mb-table-cell>
+      <mb-table-cell>{{formatRole .Role}}</mb-table-cell>
+      <mb-table-cell><mb-tag size="sm">accès direct</mb-tag></mb-table-cell>
+      {{if $.CanManageMembers}}
+      <mb-table-cell actions>
+        <form method="post" action="/subjects/{{$.Subject.ID}}/members/remove" class="inline-form" onsubmit="return confirm('Retirer ce membre du sujet ?');">
+          <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
+          <input type="hidden" name="user_id" value="{{.UserID}}">
+          <mb-button type="submit" variant="ghost" size="sm">Retirer</mb-button>
+        </form>
+      </mb-table-cell>
       {{end}}
-    </tbody>
-  </table>
-  </div>
+    </mb-table-row>
+    {{end}}
+  </mb-table>
   {{else}}
   <p class="muted">Aucun membre direct — l'accès passe par les équipes ou la supervision org.</p>
   {{end}}

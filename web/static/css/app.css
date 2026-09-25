@@ -346,33 +346,14 @@ mb-card.form-danger-zone::part(card) {
   border-bottom: 1px solid var(--border-strong);
 }
 .data-table tbody tr:hover td { background: var(--surface-2); }
-.data-table__progress {
-  --run-progress: 0%;
-  background-image:
-    linear-gradient(to right, var(--accent), var(--accent)),
-    linear-gradient(var(--border), var(--border));
-  background-size: var(--run-progress) 1px, 100% 1px;
-  background-position: left bottom;
-  background-repeat: no-repeat;
-}
 .data-table a { font-weight: 500; }
-.data-table th.data-table__stats,
-.data-table td.data-table__stats {
-  text-align: right;
-  white-space: nowrap;
-  font-variant-numeric: tabular-nums;
-}
 .data-table th.data-table__col--center,
 .data-table td.data-table__col--center { text-align: center; }
 .data-table th.data-table__col--end,
 .data-table td.data-table__col--end { text-align: right; }
 .table-scroll { overflow-x: auto; }
-.table-sticky th {
-  position: sticky;
-  top: 0;
-  background: var(--surface);
-  z-index: 1;
-}
+.table-scroll:has(mb-table) { overflow: visible; }
+
 .item-list { margin: 0.5rem 0 1rem; padding-left: 1.1rem; }
 .item-list li { margin-bottom: 0.35rem; }
 .muted { color: var(--muted); font-size: 0.9rem; }
@@ -615,16 +596,12 @@ mb-toolbar.list-toolbar {
   .data-table--cards tbody tr:hover td{background:transparent}
   .data-table--cards td,
   .data-table--cards td.data-table__col--center,
-  .data-table--cards td.data-table__col--end,
-  .data-table--cards td.data-table__stats{
+  .data-table--cards td.data-table__col--end{
     display:block;width:100%;max-width:100%;border:0;padding:0;text-align:left;white-space:normal;
   }
   .data-table--cards td[data-label]::before{
     content:attr(data-label);display:block;font-size:.75rem;font-weight:600;color:var(--muted);margin-bottom:.15rem;
   }
-  .data-table--cards .data-row__primary{font-weight:600}
-  .data-table--cards td.list-card__meta::before{display:none}
-  .data-table--cards tr.subject-card .subject-card__title{display:flex;justify-content:space-between;align-items:center;gap:.5rem;flex-wrap:wrap}
   mb-breadcrumbs.breadcrumb li:not(:last-child){display:none}
   mb-toolbar.list-toolbar .list-toolbar__form{flex:0 1 auto;width:100%;min-width:0}
   mb-toolbar.list-toolbar .list-toolbar__search{width:100%;max-width:none}

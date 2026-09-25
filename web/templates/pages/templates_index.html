@@ -42,34 +42,28 @@
     </div>
   </mb-toolbar>
   <div class="table-scroll">
-  <table class="data-table data-table--cards table-sticky">
-    <thead>
-      <tr>
-        <th scope="col">{{if .ShowSubjectColumn}}Modèle{{else}}Liste{{end}}</th>
-        {{if .ShowSubjectColumn}}<th scope="col">Domaines</th>{{end}}
-        {{if .ShowSubjectColumn}}<th scope="col" class="data-table__col--center">Version</th>{{end}}
-        <th scope="col" class="data-table__col--center">Points</th>
-      </tr>
-    </thead>
-    <tbody>
-      {{if .Templates}}
-      {{range .Templates}}
-      <tr>
-        <td class="data-row__primary"><a href="/modeles/{{.ID}}">{{.Name}}</a></td>
-        {{if $.ShowSubjectColumn}}
-        <td data-label="Domaines">{{if .Tags}}{{range $i, $tag := .Tags}}{{if $i}}, {{end}}<mb-tag size="sm">{{$tag}}</mb-tag>{{end}}{{else}}<span class="muted">tous {{$.Labels.Subject.Plural | lowerFirst}}</span>{{end}}</td>
-        <td class="data-table__col--center" data-label="Version">v{{.LatestVersion}}</td>
-        {{end}}
-        <td class="data-table__col--center list-card__meta">{{.ItemCount}} point{{if ne .ItemCount 1}}s{{end}}</td>
-      </tr>
+  <mb-table label="{{if .ShowSubjectColumn}}Modèles{{else}}Listes{{end}}" sticky-header columns="{{if .ShowSubjectColumn}}2fr 2fr auto auto{{else}}2fr auto{{end}}">
+    <mb-table-row slot="head">
+      <mb-table-cell>{{if .ShowSubjectColumn}}Modèle{{else}}Liste{{end}}</mb-table-cell>
+      {{if .ShowSubjectColumn}}<mb-table-cell>Domaines</mb-table-cell>{{end}}
+      {{if .ShowSubjectColumn}}<mb-table-cell align="center">Version</mb-table-cell>{{end}}
+      <mb-table-cell align="center">Points</mb-table-cell>
+    </mb-table-row>
+    {{if .Templates}}
+    {{range .Templates}}
+    <mb-table-row>
+      <mb-table-cell primary><a href="/modeles/{{.ID}}">{{.Name}}</a></mb-table-cell>
+      {{if $.ShowSubjectColumn}}
+      <mb-table-cell>{{if .Tags}}{{range $i, $tag := .Tags}}{{if $i}}, {{end}}<mb-tag size="sm">{{$tag}}</mb-tag>{{end}}{{else}}<span class="muted">tous {{$.Labels.Subject.Plural | lowerFirst}}</span>{{end}}</mb-table-cell>
+      <mb-table-cell align="center">v{{.LatestVersion}}</mb-table-cell>
       {{end}}
-      {{else}}
-      <tr>
-        <td colspan="{{if $.ShowSubjectColumn}}4{{else}}2{{end}}" class="muted">{{if $.ShowSubjectColumn}}Aucun modèle{{else}}Aucune liste{{end}} pour cette recherche. <a href="/modeles">Effacer</a></td>
-      </tr>
-      {{end}}
-    </tbody>
-  </table>
+      <mb-table-cell align="center" class="list-card__meta">{{.ItemCount}} point{{if ne .ItemCount 1}}s{{end}}</mb-table-cell>
+    </mb-table-row>
+    {{end}}
+    {{else}}
+    <p slot="empty" class="muted">{{if $.ShowSubjectColumn}}Aucun modèle{{else}}Aucune liste{{end}} pour cette recherche. <a href="/modeles">Effacer</a></p>
+    {{end}}
+  </mb-table>
   </div>
 </mb-card>
 {{end}}

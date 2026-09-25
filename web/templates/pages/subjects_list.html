@@ -49,27 +49,23 @@
     {{if .CanCreate}}<mb-button slot="end" class="list-toolbar__action toolbar-control" href="{{if eq .AdminSection "subjects"}}/admin/subjects/new{{else}}/subjects/new{{end}}" title="Nouveau {{.Labels.Subject.Singular | lowerFirst}}">Créer</mb-button>{{end}}
   </mb-toolbar>
   <div class="table-scroll">
-  <table class="data-table data-table--cards table-sticky">
-    <thead>
-      <tr><th scope="col">{{.Labels.Subject.Singular}}</th></tr>
-    </thead>
-    <tbody>
-      {{if .Subjects}}
-      {{range .Subjects}}
-      <tr class="subject-card">
-        <td class="subject-card__title data-row__primary">
-          <a href="/subjects/{{.ID}}">{{.Name}}</a>
-          {{if eq .Visibility "private"}}<mb-badge variant="warning">Privé</mb-badge>{{end}}
-        </td>
-      </tr>
-      {{end}}
-      {{else}}
-      <tr>
-        <td class="muted">Aucun {{$.Labels.Subject.Singular | lowerFirst}} pour cette recherche. <a href="{{if eq $.AdminSection "subjects"}}/admin/subjects{{else}}/subjects{{end}}">Effacer</a></td>
-      </tr>
-      {{end}}
-    </tbody>
-  </table>
+  <mb-table label="{{.Labels.Subject.Plural}}" sticky-header columns="1fr">
+    <mb-table-row slot="head">
+      <mb-table-cell>{{.Labels.Subject.Singular}}</mb-table-cell>
+    </mb-table-row>
+    {{if .Subjects}}
+    {{range .Subjects}}
+    <mb-table-row class="subject-card">
+      <mb-table-cell primary class="subject-card__title">
+        <a href="/subjects/{{.ID}}">{{.Name}}</a>
+        {{if eq .Visibility "private"}}<mb-badge variant="warning">Privé</mb-badge>{{end}}
+      </mb-table-cell>
+    </mb-table-row>
+    {{end}}
+    {{else}}
+    <p slot="empty" class="muted">Aucun {{$.Labels.Subject.Singular | lowerFirst}} pour cette recherche. <a href="{{if eq $.AdminSection "subjects"}}/admin/subjects{{else}}/subjects{{end}}">Effacer</a></p>
+    {{end}}
+  </mb-table>
   </div>
 </mb-card>
 {{end}}
