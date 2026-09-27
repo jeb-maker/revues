@@ -142,26 +142,27 @@ erDiagram
 
 ## Écrans
 
-1. Connexion (GitHub)
-2. Tableau de bord — projets + « Mes tâches »
-3. Fiche projet — revues, membres, stats
-4. Liste / éditeur modèles (sections + points)
-5. Assistant lancement revue (3 étapes)
-6. Détail revue — points, progression, activité, Jira
-7. Admin — utilisateurs, SMTP, intégrations
+1. Connexion (GitHub OAuth et/ou email + mot de passe)
+2. Hub **Revues** (`/revues`) — liste paginée, filtres statut, CTA lancement
+3. Fiche sujet — revues, collab (équipes/membres si P1+), domaines/étiquettes si multi-sujet
+4. Liste / éditeur modèles ou listes (vocabulaire via `ShowSubjectColumn`)
+5. Assistant lancement revue (`/revues/nouvelle`) — **2 étapes** (sujet → modèle/liste)
+6. Détail revue — points (HTMX), progression, Jira/Notion/preuve selon capabilities
+7. Mes tâches (si ≥2 membres)
+8. Admin org — utilisateurs, sujets, SMTP, intégrations, libellés UI
 
 ---
 
 ## Intégrations
 
-### Jira (v1) — Cloud **et** Server / Data Center
+### Jira (v1) — Cloud d'abord
 
-| Type instance | Auth |
-|---------------|------|
-| Jira Cloud | Email + API token Atlassian |
-| Jira Server / DC | PAT ou OAuth 2.0 |
+| Type instance | Auth | Statut |
+|---------------|------|--------|
+| Jira Cloud | Email + API token Atlassian | **Livré** |
+| Jira Server / DC | PAT ou OAuth 2.0 | **Icebox** ([#65](https://github.com/jeb-maker/revues/issues/65)) |
 
-Actions :
+Actions (Cloud) :
 - Lier une issue (`PROJ-123` ou URL) sur un point
 - Créer un ticket depuis un point `nok`
 - (v2) Afficher statut issue à l'ouverture de la revue

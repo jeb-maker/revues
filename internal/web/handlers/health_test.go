@@ -63,6 +63,12 @@ func TestLoginPage(t *testing.T) {
 	if !strings.Contains(rec.Body.String(), "Se connecter avec GitHub") {
 		t.Fatalf("expected login page content")
 	}
+	if got := rec.Header().Get("X-Frame-Options"); got != "DENY" {
+		t.Fatalf("X-Frame-Options = %q, want DENY", got)
+	}
+	if got := rec.Header().Get("X-Content-Type-Options"); got != "nosniff" {
+		t.Fatalf("X-Content-Type-Options = %q, want nosniff", got)
+	}
 }
 
 func TestLoginPage_EmailNotAllowed(t *testing.T) {

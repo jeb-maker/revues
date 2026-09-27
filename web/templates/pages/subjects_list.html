@@ -23,7 +23,7 @@
     {{if .CanCreate}}<mb-button href="{{if eq .AdminSection "subjects"}}/admin/subjects/new{{else}}/subjects/new{{end}}" variant="secondary">Créer un {{.Labels.Subject.Singular | lowerFirst}}</mb-button>{{end}}
   </div>
   {{else if .CanCreate}}
-  <p>Créez un {{.Labels.Subject.Singular | lowerFirst}} pour y ajouter des modèles de checklist et lancer {{.Labels.Run.Article}} {{.Labels.Run.Singular}}.</p>
+  <p>Créez un {{.Labels.Subject.Singular | lowerFirst}} pour y ajouter {{if .ShowSubjectColumn}}des modèles de checklist{{else}}des listes{{end}} et lancer {{.Labels.Run.Article}} {{.Labels.Run.Singular}}.</p>
   <div slot="actions">
     <mb-button href="/subjects/new">Créer un {{.Labels.Subject.Singular | lowerFirst}}</mb-button>
   </div>

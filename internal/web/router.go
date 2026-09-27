@@ -183,6 +183,7 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, *webhooks.Dispa
 
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
+	r.Use(appmiddleware.SecurityHeaders)
 	r.Use(appmiddleware.CapturePeerAddr) // before RealIP — DevAuth must see true peer
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Logger)

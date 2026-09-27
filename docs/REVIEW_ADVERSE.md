@@ -19,6 +19,10 @@ Checklist vivante pour agents et relecteurs. Ne pas élargir le scope d'une issu
 
 CSP stricte, scan antivirus, rotation clés, rate limiting global, audit admin complet, queue emails persistante, OAuth Jira Server.
 
+### Baseline livré
+
+En-têtes HTTP : `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`, `Cross-Origin-Opener-Policy` (middleware `SecurityHeaders`). CSP stricte reste en CAN DEFER.
+
 ### Tests sécurité minimum
 
 ```
