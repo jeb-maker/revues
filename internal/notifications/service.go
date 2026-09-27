@@ -12,18 +12,31 @@ import (
 	"github.com/jeb-maker/revues/internal/store"
 )
 
-const sendTimeout = 30 * time.Second
+const (
+	sendTimeout = 30 * time.Second
+	// MaxAttempts is the hard cap on SMTP tries per delivery (including the first).
+	MaxAttempts = 5
+	// DeliveryTTL is how long a pending email may stay in the queue.
+	DeliveryTTL = 24 * time.Hour
+	// DrainInterval is the in-process cron cadence for pending emails.
+	DrainInterval = time.Minute
+	// DrainBatchSize limits rows processed per drain tick.
+	DrainBatchSize = 50
+	baseBackoff    = time.Minute
+	maxBackoff     = 30 * time.Minute
+)
 
 // SettingsLoader loads SMTP configuration for outbound email.
 type SettingsLoader interface {
 	LoadSMTP(ctx context.Context) (settings.SMTPConfig, bool, error)
 }
 
-// Service sends business notification emails asynchronously.
+// Service sends business notification emails via a durable SQL queue.
 type Service struct {
 	Store    *store.Store
 	Settings SettingsLoader
 	BaseURL  string
+	Now      func() time.Time
 }
 
 type emailMessage struct {
@@ -216,29 +229,144 @@ func (s *Service) runResponsibleEmail(ctx context.Context, run *store.ChecklistR
 	return ""
 }
 
+func (s *Service) now() time.Time {
+	if s.Now != nil {
+		return s.Now()
+	}
+	return time.Now()
+}
+
 func (s *Service) dispatch(ctx context.Context, messages []emailMessage) {
-	if len(messages) == 0 {
+	if len(messages) == 0 || s == nil || s.Store == nil || s.Settings == nil {
 		return
 	}
 
+	orgID, hasOrg := orgctx.OrganizationID(ctx)
 	go func() {
-		sendCtx, cancel := context.WithTimeout(ctx, sendTimeout)
+		bg := context.Background()
+		if hasOrg {
+			bg = orgctx.WithOrganizationID(bg, orgID)
+		}
+		bg, cancel := context.WithTimeout(bg, sendTimeout+2*time.Second)
 		defer cancel()
 
-		cfg, ok, err := s.Settings.LoadSMTP(sendCtx)
-		if err != nil {
-			slog.Error("load smtp settings for notification", "err", err)
-			return
-		}
-		if !ok || !cfg.Enabled() {
-			return
-		}
-
-		mailer := Mailer{Config: cfg}
+		now := s.now()
+		expires := now.Add(DeliveryTTL)
 		for _, msg := range messages {
-			if err := mailer.Send(sendCtx, msg.to, msg.subject, msg.body); err != nil {
+			id, err := s.Store.EnqueueEmailDelivery(bg, orgID, msg.to, msg.subject, msg.body, now, expires)
+			if err != nil {
+				slog.Error("enqueue notification email", "to", msg.to, "subject", msg.subject, "err", err)
+				continue
+			}
+			del := store.EmailDelivery{
+				ID:             id,
+				OrganizationID: orgID,
+				ToAddress:      msg.to,
+				Subject:        msg.subject,
+				Body:           msg.body,
+				Attempts:       0,
+				ExpiresAt:      expires.UTC().Format(time.RFC3339),
+				State:          store.EmailDeliveryPending,
+			}
+			if err := s.processQueued(bg, del); err != nil {
 				slog.Error("send notification email", "to", msg.to, "subject", msg.subject, "err", err)
 			}
 		}
+
+		drainCtx, drainCancel := context.WithTimeout(context.Background(), sendTimeout*3)
+		defer drainCancel()
+		if err := s.Drain(drainCtx); err != nil {
+			slog.Error("email opportunistic drain", "err", err)
+		}
 	}()
+}
+
+// Drain attempts due pending email deliveries (all orgs).
+func (s *Service) Drain(ctx context.Context) error {
+	if s == nil || s.Store == nil || s.Settings == nil {
+		return nil
+	}
+	due, err := s.Store.ListDueEmailDeliveries(ctx, s.now(), DrainBatchSize)
+	if err != nil {
+		return err
+	}
+	for _, del := range due {
+		orgCtx := ctx
+		if del.OrganizationID > 0 {
+			orgCtx = orgctx.WithOrganizationID(ctx, del.OrganizationID)
+		}
+		if err := s.processQueued(orgCtx, del); err != nil {
+			slog.Error("email drain attempt failed", "delivery_id", del.ID, "to", del.ToAddress, "err", err)
+		}
+	}
+	return nil
+}
+
+func (s *Service) processQueued(ctx context.Context, del store.EmailDelivery) error {
+	now := s.now()
+	if del.ExpiresAt != "" {
+		if exp, err := time.Parse(time.RFC3339, del.ExpiresAt); err == nil && !now.Before(exp) {
+			if updErr := s.Store.UpdateEmailDeliveryAttempt(ctx, del.ID, del.Attempts, nil, store.EmailDeliveryPoison, "ttl expired"); updErr != nil {
+				return updErr
+			}
+			return fmt.Errorf("ttl expired")
+		}
+	}
+
+	cfg, ok, err := s.Settings.LoadSMTP(ctx)
+	if err != nil {
+		return s.failAttempt(ctx, del, now, fmt.Errorf("load smtp: %w", err))
+	}
+	if !ok || !cfg.Enabled() {
+		// SMTP disabled: keep pending with short backoff so admin can enable later within TTL.
+		return s.failAttempt(ctx, del, now, fmt.Errorf("smtp not configured"))
+	}
+
+	sendCtx, cancel := context.WithTimeout(ctx, sendTimeout)
+	defer cancel()
+	mailer := Mailer{Config: cfg}
+	if err := mailer.Send(sendCtx, del.ToAddress, del.Subject, del.Body); err != nil {
+		return s.failAttempt(ctx, del, now, err)
+	}
+	return s.Store.UpdateEmailDeliveryAttempt(ctx, del.ID, del.Attempts+1, nil, store.EmailDeliveryDone, "")
+}
+
+func (s *Service) failAttempt(ctx context.Context, del store.EmailDelivery, now time.Time, sendErr error) error {
+	attempts := del.Attempts + 1
+	lastErr := sendErr.Error()
+	if attempts >= MaxAttempts {
+		if updErr := s.Store.UpdateEmailDeliveryAttempt(ctx, del.ID, attempts, nil, store.EmailDeliveryPoison, lastErr); updErr != nil {
+			return updErr
+		}
+		return sendErr
+	}
+	next := now.Add(emailBackoffAfterAttempt(attempts))
+	if del.ExpiresAt != "" {
+		if exp, parseErr := time.Parse(time.RFC3339, del.ExpiresAt); parseErr == nil && !next.Before(exp) {
+			lastErr += "; next backoff past ttl"
+			if updErr := s.Store.UpdateEmailDeliveryAttempt(ctx, del.ID, attempts, nil, store.EmailDeliveryPoison, lastErr); updErr != nil {
+				return updErr
+			}
+			return sendErr
+		}
+	}
+	if updErr := s.Store.UpdateEmailDeliveryAttempt(ctx, del.ID, attempts, &next, store.EmailDeliveryPending, lastErr); updErr != nil {
+		return updErr
+	}
+	return sendErr
+}
+
+func emailBackoffAfterAttempt(attempt int) time.Duration {
+	if attempt < 1 {
+		attempt = 1
+	}
+	shift := attempt - 1
+	if shift > 8 {
+		shift = 8
+	}
+	d := baseBackoff << shift
+	if d > maxBackoff {
+		return maxBackoff
+	}
+	return d
 }

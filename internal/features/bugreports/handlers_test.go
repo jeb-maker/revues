@@ -237,6 +237,7 @@ func TestBugReport_FormShowsWidgetFallback(t *testing.T) {
 		"data-reports-auto-open",
 		"revues-reports-meta",
 		"/static/vendor/jeb-maker-reports/reports.min.js",
+		"revues-reports-loader",
 		"data-reports-open",
 		"csrf_token",
 		"editor",

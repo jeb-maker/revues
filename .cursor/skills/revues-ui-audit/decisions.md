@@ -126,7 +126,7 @@ Principes :
 |-------|----------|
 | Version consommée | **`0.4.1`** (tag Git `v0.4.1`) |
 | Tokens | **`tokens-core.css`** (+ `mb-bridge.css`) — pas de `tokens.css` (évite reset `html`/`body`) ni `typography.css`/woff2 (budget) |
-| JS | `mb-boot.js` sous `web/static/vendor/jeb-maker-mb/` (Lit bundlé) — hors budget 15 KiB app |
+| JS | `mb-boot.js` sous `web/static/vendor/jeb-maker-mb/` (Lit bundlé) — hors budget 15 KiB app ; **reports** lazy au clic / auto-open `/signaler` |
 | Shell + formulaires | Migrés vers `mb-*` (nav, breadcrumbs, avatar, spinner, toolbar, tag, card, FACE, toast…) |
 | Listes | **`mb-table`** (admin, sujets, modèles, revues, tâches, run_show sections) |
 | Reste host | éditeur de modèle (`.data-table` + DnD) ; noscript `/signaler` ; `hx-confirm` |

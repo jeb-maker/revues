@@ -36,3 +36,33 @@ func StartDueReminderScheduler(ctx context.Context, svc *Service, interval time.
 		}
 	}()
 }
+
+// StartEmailDrainScheduler runs Drain on startup and every interval in the same process.
+func StartEmailDrainScheduler(ctx context.Context, svc *Service, interval time.Duration) {
+	if svc == nil {
+		return
+	}
+	if interval <= 0 {
+		interval = DrainInterval
+	}
+	go func() {
+		run := func() {
+			drainCtx, cancel := context.WithTimeout(context.Background(), sendTimeout*time.Duration(DrainBatchSize)+5*time.Second)
+			defer cancel()
+			if err := svc.Drain(drainCtx); err != nil {
+				slog.Error("email drain", "err", err)
+			}
+		}
+		run()
+		ticker := time.NewTicker(interval)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				run()
+			}
+		}
+	}()
+}

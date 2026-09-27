@@ -7,6 +7,7 @@ cd "$ROOT"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
 NC='\033[0m'
 
 step() { echo -e "${GREEN}==>${NC} $1"; }
@@ -76,6 +77,19 @@ if [[ -f go.mod ]]; then
     if [[ "$js_size" -gt 15360 ]]; then
       fail "JS total $js_size octets > 15 Ko (hors vendor/)"
     fi
+    js_gzip_sum=0
+    while IFS= read -r -d '' f; do
+      g=$(gzip -c "$f" | wc -c)
+      js_gzip_sum=$((js_gzip_sum + g))
+    done < <(find web/static \( -path 'web/static/vendor' -o -path 'web/static/vendor/*' \) -prune -o -name '*.js' -type f -print0 2>/dev/null)
+
+    vendor_js_raw=0
+    vendor_js_gzip=0
+    while IFS= read -r -d '' f; do
+      vendor_js_raw=$((vendor_js_raw + $(wc -c < "$f")))
+      vendor_js_gzip=$((vendor_js_gzip + $(gzip -c "$f" | wc -c)))
+    done < <(find web/static/vendor -name '*.js' -type f -print0 2>/dev/null)
+
     # CSS découpé : core (app.css) léger pour le parcours commun ; run/editor à la demande.
     # Vérité 3G = gzip par fichier (somme) ; brut total = garde-fou éditorial.
     # Vendor CSS (mb tokens-core / bridge) excluded — same policy as vendor JS.
@@ -99,6 +113,32 @@ if [[ -f go.mod ]]; then
     if [[ "$css_gzip_sum" -gt 12288 ]]; then
       fail "CSS gzip cumulé $css_gzip_sum octets > 12 Ko (hors vendor/)"
     fi
+
+    vendor_css_raw=0
+    vendor_css_gzip=0
+    while IFS= read -r -d '' f; do
+      vendor_css_raw=$((vendor_css_raw + $(wc -c < "$f")))
+      vendor_css_gzip=$((vendor_css_gzip + $(gzip -c "$f" | wc -c)))
+    done < <(find web/static/vendor -name '*.css' -type f -print0 2>/dev/null)
+
+    echo "  app JS     : ${js_size} o brut / ${js_gzip_sum} o gzip (seuil 15 Ko brut)"
+    echo "  vendor JS  : ${vendor_js_raw} o brut / ${vendor_js_gzip} o gzip (hors seuil app ; lazy-load reports)"
+    echo "  app CSS    : ${css_size} o brut / ${css_gzip_sum} o gzip (seuil 40 Ko / 12 Ko)"
+    echo "  vendor CSS : ${vendor_css_raw} o brut / ${vendor_css_gzip} o gzip"
+    # Soft budget: typical authenticated shell = htmx+app + mb-boot + tokens (reports lazy).
+    # Warn above 45 KiB gzip shell estimate (mb-boot ~22k + htmx/app ~3k + tokens ~3k).
+    shell_gzip_est=$((js_gzip_sum + vendor_js_gzip + css_gzip_sum + vendor_css_gzip))
+    # Subtract reports from shell estimate when present (lazy-loaded on demand).
+    reports_gzip=0
+    if [[ -f web/static/vendor/jeb-maker-reports/reports.min.js ]]; then
+      reports_gzip=$(gzip -c web/static/vendor/jeb-maker-reports/reports.min.js | wc -c)
+      reports_gzip=$((reports_gzip + $(gzip -c web/static/vendor/jeb-maker-reports/init.js | wc -c)))
+    fi
+    shell_gzip_no_reports=$((shell_gzip_est - reports_gzip))
+    echo "  transfert shell estimé (sans reports lazy) : ${shell_gzip_no_reports} o gzip"
+    if [[ "$shell_gzip_no_reports" -gt 46080 ]]; then
+      echo -e "${YELLOW}WARN${NC} shell gzip estimé > 45 Ko — vérifier lazy-load mb/reports (voir PLAN.md § Budget sobriété)"
+    fi
   fi
 else
   step "Pas de go.mod — vérifications Go ignorées (harness documentaire seul)"
@@ -110,7 +150,7 @@ fi
 step "Vérification tables canoniques"
 for table in users sessions allowed_emails subjects subject_tags subject_domains \
   checklist_templates template_domains template_versions template_items \
-  checklist_runs run_items run_item_events; do
+  checklist_runs run_items run_item_events email_deliveries; do
   grep -q "CREATE TABLE ${table}" docs/schema/canonical.sql || fail "Table manquante : $table"
 done
 

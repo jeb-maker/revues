@@ -28,6 +28,8 @@ Docs upstream: [`docs/go-htmx.md`](https://github.com/jeb-maker/miniature-brocco
 
 ## Rebuild (maintainers)
 
+### Bundle courant (`mb-boot.js` — toutes les CE)
+
 ```bash
 export PATH="$HOME/.nvm/versions/node/v22.22.2/bin:$PATH"   # or any Node ≥ 20
 git clone --depth 1 --branch v0.4.1 https://github.com/jeb-maker/miniature-broccoli.git /tmp/mb-0.4.1
@@ -41,6 +43,30 @@ cp dist/tokens/tokens-core.css dist/tokens/reference.css dist/tokens/semantic.cs
   /path/to/revues/web/static/vendor/jeb-maker-mb/tokens/
 ```
 
+### Imports atomiques (cible future)
+
+Upstream recommande d’importer **seulement** les CE utilisées par page (pas de barrel). Exemple shell auth :
+
+```html
+<script type="module">
+  import '/static/vendor/jeb-maker-mb/button.js';
+  import '/static/vendor/jeb-maker-mb/nav.js';
+  import '/static/vendor/jeb-maker-mb/nav-toggle.js';
+  import '/static/vendor/jeb-maker-mb/avatar.js';
+  import '/static/vendor/jeb-maker-mb/toast.js';
+  import '/static/vendor/jeb-maker-mb/select.js';
+  import '/static/vendor/jeb-maker-mb/badge.js';
+  import '/static/vendor/jeb-maker-mb/alert.js';
+</script>
+```
+
+Pour y arriver sans bundler Vite côté Revues :
+
+1. Rebuild chaque `dist/components/<name>.js` (+ chunk Lit partagé) vers `web/static/vendor/jeb-maker-mb/`
+2. Remplacer `mb-boot.js` dans `base.html` par des imports conditionnels / `ExtraJS` par page
+3. Garder `mb-table*` hors pages login
+
+Aujourd’hui Revues ship **`mb-boot.js` monolithe** (simple, une requête) ; le gain reports lazy est déjà en place dans `base.html`.
 ## 0.4.1 (vs 0.3.1)
 
 - `mb-table` / `mb-table-row` / `mb-table-cell` — responsive lists, sections, sort, reorder
