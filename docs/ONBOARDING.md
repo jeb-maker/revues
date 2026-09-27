@@ -22,7 +22,12 @@ Ouvrir `http://localhost:8080/login`.
 
 ## 3. Se connecter
 
-**Instance migrée (organisation `default` existante)** : cliquer sur **Se connecter avec GitHub** avec le compte correspondant à `REVUES_BOOTSTRAP_ADMIN_EMAIL`. Au premier login, cet email reçoit le rôle global **admin** et devient **owner** de l'organisation `default`.
+Deux voies d'auth (complémentaires) :
+
+- **GitHub OAuth** — bouton « Se connecter avec GitHub » (email GitHub **vérifié** requis pour la whitelist)
+- **Email + mot de passe** — inscription `/register` puis login formulaire (mêmes règles whitelist)
+
+**Instance migrée (organisation `default` existante)** : se connecter avec le compte correspondant à `REVUES_BOOTSTRAP_ADMIN_EMAIL`. Au premier login, cet email reçoit le rôle global **admin** et devient **owner** de l'organisation `default`.
 
 **Self-service (nouvelle installation)** : tout utilisateur sans organisation peut se connecter et créer sa première organisation via `/org/new`.
 
@@ -35,7 +40,7 @@ Une personne peut aussi rejoindre si elle est déjà membre d'une organisation, 
 ## 5. Créer un sujet et lancer une revue
 
 1. Créer un **sujet** (hub Organisation ou `/subjects`)
-2. Créer ou rattacher un **modèle** de checklist (`/modeles`)
-3. **Lancer une revue** via l'assistant (`/revues/nouvelle`)
+2. Créer ou rattacher un **modèle** / une **liste** (`/modeles` — vocabulaire selon mono-sujet ou multi-sujet)
+3. **Lancer une revue** via l'assistant en 2 étapes (`/revues/nouvelle` : sujet → modèle)
 
 Les lecteurs (`reader`) voient les sujets auxquels ils ont accès ; ils ne cochent pas.

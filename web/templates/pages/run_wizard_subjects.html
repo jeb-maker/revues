@@ -1,7 +1,7 @@
 {{define "run_wizard_subjects"}}
 {{template "layout_start" .}}
 <mb-card>
-  <p class="muted">Choisissez un {{.Labels.Subject.Singular | lowerFirst}} ou créez-en un pour lancer la revue.</p>
+  <p class="muted">Choisissez un {{.Labels.Subject.Singular | lowerFirst}} ou créez-en un pour lancer {{.Labels.Run.Article}} {{.Labels.Run.Singular}}.</p>
   {{template "flash_alerts" .}}
 
   <mb-toolbar class="list-toolbar">
@@ -27,9 +27,9 @@
   {{else}}
   <mb-empty-state heading="Aucun {{.Labels.Subject.Singular | lowerFirst}} disponible">
     {{if .CanCreate}}
-    <p>Créez un {{.Labels.Subject.Singular | lowerFirst}} ci-dessous pour lancer une revue.</p>
+    <p>Créez un {{.Labels.Subject.Singular | lowerFirst}} ci-dessous pour lancer {{.Labels.Run.Article}} {{.Labels.Run.Singular}}.</p>
     {{else}}
-    <p>Demandez à un éditeur de créer un {{.Labels.Subject.Singular | lowerFirst}} pour lancer une revue.</p>
+    <p>Demandez à un éditeur de créer un {{.Labels.Subject.Singular | lowerFirst}} pour lancer {{.Labels.Run.Article}} {{.Labels.Run.Singular}}.</p>
     {{end}}
   </mb-empty-state>
   {{end}}

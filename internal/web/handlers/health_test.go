@@ -63,6 +63,34 @@ func TestLoginPage(t *testing.T) {
 	if !strings.Contains(rec.Body.String(), "Se connecter avec GitHub") {
 		t.Fatalf("expected login page content")
 	}
+	if got := rec.Header().Get("X-Frame-Options"); got != "DENY" {
+		t.Fatalf("X-Frame-Options = %q, want DENY", got)
+	}
+	if got := rec.Header().Get("X-Content-Type-Options"); got != "nosniff" {
+		t.Fatalf("X-Content-Type-Options = %q, want nosniff", got)
+	}
+}
+
+func TestNotFoundPage(t *testing.T) {
+	handler, _ := testRouter(t)
+
+	req := httptest.NewRequest(http.MethodGet, "/cette-route-nexiste-pas", nil)
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusNotFound)
+	}
+	body := rec.Body.String()
+	if !strings.Contains(body, "Page introuvable") {
+		t.Fatalf("expected branded 404 title, got: %s", body)
+	}
+	if !strings.Contains(body, "Connexion") {
+		t.Fatalf("expected login CTA for anonymous 404")
+	}
+	if got := rec.Header().Get("X-Frame-Options"); got != "DENY" {
+		t.Fatalf("X-Frame-Options = %q, want DENY", got)
+	}
 }
 
 func TestLoginPage_EmailNotAllowed(t *testing.T) {

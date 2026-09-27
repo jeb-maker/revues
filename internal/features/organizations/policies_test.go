@@ -69,7 +69,7 @@ func TestLeadPoliciesSave_UpdatesFlags(t *testing.T) {
 	if getRec.Code != http.StatusOK {
 		t.Fatalf("GET status = %d", getRec.Code)
 	}
-	if !strings.Contains(getRec.Body.String(), "Délégation aux leads") {
+	if !strings.Contains(getRec.Body.String(), "Délégation aux responsables") {
 		t.Fatalf("GET body missing policies form")
 	}
 

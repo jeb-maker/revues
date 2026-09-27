@@ -19,6 +19,10 @@ Checklist vivante pour agents et relecteurs. Ne pas élargir le scope d'une issu
 
 CSP stricte, scan antivirus, rotation clés, rate limiting global, audit admin complet, queue emails persistante, OAuth Jira Server.
 
+### Baseline livré
+
+En-têtes HTTP : `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`, `Cross-Origin-Opener-Policy` (middleware `SecurityHeaders`). CSP stricte reste en CAN DEFER.
+
 ### Tests sécurité minimum
 
 ```
@@ -34,7 +38,7 @@ TestWebhook_SSRF_Block, TestUpload_Rejects
 - Ne pas fusionner les feature stores ni remettre le SQL dans les handlers (voir [CONVENTIONS.md](./CONVENTIONS.md)).
 - Jira Cloud d'abord ; Server/DC seulement si demande avérée.
 - Versionnement modèles : versionner au premier snapshot ; édition libre tant qu'aucune revue n'existe.
-- Goroutines email sans file : acceptable v1, documenter perte au restart.
+- Goroutines email sans file : **obsolète** — file `email_deliveries` + drain 1′ (comme webhooks). Voir [NOTIFICATIONS.md](./NOTIFICATIONS.md).
 - Webhooks : retry durable léger via `webhook_deliveries` + drain 1′ in-process (voir [WEBHOOKS.md](./WEBHOOKS.md)) — pas de Redis.
 - Concurrence HTMX : `updated_at` sur `run_items` pour détecter écrasements.
 

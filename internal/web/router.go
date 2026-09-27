@@ -183,6 +183,7 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, *webhooks.Dispa
 
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
+	r.Use(appmiddleware.SecurityHeaders)
 	r.Use(appmiddleware.CapturePeerAddr) // before RealIP — DevAuth must see true peer
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Logger)
@@ -194,6 +195,15 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, *webhooks.Dispa
 	r.Use(appmiddleware.LoadActiveOrganization(st))
 	r.Use(appmiddleware.LoadHeaderData(st, adminSMTPKey))
 	r.Use(appmiddleware.CSRF(deps.Config.SessionSecret))
+
+	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
+		writeErrorPage(w, r, tpl, deps.Config.SessionSecret, http.StatusNotFound,
+			"Page introuvable", "Cette adresse n'existe pas ou vous n'y avez pas accès.")
+	})
+	r.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) {
+		writeErrorPage(w, r, tpl, deps.Config.SessionSecret, http.StatusMethodNotAllowed,
+			"Méthode non autorisée", "Cette action n'est pas disponible sur cette adresse.")
+	})
 
 	r.Get("/healthz", Health)
 	r.Get("/", (&home.Home{Deps: home.Deps{

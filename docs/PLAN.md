@@ -28,11 +28,15 @@ Remplace Excel, fils de mails et check-lists éparpillées, sans devenir une usi
 |----------|-------|
 | HTML par page | < 50 Ko |
 | CSS core (`app.css`) | < 24 Ko brut, < 8 Ko gzip |
-| CSS total (tous fichiers) | < 40 Ko brut, < 12 Ko gzip cumulé |
+| CSS total (tous fichiers app) | < 40 Ko brut, < 12 Ko gzip cumulé |
 | CSS page (core + feuille dédiée) | chargé à la demande (`run.css`, `editor.css`) |
-| JS / HTMX | < 15 Ko |
+| JS app (hors `vendor/`) | < 15 Ko brut — HTMX + `app.js` + pages |
+| JS vendor (`mb-boot`, reports) | hors seuil app ; **reports lazy** au clic « Signaler » ; `check.sh` reporte gzip vendor |
+| Transfert shell estimé | `check.sh` affiche gzip app+vendor sans reports ; warn si > 45 Ko gzip |
 | Requêtes par page | ≤ 8 |
 | RAM serveur | < 128 Mo en charge normale |
+
+`scripts/check.sh` échoue toujours sur les seuils **app** ; le vendor est mesuré (visibilité) et reports n’est plus chargé sur chaque page authentifiée.
 
 ---
 
@@ -142,26 +146,27 @@ erDiagram
 
 ## Écrans
 
-1. Connexion (GitHub)
-2. Tableau de bord — projets + « Mes tâches »
-3. Fiche projet — revues, membres, stats
-4. Liste / éditeur modèles (sections + points)
-5. Assistant lancement revue (3 étapes)
-6. Détail revue — points, progression, activité, Jira
-7. Admin — utilisateurs, SMTP, intégrations
+1. Connexion (GitHub OAuth et/ou email + mot de passe)
+2. Hub **Revues** (`/revues`) — liste paginée, filtres statut, CTA lancement
+3. Fiche sujet — revues, collab (équipes/membres si P1+), domaines/étiquettes si multi-sujet
+4. Liste / éditeur modèles ou listes (vocabulaire via `ShowSubjectColumn`)
+5. Assistant lancement revue (`/revues/nouvelle`) — **2 étapes** (sujet → modèle/liste)
+6. Détail revue — points (HTMX), progression, Jira/Notion/preuve selon capabilities
+7. Mes tâches (si ≥2 membres)
+8. Admin org — utilisateurs, sujets, SMTP, intégrations, libellés UI
 
 ---
 
 ## Intégrations
 
-### Jira (v1) — Cloud **et** Server / Data Center
+### Jira (v1) — Cloud d'abord
 
-| Type instance | Auth |
-|---------------|------|
-| Jira Cloud | Email + API token Atlassian |
-| Jira Server / DC | PAT ou OAuth 2.0 |
+| Type instance | Auth | Statut |
+|---------------|------|--------|
+| Jira Cloud | Email + API token Atlassian | **Livré** |
+| Jira Server / DC | PAT ou OAuth 2.0 | **Icebox** ([#65](https://github.com/jeb-maker/revues/issues/65)) |
 
-Actions :
+Actions (Cloud) :
 - Lier une issue (`PROJ-123` ou URL) sur un point
 - Créer un ticket depuis un point `nok`
 - (v2) Afficher statut issue à l'ouverture de la revue
@@ -251,7 +256,35 @@ Reste et icebox : [ROADMAP.md](./ROADMAP.md). Délégation : [DELEGATION.md](./D
 - Jira Server/DC (Cloud d'abord)
 - Sync statut Jira à la demande
 - Slack / Teams natif
-- PostgreSQL (si multi-instance)
+- PostgreSQL (si multi-instance — voir critères ci-dessous)
+- Imports atomiques mb par composant (aujourd’hui `mb-boot.js` monolithe Lit ; rebuild documenté dans `web/static/vendor/jeb-maker-mb/README.md`)
+
+## Critères de bascule 1 → N instances
+
+Tant qu’**une seule** VM / process sert le trafic, la stack SQLite + attachments locaux + drain in-process (webhooks + emails) est normative.
+
+Envisager Postgres + stockage objet + worker **seulement** si l’un des seuils suivants est atteint :
+
+| Signal | Seuil indicatif | Action |
+|--------|-----------------|--------|
+| Deuxième process / HA | Besoin de 2 réplicas app | Postgres (remplace SQLite) + claim durable des queues |
+| Contention écriture | `SQLITE_BUSY` récurrent malgré pool/WAL/`busy_timeout` | Postgres |
+| Attachments multi-AZ / backup | Besoin hors-VM | Interface storage → objet (S3-compat) |
+| Drain multi-instance | 2 process qui drainent la même queue | Row claim (`UPDATE … WHERE state`) ou worker unique |
+
+Ne pas migrer « au cas où ». Icebox jusqu’à signal mesuré.
+
+## Rétention des snapshots (design)
+
+Les `run_items` sont une **copie** au lancement : croissance disque linéaire avec le volume de revues.
+
+Politique cible (à implémenter via issue `area:data` dédiée, **sans** UPDATE destructif sur version de modèle publiée) :
+
+1. **Actif** — revues `draft` / `in_progress` / `completed` récentes : inchangé.
+2. **Archive froide** — après N mois (réglage org) : export CSV/preuve ZIP déjà disponibles ; option `archived_at` + purge des pièces jointes binaires (métadonnées / hash conservés).
+3. **Pas de soft-delete** des `template_versions` publiées ni réécriture de l’historique `run_item_events`.
+
+Implémentation reportée tant que le disque / une exigence conformité ne le justifie pas.
 
 ---
 

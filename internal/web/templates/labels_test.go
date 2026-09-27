@@ -28,4 +28,23 @@ func TestRunLabelsForPreset_DefaultRevues(t *testing.T) {
 	if got.Nav != "Revues" || got.NavShort != "Revues" {
 		t.Fatalf("default = %+v", got)
 	}
+	if got.Definite != "la " {
+		t.Fatalf("Definite = %q", got.Definite)
+	}
+	if templates.CompleteRunCTA(got) != "Terminer la revue" {
+		t.Fatalf("CompleteRunCTA = %q", templates.CompleteRunCTA(got))
+	}
+	if templates.RunDoneHeading(got) != "Revue terminée" {
+		t.Fatalf("RunDoneHeading = %q", templates.RunDoneHeading(got))
+	}
+}
+
+func TestRunLabelsForPreset_Audits(t *testing.T) {
+	got := templates.RunLabelsForPreset(store.UIRunLabelAudits)
+	if templates.RunDoneHeading(got) != "Audit terminé" {
+		t.Fatalf("RunDoneHeading = %q", templates.RunDoneHeading(got))
+	}
+	if templates.ReturnToRunCTA(got) != "Retour à l'audit" {
+		t.Fatalf("ReturnToRunCTA = %q", templates.ReturnToRunCTA(got))
+	}
 }

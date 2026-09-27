@@ -651,6 +651,7 @@ type RunCompleteStatusData struct {
 	CompleteError        string
 	ClosingNote          string
 	CSRFToken            string
+	Labels               UILabels
 }
 
 // RunItemRowData is view data for a single run item table row fragment.
@@ -886,8 +887,16 @@ func Parse(assetVersion string) (*template.Template, error) {
 		"formatAccessSource":  FormatAccessSource,
 		"teamAssignPreview":   TeamAssignPreview,
 		"lowerFirst":          LowerFirst,
+		"capitalizeFirst":     CapitalizeFirst,
 		"launchActionTitle":   LaunchActionTitle,
 		"launchRunCTA":        LaunchRunCTA,
+		"launchAnotherRunCTA": LaunchAnotherRunCTA,
+		"closeRunHeading":     CloseRunHeading,
+		"completeRunCTA":      CompleteRunCTA,
+		"completeRunConfirm":  CompleteRunConfirm,
+		"startRunCTA":         StartRunCTA,
+		"runDoneHeading":      RunDoneHeading,
+		"returnToRunCTA":      ReturnToRunCTA,
 		"runItemTableColspan": RunItemTableColspan,
 		"mbTableSections":     ToMBTableSections,
 		"sectionIDForTitle":   SectionIDForTitle,

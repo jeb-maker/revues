@@ -18,7 +18,7 @@
     {{end}}
     <details class="stack-form">
       <summary>Options avancées</summary>
-      <mb-input label="Domaines" type="text" name="domains" value="{{.Domains}}" hint="Séparez par des virgules (ex. k8s, frontend). Filtre les modèles proposés pour ce {{.Labels.Subject.Singular | lowerFirst}}."></mb-input>
+      <mb-input label="Domaines" type="text" name="domains" value="{{.Domains}}" hint="Séparez par des virgules (ex. k8s, frontend). Filtre {{if .ShowSubjectColumn}}les modèles proposés{{else}}les listes proposées{{end}} pour ce {{.Labels.Subject.Singular | lowerFirst}}."></mb-input>
       <mb-input label="Étiquettes" type="text" name="tags" value="{{.Tags}}" hint="Classification libre (ex. prod, critique)."></mb-input>
     </details>
     <div class="form-actions">

@@ -10,7 +10,7 @@
   </div>
   {{end}}
   {{else}}
-  <p>Créez une liste (vacances, courses…) pour lancer des revues.</p>
+  <p>Créez une liste (vacances, courses…) pour lancer des {{.Labels.Run.Plural}}.</p>
   {{if .CanManage}}
   <div slot="actions">
     <mb-button href="/modeles/new">Créer une liste</mb-button>
@@ -22,7 +22,7 @@
 <mb-card>
   {{template "flash_alerts" .}}
   {{if not .ShowSubjectColumn}}
-  <p class="muted">Listes réutilisables — lancez une revue à partir d'une liste.</p>
+  <p class="muted">Listes réutilisables — lancez {{.Labels.Run.Article}} {{.Labels.Run.Singular}} à partir d'une liste.</p>
   {{end}}
   <mb-toolbar class="list-toolbar">
     <form slot="start" method="get" action="/modeles" class="list-toolbar__form filter-form filter-form--inline">

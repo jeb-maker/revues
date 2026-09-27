@@ -84,7 +84,7 @@
   <mb-card>
     <h2>Identité</h2>
     {{if and .Template .Version}}
-    <p class="field-hint">Version actuelle v{{.Version.Version}}. L'enregistrement publie une <strong>nouvelle version</strong> ; les revues déjà lancées conservent la version figée.</p>
+    <p class="field-hint">Version actuelle v{{.Version.Version}}. L'enregistrement publie une <strong>nouvelle version</strong> ; les {{.Labels.Run.Plural}} déjà lancées conservent la version figée.</p>
     {{else}}
     <p class="field-hint">Définissez le nom du modèle.{{if .NotionConfigured}} <a href="/modeles/notion-import">Importer depuis Notion</a>{{end}}</p>
     {{end}}
@@ -123,7 +123,7 @@
             <input type="hidden" name="item_row_idx" value="{{if $row.RowIndex}}{{$row.RowIndex}}{{else}}{{$i}}{{end}}">
             <input type="hidden" name="item_section_idx" value="{{$sec.SectionIndex}}">
             <div class="template-editor__point-fields">
-              <mb-input class="template-editor__field" label="Libellé" type="text" id="item_label_{{$sec.SectionIndex}}_{{$i}}" name="item_label" value="{{$row.Label}}" hint="Court — affiché dans la liste de revue ({{$.MaxItemLabelLen}} caractères max)."{{if $.ItemsError}} aria-describedby="template-items-error"{{end}}></mb-input>
+              <mb-input class="template-editor__field" label="Libellé" type="text" id="item_label_{{$sec.SectionIndex}}_{{$i}}" name="item_label" value="{{$row.Label}}" hint="Court — affiché dans la liste de {{$.Labels.Run.Singular}} ({{$.MaxItemLabelLen}} caractères max)."{{if $.ItemsError}} aria-describedby="template-items-error"{{end}}></mb-input>
               <details class="template-editor__more">
                 <summary>Options</summary>
                 <mb-textarea class="template-editor__field template-editor__help" label="Texte d'aide" id="item_help_{{$sec.SectionIndex}}_{{$i}}" name="item_help" rows="2" value="{{$row.HelpText}}" hint="Optionnel — visible sur la fiche point ({{$.MaxItemHelpLen}} caractères max)."></mb-textarea>

@@ -56,6 +56,7 @@ func main() {
 	schedulerCtx, schedulerCancel := context.WithCancel(context.Background())
 	defer schedulerCancel()
 	notifications.StartDueReminderScheduler(schedulerCtx, notificationsSvc, 24*time.Hour)
+	notifications.StartEmailDrainScheduler(schedulerCtx, notificationsSvc, notifications.DrainInterval)
 	webhooks.StartDrainScheduler(schedulerCtx, webhookDispatcher, webhooks.DrainInterval)
 
 	srv := &http.Server{

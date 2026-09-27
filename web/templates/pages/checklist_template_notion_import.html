@@ -5,7 +5,7 @@
 <mb-card>
 {{if not .NotionConfigured}}
 <p class="muted">Notion n'est pas configuré. Demandez à un administrateur de configurer l'intégration.</p>
-<p><mb-button href="/modeles" variant="secondary">Retour aux modèles</mb-button></p>
+<p><mb-button href="/modeles" variant="secondary">{{if .ShowSubjectColumn}}Retour aux modèles{{else}}Retour aux listes{{end}}</mb-button></p>
 {{else}}
 {{if eq .Step "source"}}
 <form method="post" action="{{.FormAction}}" class="stack-form">
