@@ -36,6 +36,14 @@ const (
 	HealthResponseStatusOk HealthResponseStatus = "ok"
 )
 
+// Defines values for MyTaskStatus.
+const (
+	MyTaskStatusNa      MyTaskStatus = "na"
+	MyTaskStatusNok     MyTaskStatus = "nok"
+	MyTaskStatusOk      MyTaskStatus = "ok"
+	MyTaskStatusPending MyTaskStatus = "pending"
+)
+
 // Defines values for OrganizationMemberRole.
 const (
 	OrganizationMemberRoleAdmin  OrganizationMemberRole = "admin"
@@ -101,10 +109,18 @@ const (
 
 // Defines values for UpdateRunItemRequestStatus.
 const (
-	Na      UpdateRunItemRequestStatus = "na"
-	Nok     UpdateRunItemRequestStatus = "nok"
-	Ok      UpdateRunItemRequestStatus = "ok"
-	Pending UpdateRunItemRequestStatus = "pending"
+	UpdateRunItemRequestStatusNa      UpdateRunItemRequestStatus = "na"
+	UpdateRunItemRequestStatusNok     UpdateRunItemRequestStatus = "nok"
+	UpdateRunItemRequestStatusOk      UpdateRunItemRequestStatus = "ok"
+	UpdateRunItemRequestStatusPending UpdateRunItemRequestStatus = "pending"
+)
+
+// Defines values for ListMyTasksParamsStatus.
+const (
+	Na      ListMyTasksParamsStatus = "na"
+	Nok     ListMyTasksParamsStatus = "nok"
+	Ok      ListMyTasksParamsStatus = "ok"
+	Pending ListMyTasksParamsStatus = "pending"
 )
 
 // Defines values for ListRunsParamsStatus.
@@ -283,6 +299,33 @@ type LoginRequest struct {
 type MeResponse struct {
 	CsrfToken string `json:"csrf_token"`
 	User      User   `json:"user"`
+}
+
+// MyTask defines model for MyTask.
+type MyTask struct {
+	AssignedLogin *string      `json:"assigned_login"`
+	AssignedTo    *int64       `json:"assigned_to"`
+	Comment       string       `json:"comment"`
+	HelpText      *string      `json:"help_text,omitempty"`
+	Id            int64        `json:"id"`
+	Label         string       `json:"label"`
+	Position      int          `json:"position"`
+	Required      bool         `json:"required"`
+	RunId         int64        `json:"run_id"`
+	RunTitle      string       `json:"run_title"`
+	Section       string       `json:"section"`
+	Status        MyTaskStatus `json:"status"`
+	SubjectId     int64        `json:"subject_id"`
+	SubjectName   string       `json:"subject_name"`
+	UpdatedAt     string       `json:"updated_at"`
+}
+
+// MyTaskStatus defines model for MyTask.Status.
+type MyTaskStatus string
+
+// MyTaskListResponse defines model for MyTaskListResponse.
+type MyTaskListResponse struct {
+	Tasks []MyTask `json:"tasks"`
 }
 
 // Organization defines model for Organization.
@@ -734,6 +777,18 @@ type NotFound = ErrorResponse
 // Unauthorized defines model for Unauthorized.
 type Unauthorized = ErrorResponse
 
+// ListMyTasksParams defines parameters for ListMyTasks.
+type ListMyTasksParams struct {
+	// Status Filtre statut de l'item
+	Status *ListMyTasksParamsStatus `form:"status,omitempty" json:"status,omitempty"`
+
+	// Q Recherche texte (sujet, modèle, label, section)
+	Q *string `form:"q,omitempty" json:"q,omitempty"`
+}
+
+// ListMyTasksParamsStatus defines parameters for ListMyTasks.
+type ListMyTasksParamsStatus string
+
 // ListRunsParams defines parameters for ListRuns.
 type ListRunsParams struct {
 	// Status Filtre statut
@@ -870,6 +925,9 @@ type ServerInterface interface {
 	// Utilisateur authentifié courant
 	// (GET /me)
 	GetMe(w http.ResponseWriter, r *http.Request)
+	// Mes tâches assignées
+	// (GET /me/tasks)
+	ListMyTasks(w http.ResponseWriter, r *http.Request, params ListMyTasksParams)
 	// Organisations de l'utilisateur
 	// (GET /orgs)
 	ListOrganizations(w http.ResponseWriter, r *http.Request)
@@ -1065,6 +1123,12 @@ func (_ Unimplemented) GetHealth(w http.ResponseWriter, r *http.Request) {
 // Utilisateur authentifié courant
 // (GET /me)
 func (_ Unimplemented) GetMe(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Mes tâches assignées
+// (GET /me/tasks)
+func (_ Unimplemented) ListMyTasks(w http.ResponseWriter, r *http.Request, params ListMyTasksParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -1552,6 +1616,41 @@ func (siw *ServerInterfaceWrapper) GetMe(w http.ResponseWriter, r *http.Request)
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetMe(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListMyTasks operation middleware
+func (siw *ServerInterfaceWrapper) ListMyTasks(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListMyTasksParams
+
+	// ------------- Optional query parameter "status" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "status", r.URL.Query(), &params.Status)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "status", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "q" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "q", r.URL.Query(), &params.Q)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "q", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListMyTasks(w, r, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -2438,6 +2537,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/me", wrapper.GetMe)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/me/tasks", wrapper.ListMyTasks)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/orgs", wrapper.ListOrganizations)
