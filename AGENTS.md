@@ -127,7 +127,13 @@ Contexte durable pour les agents Cloud (l'update script a déjà installé les d
 
 - **Stack/run** : API Go 1.22 (pas de CGO — driver `modernc.org/sqlite` pur Go) + front SvelteKit. Lancer l'API : `go run ./cmd/revues` (écoute `:8080`, migrations goose au démarrage). Front dev : voir [docs/FRONTEND.md](docs/FRONTEND.md) (proxy vers l'API). Variables : `.env.example` (le binaire lit `os.Getenv`, **pas de chargement automatique de `.env`**).
 - **Gatekeeper** : `./scripts/check.sh` — Go (gofmt, vet, test -race, build, `go mod tidy` strict, golangci-lint) + front (`npm` check/build). `golangci-lint` v1.62 sur le `PATH` (`$(go env GOPATH)/bin`).
-- **Auth / démo locale** : UI derrière session. Sans OAuth GitHub configuré, utiliser login local ou seed session (`store` + cookie `revues_session`). CSRF dérivé de `session token + REVUES_SESSION_SECRET`, exposé via bootstrap API et envoyé en `X-CSRF-Token`. `REVUES_BOOTSTRAP_ADMIN_EMAIL` : admin au premier login de cet email.
+- **Auth / démo locale** :
+  - Endpoints JSON : `GET /api/v1/bootstrap` (user + `csrf_token`, pose cookie guest si anonymes), `GET /api/v1/me`, `POST /api/v1/auth/login|register|logout`. OAuth browser : `GET /auth/github/start` + `/auth/github/callback` → redirect SPA `/login` ou `/`.
+  - Pages Svelte : `/login`, `/register` (proxy Vite `/api` `/auth` `/static` → `:8080`).
+  - Sans `REVUES_GITHUB_CLIENT_ID`/`SECRET`, le bouton GitHub est masqué (`github_oauth_enabled: false`) ; utiliser login/register local.
+  - **Seed session** (sans UI) : `store.UpsertGitHubUser` ou `CreateLocalUser`, puis `store.CreateSession` avec le hash de `auth.RandomToken`, cookie HttpOnly `revues_session=<raw>`. CSRF = HMAC(`session token + REVUES_SESSION_SECRET`) — aussi renvoyé par bootstrap/`me` ; envoyer `X-CSRF-Token` sur chaque mutation API.
+  - `REVUES_BOOTSTRAP_ADMIN_EMAIL` : rôle admin au premier login de cet email. `REVUES_DEV_AUTH=1` (hors production, loopback) auto-session + `POST /auth/dev/login` switch user.
+  - Whitelist : `REVUES_LOGIN_REQUIRE_WHITELIST=1` refuse register/OAuth hors `allowed_emails` (tests sécurité).
 - **SQLite** : pool `REVUES_DB_MAX_OPEN_CONNS` (défaut 10) + WAL + `busy_timeout`, base `data/revues.db` (gitignored).
 - **Reset base dev** : `./scripts/reset-db.sh` ; `--seed` disponible. Migrations goose dans `migrations/`.
 - **Rewrite** : orchestration [docs/rewrite/README.md](docs/rewrite/README.md). Créer les issues : `./scripts/create-rewrite-issues.sh`.

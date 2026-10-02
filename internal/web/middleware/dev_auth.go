@@ -122,6 +122,8 @@ func isDevAuthExemptPath(path string) bool {
 		return true
 	case strings.HasPrefix(path, "/static/"):
 		return true
+	case strings.HasPrefix(path, "/api/v1/auth/"), path == "/api/v1/bootstrap", path == "/api/v1/health":
+		return true
 	default:
 		return false
 	}

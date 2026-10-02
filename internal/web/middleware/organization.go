@@ -69,7 +69,8 @@ func isOrganizationExemptPath(path string) bool {
 		strings.HasPrefix(path, "/auth/"),
 		path == "/logout",
 		path == "/healthz",
-		strings.HasPrefix(path, "/static/"):
+		strings.HasPrefix(path, "/static/"),
+		strings.HasPrefix(path, "/api/"):
 		return true
 	default:
 		return false

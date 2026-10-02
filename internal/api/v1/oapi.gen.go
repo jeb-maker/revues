@@ -8,12 +8,48 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
 // Defines values for HealthResponseStatus.
 const (
 	Ok HealthResponseStatus = "ok"
 )
+
+// AuthSuccessResponse defines model for AuthSuccessResponse.
+type AuthSuccessResponse struct {
+	CsrfToken string `json:"csrf_token"`
+
+	// Redirect Chemin SPA post-login (org onboarding ou accueil)
+	Redirect string `json:"redirect"`
+	User     User   `json:"user"`
+}
+
+// BootstrapResponse defines model for BootstrapResponse.
+type BootstrapResponse struct {
+	Authenticated bool `json:"authenticated"`
+
+	// CsrfToken Jeton CSRF à envoyer en header X-CSRF-Token sur les mutations
+	CsrfToken string `json:"csrf_token"`
+
+	// GithubOauthEnabled true si REVUES_GITHUB_CLIENT_ID/SECRET sont configurés
+	GithubOauthEnabled bool `json:"github_oauth_enabled"`
+
+	// Redirect Chemin SPA suggéré si déjà authentifié
+	Redirect *string `json:"redirect,omitempty"`
+	User     *User   `json:"user,omitempty"`
+}
+
+// ErrorBody defines model for ErrorBody.
+type ErrorBody struct {
+	Code    string `json:"code"`
+	Message string `json:"message"`
+}
+
+// ErrorResponse defines model for ErrorResponse.
+type ErrorResponse struct {
+	Error ErrorBody `json:"error"`
+}
 
 // HealthResponse defines model for HealthResponse.
 type HealthResponse struct {
@@ -24,20 +60,115 @@ type HealthResponse struct {
 // HealthResponseStatus État de santé
 type HealthResponseStatus string
 
+// LoginRequest defines model for LoginRequest.
+type LoginRequest struct {
+	Email    openapi_types.Email `json:"email"`
+	Password string              `json:"password"`
+}
+
+// MeResponse defines model for MeResponse.
+type MeResponse struct {
+	CsrfToken string `json:"csrf_token"`
+	User      User   `json:"user"`
+}
+
+// RegisterRequest defines model for RegisterRequest.
+type RegisterRequest struct {
+	DisplayName     string              `json:"display_name"`
+	Email           openapi_types.Email `json:"email"`
+	Password        string              `json:"password"`
+	PasswordConfirm string              `json:"password_confirm"`
+}
+
+// User defines model for User.
+type User struct {
+	AvatarUrl   *string             `json:"avatar_url,omitempty"`
+	DisplayName string              `json:"display_name"`
+	Email       openapi_types.Email `json:"email"`
+	Id          int64               `json:"id"`
+	Login       string              `json:"login"`
+
+	// Role Rôle global (admin|editor|reader)
+	Role string `json:"role"`
+}
+
+// BadRequest defines model for BadRequest.
+type BadRequest = ErrorResponse
+
+// Forbidden defines model for Forbidden.
+type Forbidden = ErrorResponse
+
+// InternalError defines model for InternalError.
+type InternalError = ErrorResponse
+
+// Unauthorized defines model for Unauthorized.
+type Unauthorized = ErrorResponse
+
+// PostAuthLoginJSONRequestBody defines body for PostAuthLogin for application/json ContentType.
+type PostAuthLoginJSONRequestBody = LoginRequest
+
+// PostAuthRegisterJSONRequestBody defines body for PostAuthRegister for application/json ContentType.
+type PostAuthRegisterJSONRequestBody = RegisterRequest
+
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+	// Connexion email + mot de passe
+	// (POST /auth/login)
+	PostAuthLogin(w http.ResponseWriter, r *http.Request)
+	// Déconnexion
+	// (POST /auth/logout)
+	PostAuthLogout(w http.ResponseWriter, r *http.Request)
+	// Inscription email + mot de passe
+	// (POST /auth/register)
+	PostAuthRegister(w http.ResponseWriter, r *http.Request)
+	// Bootstrap session + CSRF
+	// (GET /bootstrap)
+	GetBootstrap(w http.ResponseWriter, r *http.Request)
 	// Santé de l'API versionnée
 	// (GET /health)
 	GetHealth(w http.ResponseWriter, r *http.Request)
+	// Utilisateur authentifié courant
+	// (GET /me)
+	GetMe(w http.ResponseWriter, r *http.Request)
 }
 
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
 
 type Unimplemented struct{}
 
+// Connexion email + mot de passe
+// (POST /auth/login)
+func (_ Unimplemented) PostAuthLogin(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Déconnexion
+// (POST /auth/logout)
+func (_ Unimplemented) PostAuthLogout(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Inscription email + mot de passe
+// (POST /auth/register)
+func (_ Unimplemented) PostAuthRegister(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Bootstrap session + CSRF
+// (GET /bootstrap)
+func (_ Unimplemented) GetBootstrap(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // Santé de l'API versionnée
 // (GET /health)
 func (_ Unimplemented) GetHealth(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Utilisateur authentifié courant
+// (GET /me)
+func (_ Unimplemented) GetMe(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -50,11 +181,81 @@ type ServerInterfaceWrapper struct {
 
 type MiddlewareFunc func(http.Handler) http.Handler
 
+// PostAuthLogin operation middleware
+func (siw *ServerInterfaceWrapper) PostAuthLogin(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PostAuthLogin(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PostAuthLogout operation middleware
+func (siw *ServerInterfaceWrapper) PostAuthLogout(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PostAuthLogout(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PostAuthRegister operation middleware
+func (siw *ServerInterfaceWrapper) PostAuthRegister(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PostAuthRegister(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetBootstrap operation middleware
+func (siw *ServerInterfaceWrapper) GetBootstrap(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetBootstrap(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetHealth operation middleware
 func (siw *ServerInterfaceWrapper) GetHealth(w http.ResponseWriter, r *http.Request) {
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetHealth(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetMe operation middleware
+func (siw *ServerInterfaceWrapper) GetMe(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetMe(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -178,7 +379,22 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	}
 
 	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/auth/login", wrapper.PostAuthLogin)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/auth/logout", wrapper.PostAuthLogout)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/auth/register", wrapper.PostAuthRegister)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/bootstrap", wrapper.GetBootstrap)
+	})
+	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/health", wrapper.GetHealth)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/me", wrapper.GetMe)
 	})
 
 	return r

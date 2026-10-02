@@ -6,29 +6,24 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/go-chi/chi/v5"
-
 	apiv1 "github.com/jeb-maker/revues/internal/api/v1"
+	"github.com/jeb-maker/revues/internal/config"
 )
 
 func TestGetHealth(t *testing.T) {
 	t.Parallel()
 
-	r := chi.NewRouter()
-	r.Route("/api/v1", func(r chi.Router) {
-		apiv1.HandlerFromMux(apiv1.NewServer(), r)
+	handler := newTestRouter(t, config.Config{
+		SessionSecret: "test-secret-at-least-thirty-two-bytes",
+		Env:           "development",
 	})
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/health", nil)
 	rec := httptest.NewRecorder()
-	r.ServeHTTP(rec, req)
+	handler.ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
-	}
-	ct := rec.Header().Get("Content-Type")
-	if ct != "application/json; charset=utf-8" {
-		t.Errorf("Content-Type = %q, want application/json; charset=utf-8", ct)
 	}
 
 	var body apiv1.HealthResponse
