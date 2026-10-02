@@ -227,3 +227,70 @@ export async function postAdminJiraTest(csrfToken: string): Promise<void> {
 	if (response.status === 204) return;
 	throw new Error(errorMessage(error, `Test Jira: HTTP ${response.status}`));
 }
+
+export type WebhookSettings =
+	paths['/admin/webhooks']['get']['responses']['200']['content']['application/json'];
+export type WebhookSettingsUpdate =
+	paths['/admin/webhooks']['put']['requestBody']['content']['application/json'];
+export type WebhookDeliveryList =
+	paths['/admin/webhooks/deliveries']['get']['responses']['200']['content']['application/json'];
+export type WebhookDelivery = WebhookDeliveryList['deliveries'][number];
+
+export async function getAdminWebhooks(csrfToken?: string): Promise<WebhookSettings> {
+	const client = createApiClient({ csrfToken });
+	const { data, error, response } = await client.GET('/admin/webhooks');
+	if (data) return data;
+	throw new Error(errorMessage(error, `Webhooks: HTTP ${response.status}`));
+}
+
+export async function putAdminWebhooks(
+	body: WebhookSettingsUpdate,
+	csrfToken: string
+): Promise<WebhookSettings> {
+	const client = createApiClient({ csrfToken });
+	const { data, error, response } = await client.PUT('/admin/webhooks', { body });
+	if (data) return data;
+	throw new Error(errorMessage(error, `Enregistrement webhooks: HTTP ${response.status}`));
+}
+
+export async function deleteAdminWebhooks(csrfToken: string): Promise<void> {
+	const client = createApiClient({ csrfToken });
+	const { error, response } = await client.DELETE('/admin/webhooks');
+	if (response.ok) return;
+	throw new Error(errorMessage(error, `Suppression webhooks: HTTP ${response.status}`));
+}
+
+export async function postAdminWebhooksTest(csrfToken: string): Promise<void> {
+	const client = createApiClient({ csrfToken });
+	const { error, response } = await client.POST('/admin/webhooks/test', {});
+	if (response.status === 204) return;
+	throw new Error(errorMessage(error, `Test webhooks: HTTP ${response.status}`));
+}
+
+export async function listAdminWebhookDeliveries(
+	csrfToken?: string,
+	limit = 50
+): Promise<WebhookDeliveryList> {
+	const client = createApiClient({ csrfToken });
+	const { data, error, response } = await client.GET('/admin/webhooks/deliveries', {
+		params: { query: { limit } }
+	});
+	if (data) return data;
+	throw new Error(errorMessage(error, `Livraisons webhooks: HTTP ${response.status}`));
+}
+
+export async function drainAdminWebhookDeliveries(csrfToken: string): Promise<void> {
+	const client = createApiClient({ csrfToken });
+	const { error, response } = await client.POST('/admin/webhooks/deliveries/drain', {});
+	if (response.status === 204) return;
+	throw new Error(errorMessage(error, `Drain webhooks: HTTP ${response.status}`));
+}
+
+export async function retryAdminWebhookDelivery(deliveryId: number, csrfToken: string): Promise<void> {
+	const client = createApiClient({ csrfToken });
+	const { error, response } = await client.POST('/admin/webhooks/deliveries/{deliveryId}/retry', {
+		params: { path: { deliveryId } }
+	});
+	if (response.status === 204) return;
+	throw new Error(errorMessage(error, `Retry livraison: HTTP ${response.status}`));
+}

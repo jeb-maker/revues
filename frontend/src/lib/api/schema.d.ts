@@ -914,7 +914,7 @@ export interface paths {
         /**
          * Hub intégrations (états + navigation)
          * @description Auth + RequireOrgAdmin. Liste SMTP / Jira / Notion / Webhooks avec
-         *     enabled + config_path SPA. Config détaillée Jira/Notion = WP-020/021 ; webhooks = WP-022.
+         *     enabled + config_path SPA. Config détaillée Jira/Notion/Webhooks = WP-020/021/022.
          */
         get: operations["listAdminIntegrations"];
         put?: never;
@@ -1058,6 +1058,124 @@ export interface paths {
          *     Appelle `GET https://api.notion.com/v1/users/me` (Notion-Version 2022-06-28).
          */
         post: operations["postAdminNotionTest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/webhooks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Configuration webhooks sortants (secret masqué)
+         * @description Auth + RequireOrgAdmin. Singleton org (liste d'URLs + secret HMAC +
+         *     événements). Le secret n'est jamais renvoyé — `has_secret` seulement.
+         *     SPA : `/admin/settings/webhooks`.
+         */
+        get: operations["getAdminWebhooks"];
+        /**
+         * Enregistrer la configuration webhooks chiffrée
+         * @description Auth + RequireOrgAdmin + CSRF. Secret omis ou vide = conserve le secret
+         *     existant (`MergeWebhookSecret`). URLs validées (scheme + anti-SSRF).
+         */
+        put: operations["putAdminWebhooks"];
+        post?: never;
+        /**
+         * Effacer la configuration webhooks
+         * @description Auth + RequireOrgAdmin + CSRF.
+         */
+        delete: operations["deleteAdminWebhooks"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/webhooks/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Envoyer un événement webhook.test
+         * @description Auth + RequireOrgAdmin + CSRF. Utilise la config stockée (chiffrée) et
+         *     le Dispatcher (HMAC + anti-SSRF + file `webhook_deliveries`).
+         */
+        post: operations["postAdminWebhooksTest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/webhooks/deliveries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * File des livraisons webhooks (org active)
+         * @description Auth + RequireOrgAdmin. Liste récente des lignes `webhook_deliveries`
+         *     de l'organisation active (payload omis).
+         */
+        get: operations["listAdminWebhookDeliveries"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/webhooks/deliveries/drain": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Déclencher un drain manuel de la file
+         * @description Auth + RequireOrgAdmin + CSRF. Exécute `Dispatcher.Drain` (même logique
+         *     que le cron in-process 1′).
+         */
+        post: operations["postAdminWebhookDeliveriesDrain"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/webhooks/deliveries/{deliveryId}/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identifiant d'une ligne webhook_deliveries */
+                deliveryId: components["parameters"]["WebhookDeliveryId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Réessayer une livraison (pending ou poison)
+         * @description Auth + RequireOrgAdmin + CSRF + IDOR org. Remet `state=pending`,
+         *     `next_attempt_at=now`, réinitialise attempts / TTL, puis drain.
+         */
+        post: operations["postAdminWebhookDeliveryRetry"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1843,6 +1961,45 @@ export interface components {
             user_name?: string;
             workspace_name?: string;
         };
+        WebhookSettings: {
+            /** @description true si une config est stockée */
+            configured: boolean;
+            /** @description true si au moins une URL + secret permettent la livraison */
+            enabled: boolean;
+            /** @description URLs cibles (https ; http://localhost en dev) */
+            urls: string[];
+            /** @description true si un secret HMAC est stocké (jamais renvoyé en clair) */
+            has_secret: boolean;
+            review_completed: boolean;
+            review_item_nok: boolean;
+        };
+        WebhookSettingsUpdate: {
+            /** @description Au moins une URL */
+            urls: string[];
+            /** @description Omis ou vide = conserve le secret existant */
+            secret?: string;
+            review_completed: boolean;
+            review_item_nok: boolean;
+        };
+        WebhookDeliveryList: {
+            deliveries: components["schemas"]["WebhookDelivery"][];
+        };
+        WebhookDelivery: {
+            /** Format: int64 */
+            id: number;
+            event_id: string;
+            event_type: string;
+            url: string;
+            status_code?: number | null;
+            success: boolean;
+            attempts: number;
+            next_attempt_at?: string | null;
+            expires_at?: string | null;
+            /** @enum {string} */
+            state: "pending" | "done" | "poison";
+            last_error?: string | null;
+            created_at: string;
+        };
     };
     responses: {
         /** @description Requête invalide */
@@ -1912,6 +2069,8 @@ export interface components {
         RunItemId: number;
         /** @description Identifiant de la pièce jointe */
         AttachmentId: number;
+        /** @description Identifiant d'une ligne webhook_deliveries */
+        WebhookDeliveryId: number;
     };
     requestBodies: never;
     headers: never;
@@ -3658,6 +3817,171 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getAdminWebhooks: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Config courante (ou vide si non configurée) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebhookSettings"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    putAdminWebhooks: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WebhookSettingsUpdate"];
+            };
+        };
+        responses: {
+            /** @description Config enregistrée (secret masqué) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebhookSettings"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    deleteAdminWebhooks: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Configuration effacée */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    postAdminWebhooksTest: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Test enfilé / livré (au moins une tentative) */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    listAdminWebhookDeliveries: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Livraisons */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebhookDeliveryList"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    postAdminWebhookDeliveriesDrain: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Drain exécuté */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    postAdminWebhookDeliveryRetry: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identifiant d'une ligne webhook_deliveries */
+                deliveryId: components["parameters"]["WebhookDeliveryId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Livraison reprogrammée */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
             500: components["responses"]["InternalError"];
         };
     };

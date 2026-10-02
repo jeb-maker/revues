@@ -71,6 +71,11 @@ Le code généré est **commité** (pas de génération obligatoire en CI pour l
 | `GET /api/v1/me/tasks` | Mes tâches (items assignés, filtre status/q) |
 | `GET\|PUT\|DELETE /api/v1/admin/settings/smtp` | Config SMTP chiffrée (password masqué) |
 | `POST /api/v1/admin/settings/smtp/test` | Email de test SMTP |
+| `GET\|PUT\|DELETE /api/v1/admin/webhooks` | Config webhooks (secret masqué) |
+| `POST /api/v1/admin/webhooks/test` | Événement `webhook.test` |
+| `GET /api/v1/admin/webhooks/deliveries` | File `webhook_deliveries` (org) |
+| `POST /api/v1/admin/webhooks/deliveries/drain` | Drain manuel |
+| `POST /api/v1/admin/webhooks/deliveries/{id}/retry` | Retry pending/poison |
 | `GET /api/v1/admin/integrations` | Hub intégrations (états + config_path SPA) |
 | `GET\|PUT\|DELETE /api/v1/admin/integrations/jira` | Config Jira Cloud chiffrée (jeton masqué) |
 | `POST /api/v1/admin/integrations/jira/test` | Test connexion Jira (`/myself`, safehttp) |

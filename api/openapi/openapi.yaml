@@ -1540,7 +1540,7 @@ paths:
       summary: Hub intégrations (états + navigation)
       description: |
         Auth + RequireOrgAdmin. Liste SMTP / Jira / Notion / Webhooks avec
-        enabled + config_path SPA. Config détaillée Jira/Notion = WP-020/021 ; webhooks = WP-022.
+        enabled + config_path SPA. Config détaillée Jira/Notion/Webhooks = WP-020/021/022.
       responses:
         '200':
           description: Vue d'ensemble
@@ -1820,6 +1820,164 @@ paths:
                 $ref: '#/components/schemas/NotionTestResponse'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /admin/webhooks:
+    get:
+      operationId: getAdminWebhooks
+      tags:
+        - admin
+      summary: Configuration webhooks sortants (secret masqué)
+      description: |
+        Auth + RequireOrgAdmin. Singleton org (liste d'URLs + secret HMAC +
+        événements). Le secret n'est jamais renvoyé — `has_secret` seulement.
+        SPA : `/admin/settings/webhooks`.
+      responses:
+        '200':
+          description: Config courante (ou vide si non configurée)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookSettings'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    put:
+      operationId: putAdminWebhooks
+      tags:
+        - admin
+      summary: Enregistrer la configuration webhooks chiffrée
+      description: |
+        Auth + RequireOrgAdmin + CSRF. Secret omis ou vide = conserve le secret
+        existant (`MergeWebhookSecret`). URLs validées (scheme + anti-SSRF).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WebhookSettingsUpdate'
+      responses:
+        '200':
+          description: Config enregistrée (secret masqué)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookSettings'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    delete:
+      operationId: deleteAdminWebhooks
+      tags:
+        - admin
+      summary: Effacer la configuration webhooks
+      description: Auth + RequireOrgAdmin + CSRF.
+      responses:
+        '204':
+          description: Configuration effacée
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /admin/webhooks/test:
+    post:
+      operationId: postAdminWebhooksTest
+      tags:
+        - admin
+      summary: Envoyer un événement webhook.test
+      description: |
+        Auth + RequireOrgAdmin + CSRF. Utilise la config stockée (chiffrée) et
+        le Dispatcher (HMAC + anti-SSRF + file `webhook_deliveries`).
+      responses:
+        '204':
+          description: Test enfilé / livré (au moins une tentative)
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /admin/webhooks/deliveries:
+    get:
+      operationId: listAdminWebhookDeliveries
+      tags:
+        - admin
+      summary: File des livraisons webhooks (org active)
+      description: |
+        Auth + RequireOrgAdmin. Liste récente des lignes `webhook_deliveries`
+        de l'organisation active (payload omis).
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 50
+      responses:
+        '200':
+          description: Livraisons
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookDeliveryList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /admin/webhooks/deliveries/drain:
+    post:
+      operationId: postAdminWebhookDeliveriesDrain
+      tags:
+        - admin
+      summary: Déclencher un drain manuel de la file
+      description: |
+        Auth + RequireOrgAdmin + CSRF. Exécute `Dispatcher.Drain` (même logique
+        que le cron in-process 1′).
+      responses:
+        '204':
+          description: Drain exécuté
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /admin/webhooks/deliveries/{deliveryId}/retry:
+    parameters:
+      - $ref: '#/components/parameters/WebhookDeliveryId'
+    post:
+      operationId: postAdminWebhookDeliveryRetry
+      tags:
+        - admin
+      summary: Réessayer une livraison (pending ou poison)
+      description: |
+        Auth + RequireOrgAdmin + CSRF + IDOR org. Remet `state=pending`,
+        `next_attempt_at=now`, réinitialise attempts / TTL, puis drain.
+      responses:
+        '204':
+          description: Livraison reprogrammée
+        '404':
+          $ref: '#/components/responses/NotFound'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -3547,6 +3705,109 @@ components:
           type: string
         workspace_name:
           type: string
+    WebhookSettings:
+      type: object
+      required:
+        - configured
+        - enabled
+        - urls
+        - has_secret
+        - review_completed
+        - review_item_nok
+      properties:
+        configured:
+          type: boolean
+          description: true si une config est stockée
+        enabled:
+          type: boolean
+          description: true si au moins une URL + secret permettent la livraison
+        urls:
+          type: array
+          items:
+            type: string
+            format: uri
+          description: URLs cibles (https ; http://localhost en dev)
+        has_secret:
+          type: boolean
+          description: true si un secret HMAC est stocké (jamais renvoyé en clair)
+        review_completed:
+          type: boolean
+        review_item_nok:
+          type: boolean
+    WebhookSettingsUpdate:
+      type: object
+      required:
+        - urls
+        - review_completed
+        - review_item_nok
+      properties:
+        urls:
+          type: array
+          items:
+            type: string
+          minItems: 1
+          description: Au moins une URL
+        secret:
+          type: string
+          description: Omis ou vide = conserve le secret existant
+        review_completed:
+          type: boolean
+        review_item_nok:
+          type: boolean
+    WebhookDeliveryList:
+      type: object
+      required:
+        - deliveries
+      properties:
+        deliveries:
+          type: array
+          items:
+            $ref: '#/components/schemas/WebhookDelivery'
+    WebhookDelivery:
+      type: object
+      required:
+        - id
+        - event_id
+        - event_type
+        - url
+        - success
+        - attempts
+        - state
+        - created_at
+      properties:
+        id:
+          type: integer
+          format: int64
+        event_id:
+          type: string
+        event_type:
+          type: string
+        url:
+          type: string
+        status_code:
+          type: integer
+          nullable: true
+        success:
+          type: boolean
+        attempts:
+          type: integer
+        next_attempt_at:
+          type: string
+          nullable: true
+        expires_at:
+          type: string
+          nullable: true
+        state:
+          type: string
+          enum:
+            - pending
+            - done
+            - poison
+        last_error:
+          type: string
+          nullable: true
+        created_at:
+          type: string
   parameters:
     SubjectId:
       name: subjectId
@@ -3599,3 +3860,12 @@ components:
         format: int64
         minimum: 1
       description: Identifiant de la pièce jointe
+    WebhookDeliveryId:
+      name: deliveryId
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+        minimum: 1
+      description: Identifiant d'une ligne webhook_deliveries
