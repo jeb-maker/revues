@@ -90,7 +90,7 @@ fi
 # ---------------------------------------------------------------------------
 # Budgets documentés dans docs/PLAN.md (WP-005). Vendor mb mesuré, hors fail.
 SPA_JS_RAW_MAX=204800      # 200 KiB — build/_app/**/*.js
-SPA_JS_GZIP_MAX=61440      # 60 KiB gzip-9
+SPA_JS_GZIP_MAX=102400     # 100 KiB gzip-9 — orgs+subjects+templates+runs stack (resserrage WP-030)
 SPA_CSS_RAW_MAX=40960      # 40 KiB — build/_app/**/*.css
 SPA_CSS_GZIP_MAX=12288     # 12 KiB gzip-9
 
