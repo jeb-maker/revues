@@ -149,7 +149,7 @@ func (s *Server) CreateRun(w http.ResponseWriter, r *http.Request, subjectID Sub
 	}
 
 	if dueISO != "" {
-		if err := s.Store.SetRunDueDate(r.Context(), run.ID, sql.NullString{String: dueISO, Valid: true}); err != nil {
+		if err = s.Store.SetRunDueDate(r.Context(), run.ID, sql.NullString{String: dueISO, Valid: true}); err != nil {
 			slog.Error("set run due date", "err", err, "run_id", run.ID)
 			writeAPIError(w, http.StatusInternalServerError, "internal_error", "Erreur interne.")
 			return
@@ -215,7 +215,7 @@ func (s *Server) CompleteRun(w http.ResponseWriter, r *http.Request, runID RunId
 		writeAPIError(w, http.StatusInternalServerError, "internal_error", "Erreur interne.")
 		return
 	}
-	if err := runs.ValidateComplete(items); err != nil {
+	if err = runs.ValidateComplete(items); err != nil {
 		if errors.Is(err, runs.ErrPendingRequired) {
 			writeAPIError(w, http.StatusBadRequest, "validation_failed",
 				"Des points obligatoires sont encore en attente.")
@@ -239,7 +239,7 @@ func (s *Server) CompleteRun(w http.ResponseWriter, r *http.Request, runID RunId
 	}
 	hash := runs.SHA256Hex(csvData)
 
-	if err := s.Store.CompleteRunWithEvidence(r.Context(), run.ID, closingNote, hash); err != nil {
+	if err = s.Store.CompleteRunWithEvidence(r.Context(), run.ID, closingNote, hash); err != nil {
 		if errors.Is(err, store.ErrInvalidRunStatus) {
 			writeAPIError(w, http.StatusConflict, "conflict", "Cette revue n'est plus éditable.")
 			return
