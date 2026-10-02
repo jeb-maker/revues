@@ -202,6 +202,12 @@ func validationMessage(err error) string {
 	case errors.Is(err, authfeature.ErrValidation) && strings.Contains(msg, "weak password"):
 		return "Le mot de passe doit contenir entre 8 et 72 caractères."
 	default:
+		if i := strings.Index(msg, ": "); i >= 0 && i+2 < len(msg) {
+			tail := strings.TrimSpace(msg[i+2:])
+			if tail != "" && !strings.Contains(tail, "\n") {
+				return tail
+			}
+		}
 		return "Requête invalide."
 	}
 }

@@ -18,6 +18,7 @@ import (
 	"github.com/jeb-maker/revues/internal/config"
 	adminsettings "github.com/jeb-maker/revues/internal/features/admin/settings"
 	authfeature "github.com/jeb-maker/revues/internal/features/auth"
+	"github.com/jeb-maker/revues/internal/features/checklisttemplates"
 	"github.com/jeb-maker/revues/internal/features/organizations"
 	"github.com/jeb-maker/revues/internal/integrations/webhooks"
 	"github.com/jeb-maker/revues/internal/notifications"
@@ -60,6 +61,7 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, *webhooks.Dispa
 		Config:   deps.Config,
 	}
 	oauthHandlers := &authfeature.OAuthHandlers{Service: authSvc}
+	templatesSvc := &checklisttemplates.Service{Store: st}
 	orgSvc := &organizations.Service{
 		Store:         st,
 		Sessions:      sessions,
@@ -86,7 +88,7 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, *webhooks.Dispa
 		DevMode:  deps.Config.Env == "development",
 	}
 
-	apiServer := apiv1.NewServer(authSvc, orgSvc, deps.Config, sessions)
+	apiServer := apiv1.NewServer(authSvc, orgSvc, templatesSvc, st, deps.Config, sessions, webhookDispatcher)
 
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)

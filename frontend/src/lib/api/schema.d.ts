@@ -201,6 +201,386 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/subjects": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Liste des sujets de l'org active
+         * @description Auth + org active. Liste filtrée selon ResolveSubjectAccess
+         *     (org admin / grants / legacy ungated). IDOR org : hors org → vide / 404.
+         */
+        get: operations["listSubjects"];
+        put?: never;
+        /**
+         * Créer un sujet
+         * @description Auth + CanCreateSubject (editor+). CSRF requis. Domaines = matching
+         *     modèles ; tags = classification descriptive (jamais d'accès).
+         */
+        post: operations["createSubject"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/subjects/{subjectId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                subjectId: components["parameters"]["SubjectId"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Détail d'un sujet
+         * @description Auth + CanViewAccess. Absent ou non visible → 404 (IDOR).
+         *     Inclut domaines, tags, membres directs et capacités UI.
+         */
+        get: operations["getSubject"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Modifier un sujet
+         * @description Auth + CanManageAccess. CSRF requis. Visibilité seulement si
+         *     CanSetSubjectVisibility.
+         */
+        patch: operations["updateSubject"];
+        trace?: never;
+    };
+    "/subjects/{subjectId}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                subjectId: components["parameters"]["SubjectId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Archiver un sujet
+         * @description Auth + CanManageAccess. CSRF requis. Soft-archive.
+         */
+        post: operations["archiveSubject"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/subjects/{subjectId}/members": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                subjectId: components["parameters"]["SubjectId"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Membres directs du sujet
+         * @description Auth + CanViewAccess. Liste `subject_members` seulement.
+         */
+        get: operations["listSubjectMembers"];
+        put?: never;
+        /**
+         * Ajouter un membre direct
+         * @description Auth + CanManageSubjectMembers / CanInviteSubjectMember.
+         *     L'invité doit déjà avoir un compte (email). CSRF requis.
+         */
+        post: operations["addSubjectMember"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/subjects/{subjectId}/members/{userId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                subjectId: components["parameters"]["SubjectId"];
+                userId: number;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Retirer un membre direct
+         * @description Auth + CanManageSubjectMembers. CSRF requis.
+         */
+        delete: operations["removeSubjectMember"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Catalogue des modèles
+         * @description Liste les modèles actifs de l'organisation courante (dernière version).
+         *     Recherche optionnelle sur nom et domaines (`q`).
+         */
+        get: operations["listTemplates"];
+        put?: never;
+        /**
+         * Créer un modèle (version 1)
+         * @description Crée un modèle et publie immédiatement la version 1 (snapshot immuable).
+         *     Réservé aux rôles editor+.
+         */
+        post: operations["createTemplate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/templates/{templateId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identifiant du modèle */
+                templateId: components["parameters"]["TemplateId"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Détail modèle (dernière version)
+         * @description Renvoie le modèle avec sa dernière version publiée et ses items.
+         */
+        get: operations["getTemplate"];
+        /**
+         * Enregistrer (nouvelle version)
+         * @description Met à jour le nom / les domaines et **publie une nouvelle version** avec
+         *     les items fournis. Les versions déjà publiées ne sont jamais mutées.
+         */
+        put: operations["saveTemplate"];
+        post?: never;
+        /**
+         * Archiver un modèle
+         * @description Soft-delete (archive) — les versions publiées restent en base.
+         */
+        delete: operations["archiveTemplate"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/templates/{templateId}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identifiant du modèle */
+                templateId: components["parameters"]["TemplateId"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Historique des versions
+         * @description Liste les versions publiées (plus récente en premier).
+         */
+        get: operations["listTemplateVersions"];
+        put?: never;
+        /**
+         * Publier une nouvelle version
+         * @description Crée une nouvelle version immuable à partir des items fournis
+         *     (sans changer le nom/domaines).
+         */
+        post: operations["createTemplateVersion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/templates/{templateId}/versions/{version}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identifiant du modèle */
+                templateId: components["parameters"]["TemplateId"];
+                /** @description Numéro de version publiée (1, 2, …) */
+                version: components["parameters"]["TemplateVersionNumber"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Snapshot d'une version publiée
+         * @description Lecture seule — les versions publiées sont immuables.
+         */
+        get: operations["getTemplateVersion"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Liste des revues visibles
+         * @description Auth + org. Filtre status/q. Visibilite via ResolveSubjectAccess.
+         */
+        get: operations["listRuns"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/subjects/{subjectId}/runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                subjectId: components["parameters"]["SubjectId"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Revues d'un sujet
+         * @description Auth + CanViewAccess sur le sujet.
+         */
+        get: operations["listSubjectRuns"];
+        put?: never;
+        /**
+         * Lancer une revue (snapshot transactionnel)
+         * @description Auth + CanLaunchAccess. Copie SQL template_items vers run_items en transaction. CSRF requis.
+         */
+        post: operations["createRun"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/subjects/{subjectId}/run-templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                subjectId: components["parameters"]["SubjectId"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Modeles lanables pour un sujet
+         * @description Auth + CanViewAccess. Matching domaines sujet / modeles.
+         */
+        get: operations["listSubjectRunTemplates"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/runs/{runId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identifiant de la revue */
+                runId: components["parameters"]["RunId"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Detail revue + items + progression
+         * @description Auth + Visible sur le sujet. Inclut capacites UI.
+         */
+        get: operations["getRun"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/runs/{runId}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identifiant de la revue */
+                runId: components["parameters"]["RunId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cloturer une revue
+         * @description Auth + CanCompleteAccess. Bloque si points obligatoires pending. Emit review.completed. CSRF.
+         */
+        post: operations["completeRun"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/runs/{runId}/items/{itemId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identifiant de la revue */
+                runId: components["parameters"]["RunId"];
+                /** @description Identifiant du point (run item) */
+                itemId: components["parameters"]["RunItemId"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Detail d'un point + audit
+         * @description Auth + Visible. Inclut historique run_item_events.
+         */
+        get: operations["getRunItem"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Mettre a jour status/comment/assign
+         * @description Auth + CanUpdateAccess; assign exige CanAssignAccess. Comment obligatoire si nok. Run done -> 409. Emit review.item.nok. CSRF.
+         */
+        patch: operations["updateRunItem"];
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -319,6 +699,294 @@ export interface components {
             /** @description Chemin SPA après action (accueil) */
             redirect: string;
         };
+        SubjectSummary: {
+            /** Format: int64 */
+            id: number;
+            name: string;
+            description: string;
+            /**
+             * @description Visibilité sujet (private exige grant explicite)
+             * @enum {string}
+             */
+            visibility: "normal" | "private";
+        };
+        SubjectListResponse: {
+            subjects: components["schemas"]["SubjectSummary"][];
+            /** @description true si l'utilisateur peut créer un sujet (editor+) */
+            can_create: boolean;
+        };
+        SubjectCapabilities: {
+            /** @description Modifier / archiver */
+            can_manage: boolean;
+            /** @description Inviter / retirer des membres directs */
+            can_manage_members: boolean;
+            /** @description Changer subjects.visibility */
+            can_set_visibility: boolean;
+            /** @description Lancer une revue (contributor+ effectif) */
+            can_launch: boolean;
+        };
+        SubjectAccessInfo: {
+            /** @description Rôle effectif (lead|contributor|viewer|"") */
+            role: string;
+            /** @description Sources d'accès (direct, team:N, org_admin, …) */
+            sources: string[];
+        };
+        SubjectMember: {
+            /** Format: int64 */
+            user_id: number;
+            login: string;
+            /** Format: email */
+            email: string;
+            display_name: string;
+            /** @enum {string} */
+            role: "lead" | "contributor" | "viewer";
+        };
+        SubjectMemberListResponse: {
+            members: components["schemas"]["SubjectMember"][];
+        };
+        SubjectDetail: {
+            /** Format: int64 */
+            id: number;
+            name: string;
+            description: string;
+            /** @enum {string} */
+            visibility: "normal" | "private";
+            /** @description Domaines de matching modèles (pas d'accès) */
+            domains: string[];
+            /** @description Étiquettes descriptives (pas d'accès) */
+            tags: string[];
+            members: components["schemas"]["SubjectMember"][];
+            access: components["schemas"]["SubjectAccessInfo"];
+            capabilities: components["schemas"]["SubjectCapabilities"];
+        };
+        SubjectWriteRequest: {
+            name: string;
+            description?: string;
+            /** @description Domaines de matching (CSV côté legacy) */
+            domains?: string[];
+            tags?: string[];
+            /**
+             * @description Ignoré si CanSetSubjectVisibility est faux
+             * @enum {string}
+             */
+            visibility?: "normal" | "private";
+        };
+        AddSubjectMemberRequest: {
+            /** Format: email */
+            email: string;
+            /**
+             * @default viewer
+             * @enum {string}
+             */
+            role: "lead" | "contributor" | "viewer";
+        };
+        TemplateItemInput: {
+            /**
+             * @description Titre de section (optionnel)
+             * @default
+             */
+            section: string;
+            /** @description Libellé du point */
+            label: string;
+            /**
+             * @description Texte d'aide optionnel
+             * @default
+             */
+            help_text: string;
+            /**
+             * @description Point obligatoire à la revue
+             * @default false
+             */
+            required: boolean;
+        };
+        TemplateItem: {
+            /** Format: int64 */
+            id: number;
+            position: number;
+            section: string;
+            label: string;
+            help_text: string;
+            required: boolean;
+        };
+        TemplateVersionSummary: {
+            /** Format: int64 */
+            id: number;
+            version: number;
+            /** @description Horodatage ISO 8601 UTC de publication */
+            published_at: string;
+            /** Format: int64 */
+            created_by?: number | null;
+        };
+        TemplateSummary: {
+            /** Format: int64 */
+            id: number;
+            name: string;
+            latest_version: number;
+            item_count: number;
+            domains: string[];
+            created_at: string;
+        };
+        TemplateListResponse: {
+            templates: components["schemas"]["TemplateSummary"][];
+        };
+        TemplateVersionListResponse: {
+            versions: components["schemas"]["TemplateVersionSummary"][];
+        };
+        TemplateWriteRequest: {
+            name: string;
+            /**
+             * @description Domaines de matching sujets (vide = tous)
+             * @default []
+             */
+            domains: string[];
+            items: components["schemas"]["TemplateItemInput"][];
+        };
+        TemplateVersionCreateRequest: {
+            items: components["schemas"]["TemplateItemInput"][];
+        };
+        TemplateDetail: {
+            /** Format: int64 */
+            id: number;
+            name: string;
+            domains: string[];
+            version: components["schemas"]["TemplateVersionSummary"];
+            items: components["schemas"]["TemplateItem"][];
+            created_at: string;
+            /** @description true si l'utilisateur courant peut éditer/archiver */
+            can_manage?: boolean;
+        };
+        RunProgress: {
+            done: number;
+            total: number;
+            percent: number;
+        };
+        RunSummary: {
+            /** Format: int64 */
+            id: number;
+            title: string;
+            /** Format: int64 */
+            subject_id: number;
+            subject_name: string;
+            /** @enum {string} */
+            status: "draft" | "in_progress" | "done" | "archived";
+            due_date?: string | null;
+            created_at: string;
+            started_at?: string | null;
+            completed_at?: string | null;
+            created_by_login?: string | null;
+            progress: components["schemas"]["RunProgress"];
+        };
+        RunListResponse: {
+            runs: components["schemas"]["RunSummary"][];
+            total: number;
+        };
+        RunTemplateSummary: {
+            /** Format: int64 */
+            id: number;
+            name: string;
+            latest_version: number;
+            item_count: number;
+            domains?: string[];
+        };
+        RunTemplateListResponse: {
+            templates: components["schemas"]["RunTemplateSummary"][];
+            can_launch: boolean;
+        };
+        CreateRunRequest: {
+            /** Format: int64 */
+            template_id: number;
+            /** @description Date YYYY-MM-DD optionnelle */
+            due_date?: string | null;
+        };
+        CompleteRunRequest: {
+            /** @description Note de cloture optionnelle */
+            closing_note?: string;
+        };
+        RunCapabilities: {
+            can_update_items: boolean;
+            can_assign: boolean;
+            can_complete: boolean;
+        };
+        RunItem: {
+            /** Format: int64 */
+            id: number;
+            /** Format: int64 */
+            run_id: number;
+            section: string;
+            position: number;
+            label: string;
+            help_text?: string;
+            required: boolean;
+            /** @enum {string} */
+            status: "pending" | "ok" | "nok" | "na";
+            comment: string;
+            /** Format: int64 */
+            assigned_to?: number | null;
+            assigned_login?: string | null;
+            updated_at: string;
+        };
+        RunItemEvent: {
+            /** Format: int64 */
+            id: number;
+            user_login?: string | null;
+            old_status?: string | null;
+            new_status: string;
+            comment?: string;
+            created_at: string;
+        };
+        RunAssignee: {
+            /** Format: int64 */
+            user_id: number;
+            login: string;
+            display_name: string;
+        };
+        RunItemDetail: {
+            item: components["schemas"]["RunItem"];
+            events: components["schemas"]["RunItemEvent"][];
+            assignees?: components["schemas"]["RunAssignee"][];
+            capabilities: components["schemas"]["RunCapabilities"];
+            run_status?: string;
+            run_title?: string;
+            /** Format: int64 */
+            subject_id?: number;
+            subject_name?: string;
+        };
+        UpdateRunItemRequest: {
+            /** @enum {string} */
+            status?: "pending" | "ok" | "nok" | "na";
+            comment?: string;
+            /**
+             * Format: int64
+             * @description Assignee user id (omit = no change)
+             */
+            assigned_to?: number;
+            /** @description true to clear assignee (takes precedence over assigned_to) */
+            unassign?: boolean;
+        };
+        RunDetail: {
+            /** Format: int64 */
+            id: number;
+            title: string;
+            /** Format: int64 */
+            subject_id: number;
+            subject_name: string;
+            /** @enum {string} */
+            status: "draft" | "in_progress" | "done" | "archived";
+            due_date?: string | null;
+            closing_note?: string;
+            /** Format: int64 */
+            template_id: number;
+            template_name: string;
+            template_version: number;
+            created_at: string;
+            started_at?: string | null;
+            completed_at?: string | null;
+            progress: components["schemas"]["RunProgress"];
+            items: components["schemas"]["RunItem"][];
+            assignees?: components["schemas"]["RunAssignee"][];
+            capabilities: components["schemas"]["RunCapabilities"];
+            pending_required_count?: number;
+        };
     };
     responses: {
         /** @description Requête invalide */
@@ -357,7 +1025,7 @@ export interface components {
                 "application/json": components["schemas"]["ErrorResponse"];
             };
         };
-        /** @description Conflit métier */
+        /** @description Conflit métier (ex. version publiée immuable) */
         Conflict: {
             headers: {
                 [name: string]: unknown;
@@ -376,7 +1044,17 @@ export interface components {
             };
         };
     };
-    parameters: never;
+    parameters: {
+        SubjectId: number;
+        /** @description Identifiant du modèle */
+        TemplateId: number;
+        /** @description Numéro de version publiée (1, 2, …) */
+        TemplateVersionNumber: number;
+        /** @description Identifiant de la revue */
+        RunId: number;
+        /** @description Identifiant du point (run item) */
+        RunItemId: number;
+    };
     requestBodies: never;
     headers: never;
     pathItems: never;
@@ -625,6 +1303,685 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    listSubjects: {
+        parameters: {
+            query?: {
+                /** @description Filtre texte (nom / description) */
+                q?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Liste des sujets visibles */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubjectListResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    createSubject: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SubjectWriteRequest"];
+            };
+        };
+        responses: {
+            /** @description Sujet créé */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubjectDetail"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getSubject: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                subjectId: components["parameters"]["SubjectId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Détail sujet */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubjectDetail"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    updateSubject: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                subjectId: components["parameters"]["SubjectId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SubjectWriteRequest"];
+            };
+        };
+        responses: {
+            /** @description Sujet mis à jour */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubjectDetail"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    archiveSubject: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                subjectId: components["parameters"]["SubjectId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Archivé */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    listSubjectMembers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                subjectId: components["parameters"]["SubjectId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Membres directs */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubjectMemberListResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    addSubjectMember: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                subjectId: components["parameters"]["SubjectId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddSubjectMemberRequest"];
+            };
+        };
+        responses: {
+            /** @description Membre ajouté */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubjectMember"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    removeSubjectMember: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                subjectId: components["parameters"]["SubjectId"];
+                userId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Membre retiré */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    listTemplates: {
+        parameters: {
+            query?: {
+                /** @description Filtre texte (nom / domaines) */
+                q?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Catalogue */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TemplateListResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    createTemplate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TemplateWriteRequest"];
+            };
+        };
+        responses: {
+            /** @description Modèle créé */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TemplateDetail"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getTemplate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identifiant du modèle */
+                templateId: components["parameters"]["TemplateId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Détail */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TemplateDetail"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    saveTemplate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identifiant du modèle */
+                templateId: components["parameters"]["TemplateId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TemplateWriteRequest"];
+            };
+        };
+        responses: {
+            /** @description Nouvelle version publiée */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TemplateDetail"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    archiveTemplate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identifiant du modèle */
+                templateId: components["parameters"]["TemplateId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Archivé */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    listTemplateVersions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identifiant du modèle */
+                templateId: components["parameters"]["TemplateId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Versions */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TemplateVersionListResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    createTemplateVersion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identifiant du modèle */
+                templateId: components["parameters"]["TemplateId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TemplateVersionCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Version publiée */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TemplateDetail"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getTemplateVersion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identifiant du modèle */
+                templateId: components["parameters"]["TemplateId"];
+                /** @description Numéro de version publiée (1, 2, …) */
+                version: components["parameters"]["TemplateVersionNumber"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Version + items */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TemplateDetail"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    listRuns: {
+        parameters: {
+            query?: {
+                /** @description Filtre statut */
+                status?: "draft" | "in_progress" | "done" | "overdue";
+                /** @description Recherche texte */
+                q?: string;
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Liste */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunListResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    listSubjectRuns: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                subjectId: components["parameters"]["SubjectId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Liste */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunListResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    createRun: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                subjectId: components["parameters"]["SubjectId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateRunRequest"];
+            };
+        };
+        responses: {
+            /** @description Revue creee */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunDetail"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    listSubjectRunTemplates: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                subjectId: components["parameters"]["SubjectId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Catalogue filtre */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunTemplateListResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getRun: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identifiant de la revue */
+                runId: components["parameters"]["RunId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Detail */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunDetail"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    completeRun: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identifiant de la revue */
+                runId: components["parameters"]["RunId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["CompleteRunRequest"];
+            };
+        };
+        responses: {
+            /** @description Revue cloturee */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunDetail"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getRunItem: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identifiant de la revue */
+                runId: components["parameters"]["RunId"];
+                /** @description Identifiant du point (run item) */
+                itemId: components["parameters"]["RunItemId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Point */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunItemDetail"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    updateRunItem: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identifiant de la revue */
+                runId: components["parameters"]["RunId"];
+                /** @description Identifiant du point (run item) */
+                itemId: components["parameters"]["RunItemId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateRunItemRequest"];
+            };
+        };
+        responses: {
+            /** @description Point mis a jour */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunItemDetail"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             500: components["responses"]["InternalError"];
         };
     };

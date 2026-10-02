@@ -59,10 +59,15 @@ Le code généré est **commité** (pas de génération obligatoire en CI pour l
 | `POST /api/v1/auth/login` | Login email/mot de passe (CSRF guest) |
 | `POST /api/v1/auth/register` | Inscription locale (CSRF guest) |
 | `POST /api/v1/auth/logout` | Logout (CSRF session) |
-| `GET /api/v1/orgs` | Liste orgs + invitations + hints onboarding |
-| `POST /api/v1/orgs` | Création org self-service (1ʳᵉ appartenance) |
-| `POST /api/v1/orgs/active` | Sélection / switch org active |
-| `POST /api/v1/orgs/invitations/{id}/accept` | Accepter invitation |
+| `GET/POST /api/v1/templates` | Catalogue / création modèle (v1) |
+| `GET/PUT/DELETE /api/v1/templates/{id}` | Détail / save (= nouvelle version) / archive |
+| `GET/POST /api/v1/templates/{id}/versions` | Historique / publier version |
+| `GET /api/v1/templates/{id}/versions/{n}` | Snapshot immuable |
+| `GET /api/v1/runs` | Liste des revues visibles (filtre status/q) |
+| `POST /api/v1/subjects/{id}/runs` | Lancer une revue (snapshot transactionnel) |
+| `GET /api/v1/runs/{id}` | Détail + items + progression |
+| `PATCH /api/v1/runs/{id}/items/{itemId}` | Status / commentaire / assignation |
+| `POST /api/v1/runs/{id}/complete` | Clôturer (bloque si required pending) |
 | `/api/v1/**` | API métier versionnée |
 | `GET /auth/github/start` · `/callback` | OAuth GitHub (redirects browser) |
 | `/` + assets | SPA SvelteKit (static) servie par Go en prod |
