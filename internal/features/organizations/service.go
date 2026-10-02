@@ -231,14 +231,15 @@ func (s *Service) AcceptInvitation(ctx context.Context, user *store.User, sessio
 		return nil, fmt.Errorf("invitation org membership: %w", err)
 	}
 	if !member {
-		if err := s.Store.AddOrganizationMember(ctx, invite.OrganizationID, user.ID, invite.OrgRole); err != nil {
-			return nil, fmt.Errorf("accept invitation org member: %w", err)
+		addErr := s.Store.AddOrganizationMember(ctx, invite.OrganizationID, user.ID, invite.OrgRole)
+		if addErr != nil {
+			return nil, fmt.Errorf("accept invitation org member: %w", addErr)
 		}
 		role = invite.OrgRole
 	}
 
-	if err := s.Store.DeleteOrganizationInvitation(ctx, invite.ID); err != nil {
-		return nil, fmt.Errorf("delete organization invitation: %w", err)
+	if delErr := s.Store.DeleteOrganizationInvitation(ctx, invite.ID); delErr != nil {
+		return nil, fmt.Errorf("delete organization invitation: %w", delErr)
 	}
 
 	org, err := s.Store.OrganizationByID(ctx, invite.OrganizationID)

@@ -230,7 +230,7 @@ paths:
         "500":
           $ref: "#/components/responses/InternalError"
 
-  /orgs/invitations/{invitationId}/accept:
+  /orgs/invitations/{invitationID}/accept:
     post:
       operationId: acceptOrganizationInvitation
       tags: [orgs]
@@ -240,7 +240,7 @@ paths:
         L'email de session doit correspondre à l'invitation (sinon 404).
         CSRF requis.
       parameters:
-        - name: invitationId
+        - name: invitationID
           in: path
           required: true
           schema:

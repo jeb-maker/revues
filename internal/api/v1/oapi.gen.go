@@ -212,8 +212,8 @@ type ServerInterface interface {
 	// (POST /orgs/active)
 	SelectActiveOrganization(w http.ResponseWriter, r *http.Request)
 	// Accepter une invitation d'organisation
-	// (POST /orgs/invitations/{invitationId}/accept)
-	AcceptOrganizationInvitation(w http.ResponseWriter, r *http.Request, invitationId int64)
+	// (POST /orgs/invitations/{invitationID}/accept)
+	AcceptOrganizationInvitation(w http.ResponseWriter, r *http.Request, invitationID int64)
 }
 
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
@@ -275,8 +275,8 @@ func (_ Unimplemented) SelectActiveOrganization(w http.ResponseWriter, r *http.R
 }
 
 // Accepter une invitation d'organisation
-// (POST /orgs/invitations/{invitationId}/accept)
-func (_ Unimplemented) AcceptOrganizationInvitation(w http.ResponseWriter, r *http.Request, invitationId int64) {
+// (POST /orgs/invitations/{invitationID}/accept)
+func (_ Unimplemented) AcceptOrganizationInvitation(w http.ResponseWriter, r *http.Request, invitationID int64) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -420,17 +420,17 @@ func (siw *ServerInterfaceWrapper) AcceptOrganizationInvitation(w http.ResponseW
 
 	var err error
 
-	// ------------- Path parameter "invitationId" -------------
-	var invitationId int64
+	// ------------- Path parameter "invitationID" -------------
+	var invitationID int64
 
-	err = runtime.BindStyledParameterWithOptions("simple", "invitationId", chi.URLParam(r, "invitationId"), &invitationId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	err = runtime.BindStyledParameterWithOptions("simple", "invitationID", chi.URLParam(r, "invitationID"), &invitationID, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
 	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "invitationId", Err: err})
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "invitationID", Err: err})
 		return
 	}
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.AcceptOrganizationInvitation(w, r, invitationId)
+		siw.Handler.AcceptOrganizationInvitation(w, r, invitationID)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -581,7 +581,7 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Post(options.BaseURL+"/orgs/active", wrapper.SelectActiveOrganization)
 	})
 	r.Group(func(r chi.Router) {
-		r.Post(options.BaseURL+"/orgs/invitations/{invitationId}/accept", wrapper.AcceptOrganizationInvitation)
+		r.Post(options.BaseURL+"/orgs/invitations/{invitationID}/accept", wrapper.AcceptOrganizationInvitation)
 	})
 
 	return r
