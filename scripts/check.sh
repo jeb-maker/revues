@@ -89,10 +89,10 @@ fi
 # 4. Frontend SvelteKit (npm ci / check / build + budgets SPA)
 # ---------------------------------------------------------------------------
 # Budgets documentés dans docs/PLAN.md (WP-005). Vendor mb mesuré, hors fail.
-SPA_JS_RAW_MAX=204800      # 200 KiB — build/_app/**/*.js
-SPA_JS_GZIP_MAX=102400     # 100 KiB gzip-9 — orgs+subjects+templates+runs stack (resserrage WP-030)
+SPA_JS_RAW_MAX=230400      # 225 KiB — build/_app/**/*.js
+SPA_JS_GZIP_MAX=102400     # 100 KiB gzip-9 — stack domaines + admin (resserrage WP-030)
 SPA_CSS_RAW_MAX=40960      # 40 KiB — build/_app/**/*.css
-SPA_CSS_GZIP_MAX=12288     # 12 KiB gzip-9
+SPA_CSS_GZIP_MAX=16384     # 16 KiB gzip-9 — pages admin incluses (resserrage WP-030)
 
 if [[ -f frontend/package.json ]]; then
   if command -v npm >/dev/null 2>&1; then

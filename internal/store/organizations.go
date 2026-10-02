@@ -22,6 +22,12 @@ var ErrOrganizationSlugTaken = errors.New("organization slug taken")
 // ErrInvalidOrganizationSlug is returned when a slug cannot be normalized.
 var ErrInvalidOrganizationSlug = errors.New("invalid organization slug")
 
+// ErrOrganizationMemberNotFound is returned when a user is not a member of the org.
+var ErrOrganizationMemberNotFound = errors.New("organization member not found")
+
+// ErrLastOrganizationOwner is returned when demoting/removing the last owner.
+var ErrLastOrganizationOwner = errors.New("cannot demote last organization owner")
+
 const (
 	OrgRoleOwner  = "owner"
 	OrgRoleAdmin  = "admin"
@@ -467,6 +473,40 @@ func (s *Store) CountOrganizationMembers(ctx context.Context, organizationID int
 		return 0, fmt.Errorf("count organization members: %w", err)
 	}
 	return count, nil
+}
+
+// CountOrganizationMembersWithRole returns how many members have the given org role.
+func (s *Store) CountOrganizationMembersWithRole(ctx context.Context, organizationID int64, role string) (int, error) {
+	var count int
+	err := s.db.QueryRowContext(ctx, `
+		SELECT COUNT(*) FROM organization_members WHERE organization_id = ? AND role = ?
+	`, organizationID, role).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("count organization members with role: %w", err)
+	}
+	return count, nil
+}
+
+// OrganizationMemberUserByID loads one member of the active organization.
+func (s *Store) OrganizationMemberUserByID(ctx context.Context, userID int64) (*OrganizationMemberUser, error) {
+	orgID, err := organizationIDFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var m OrganizationMemberUser
+	err = s.db.QueryRowContext(ctx, `
+		SELECT u.id, u.login, u.email, u.display_name, om.role, om.created_at
+		FROM organization_members om
+		INNER JOIN users u ON u.id = om.user_id
+		WHERE om.organization_id = ? AND om.user_id = ?
+	`, orgID, userID).Scan(&m.UserID, &m.Login, &m.Email, &m.DisplayName, &m.Role, &m.JoinedAt)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, ErrOrganizationMemberNotFound
+	}
+	if err != nil {
+		return nil, fmt.Errorf("organization member by id: %w", err)
+	}
+	return &m, nil
 }
 
 // ListOrganizationMembers lists members of the active organization ordered by login.

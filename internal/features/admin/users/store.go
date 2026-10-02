@@ -12,4 +12,16 @@ type AllowedEmailStore interface {
 	DeleteAllowedEmail(ctx context.Context, email string) error
 }
 
-var ErrAllowedEmailNotFound = store.ErrAllowedEmailNotFound
+// MemberStore is the persistence surface for org member role admin.
+type MemberStore interface {
+	ListOrganizationMembers(ctx context.Context) ([]store.OrganizationMemberUser, error)
+	OrganizationMemberUserByID(ctx context.Context, userID int64) (*store.OrganizationMemberUser, error)
+	AddOrganizationMember(ctx context.Context, organizationID, userID int64, role string) error
+	CountOrganizationMembersWithRole(ctx context.Context, organizationID int64, role string) (int, error)
+}
+
+var (
+	ErrAllowedEmailNotFound       = store.ErrAllowedEmailNotFound
+	ErrOrganizationMemberNotFound = store.ErrOrganizationMemberNotFound
+	ErrLastOrganizationOwner      = store.ErrLastOrganizationOwner
+)

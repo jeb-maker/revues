@@ -63,7 +63,8 @@
 	<p class="brand">Revues</p>
 	<h1>API + SvelteKit</h1>
 	<p class="lede">
-		Scaffold rewrite — client OpenAPI + mb · auth, organisations, sujets, modèles, revues, tâches.
+		Scaffold rewrite — client OpenAPI + mb · auth, organisations, sujets, modèles, revues, tâches,
+		admin.
 	</p>
 	<p class="status">
 		API <code>/api/v1/health</code> :
@@ -95,6 +96,8 @@
 			<a href="/runs">Revues</a>
 			·
 			<a href="/mes-taches">Mes tâches</a>
+			·
+			<a href="/admin">Administration</a>
 			·
 			<a href="/org/select">Changer d'organisation</a>
 			·
