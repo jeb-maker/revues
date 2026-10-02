@@ -14,6 +14,13 @@
 		uploadRunItemAttachment,
 		type Attachment
 	} from '$lib/api/attachments';
+	import {
+		getRunItemJira,
+		postRunItemJiraCreate,
+		putRunItemJiraLink,
+		type JiraLink,
+		type RunItemJira
+	} from '$lib/api/jira';
 
 	let csrf = $state('');
 	let detail = $state<RunItemDetail | null>(null);
@@ -28,6 +35,15 @@
 	let assignedTo = $state<string>('');
 	let attachment = $state<Attachment | null>(null);
 
+	let jira = $state<RunItemJira | null>(null);
+	let jiraLink = $state<JiraLink | null>(null);
+	let jiraIssue = $state('');
+	let jiraTitle = $state('');
+	let jiraDescription = $state('');
+	let jiraBusy = $state(false);
+	let jiraError = $state('');
+	let jiraMessage = $state('');
+
 	function runId(): number {
 		return Number($page.params.id);
 	}
@@ -41,10 +57,20 @@
 		comment = d.item.comment ?? '';
 		assignedTo = d.item.assigned_to != null ? String(d.item.assigned_to) : '';
 		attachment = d.attachment ?? null;
+		jiraLink = d.jira_link ?? null;
+	}
+
+	async function refreshJira() {
+		const state = await getRunItemJira(runId(), itemId(), csrf);
+		jira = state;
+		jiraLink = state.link ?? null;
+		if (state.default_title) jiraTitle = state.default_title;
+		if (state.default_description) jiraDescription = state.default_description;
 	}
 
 	async function refresh() {
 		apply(await getRunItem(runId(), itemId(), csrf));
+		await refreshJira();
 	}
 
 	onMount(async () => {
@@ -82,6 +108,7 @@
 				}
 			}
 			apply(await updateRunItem(runId(), itemId(), body, csrf));
+			await refreshJira();
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Enregistrement impossible.';
 		} finally {
@@ -102,6 +129,44 @@
 		} finally {
 			uploading = false;
 			input.value = '';
+		}
+	}
+
+	async function onLinkJira(e: Event) {
+		e.preventDefault();
+		jiraBusy = true;
+		jiraError = '';
+		jiraMessage = '';
+		try {
+			jiraLink = await putRunItemJiraLink(runId(), itemId(), { issue: jiraIssue }, csrf);
+			jiraIssue = '';
+			jiraMessage = 'Lien Jira enregistré.';
+			await refreshJira();
+		} catch (err) {
+			jiraError = err instanceof Error ? err.message : 'Liaison impossible.';
+		} finally {
+			jiraBusy = false;
+		}
+	}
+
+	async function onCreateJira(e: Event) {
+		e.preventDefault();
+		jiraBusy = true;
+		jiraError = '';
+		jiraMessage = '';
+		try {
+			jiraLink = await postRunItemJiraCreate(
+				runId(),
+				itemId(),
+				{ title: jiraTitle, description: jiraDescription },
+				csrf
+			);
+			jiraMessage = 'Ticket Jira créé.';
+			await refreshJira();
+		} catch (err) {
+			jiraError = err instanceof Error ? err.message : 'Création impossible.';
+		} finally {
+			jiraBusy = false;
 		}
 	}
 </script>
@@ -213,6 +278,60 @@
 			{/if}
 		</section>
 
+		<section class="jira">
+			<h2>Issue Jira</h2>
+			{#if jiraLink}
+				<p>
+					Liée à :
+					<a href={jiraLink.external_url} target="_blank" rel="noopener noreferrer">
+						{jiraLink.external_key}
+					</a>
+				</p>
+			{:else}
+				<p class="muted">Aucune issue Jira liée.</p>
+			{/if}
+
+			{#if jiraError}
+				<p class="err" role="alert">{jiraError}</p>
+			{/if}
+			{#if jiraMessage}
+				<p class="ok" role="status">{jiraMessage}</p>
+			{/if}
+
+			{#if jira?.can_link && jira.configured}
+				<form class="form jira-form" onsubmit={onLinkJira}>
+					<label>
+						Clé ou URL Jira
+						<input
+							bind:value={jiraIssue}
+							required
+							placeholder="PROJ-123 ou https://…/browse/PROJ-123"
+							autocomplete="off"
+						/>
+					</label>
+					<button type="submit" disabled={jiraBusy}>
+						{jiraLink ? 'Mettre à jour le lien' : "Lier l'issue"}
+					</button>
+				</form>
+
+				{#if jira.can_create && !jiraLink}
+					<form class="form jira-form" onsubmit={onCreateJira}>
+						<label>
+							Titre du ticket
+							<input bind:value={jiraTitle} required />
+						</label>
+						<label>
+							Description
+							<textarea bind:value={jiraDescription} rows="5" required></textarea>
+						</label>
+						<button type="submit" disabled={jiraBusy}>Créer ticket Jira</button>
+					</form>
+				{/if}
+			{:else if jira?.can_link && !jira.configured}
+				<p class="muted">Jira n'est pas configuré — contactez un administrateur.</p>
+			{/if}
+		</section>
+
 		{#if detail.events?.length}
 			<section class="audit">
 				<h2>Historique</h2>
@@ -299,7 +418,8 @@
 		font-size: 0.85em;
 	}
 	.form select,
-	.form textarea {
+	.form textarea,
+	.form input {
 		padding: 0.55rem 0.65rem;
 		border-radius: 0.4rem;
 		border: 1px solid #334155;
@@ -318,19 +438,32 @@
 		cursor: pointer;
 		font: inherit;
 	}
+	.form button:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
+	}
 	.audit {
 		margin-top: 2rem;
 	}
-	.attach {
+	.attach,
+	.jira {
 		margin-top: 1.75rem;
 		padding-top: 1.25rem;
 		border-top: 1px solid #334155;
 	}
 	.attach h2,
+	.jira h2,
 	.audit h2 {
 		margin: 0 0 0.5rem;
 		font-size: 0.95rem;
 		color: #99f6e4;
+	}
+	.jira a {
+		color: #5eead4;
+		font-weight: 600;
+	}
+	.jira-form {
+		margin-top: 0.85rem;
 	}
 	.att-meta {
 		display: flex;
@@ -386,6 +519,9 @@
 	}
 	.err {
 		color: #fca5a5;
+	}
+	.ok {
+		color: #99f6e4;
 	}
 	.muted {
 		color: #94a3b8;

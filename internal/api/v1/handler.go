@@ -15,6 +15,7 @@ import (
 	"github.com/jeb-maker/revues/internal/features/checklisttemplates"
 	"github.com/jeb-maker/revues/internal/features/organizations"
 	"github.com/jeb-maker/revues/internal/features/subjects"
+	"github.com/jeb-maker/revues/internal/integrations/jira"
 	"github.com/jeb-maker/revues/internal/integrations/webhooks"
 	"github.com/jeb-maker/revues/internal/store"
 	appmiddleware "github.com/jeb-maker/revues/internal/web/middleware"
@@ -32,6 +33,7 @@ type Server struct {
 	Settings     *adminsettings.SettingsService
 	Integrations *adminintegrations.IntegrationsService
 	Attachments  *attachments.Service
+	JiraClient   *jira.Client // optional; tests inject a mock HTTP client
 }
 
 // NewServer returns the API v1 server implementation.

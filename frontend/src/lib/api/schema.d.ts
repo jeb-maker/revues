@@ -861,11 +861,98 @@ export interface paths {
         /**
          * Hub intégrations (états + navigation)
          * @description Auth + RequireOrgAdmin. Liste SMTP / Jira / Notion / Webhooks avec
-         *     enabled + config_path SPA. Config détaillée Jira/Notion/webhooks = WP-020+.
+         *     enabled + config_path SPA. Config détaillée Jira = WP-020 ; Notion/webhooks = WP-021+.
          */
         get: operations["listAdminIntegrations"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/integrations/jira": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Configuration Jira Cloud (masquée)
+         * @description Auth + RequireOrgAdmin. Jamais de jeton API en clair — `has_api_token` seulement.
+         *     Hors scope WP-020 : Jira Server/DC (instance_type toujours cloud).
+         */
+        get: operations["getAdminJiraSettings"];
+        /**
+         * Enregistrer la configuration Jira Cloud chiffrée
+         * @description Auth + RequireOrgAdmin + CSRF. `api_token` omis ou vide = conserve le secret
+         *     existant (`MergeSecret`). Chiffrement AES-GCM. Force instance_type=cloud.
+         */
+        put: operations["putAdminJiraSettings"];
+        post?: never;
+        /**
+         * Effacer la configuration Jira
+         * @description Auth + RequireOrgAdmin + CSRF.
+         */
+        delete: operations["deleteAdminJiraSettings"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/integrations/jira/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Tester la connexion Jira Cloud
+         * @description Auth + RequireOrgAdmin + CSRF. Utilise la config stockée (chiffrée) via
+         *     GET /rest/api/3/myself. Client HTTP anti-SSRF (`internal/safehttp`).
+         */
+        post: operations["postAdminJiraTest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/runs/{runId}/items/{itemId}/jira": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identifiant de la revue */
+                runId: components["parameters"]["RunId"];
+                /** @description Identifiant du point (run item) */
+                itemId: components["parameters"]["RunItemId"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Lien Jira et contexte création pour un point
+         * @description Auth + accès sujet/revue (IDOR). Renvoie le lien éventuel, l'état configuré,
+         *     et les valeurs par défaut pour créer un ticket (si nok).
+         */
+        get: operations["getRunItemJira"];
+        /**
+         * Lier une issue Jira existante au point
+         * @description Auth + CanLinkJira (contributeur+) + CSRF. Vérifie l'issue via API Jira
+         *     (safehttp), stocke clé + URL browse.
+         */
+        put: operations["putRunItemJiraLink"];
+        /**
+         * Créer une issue Jira depuis un point nok
+         * @description Auth + CanLinkJira + CSRF. Point doit être `nok`, pas déjà lié, project_key
+         *     configuré. Titre/description optionnels (préremplissage serveur sinon).
+         */
+        post: operations["postRunItemJiraCreate"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1321,6 +1408,10 @@ export interface components {
             capabilities: components["schemas"]["RunCapabilities"];
             /** @description Pièce jointe courante du point (si présente) */
             attachment?: components["schemas"]["Attachment"] | null;
+            /** @description Lien Jira courant du point (si présent) */
+            jira_link?: components["schemas"]["JiraLink"] | null;
+            /** @description true si Jira Cloud est configuré pour l'org active */
+            jira_configured?: boolean;
             run_status?: string;
             run_title?: string;
             /** Format: int64 */
@@ -1493,6 +1584,60 @@ export interface components {
             enabled: boolean;
             /** @description Chemin SPA de configuration */
             config_path: string;
+        };
+        JiraSettings: {
+            /** @description true si credentials Cloud complets */
+            configured: boolean;
+            /** @description URL instance (HTTPS, anti-SSRF) */
+            base_url: string;
+            /** @description Email Atlassian (Cloud) */
+            email: string;
+            /** @description Clé projet par défaut (création de tickets) */
+            project_key: string;
+            /** @description Type d'issue par défaut (ex. Task) */
+            issue_type: string;
+            /** @description true si un jeton API est stocké (jamais renvoyé en clair) */
+            has_api_token: boolean;
+        };
+        JiraSettingsUpdate: {
+            base_url: string;
+            /** Format: email */
+            email: string;
+            /** @description Omis ou vide = conserve le secret existant */
+            api_token?: string;
+            project_key?: string;
+            issue_type?: string;
+        };
+        JiraLink: {
+            /** @description Clé issue (ex. PROJ-123) */
+            external_key: string;
+            /**
+             * Format: uri
+             * @description URL browse Jira
+             */
+            external_url: string;
+        };
+        JiraLinkRequest: {
+            /** @description Clé (PROJ-123) ou URL browse Jira */
+            issue: string;
+        };
+        JiraCreateRequest: {
+            /** @description Titre du ticket (défaut = label du point) */
+            title?: string;
+            /** @description Description (défaut = contexte sujet/revue/commentaire) */
+            description?: string;
+        };
+        RunItemJira: {
+            configured: boolean;
+            /** @description true si l'utilisateur peut lier/créer (contributeur+) */
+            can_link: boolean;
+            link: components["schemas"]["JiraLink"] | null;
+            /** @description Titre prérempli pour création (si nok) */
+            default_title?: string;
+            /** @description Description préremplie pour création (si nok) */
+            default_description?: string;
+            /** @description true si nok, configuré, pas déjà lié, project_key présent */
+            can_create?: boolean;
         };
         Attachment: {
             /** Format: int64 */
@@ -2967,6 +3112,198 @@ export interface operations {
             };
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getAdminJiraSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Config Jira courante (ou vide si non configurée) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JiraSettings"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    putAdminJiraSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["JiraSettingsUpdate"];
+            };
+        };
+        responses: {
+            /** @description Config enregistrée (secrets masqués) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JiraSettings"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    deleteAdminJiraSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Configuration effacée */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    postAdminJiraTest: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Connexion réussie */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getRunItemJira: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identifiant de la revue */
+                runId: components["parameters"]["RunId"];
+                /** @description Identifiant du point (run item) */
+                itemId: components["parameters"]["RunItemId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description État Jira du point */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunItemJira"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    putRunItemJiraLink: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identifiant de la revue */
+                runId: components["parameters"]["RunId"];
+                /** @description Identifiant du point (run item) */
+                itemId: components["parameters"]["RunItemId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["JiraLinkRequest"];
+            };
+        };
+        responses: {
+            /** @description Lien enregistré */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JiraLink"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    postRunItemJiraCreate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identifiant de la revue */
+                runId: components["parameters"]["RunId"];
+                /** @description Identifiant du point (run item) */
+                itemId: components["parameters"]["RunItemId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["JiraCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Ticket créé et lié */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JiraLink"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             500: components["responses"]["InternalError"];
         };
     };

@@ -28,3 +28,4 @@ export * from './runs';
 export * from './mytasks';
 export * from './admin';
 export * from './attachments';
+export * from './jira';

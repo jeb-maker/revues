@@ -99,3 +99,27 @@ func (s *Store) UpsertIntegrationByType(ctx context.Context, integrationType str
 
 	return nil
 }
+
+// DeleteIntegrationByType removes the integration row for type in the active organization.
+func (s *Store) DeleteIntegrationByType(ctx context.Context, integrationType string) error {
+	orgID, err := organizationIDFromContext(ctx)
+	if err != nil {
+		return err
+	}
+
+	res, err := s.db.ExecContext(ctx, `
+		DELETE FROM integrations
+		WHERE organization_id = ? AND type = ?
+	`, orgID, integrationType)
+	if err != nil {
+		return fmt.Errorf("delete integration %q: %w", integrationType, err)
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("delete integration %q rows: %w", integrationType, err)
+	}
+	if n == 0 {
+		return ErrIntegrationNotFound
+	}
+	return nil
+}

@@ -578,6 +578,27 @@ func (s *Server) buildRunItemDetail(
 		return RunItemDetail{}, false
 	}
 
+	jiraConfigured := false
+	if svc := s.jiraService(); svc != nil {
+		cfg, ok, err := svc.Load(r.Context())
+		if err != nil {
+			slog.Error("load jira for item detail", "err", err)
+			writeAPIError(w, http.StatusInternalServerError, "internal_error", "Erreur interne.")
+			return RunItemDetail{}, false
+		}
+		jiraConfigured = ok && cfg.Configured()
+	}
+	detail.JiraConfigured = &jiraConfigured
+
+	if link, err := s.Store.IntegrationLinkByRunItemAndType(r.Context(), item.ID, store.IntegrationTypeJira); err == nil && link != nil {
+		mapped := mapJiraLink(link)
+		detail.JiraLink = &mapped
+	} else if err != nil && !errors.Is(err, store.ErrIntegrationLinkNotFound) {
+		slog.Error("load jira link for item detail", "err", err)
+		writeAPIError(w, http.StatusInternalServerError, "internal_error", "Erreur interne.")
+		return RunItemDetail{}, false
+	}
+
 	return detail, true
 }
 

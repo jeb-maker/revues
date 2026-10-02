@@ -2,6 +2,7 @@ package store_test
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/jeb-maker/revues/internal/store"
@@ -43,5 +44,15 @@ func TestIntegrationUpsertGet(t *testing.T) {
 	}
 	if string(got.ConfigEncrypted) != string(updated) {
 		t.Fatalf("ConfigEncrypted = %q, want %q", got.ConfigEncrypted, updated)
+	}
+
+	if err := st.DeleteIntegrationByType(ctx, store.IntegrationTypeJira); err != nil {
+		t.Fatalf("DeleteIntegrationByType(): %v", err)
+	}
+	if _, err := st.GetIntegrationByType(ctx, store.IntegrationTypeJira); !errors.Is(err, store.ErrIntegrationNotFound) {
+		t.Fatalf("Get after delete = %v, want ErrIntegrationNotFound", err)
+	}
+	if err := st.DeleteIntegrationByType(ctx, store.IntegrationTypeJira); !errors.Is(err, store.ErrIntegrationNotFound) {
+		t.Fatalf("Delete again = %v, want ErrIntegrationNotFound", err)
 	}
 }

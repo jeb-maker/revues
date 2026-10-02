@@ -152,6 +152,10 @@ export type SMTPSettingsUpdate =
 export type IntegrationsOverview =
 	paths['/admin/integrations']['get']['responses']['200']['content']['application/json'];
 export type IntegrationSummary = IntegrationsOverview['items'][number];
+export type JiraSettings =
+	paths['/admin/integrations/jira']['get']['responses']['200']['content']['application/json'];
+export type JiraSettingsUpdate =
+	paths['/admin/integrations/jira']['put']['requestBody']['content']['application/json'];
 
 export async function getAdminSMTPSettings(csrfToken?: string): Promise<SMTPSettings> {
 	const client = createApiClient({ csrfToken });
@@ -191,4 +195,35 @@ export async function listAdminIntegrations(csrfToken?: string): Promise<Integra
 	const { data, error, response } = await client.GET('/admin/integrations');
 	if (data) return data;
 	throw new Error(errorMessage(error, `Intégrations: HTTP ${response.status}`));
+}
+
+export async function getAdminJiraSettings(csrfToken?: string): Promise<JiraSettings> {
+	const client = createApiClient({ csrfToken });
+	const { data, error, response } = await client.GET('/admin/integrations/jira');
+	if (data) return data;
+	throw new Error(errorMessage(error, `Jira: HTTP ${response.status}`));
+}
+
+export async function putAdminJiraSettings(
+	body: JiraSettingsUpdate,
+	csrfToken: string
+): Promise<JiraSettings> {
+	const client = createApiClient({ csrfToken });
+	const { data, error, response } = await client.PUT('/admin/integrations/jira', { body });
+	if (data) return data;
+	throw new Error(errorMessage(error, `Enregistrement Jira: HTTP ${response.status}`));
+}
+
+export async function deleteAdminJiraSettings(csrfToken: string): Promise<void> {
+	const client = createApiClient({ csrfToken });
+	const { error, response } = await client.DELETE('/admin/integrations/jira');
+	if (response.ok) return;
+	throw new Error(errorMessage(error, `Suppression Jira: HTTP ${response.status}`));
+}
+
+export async function postAdminJiraTest(csrfToken: string): Promise<void> {
+	const client = createApiClient({ csrfToken });
+	const { error, response } = await client.POST('/admin/integrations/jira/test');
+	if (response.status === 204) return;
+	throw new Error(errorMessage(error, `Test Jira: HTTP ${response.status}`));
 }
