@@ -24,13 +24,14 @@ Remplace Excel, fils de mails et check-lists éparpillées, sans devenir une usi
 
 ### Budget sobriété
 
-Stack SPA — seuils exacts calés par le WP CI rewrite ([rewrite/WORK_PACKAGES.md](./rewrite/WORK_PACKAGES.md) WP-005 / WP-030).
+Stack SPA — seuils appliqués par `./scripts/check.sh` (WP-005). Vendor mb mesuré séparément (hors fail strict jusqu’à WP-030 si resserrage).
 
-| Métrique | Cible |
-|----------|-------|
-| JS **app** (hors vendor mb / reports) | sobriété ; fail dans `check.sh` une fois seuils fixés |
-| CSS **app** (hors tokens mb) | sobriété ; fail dans `check.sh` |
-| Vendor mb + reports | mesurés ; reports **lazy** |
+| Métrique | Seuil (`check.sh`) |
+|----------|--------------------|
+| JS **app** `frontend/build/_app/**/*.js` (hors vendor mb / reports) | ≤ **200 KiB** brut · ≤ **60 KiB** gzip-9 |
+| CSS **app** `frontend/build/_app/**/*.css` (hors tokens mb) | ≤ **40 KiB** brut · ≤ **12 KiB** gzip-9 |
+| Vendor mb `web/static/vendor/jeb-maker-mb/` | mesuré (log) ; **pas de fail** pour l’instant |
+| Vendor reports | mesuré ; reports **lazy** |
 | Requêtes API par navigation écran | viser ≤ 8 |
 | RAM serveur | < 128 Mo en charge normale |
 

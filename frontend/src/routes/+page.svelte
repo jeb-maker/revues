@@ -1,15 +1,20 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { bootstrap, logout, type BootstrapResponse } from '$lib/api/auth';
+	import { getHealth } from '$lib/api';
 
 	let boot = $state<BootstrapResponse | null>(null);
 	let error = $state('');
+	let health = $state<'…' | 'ok' | 'erreur'>('…');
 
 	onMount(async () => {
 		try {
-			boot = await bootstrap();
+			const [b, h] = await Promise.all([bootstrap(), getHealth().catch(() => null)]);
+			boot = b;
+			health = h?.status === 'ok' ? 'ok' : 'erreur';
 		} catch (e) {
 			error = e instanceof Error ? e.message : 'API indisponible';
+			health = 'erreur';
 		}
 	});
 
@@ -32,7 +37,17 @@
 	<p class="brand">Revues</p>
 	<h1>API + SvelteKit</h1>
 	<p class="lede">
-		Scaffold rewrite — auth API (WP-004) : login / register / OAuth / CSRF.
+		Scaffold rewrite — client OpenAPI + mb · auth API (login / register / OAuth / CSRF).
+	</p>
+	<p class="status">
+		API <code>/api/v1/health</code> :
+		{#if health === 'ok'}
+			<mb-badge variant="success">ok</mb-badge>
+		{:else if health === 'erreur'}
+			<mb-badge variant="danger">hors ligne</mb-badge>
+		{:else}
+			<mb-spinner></mb-spinner>
+		{/if}
 	</p>
 
 	{#if error}
@@ -40,7 +55,9 @@
 	{:else if !boot}
 		<p class="muted">Chargement…</p>
 	{:else if boot.authenticated && boot.user}
-		<p class="status">Connecté en tant que <strong>{boot.user.display_name}</strong> ({boot.user.email})</p>
+		<p class="status">
+			Connecté en tant que <strong>{boot.user.display_name}</strong> ({boot.user.email})
+		</p>
 		<p class="actions">
 			<button type="button" onclick={onLogout}>Se déconnecter</button>
 		</p>
@@ -57,9 +74,14 @@
 	:global(body) {
 		margin: 0;
 		min-height: 100vh;
-		font-family: 'Segoe UI', system-ui, sans-serif;
-		background: linear-gradient(160deg, #0f172a 0%, #1e293b 45%, #0f766e 100%);
-		color: #f8fafc;
+		font-family: var(--mb-font-sans, 'Segoe UI', system-ui, sans-serif);
+		background: linear-gradient(
+			160deg,
+			var(--mb-color-canvas, #0f172a) 0%,
+			#1e293b 45%,
+			var(--mb-color-accent, #0f766e) 100%
+		);
+		color: var(--mb-color-fg, #f8fafc);
 	}
 	.shell {
 		max-width: 40rem;
@@ -77,13 +99,27 @@
 		margin: 0 0 0.75rem;
 		font-size: 1.25rem;
 		font-weight: 500;
-		color: #99f6e4;
+		color: var(--mb-color-accent-fg, #99f6e4);
 	}
 	.lede {
 		margin: 0 0 1.25rem;
 		max-width: 28rem;
 		line-height: 1.5;
-		color: #cbd5e1;
+		color: var(--mb-color-muted, #cbd5e1);
+	}
+	.status {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		margin: 0 0 1rem;
+		font-size: 0.95rem;
+		color: #e2e8f0;
+	}
+	.status code {
+		font-size: 0.85em;
+	}
+	.actions {
+		margin: 0;
 	}
 	.actions a,
 	.actions button {
@@ -94,9 +130,6 @@
 		padding: 0;
 		cursor: pointer;
 		font: inherit;
-	}
-	.status {
-		color: #e2e8f0;
 	}
 	.err {
 		color: #fca5a5;
