@@ -11,14 +11,9 @@ Big bang : UI `html/template` + HTMX remplacée par **Go OpenAPI + SvelteKit + m
 
 | WP | Issue | Statut |
 |----|-------|--------|
-| WP-001–005, 010–013 | #244–#252 | Mergé sur `main` |
-| WP-014 Mes tâches | #253 | PR [#271](https://github.com/jeb-maker/revues/pull/271) |
-| WP-015 Admin org | #254 | PR [#272](https://github.com/jeb-maker/revues/pull/272) |
-| WP-016 SMTP / hub / attachments | #255 | PR [#273](https://github.com/jeb-maker/revues/pull/273) (stack #272) |
-| WP-020 Jira | #256 | En cours (vague 3) |
-| WP-021 Notion | #257 | En cours (vague 3) |
-| WP-022 Webhooks | #258 | En cours (vague 3) |
-| WP-030 Clôture | #259 | PR de clôture docs/check |
+| WP-001–005, 010–016, 020–021 | #244–#257 | Mergé sur `main` |
+| WP-022 Webhooks | #258 | PR [#275](https://github.com/jeb-maker/revues/pull/275) |
+| WP-030 Clôture | #259 | PR de clôture docs/check (cette PR) |
 
 ## Livré (pré-rewrite — référence métier)
 
