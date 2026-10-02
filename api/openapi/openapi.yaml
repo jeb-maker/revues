@@ -13,6 +13,8 @@ tags:
     description: Santé et métadonnées techniques (hors domaines métier)
   - name: auth
     description: Session, login local, inscription, CSRF bootstrap
+  - name: orgs
+    description: Organisations — liste, création, sélection active, invitations
 paths:
   /health:
     get:
@@ -143,6 +145,123 @@ paths:
         "500":
           $ref: "#/components/responses/InternalError"
 
+  /orgs:
+    get:
+      operationId: listOrganizations
+      tags: [orgs]
+      summary: Organisations de l'utilisateur
+      description: |
+        Liste les organisations dont l'utilisateur est membre, l'org active
+        de session (si définie), un défaut suggéré (`revues_last_org`), les
+        invitations en attente, et si la création self-service est possible
+        (aucune appartenance encore — parité pré-rewrite).
+      responses:
+        "200":
+          description: Liste org + invitations
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrganizationListResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalError"
+    post:
+      operationId: createOrganization
+      tags: [orgs]
+      summary: Créer une organisation (onboarding)
+      description: |
+        Self-service : uniquement si l'utilisateur n'appartient encore à
+        aucune organisation. Pose le créateur en `owner` et active l'org
+        sur la session. CSRF requis.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateOrganizationRequest"
+      responses:
+        "201":
+          description: Organisation créée et activée
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrganizationActionResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /orgs/active:
+    post:
+      operationId: selectActiveOrganization
+      tags: [orgs]
+      summary: Sélectionner / basculer l'organisation active
+      description: |
+        Active une organisation dont l'utilisateur est membre sur la session
+        courante (sélecteur onboarding ou switcher). IDOR → 404. CSRF requis.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SelectOrganizationRequest"
+      responses:
+        "200":
+          description: Organisation active mise à jour
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrganizationActionResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /orgs/invitations/{invitationID}/accept:
+    post:
+      operationId: acceptOrganizationInvitation
+      tags: [orgs]
+      summary: Accepter une invitation d'organisation
+      description: |
+        Ajoute le membre (si besoin), consomme l'invitation, active l'org.
+        L'email de session doit correspondre à l'invitation (sinon 404).
+        CSRF requis.
+      parameters:
+        - name: invitationID
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: Invitation acceptée, org active
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrganizationActionResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
 components:
   responses:
     BadRequest:
@@ -159,6 +278,18 @@ components:
             $ref: "#/components/schemas/ErrorResponse"
     Forbidden:
       description: CSRF manquant/invalide ou refus
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    NotFound:
+      description: Ressource absente ou non visible (IDOR)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    Conflict:
+      description: Conflit métier
       content:
         application/json:
           schema:
@@ -284,3 +415,97 @@ components:
         redirect:
           type: string
           description: Chemin SPA post-login (org onboarding ou accueil)
+
+    Organization:
+      type: object
+      required: [id, name, slug, role]
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        slug:
+          type: string
+        role:
+          type: string
+          description: Rôle org (owner|admin|member)
+        ui_subject_label:
+          type: string
+        ui_run_label:
+          type: string
+
+    OrganizationInvitation:
+      type: object
+      required: [id, organization_id, organization_name, org_role, created_at]
+      properties:
+        id:
+          type: integer
+          format: int64
+        organization_id:
+          type: integer
+          format: int64
+        organization_name:
+          type: string
+        org_role:
+          type: string
+        created_at:
+          type: string
+
+    OrganizationListResponse:
+      type: object
+      required: [organizations, invitations, can_create]
+      properties:
+        organizations:
+          type: array
+          items:
+            $ref: "#/components/schemas/Organization"
+        invitations:
+          type: array
+          items:
+            $ref: "#/components/schemas/OrganizationInvitation"
+        active_organization_id:
+          type: integer
+          format: int64
+          nullable: true
+          description: Org active sur la session (null si pending)
+        default_organization_id:
+          type: integer
+          format: int64
+          nullable: true
+          description: Suggestion depuis cookie revues_last_org si membre
+        can_create:
+          type: boolean
+          description: true si l'utilisateur n'a encore aucune appartenance
+        redirect:
+          type: string
+          description: Chemin SPA suggéré selon le nombre d'orgs
+
+    CreateOrganizationRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+        slug:
+          type: string
+          description: Optionnel — dérivé du nom si omis
+
+    SelectOrganizationRequest:
+      type: object
+      required: [organization_id]
+      properties:
+        organization_id:
+          type: integer
+          format: int64
+
+    OrganizationActionResponse:
+      type: object
+      required: [organization, redirect]
+      properties:
+        organization:
+          $ref: "#/components/schemas/Organization"
+        redirect:
+          type: string
+          description: Chemin SPA après action (accueil)
