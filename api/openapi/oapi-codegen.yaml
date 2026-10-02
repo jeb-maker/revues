@@ -1,0 +1,10 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/oapi-codegen/oapi-codegen/v2.4.1/configuration-schema.json
+package: apiv1
+generate:
+  chi-server: true
+  models: true
+  embedded-spec: false
+# Path relative to repo root (cwd of ./scripts/generate-api.sh / make api).
+output: internal/api/v1/oapi.gen.go
+output-options:
+  skip-prune: true

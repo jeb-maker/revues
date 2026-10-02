@@ -38,6 +38,30 @@ func TestHealthz(t *testing.T) {
 	}
 }
 
+func TestAPIV1Health(t *testing.T) {
+	t.Parallel()
+
+	handler, _, _, err := appweb.NewRouter(appweb.Deps{
+		Config: config.Config{SessionSecret: "test-secret-at-least-thirty-two-bytes"},
+		DB:     mustMemoryDB(t),
+	})
+	if err != nil {
+		t.Fatalf("NewRouter() error = %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/health", nil)
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+	body := strings.TrimSpace(rec.Body.String())
+	if !strings.Contains(body, `"status":"ok"`) {
+		t.Fatalf("body = %q, want JSON status ok", body)
+	}
+}
+
 func TestSPAStubWhenBuildMissing(t *testing.T) {
 	t.Setenv("REVUES_SPA_DIR", t.TempDir()+"/missing-spa")
 

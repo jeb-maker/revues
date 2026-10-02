@@ -1,0 +1,40 @@
+openapi: 3.0.3
+info:
+  title: Revues API
+  version: 0.1.0
+  description: |
+    Contrat HTTP JSON de Revues (`/api/v1`). Source de vérité pour le codegen
+    serveur (oapi-codegen) et le client TypeScript (WP-005).
+servers:
+  - url: /api/v1
+    description: API versionnée
+tags:
+  - name: system
+    description: Santé et métadonnées techniques (hors domaines métier)
+paths:
+  /health:
+    get:
+      operationId: getHealth
+      tags: [system]
+      summary: Santé de l'API versionnée
+      description: |
+        Endpoint de health check sous le préfixe versionné. Distinct de
+        `GET /healthz` (probe infra hors OpenAPI).
+      responses:
+        "200":
+          description: API joignable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+components:
+  schemas:
+    HealthResponse:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          description: État de santé
+          example: ok
+          enum: [ok]
