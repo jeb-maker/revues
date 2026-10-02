@@ -23,7 +23,7 @@ Références officielles : [Effective Go](https://go.dev/doc/effective_go), [Go 
 
 ```
 internal/<domain>/     # logique métier par domaine
-internal/store/        # seul package avec SQL
+internal/store/        # seul package avec SQL (sqlc + pont legacy)
 internal/web/          # handlers HTTP fins + middleware
 ```
 
@@ -31,6 +31,7 @@ internal/web/          # handlers HTTP fins + middleware
 |-------|---------|
 | Handlers fins | handler parse → appelle service → render |
 | Pas de SQL hors `store` | `internal/projects/service.go` appelle `store.ProjectByID` |
+| sqlc | requêtes dans `internal/store/queries/` ; `make sqlc` ; package `internal/store/sqlc` |
 | Pas de logique métier dans `main` | `main` = wiring, config, démarrage |
 | `internal/` | API non exportée hors module |
 | Pas de cycles | `store` ne importe pas `web` |
@@ -98,9 +99,9 @@ return tx.Commit()
 
 | Règle | Détail |
 |-------|--------|
-| Requêtes paramétrées | `$1` / `?` — **jamais** concat SQL |
-| `defer rows.Close()` | systématique après `Query` |
-| Transactions | update + audit dans la même tx |
+| Requêtes paramétrées | `$1` / `?` — **jamais** concat SQL ; préférer sqlc |
+| `defer rows.Close()` | systématique après `Query` (legacy manuel) |
+| Transactions | update + audit dans la même tx (`Queries.WithTx` si sqlc) |
 | Connexion | pool injecté ; `REVUES_DB_MAX_OPEN_CONNS` (défaut 10), `busy_timeout` 5 s |
 | PRAGMA | `foreign_keys=ON`, `journal_mode=WAL` au démarrage |
 | Timeouts | `context` sur requêtes longues |

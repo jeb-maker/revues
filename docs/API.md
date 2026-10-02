@@ -79,8 +79,16 @@ Le code généré est **commité** (pas de génération obligatoire en CI pour l
 
 ## sqlc
 
-- Requêtes : `internal/store/sqlc/` (ou chemin fixé par WP-003).
-- Schéma aligné sur [schema/canonical.sql](./schema/canonical.sql) + migrations goose.
+| Élément | Chemin |
+|---------|--------|
+| Config | `sqlc.yaml` (engine SQLite, schéma `docs/schema/canonical.sql`) |
+| Requêtes SQL | `internal/store/queries/*.sql` |
+| Code généré | `internal/store/sqlc/` (commité ; ne pas éditer à la main) |
+| Régénération | `make sqlc` ou `./scripts/generate-sqlc.sh` (sqlc ≥ 1.27) |
+
+- Schéma source sqlc = [schema/canonical.sql](./schema/canonical.sql) (normatif) ; exécution runtime = migrations goose.
+- **Règle** : SQL uniquement via sqlc **ou** `internal/store` (pont legacy). Pas de SQL dans handlers / features.
+- Pont actuel : `users` / `sessions` passent par sqlc ; `Store.Queries()` expose le client généré. Autres domaines encore en SQL manuel dans `internal/store/*.go` (migration progressive).
 - Ne pas introduire d’ORM.
 
 ## Tests API
