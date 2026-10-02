@@ -13,11 +13,15 @@ frontend/                   # SvelteKit + mb
 internal/
   features/                 # services métier (vertical)
   auth/                     # OAuth, sessions, CSRF, RBAC
-  store/                    # SQL (sqlc) uniquement
+  store/                    # accès données (seul package SQL)
+    queries/                # SQL source sqlc
+    sqlc/                   # code généré (make sqlc)
   web/                      # router API, middleware, static SPA
   integrations/             # jira, notion, webhooks
   notifications/ attachments/ crypto/ config/
 migrations/                 # goose SQL
+sqlc.yaml                   # config sqlc
+scripts/generate-sqlc.sh    # régénération
 data/                       # SQLite + PJ (gitignored)
 docs/rewrite/               # orchestration rewrite agents
 ```
@@ -41,6 +45,8 @@ Résumé :
 
 - Migrations : `migrations/NNNNN_description.sql` via goose
 - Schéma normatif : [schema/canonical.sql](./schema/canonical.sql)
+- **Accès données** : sqlc (`internal/store/queries` → `internal/store/sqlc`) ou pont `internal/store` — **jamais** de SQL dans les handlers
+- Régénérer après changement de requête : `make sqlc`
 - Dates : ISO 8601 UTC en `TEXT`
 - Enums : `TEXT` + `CHECK` constraint
 - `PRAGMA foreign_keys=ON` à chaque connexion

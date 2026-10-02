@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"time"
+
+	"github.com/jeb-maker/revues/internal/store/sqlc"
 )
 
 // ErrSessionNotFound is returned when a session token is unknown or expired.
@@ -19,16 +21,18 @@ func (s *Store) CreateSession(ctx context.Context, userID, organizationID int64,
 	now := time.Now().UTC()
 	expires := now.Add(sessionTTL).Format(time.RFC3339)
 
-	var orgID any
+	var orgID *int64
 	if organizationID > 0 {
-		orgID = organizationID
+		orgID = &organizationID
 	}
 
-	_, err := s.db.ExecContext(ctx, `
-		INSERT INTO sessions (token_hash, user_id, organization_id, expires_at, created_at)
-		VALUES (?, ?, ?, ?, ?)
-	`, tokenHash, userID, orgID, expires, now.Format(time.RFC3339))
-	if err != nil {
+	if err := s.q.CreateSession(ctx, sqlc.CreateSessionParams{
+		TokenHash:      tokenHash,
+		UserID:         userID,
+		OrganizationID: orgID,
+		ExpiresAt:      expires,
+		CreatedAt:      now.Format(time.RFC3339),
+	}); err != nil {
 		return fmt.Errorf("insert session: %w", err)
 	}
 
@@ -38,22 +42,21 @@ func (s *Store) CreateSession(ctx context.Context, userID, organizationID int64,
 // SessionByTokenHash resolves an active session to user and organization ids.
 // organizationID is zero when the session has no active organization yet.
 func (s *Store) SessionByTokenHash(ctx context.Context, tokenHash string) (userID, organizationID int64, err error) {
-	var orgID sql.NullInt64
-	err = s.db.QueryRowContext(ctx, `
-		SELECT user_id, organization_id FROM sessions
-		WHERE token_hash = ? AND expires_at > ?
-	`, tokenHash, time.Now().UTC().Format(time.RFC3339)).Scan(&userID, &orgID)
+	row, err := s.q.GetSessionByTokenHash(ctx, sqlc.GetSessionByTokenHashParams{
+		TokenHash: tokenHash,
+		ExpiresAt: time.Now().UTC().Format(time.RFC3339),
+	})
 	if errors.Is(err, sql.ErrNoRows) {
 		return 0, 0, ErrSessionNotFound
 	}
 	if err != nil {
 		return 0, 0, fmt.Errorf("lookup session: %w", err)
 	}
-	if orgID.Valid {
-		organizationID = orgID.Int64
+	if row.OrganizationID != nil {
+		organizationID = *row.OrganizationID
 	}
 
-	return userID, organizationID, nil
+	return row.UserID, organizationID, nil
 }
 
 // UserIDByTokenHash resolves an active session to a user id.
@@ -102,16 +105,13 @@ func (s *Store) UpdateSessionOrganization(ctx context.Context, tokenHash string,
 		return fmt.Errorf("update session organization: invalid organization id")
 	}
 
-	res, err := s.db.ExecContext(ctx, `
-		UPDATE sessions SET organization_id = ?
-		WHERE token_hash = ? AND expires_at > ?
-	`, organizationID, tokenHash, time.Now().UTC().Format(time.RFC3339))
+	n, err := s.q.UpdateSessionOrganization(ctx, sqlc.UpdateSessionOrganizationParams{
+		OrganizationID: &organizationID,
+		TokenHash:      tokenHash,
+		ExpiresAt:      time.Now().UTC().Format(time.RFC3339),
+	})
 	if err != nil {
 		return fmt.Errorf("update session organization: %w", err)
-	}
-	n, err := res.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("update session organization rows: %w", err)
 	}
 	if n == 0 {
 		return ErrSessionNotFound
@@ -122,8 +122,7 @@ func (s *Store) UpdateSessionOrganization(ctx context.Context, tokenHash string,
 
 // DeleteSession removes a session by token hash.
 func (s *Store) DeleteSession(ctx context.Context, tokenHash string) error {
-	_, err := s.db.ExecContext(ctx, `DELETE FROM sessions WHERE token_hash = ?`, tokenHash)
-	if err != nil {
+	if err := s.q.DeleteSession(ctx, tokenHash); err != nil {
 		return fmt.Errorf("delete session: %w", err)
 	}
 
@@ -132,8 +131,7 @@ func (s *Store) DeleteSession(ctx context.Context, tokenHash string) error {
 
 // DeleteUserSessions removes all sessions for a user (rotation on login).
 func (s *Store) DeleteUserSessions(ctx context.Context, userID int64) error {
-	_, err := s.db.ExecContext(ctx, `DELETE FROM sessions WHERE user_id = ?`, userID)
-	if err != nil {
+	if err := s.q.DeleteUserSessions(ctx, userID); err != nil {
 		return fmt.Errorf("delete user sessions: %w", err)
 	}
 
