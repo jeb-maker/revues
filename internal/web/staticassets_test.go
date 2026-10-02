@@ -40,7 +40,7 @@ func TestStaticHandlerSetsCacheControl(t *testing.T) {
 	})
 
 	t.Run("development", func(t *testing.T) {
-		req := httptest.NewRequest(http.MethodGet, "/css/app.css", nil)
+		req := httptest.NewRequest(http.MethodGet, "/vendor/jeb-maker-mb/mb-boot.js", nil)
 		rec := httptest.NewRecorder()
 		appweb.StaticHandler(inner, "development").ServeHTTP(rec, req)
 		if got := rec.Header().Get("Cache-Control"); got != "no-cache" {
@@ -49,29 +49,13 @@ func TestStaticHandlerSetsCacheControl(t *testing.T) {
 	})
 
 	t.Run("production", func(t *testing.T) {
-		req := httptest.NewRequest(http.MethodGet, "/css/app.css", nil)
+		req := httptest.NewRequest(http.MethodGet, "/vendor/jeb-maker-mb/mb-boot.js", nil)
 		rec := httptest.NewRecorder()
 		appweb.StaticHandler(inner, "production").ServeHTTP(rec, req)
 		if got := rec.Header().Get("Cache-Control"); got != "public, max-age=31536000, immutable" {
 			t.Fatalf("Cache-Control = %q", got)
 		}
 	})
-}
-
-func TestSplitCSSAssetsPresent(t *testing.T) {
-	staticFS, err := fs.Sub(webassets.Static, "static")
-	if err != nil {
-		t.Fatalf("fs.Sub(): %v", err)
-	}
-	for _, path := range []string{"css/app.css", "css/run.css", "css/editor.css"} {
-		data, readErr := fs.ReadFile(staticFS, path)
-		if readErr != nil {
-			t.Fatalf("ReadFile(%s): %v", path, readErr)
-		}
-		if len(data) == 0 {
-			t.Fatalf("%s empty", path)
-		}
-	}
 }
 
 func TestVendoredReportsBundlePresent(t *testing.T) {
@@ -125,29 +109,5 @@ func TestVendoredMBBundlePresent(t *testing.T) {
 		if !bytes.Contains(boot, []byte(tag)) {
 			t.Fatalf("mb-boot.js missing registration for %s", tag)
 		}
-	}
-}
-
-func TestServeServiceWorkerKill(t *testing.T) {
-	staticFS, err := fs.Sub(webassets.Static, "static")
-	if err != nil {
-		t.Fatalf("fs.Sub(): %v", err)
-	}
-
-	req := httptest.NewRequest(http.MethodGet, "/sw.js", nil)
-	rec := httptest.NewRecorder()
-	appweb.ServeServiceWorkerKill(staticFS)(rec, req)
-
-	if rec.Code != http.StatusOK {
-		t.Fatalf("status = %d, want 200", rec.Code)
-	}
-	if ct := rec.Header().Get("Content-Type"); ct != "application/javascript; charset=utf-8" {
-		t.Fatalf("Content-Type = %q", ct)
-	}
-	if cc := rec.Header().Get("Cache-Control"); cc != "no-store" {
-		t.Fatalf("Cache-Control = %q, want no-store", cc)
-	}
-	if len(rec.Body.String()) == 0 {
-		t.Fatal("empty body")
 	}
 }

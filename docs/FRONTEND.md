@@ -21,7 +21,18 @@ frontend/                 # app SvelteKit
 static vendor mb          # bundlé ou package ; pas réinventer les CE
 ```
 
-Go sert le build `frontend/build` (ou équivalent) en production ; en dev : proxy Vite → API `:8080`.
+Go sert le build `frontend/build` (ou `REVUES_SPA_DIR`) en production ; en dev : proxy Vite → API `:8080`.
+
+### Démarrage front
+
+```bash
+cd frontend && npm ci && npm run dev   # http://localhost:5173 (proxy /api /auth /healthz → :8080)
+# ou build statique servi par Go :
+cd frontend && npm ci && npm run build
+go run ./cmd/revues                   # sert frontend/build ; sinon page stub documentée
+```
+
+Vendor **mb** reste sous `web/static/vendor/jeb-maker-mb/` jusqu’à intégration front (WP-005).
 
 ## Règles
 

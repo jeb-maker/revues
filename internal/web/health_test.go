@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	_ "modernc.org/sqlite"
@@ -34,6 +35,32 @@ func TestHealthz(t *testing.T) {
 	}
 	if rec.Body.String() != "ok" {
 		t.Errorf("body = %q, want %q", rec.Body.String(), "ok")
+	}
+}
+
+func TestSPAStubWhenBuildMissing(t *testing.T) {
+	t.Setenv("REVUES_SPA_DIR", t.TempDir()+"/missing-spa")
+
+	handler, _, _, err := appweb.NewRouter(appweb.Deps{
+		Config: config.Config{SessionSecret: "test-secret-at-least-thirty-two-bytes"},
+		DB:     mustMemoryDB(t),
+	})
+	if err != nil {
+		t.Fatalf("NewRouter() error = %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+	body := rec.Body.String()
+	for _, part := range []string{"SPA SvelteKit", "npm run build", "/healthz"} {
+		if !strings.Contains(body, part) {
+			t.Fatalf("stub body missing %q: %q", part, body)
+		}
 	}
 }
 

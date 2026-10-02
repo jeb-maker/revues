@@ -1,14 +1,9 @@
-// Package web holds embedded static assets and HTML templates.
+// Package web holds embedded static assets (vendor mb, etc.).
 package web
 
 import "embed"
 
-// Static contains CSS and JS served at /static/.
+// Static contains CSS/JS served at /static/ (vendor mb kept for WP-005).
 //
 //go:embed all:static
 var Static embed.FS
-
-// Templates contains html/template files under templates/.
-//
-//go:embed all:templates
-var Templates embed.FS
