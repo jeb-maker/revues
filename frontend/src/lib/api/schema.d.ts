@@ -604,6 +604,202 @@ export interface paths {
         patch: operations["updateRunItem"];
         trace?: never;
     };
+    "/admin/allowed-emails": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Liste blanche emails de l'org active
+         * @description RequireOrgAdmin (owner/admin org ou admin global) + org active.
+         *     Rôles whitelist : reader | editor uniquement.
+         */
+        get: operations["listAllowedEmails"];
+        put?: never;
+        /**
+         * Ajouter / mettre à jour un email autorisé
+         * @description Upsert whitelist (reader|editor). CSRF requis. RequireOrgAdmin.
+         */
+        post: operations["createAllowedEmail"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/allowed-emails/{email}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Retirer un email de la whitelist
+         * @description CSRF requis. Impossible de retirer son propre email. RequireOrgAdmin.
+         */
+        delete: operations["deleteAllowedEmail"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/members": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Membres de l'organisation active
+         * @description Liste les membres avec leur rôle org (owner|admin|member).
+         *     RequireOrgAdmin + org active.
+         */
+        get: operations["listOrganizationMembers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/members/{userId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Modifier le rôle org d'un membre
+         * @description Rôle owner|admin|member. CSRF + RequireOrgAdmin.
+         *     Refuse de rétrograder le dernier owner.
+         */
+        patch: operations["updateOrganizationMemberRole"];
+        trace?: never;
+    };
+    "/admin/teams": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Équipes de l'organisation active
+         * @description RequireOrgAdmin + org active.
+         */
+        get: operations["listAdminTeams"];
+        put?: never;
+        /**
+         * Créer une équipe
+         * @description CSRF + RequireOrgAdmin. Slug dérivé du nom si omis.
+         */
+        post: operations["createAdminTeam"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/teams/{teamId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Détail d'une équipe + membres
+         * @description RequireOrgAdmin. IDOR org active (équipe hors org → 404).
+         *     Inclut les candidats (membres org absents de l'équipe).
+         */
+        get: operations["getAdminTeam"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/teams/{teamId}/members": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ajouter un membre d'org à une équipe
+         * @description CSRF + RequireOrgAdmin. L'utilisateur doit être membre de l'org.
+         */
+        post: operations["addAdminTeamMember"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/teams/{teamId}/members/{userId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Retirer un membre d'une équipe
+         * @description CSRF + RequireOrgAdmin.
+         */
+        delete: operations["removeAdminTeamMember"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/settings/policies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Politiques de délégation aux leads
+         * @description RequireOrgAdmin + org active.
+         */
+        get: operations["getLeadPolicies"];
+        /**
+         * Mettre à jour les politiques lead
+         * @description CSRF + RequireOrgAdmin.
+         */
+        put: operations["updateLeadPolicies"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1034,6 +1230,91 @@ export interface components {
             assignees?: components["schemas"]["RunAssignee"][];
             capabilities: components["schemas"]["RunCapabilities"];
             pending_required_count?: number;
+        };
+        AllowedEmail: {
+            /** Format: email */
+            email: string;
+            /**
+             * @description Rôle global whitelist (reader|editor)
+             * @enum {string}
+             */
+            role: "reader" | "editor";
+            created_at: string;
+        };
+        AllowedEmailListResponse: {
+            emails: components["schemas"]["AllowedEmail"][];
+        };
+        AllowedEmailWriteRequest: {
+            /** Format: email */
+            email: string;
+            /** @enum {string} */
+            role: "reader" | "editor";
+        };
+        OrganizationMember: {
+            /** Format: int64 */
+            user_id: number;
+            login: string;
+            /** Format: email */
+            email: string;
+            display_name: string;
+            /**
+             * @description Rôle org (owner|admin|member)
+             * @enum {string}
+             */
+            role: "owner" | "admin" | "member";
+            joined_at: string;
+        };
+        OrganizationMemberListResponse: {
+            members: components["schemas"]["OrganizationMember"][];
+        };
+        UpdateOrganizationMemberRoleRequest: {
+            /** @enum {string} */
+            role: "owner" | "admin" | "member";
+        };
+        AdminTeam: {
+            /** Format: int64 */
+            id: number;
+            name: string;
+            slug: string;
+            description?: string;
+            created_at: string;
+            member_count: number;
+        };
+        AdminTeamListResponse: {
+            teams: components["schemas"]["AdminTeam"][];
+        };
+        CreateAdminTeamRequest: {
+            name: string;
+            /** @description Optionnel — dérivé du nom si omis */
+            slug?: string;
+            description?: string;
+        };
+        AdminTeamMember: {
+            /** Format: int64 */
+            user_id: number;
+            login: string;
+            /** Format: email */
+            email: string;
+            display_name: string;
+            created_at: string;
+        };
+        AdminTeamDetailResponse: {
+            team: components["schemas"]["AdminTeam"];
+            members: components["schemas"]["AdminTeamMember"][];
+            /** @description Membres org absents de l'équipe */
+            candidates: components["schemas"]["OrganizationMember"][];
+        };
+        AdminTeamMemberRequest: {
+            /** Format: int64 */
+            user_id: number;
+        };
+        LeadPolicies: {
+            /** @description Lead peut ajouter une équipe existante à son sujet */
+            leads_may_assign_teams: boolean;
+            /** @description Lead peut inviter un membre direct (org) */
+            leads_may_invite_members: boolean;
+            /** @description Lead peut inviter une adresse hors org */
+            leads_may_invite_externals: boolean;
         };
     };
     responses: {
@@ -2058,6 +2339,320 @@ export interface operations {
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    listAllowedEmails: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Emails autorisés */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AllowedEmailListResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    createAllowedEmail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AllowedEmailWriteRequest"];
+            };
+        };
+        responses: {
+            /** @description Email enregistré */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AllowedEmail"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    deleteAllowedEmail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                email: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Email retiré */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    listOrganizationMembers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Membres */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganizationMemberListResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    updateOrganizationMemberRole: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                userId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateOrganizationMemberRoleRequest"];
+            };
+        };
+        responses: {
+            /** @description Membre mis à jour */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganizationMember"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    listAdminTeams: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Équipes */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminTeamListResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    createAdminTeam: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateAdminTeamRequest"];
+            };
+        };
+        responses: {
+            /** @description Équipe créée */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminTeam"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getAdminTeam: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                teamId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Équipe */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminTeamDetailResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    addAdminTeamMember: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                teamId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminTeamMemberRequest"];
+            };
+        };
+        responses: {
+            /** @description Membre ajouté */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    removeAdminTeamMember: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                teamId: number;
+                userId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Membre retiré */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getLeadPolicies: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Politiques actuelles */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeadPolicies"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    updateLeadPolicies: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LeadPolicies"];
+            };
+        };
+        responses: {
+            /** @description Politiques mises à jour */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeadPolicies"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
             500: components["responses"]["InternalError"];
         };
     };

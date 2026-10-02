@@ -14,6 +14,7 @@ import (
 	"github.com/jeb-maker/revues/internal/features/subjects"
 	"github.com/jeb-maker/revues/internal/integrations/webhooks"
 	"github.com/jeb-maker/revues/internal/store"
+	appmiddleware "github.com/jeb-maker/revues/internal/web/middleware"
 )
 
 // Server implements the OpenAPI ServerInterface for /api/v1.
@@ -116,4 +117,22 @@ func requireOrg(w http.ResponseWriter, r *http.Request) bool {
 	}
 	writeAPIError(w, http.StatusForbidden, "org_required", "Organisation active requise.")
 	return false
+}
+
+// requireOrgAdmin enforces org owner/admin (or global admin) + active org.
+func (s *Server) requireOrgAdmin(w http.ResponseWriter, r *http.Request) (*store.User, *store.Organization, bool) {
+	user, ok := requireUser(w, r)
+	if !ok {
+		return nil, nil, false
+	}
+	org, ok := orgFromRequest(r)
+	if !ok {
+		writeAPIError(w, http.StatusForbidden, "org_required", "Organisation active requise.")
+		return nil, nil, false
+	}
+	if s.Store == nil || !appmiddleware.CanManageOrgUsers(r.Context(), s.Store, user) {
+		writeAPIError(w, http.StatusForbidden, "forbidden", "Droits administrateur organisation requis.")
+		return nil, nil, false
+	}
+	return user, org, true
 }

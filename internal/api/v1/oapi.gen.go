@@ -19,6 +19,18 @@ const (
 	AddSubjectMemberRequestRoleViewer      AddSubjectMemberRequestRole = "viewer"
 )
 
+// Defines values for AllowedEmailRole.
+const (
+	AllowedEmailRoleEditor AllowedEmailRole = "editor"
+	AllowedEmailRoleReader AllowedEmailRole = "reader"
+)
+
+// Defines values for AllowedEmailWriteRequestRole.
+const (
+	AllowedEmailWriteRequestRoleEditor AllowedEmailWriteRequestRole = "editor"
+	AllowedEmailWriteRequestRoleReader AllowedEmailWriteRequestRole = "reader"
+)
+
 // Defines values for HealthResponseStatus.
 const (
 	HealthResponseStatusOk HealthResponseStatus = "ok"
@@ -30,6 +42,13 @@ const (
 	MyTaskStatusNok     MyTaskStatus = "nok"
 	MyTaskStatusOk      MyTaskStatus = "ok"
 	MyTaskStatusPending MyTaskStatus = "pending"
+)
+
+// Defines values for OrganizationMemberRole.
+const (
+	OrganizationMemberRoleAdmin  OrganizationMemberRole = "admin"
+	OrganizationMemberRoleMember OrganizationMemberRole = "member"
+	OrganizationMemberRoleOwner  OrganizationMemberRole = "owner"
 )
 
 // Defines values for RunDetailStatus.
@@ -81,6 +100,13 @@ const (
 	Private SubjectWriteRequestVisibility = "private"
 )
 
+// Defines values for UpdateOrganizationMemberRoleRequestRole.
+const (
+	UpdateOrganizationMemberRoleRequestRoleAdmin  UpdateOrganizationMemberRoleRequestRole = "admin"
+	UpdateOrganizationMemberRoleRequestRoleMember UpdateOrganizationMemberRoleRequestRole = "member"
+	UpdateOrganizationMemberRoleRequestRoleOwner  UpdateOrganizationMemberRoleRequestRole = "owner"
+)
+
 // Defines values for UpdateRunItemRequestStatus.
 const (
 	UpdateRunItemRequestStatusNa      UpdateRunItemRequestStatus = "na"
@@ -114,6 +140,69 @@ type AddSubjectMemberRequest struct {
 // AddSubjectMemberRequestRole defines model for AddSubjectMemberRequest.Role.
 type AddSubjectMemberRequestRole string
 
+// AdminTeam defines model for AdminTeam.
+type AdminTeam struct {
+	CreatedAt   string  `json:"created_at"`
+	Description *string `json:"description,omitempty"`
+	Id          int64   `json:"id"`
+	MemberCount int     `json:"member_count"`
+	Name        string  `json:"name"`
+	Slug        string  `json:"slug"`
+}
+
+// AdminTeamDetailResponse defines model for AdminTeamDetailResponse.
+type AdminTeamDetailResponse struct {
+	// Candidates Membres org absents de l'équipe
+	Candidates []OrganizationMember `json:"candidates"`
+	Members    []AdminTeamMember    `json:"members"`
+	Team       AdminTeam            `json:"team"`
+}
+
+// AdminTeamListResponse defines model for AdminTeamListResponse.
+type AdminTeamListResponse struct {
+	Teams []AdminTeam `json:"teams"`
+}
+
+// AdminTeamMember defines model for AdminTeamMember.
+type AdminTeamMember struct {
+	CreatedAt   string              `json:"created_at"`
+	DisplayName string              `json:"display_name"`
+	Email       openapi_types.Email `json:"email"`
+	Login       string              `json:"login"`
+	UserId      int64               `json:"user_id"`
+}
+
+// AdminTeamMemberRequest defines model for AdminTeamMemberRequest.
+type AdminTeamMemberRequest struct {
+	UserId int64 `json:"user_id"`
+}
+
+// AllowedEmail defines model for AllowedEmail.
+type AllowedEmail struct {
+	CreatedAt string              `json:"created_at"`
+	Email     openapi_types.Email `json:"email"`
+
+	// Role Rôle global whitelist (reader|editor)
+	Role AllowedEmailRole `json:"role"`
+}
+
+// AllowedEmailRole Rôle global whitelist (reader|editor)
+type AllowedEmailRole string
+
+// AllowedEmailListResponse defines model for AllowedEmailListResponse.
+type AllowedEmailListResponse struct {
+	Emails []AllowedEmail `json:"emails"`
+}
+
+// AllowedEmailWriteRequest defines model for AllowedEmailWriteRequest.
+type AllowedEmailWriteRequest struct {
+	Email openapi_types.Email          `json:"email"`
+	Role  AllowedEmailWriteRequestRole `json:"role"`
+}
+
+// AllowedEmailWriteRequestRole defines model for AllowedEmailWriteRequest.Role.
+type AllowedEmailWriteRequestRole string
+
 // AuthSuccessResponse defines model for AuthSuccessResponse.
 type AuthSuccessResponse struct {
 	CsrfToken string `json:"csrf_token"`
@@ -142,6 +231,15 @@ type BootstrapResponse struct {
 type CompleteRunRequest struct {
 	// ClosingNote Note de cloture optionnelle
 	ClosingNote *string `json:"closing_note,omitempty"`
+}
+
+// CreateAdminTeamRequest defines model for CreateAdminTeamRequest.
+type CreateAdminTeamRequest struct {
+	Description *string `json:"description,omitempty"`
+	Name        string  `json:"name"`
+
+	// Slug Optionnel — dérivé du nom si omis
+	Slug *string `json:"slug,omitempty"`
 }
 
 // CreateOrganizationRequest defines model for CreateOrganizationRequest.
@@ -178,6 +276,18 @@ type HealthResponse struct {
 
 // HealthResponseStatus État de santé
 type HealthResponseStatus string
+
+// LeadPolicies defines model for LeadPolicies.
+type LeadPolicies struct {
+	// LeadsMayAssignTeams Lead peut ajouter une équipe existante à son sujet
+	LeadsMayAssignTeams bool `json:"leads_may_assign_teams"`
+
+	// LeadsMayInviteExternals Lead peut inviter une adresse hors org
+	LeadsMayInviteExternals bool `json:"leads_may_invite_externals"`
+
+	// LeadsMayInviteMembers Lead peut inviter un membre direct (org)
+	LeadsMayInviteMembers bool `json:"leads_may_invite_members"`
+}
 
 // LoginRequest defines model for LoginRequest.
 type LoginRequest struct {
@@ -262,6 +372,26 @@ type OrganizationListResponse struct {
 
 	// Redirect Chemin SPA suggéré selon le nombre d'orgs
 	Redirect *string `json:"redirect,omitempty"`
+}
+
+// OrganizationMember defines model for OrganizationMember.
+type OrganizationMember struct {
+	DisplayName string              `json:"display_name"`
+	Email       openapi_types.Email `json:"email"`
+	JoinedAt    string              `json:"joined_at"`
+	Login       string              `json:"login"`
+
+	// Role Rôle org (owner|admin|member)
+	Role   OrganizationMemberRole `json:"role"`
+	UserId int64                  `json:"user_id"`
+}
+
+// OrganizationMemberRole Rôle org (owner|admin|member)
+type OrganizationMemberRole string
+
+// OrganizationMemberListResponse defines model for OrganizationMemberListResponse.
+type OrganizationMemberListResponse struct {
+	Members []OrganizationMember `json:"members"`
 }
 
 // RegisterRequest defines model for RegisterRequest.
@@ -580,6 +710,14 @@ type TemplateWriteRequest struct {
 	Name    string              `json:"name"`
 }
 
+// UpdateOrganizationMemberRoleRequest defines model for UpdateOrganizationMemberRoleRequest.
+type UpdateOrganizationMemberRoleRequest struct {
+	Role UpdateOrganizationMemberRoleRequestRole `json:"role"`
+}
+
+// UpdateOrganizationMemberRoleRequestRole defines model for UpdateOrganizationMemberRoleRequest.Role.
+type UpdateOrganizationMemberRoleRequestRole string
+
 // UpdateRunItemRequest defines model for UpdateRunItemRequest.
 type UpdateRunItemRequest struct {
 	// AssignedTo Assignee user id (omit = no change)
@@ -677,6 +815,21 @@ type ListTemplatesParams struct {
 	Q *string `form:"q,omitempty" json:"q,omitempty"`
 }
 
+// CreateAllowedEmailJSONRequestBody defines body for CreateAllowedEmail for application/json ContentType.
+type CreateAllowedEmailJSONRequestBody = AllowedEmailWriteRequest
+
+// UpdateOrganizationMemberRoleJSONRequestBody defines body for UpdateOrganizationMemberRole for application/json ContentType.
+type UpdateOrganizationMemberRoleJSONRequestBody = UpdateOrganizationMemberRoleRequest
+
+// UpdateLeadPoliciesJSONRequestBody defines body for UpdateLeadPolicies for application/json ContentType.
+type UpdateLeadPoliciesJSONRequestBody = LeadPolicies
+
+// CreateAdminTeamJSONRequestBody defines body for CreateAdminTeam for application/json ContentType.
+type CreateAdminTeamJSONRequestBody = CreateAdminTeamRequest
+
+// AddAdminTeamMemberJSONRequestBody defines body for AddAdminTeamMember for application/json ContentType.
+type AddAdminTeamMemberJSONRequestBody = AdminTeamMemberRequest
+
 // PostAuthLoginJSONRequestBody defines body for PostAuthLogin for application/json ContentType.
 type PostAuthLoginJSONRequestBody = LoginRequest
 
@@ -718,6 +871,42 @@ type CreateTemplateVersionJSONRequestBody = TemplateVersionCreateRequest
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+	// Liste blanche emails de l'org active
+	// (GET /admin/allowed-emails)
+	ListAllowedEmails(w http.ResponseWriter, r *http.Request)
+	// Ajouter / mettre à jour un email autorisé
+	// (POST /admin/allowed-emails)
+	CreateAllowedEmail(w http.ResponseWriter, r *http.Request)
+	// Retirer un email de la whitelist
+	// (DELETE /admin/allowed-emails/{email})
+	DeleteAllowedEmail(w http.ResponseWriter, r *http.Request, email openapi_types.Email)
+	// Membres de l'organisation active
+	// (GET /admin/members)
+	ListOrganizationMembers(w http.ResponseWriter, r *http.Request)
+	// Modifier le rôle org d'un membre
+	// (PATCH /admin/members/{userId})
+	UpdateOrganizationMemberRole(w http.ResponseWriter, r *http.Request, userId int64)
+	// Politiques de délégation aux leads
+	// (GET /admin/settings/policies)
+	GetLeadPolicies(w http.ResponseWriter, r *http.Request)
+	// Mettre à jour les politiques lead
+	// (PUT /admin/settings/policies)
+	UpdateLeadPolicies(w http.ResponseWriter, r *http.Request)
+	// Équipes de l'organisation active
+	// (GET /admin/teams)
+	ListAdminTeams(w http.ResponseWriter, r *http.Request)
+	// Créer une équipe
+	// (POST /admin/teams)
+	CreateAdminTeam(w http.ResponseWriter, r *http.Request)
+	// Détail d'une équipe + membres
+	// (GET /admin/teams/{teamId})
+	GetAdminTeam(w http.ResponseWriter, r *http.Request, teamId int64)
+	// Ajouter un membre d'org à une équipe
+	// (POST /admin/teams/{teamId}/members)
+	AddAdminTeamMember(w http.ResponseWriter, r *http.Request, teamId int64)
+	// Retirer un membre d'une équipe
+	// (DELETE /admin/teams/{teamId}/members/{userId})
+	RemoveAdminTeamMember(w http.ResponseWriter, r *http.Request, teamId int64, userId int64)
 	// Connexion email + mot de passe
 	// (POST /auth/login)
 	PostAuthLogin(w http.ResponseWriter, r *http.Request)
@@ -828,6 +1017,78 @@ type ServerInterface interface {
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
 
 type Unimplemented struct{}
+
+// Liste blanche emails de l'org active
+// (GET /admin/allowed-emails)
+func (_ Unimplemented) ListAllowedEmails(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Ajouter / mettre à jour un email autorisé
+// (POST /admin/allowed-emails)
+func (_ Unimplemented) CreateAllowedEmail(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Retirer un email de la whitelist
+// (DELETE /admin/allowed-emails/{email})
+func (_ Unimplemented) DeleteAllowedEmail(w http.ResponseWriter, r *http.Request, email openapi_types.Email) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Membres de l'organisation active
+// (GET /admin/members)
+func (_ Unimplemented) ListOrganizationMembers(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Modifier le rôle org d'un membre
+// (PATCH /admin/members/{userId})
+func (_ Unimplemented) UpdateOrganizationMemberRole(w http.ResponseWriter, r *http.Request, userId int64) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Politiques de délégation aux leads
+// (GET /admin/settings/policies)
+func (_ Unimplemented) GetLeadPolicies(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Mettre à jour les politiques lead
+// (PUT /admin/settings/policies)
+func (_ Unimplemented) UpdateLeadPolicies(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Équipes de l'organisation active
+// (GET /admin/teams)
+func (_ Unimplemented) ListAdminTeams(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Créer une équipe
+// (POST /admin/teams)
+func (_ Unimplemented) CreateAdminTeam(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Détail d'une équipe + membres
+// (GET /admin/teams/{teamId})
+func (_ Unimplemented) GetAdminTeam(w http.ResponseWriter, r *http.Request, teamId int64) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Ajouter un membre d'org à une équipe
+// (POST /admin/teams/{teamId}/members)
+func (_ Unimplemented) AddAdminTeamMember(w http.ResponseWriter, r *http.Request, teamId int64) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Retirer un membre d'une équipe
+// (DELETE /admin/teams/{teamId}/members/{userId})
+func (_ Unimplemented) RemoveAdminTeamMember(w http.ResponseWriter, r *http.Request, teamId int64, userId int64) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
 
 // Connexion email + mot de passe
 // (POST /auth/login)
@@ -1047,6 +1308,238 @@ type ServerInterfaceWrapper struct {
 }
 
 type MiddlewareFunc func(http.Handler) http.Handler
+
+// ListAllowedEmails operation middleware
+func (siw *ServerInterfaceWrapper) ListAllowedEmails(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListAllowedEmails(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateAllowedEmail operation middleware
+func (siw *ServerInterfaceWrapper) CreateAllowedEmail(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateAllowedEmail(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteAllowedEmail operation middleware
+func (siw *ServerInterfaceWrapper) DeleteAllowedEmail(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "email" -------------
+	var email openapi_types.Email
+
+	err = runtime.BindStyledParameterWithOptions("simple", "email", chi.URLParam(r, "email"), &email, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "email", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteAllowedEmail(w, r, email)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListOrganizationMembers operation middleware
+func (siw *ServerInterfaceWrapper) ListOrganizationMembers(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListOrganizationMembers(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateOrganizationMemberRole operation middleware
+func (siw *ServerInterfaceWrapper) UpdateOrganizationMemberRole(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "userId" -------------
+	var userId int64
+
+	err = runtime.BindStyledParameterWithOptions("simple", "userId", chi.URLParam(r, "userId"), &userId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "userId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateOrganizationMemberRole(w, r, userId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetLeadPolicies operation middleware
+func (siw *ServerInterfaceWrapper) GetLeadPolicies(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetLeadPolicies(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateLeadPolicies operation middleware
+func (siw *ServerInterfaceWrapper) UpdateLeadPolicies(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateLeadPolicies(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListAdminTeams operation middleware
+func (siw *ServerInterfaceWrapper) ListAdminTeams(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListAdminTeams(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateAdminTeam operation middleware
+func (siw *ServerInterfaceWrapper) CreateAdminTeam(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateAdminTeam(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetAdminTeam operation middleware
+func (siw *ServerInterfaceWrapper) GetAdminTeam(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "teamId" -------------
+	var teamId int64
+
+	err = runtime.BindStyledParameterWithOptions("simple", "teamId", chi.URLParam(r, "teamId"), &teamId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "teamId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetAdminTeam(w, r, teamId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// AddAdminTeamMember operation middleware
+func (siw *ServerInterfaceWrapper) AddAdminTeamMember(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "teamId" -------------
+	var teamId int64
+
+	err = runtime.BindStyledParameterWithOptions("simple", "teamId", chi.URLParam(r, "teamId"), &teamId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "teamId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.AddAdminTeamMember(w, r, teamId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RemoveAdminTeamMember operation middleware
+func (siw *ServerInterfaceWrapper) RemoveAdminTeamMember(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "teamId" -------------
+	var teamId int64
+
+	err = runtime.BindStyledParameterWithOptions("simple", "teamId", chi.URLParam(r, "teamId"), &teamId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "teamId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "userId" -------------
+	var userId int64
+
+	err = runtime.BindStyledParameterWithOptions("simple", "userId", chi.URLParam(r, "userId"), &userId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "userId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RemoveAdminTeamMember(w, r, teamId, userId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
 
 // PostAuthLogin operation middleware
 func (siw *ServerInterfaceWrapper) PostAuthLogin(w http.ResponseWriter, r *http.Request) {
@@ -1991,6 +2484,42 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		ErrorHandlerFunc:   options.ErrorHandlerFunc,
 	}
 
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/admin/allowed-emails", wrapper.ListAllowedEmails)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/admin/allowed-emails", wrapper.CreateAllowedEmail)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/admin/allowed-emails/{email}", wrapper.DeleteAllowedEmail)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/admin/members", wrapper.ListOrganizationMembers)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/admin/members/{userId}", wrapper.UpdateOrganizationMemberRole)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/admin/settings/policies", wrapper.GetLeadPolicies)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/admin/settings/policies", wrapper.UpdateLeadPolicies)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/admin/teams", wrapper.ListAdminTeams)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/admin/teams", wrapper.CreateAdminTeam)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/admin/teams/{teamId}", wrapper.GetAdminTeam)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/admin/teams/{teamId}/members", wrapper.AddAdminTeamMember)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/admin/teams/{teamId}/members/{userId}", wrapper.RemoveAdminTeamMember)
+	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/auth/login", wrapper.PostAuthLogin)
 	})

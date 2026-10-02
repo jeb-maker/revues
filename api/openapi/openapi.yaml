@@ -17,6 +17,8 @@ tags:
   description: Session, login local, inscription, CSRF bootstrap
 - name: orgs
   description: Organisations — liste, création, sélection active, invitations
+- name: admin
+  description: Administration organisation — whitelist, membres, équipes, politiques
 - name: subjects
   description: Sujets (CRUD, membres, domaines, étiquettes)
 - name: templates
@@ -1029,6 +1031,335 @@ paths:
           $ref: '#/components/responses/Conflict'
         '500':
           $ref: '#/components/responses/InternalError'
+  /admin/allowed-emails:
+    get:
+      operationId: listAllowedEmails
+      tags: [admin]
+      summary: Liste blanche emails de l'org active
+      description: |
+        RequireOrgAdmin (owner/admin org ou admin global) + org active.
+        Rôles whitelist : reader | editor uniquement.
+      responses:
+        "200":
+          description: Emails autorisés
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AllowedEmailListResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/InternalError"
+    post:
+      operationId: createAllowedEmail
+      tags: [admin]
+      summary: Ajouter / mettre à jour un email autorisé
+      description: |
+        Upsert whitelist (reader|editor). CSRF requis. RequireOrgAdmin.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AllowedEmailWriteRequest"
+      responses:
+        "201":
+          description: Email enregistré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AllowedEmail"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /admin/allowed-emails/{email}:
+    delete:
+      operationId: deleteAllowedEmail
+      tags: [admin]
+      summary: Retirer un email de la whitelist
+      description: |
+        CSRF requis. Impossible de retirer son propre email. RequireOrgAdmin.
+      parameters:
+        - name: email
+          in: path
+          required: true
+          schema:
+            type: string
+            format: email
+      responses:
+        "204":
+          description: Email retiré
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /admin/members:
+    get:
+      operationId: listOrganizationMembers
+      tags: [admin]
+      summary: Membres de l'organisation active
+      description: |
+        Liste les membres avec leur rôle org (owner|admin|member).
+        RequireOrgAdmin + org active.
+      responses:
+        "200":
+          description: Membres
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrganizationMemberListResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /admin/members/{userId}:
+    patch:
+      operationId: updateOrganizationMemberRole
+      tags: [admin]
+      summary: Modifier le rôle org d'un membre
+      description: |
+        Rôle owner|admin|member. CSRF + RequireOrgAdmin.
+        Refuse de rétrograder le dernier owner.
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateOrganizationMemberRoleRequest"
+      responses:
+        "200":
+          description: Membre mis à jour
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrganizationMember"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /admin/teams:
+    get:
+      operationId: listAdminTeams
+      tags: [admin]
+      summary: Équipes de l'organisation active
+      description: RequireOrgAdmin + org active.
+      responses:
+        "200":
+          description: Équipes
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminTeamListResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/InternalError"
+    post:
+      operationId: createAdminTeam
+      tags: [admin]
+      summary: Créer une équipe
+      description: CSRF + RequireOrgAdmin. Slug dérivé du nom si omis.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAdminTeamRequest"
+      responses:
+        "201":
+          description: Équipe créée
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminTeam"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /admin/teams/{teamId}:
+    get:
+      operationId: getAdminTeam
+      tags: [admin]
+      summary: Détail d'une équipe + membres
+      description: |
+        RequireOrgAdmin. IDOR org active (équipe hors org → 404).
+        Inclut les candidats (membres org absents de l'équipe).
+      parameters:
+        - name: teamId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: Équipe
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminTeamDetailResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /admin/teams/{teamId}/members:
+    post:
+      operationId: addAdminTeamMember
+      tags: [admin]
+      summary: Ajouter un membre d'org à une équipe
+      description: CSRF + RequireOrgAdmin. L'utilisateur doit être membre de l'org.
+      parameters:
+        - name: teamId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminTeamMemberRequest"
+      responses:
+        "204":
+          description: Membre ajouté
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /admin/teams/{teamId}/members/{userId}:
+    delete:
+      operationId: removeAdminTeamMember
+      tags: [admin]
+      summary: Retirer un membre d'une équipe
+      description: CSRF + RequireOrgAdmin.
+      parameters:
+        - name: teamId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "204":
+          description: Membre retiré
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /admin/settings/policies:
+    get:
+      operationId: getLeadPolicies
+      tags: [admin]
+      summary: Politiques de délégation aux leads
+      description: RequireOrgAdmin + org active.
+      responses:
+        "200":
+          description: Politiques actuelles
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LeadPolicies"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/InternalError"
+    put:
+      operationId: updateLeadPolicies
+      tags: [admin]
+      summary: Mettre à jour les politiques lead
+      description: CSRF + RequireOrgAdmin.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LeadPolicies"
+      responses:
+        "200":
+          description: Politiques mises à jour
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LeadPolicies"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
 components:
   responses:
     BadRequest:
@@ -2050,6 +2381,175 @@ components:
           $ref: '#/components/schemas/RunCapabilities'
         pending_required_count:
           type: integer
+    AllowedEmail:
+      type: object
+      required: [email, role, created_at]
+      properties:
+        email:
+          type: string
+          format: email
+        role:
+          type: string
+          description: Rôle global whitelist (reader|editor)
+          enum: [reader, editor]
+        created_at:
+          type: string
+
+    AllowedEmailListResponse:
+      type: object
+      required: [emails]
+      properties:
+        emails:
+          type: array
+          items:
+            $ref: "#/components/schemas/AllowedEmail"
+
+    AllowedEmailWriteRequest:
+      type: object
+      required: [email, role]
+      properties:
+        email:
+          type: string
+          format: email
+        role:
+          type: string
+          enum: [reader, editor]
+
+    OrganizationMember:
+      type: object
+      required: [user_id, login, email, display_name, role, joined_at]
+      properties:
+        user_id:
+          type: integer
+          format: int64
+        login:
+          type: string
+        email:
+          type: string
+          format: email
+        display_name:
+          type: string
+        role:
+          type: string
+          description: Rôle org (owner|admin|member)
+          enum: [owner, admin, member]
+        joined_at:
+          type: string
+
+    OrganizationMemberListResponse:
+      type: object
+      required: [members]
+      properties:
+        members:
+          type: array
+          items:
+            $ref: "#/components/schemas/OrganizationMember"
+
+    UpdateOrganizationMemberRoleRequest:
+      type: object
+      required: [role]
+      properties:
+        role:
+          type: string
+          enum: [owner, admin, member]
+
+    AdminTeam:
+      type: object
+      required: [id, name, slug, created_at, member_count]
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        slug:
+          type: string
+        description:
+          type: string
+        created_at:
+          type: string
+        member_count:
+          type: integer
+
+    AdminTeamListResponse:
+      type: object
+      required: [teams]
+      properties:
+        teams:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminTeam"
+
+    CreateAdminTeamRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+        slug:
+          type: string
+          description: Optionnel — dérivé du nom si omis
+        description:
+          type: string
+
+    AdminTeamMember:
+      type: object
+      required: [user_id, login, email, display_name, created_at]
+      properties:
+        user_id:
+          type: integer
+          format: int64
+        login:
+          type: string
+        email:
+          type: string
+          format: email
+        display_name:
+          type: string
+        created_at:
+          type: string
+
+    AdminTeamDetailResponse:
+      type: object
+      required: [team, members, candidates]
+      properties:
+        team:
+          $ref: "#/components/schemas/AdminTeam"
+        members:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminTeamMember"
+        candidates:
+          type: array
+          items:
+            $ref: "#/components/schemas/OrganizationMember"
+          description: Membres org absents de l'équipe
+
+    AdminTeamMemberRequest:
+      type: object
+      required: [user_id]
+      properties:
+        user_id:
+          type: integer
+          format: int64
+
+    LeadPolicies:
+      type: object
+      required:
+        - leads_may_assign_teams
+        - leads_may_invite_members
+        - leads_may_invite_externals
+      properties:
+        leads_may_assign_teams:
+          type: boolean
+          description: Lead peut ajouter une équipe existante à son sujet
+        leads_may_invite_members:
+          type: boolean
+          description: Lead peut inviter un membre direct (org)
+        leads_may_invite_externals:
+          type: boolean
+          description: Lead peut inviter une adresse hors org
   parameters:
     SubjectId:
       name: subjectId
