@@ -25,6 +25,182 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/bootstrap": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Bootstrap session + CSRF
+         * @description Renvoie l'état d'auth courant et un `csrf_token` utilisable par le front.
+         *     Sans session, pose un cookie guest court et dérive le CSRF de ce token.
+         *     Avec session, renvoie l'utilisateur et le CSRF dérivé du cookie `revues_session`.
+         */
+        get: operations["getBootstrap"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Utilisateur authentifié courant
+         * @description Exige une session valide. Renvoie le profil + CSRF (même dérivation que bootstrap).
+         */
+        get: operations["getMe"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Connexion email + mot de passe
+         * @description Authentifie un compte local. CSRF requis (`X-CSRF-Token`, guest ou session).
+         *     Pose le cookie `revues_session` en cas de succès.
+         */
+        post: operations["postAuthLogin"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/register": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Inscription email + mot de passe
+         * @description Crée un compte local si l'email est autorisé (whitelist / bootstrap).
+         *     CSRF guest requis. Pose `revues_session` en cas de succès.
+         */
+        post: operations["postAuthRegister"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Déconnexion
+         * @description Invalide la session courante et expire le cookie. CSRF session requis.
+         */
+        post: operations["postAuthLogout"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/orgs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Organisations de l'utilisateur
+         * @description Liste les organisations dont l'utilisateur est membre, l'org active
+         *     de session (si définie), un défaut suggéré (`revues_last_org`), les
+         *     invitations en attente, et si la création self-service est possible
+         *     (aucune appartenance encore — parité pré-rewrite).
+         */
+        get: operations["listOrganizations"];
+        put?: never;
+        /**
+         * Créer une organisation (onboarding)
+         * @description Self-service : uniquement si l'utilisateur n'appartient encore à
+         *     aucune organisation. Pose le créateur en `owner` et active l'org
+         *     sur la session. CSRF requis.
+         */
+        post: operations["createOrganization"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/orgs/active": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Sélectionner / basculer l'organisation active
+         * @description Active une organisation dont l'utilisateur est membre sur la session
+         *     courante (sélecteur onboarding ou switcher). IDOR → 404. CSRF requis.
+         */
+        post: operations["selectActiveOrganization"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/orgs/invitations/{invitationId}/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Accepter une invitation d'organisation
+         * @description Ajoute le membre (si besoin), consomme l'invitation, active l'org.
+         *     L'email de session doit correspondre à l'invitation (sinon 404).
+         *     CSRF requis.
+         */
+        post: operations["acceptOrganizationInvitation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -37,8 +213,169 @@ export interface components {
              */
             status: "ok";
         };
+        ErrorBody: {
+            /** @example validation_failed */
+            code: string;
+            /** @example Requête invalide. */
+            message: string;
+        };
+        ErrorResponse: {
+            error: components["schemas"]["ErrorBody"];
+        };
+        User: {
+            /** Format: int64 */
+            id: number;
+            login: string;
+            /** Format: email */
+            email: string;
+            display_name: string;
+            avatar_url?: string;
+            /** @description Rôle global (admin|editor|reader) */
+            role: string;
+        };
+        BootstrapResponse: {
+            authenticated: boolean;
+            /** @description Jeton CSRF à envoyer en header X-CSRF-Token sur les mutations */
+            csrf_token: string;
+            user?: components["schemas"]["User"];
+            /** @description true si REVUES_GITHUB_CLIENT_ID/SECRET sont configurés */
+            github_oauth_enabled: boolean;
+            /** @description Chemin SPA suggéré si déjà authentifié */
+            redirect?: string;
+        };
+        MeResponse: {
+            user: components["schemas"]["User"];
+            csrf_token: string;
+        };
+        LoginRequest: {
+            /** Format: email */
+            email: string;
+            /** Format: password */
+            password: string;
+        };
+        RegisterRequest: {
+            /** Format: email */
+            email: string;
+            display_name: string;
+            /** Format: password */
+            password: string;
+            /** Format: password */
+            password_confirm: string;
+        };
+        AuthSuccessResponse: {
+            user: components["schemas"]["User"];
+            csrf_token: string;
+            /** @description Chemin SPA post-login (org onboarding ou accueil) */
+            redirect: string;
+        };
+        Organization: {
+            /** Format: int64 */
+            id: number;
+            name: string;
+            slug: string;
+            /** @description Rôle org (owner|admin|member) */
+            role: string;
+            ui_subject_label?: string;
+            ui_run_label?: string;
+        };
+        OrganizationInvitation: {
+            /** Format: int64 */
+            id: number;
+            /** Format: int64 */
+            organization_id: number;
+            organization_name: string;
+            org_role: string;
+            created_at: string;
+        };
+        OrganizationListResponse: {
+            organizations: components["schemas"]["Organization"][];
+            invitations: components["schemas"]["OrganizationInvitation"][];
+            /**
+             * Format: int64
+             * @description Org active sur la session (null si pending)
+             */
+            active_organization_id?: number | null;
+            /**
+             * Format: int64
+             * @description Suggestion depuis cookie revues_last_org si membre
+             */
+            default_organization_id?: number | null;
+            /** @description true si l'utilisateur n'a encore aucune appartenance */
+            can_create: boolean;
+            /** @description Chemin SPA suggéré selon le nombre d'orgs */
+            redirect?: string;
+        };
+        CreateOrganizationRequest: {
+            name: string;
+            /** @description Optionnel — dérivé du nom si omis */
+            slug?: string;
+        };
+        SelectOrganizationRequest: {
+            /** Format: int64 */
+            organization_id: number;
+        };
+        OrganizationActionResponse: {
+            organization: components["schemas"]["Organization"];
+            /** @description Chemin SPA après action (accueil) */
+            redirect: string;
+        };
     };
-    responses: never;
+    responses: {
+        /** @description Requête invalide */
+        BadRequest: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["ErrorResponse"];
+            };
+        };
+        /** @description Non authentifié ou identifiants invalides */
+        Unauthorized: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["ErrorResponse"];
+            };
+        };
+        /** @description CSRF manquant/invalide ou refus */
+        Forbidden: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["ErrorResponse"];
+            };
+        };
+        /** @description Ressource absente ou non visible (IDOR) */
+        NotFound: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["ErrorResponse"];
+            };
+        };
+        /** @description Conflit métier */
+        Conflict: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["ErrorResponse"];
+            };
+        };
+        /** @description Erreur interne */
+        InternalError: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["ErrorResponse"];
+            };
+        };
+    };
     parameters: never;
     requestBodies: never;
     headers: never;
@@ -64,6 +401,231 @@ export interface operations {
                     "application/json": components["schemas"]["HealthResponse"];
                 };
             };
+        };
+    };
+    getBootstrap: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description État bootstrap */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BootstrapResponse"];
+                };
+            };
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getMe: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Utilisateur courant */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MeResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    postAuthLogin: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LoginRequest"];
+            };
+        };
+        responses: {
+            /** @description Session créée */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthSuccessResponse"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    postAuthRegister: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RegisterRequest"];
+            };
+        };
+        responses: {
+            /** @description Compte créé et session ouverte */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthSuccessResponse"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            403: components["responses"]["Forbidden"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    postAuthLogout: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Déconnecté */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    listOrganizations: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Liste org + invitations */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganizationListResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    createOrganization: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateOrganizationRequest"];
+            };
+        };
+        responses: {
+            /** @description Organisation créée et activée */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganizationActionResponse"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    selectActiveOrganization: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SelectOrganizationRequest"];
+            };
+        };
+        responses: {
+            /** @description Organisation active mise à jour */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganizationActionResponse"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    acceptOrganizationInvitation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                invitationId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Invitation acceptée, org active */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganizationActionResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["InternalError"];
         };
     };
 }

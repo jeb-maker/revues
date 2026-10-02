@@ -27,6 +27,18 @@ func (s *Server) GetBootstrap(w http.ResponseWriter, r *http.Request) {
 		csrf := auth.CSRFToken(token, s.Config.SessionSecret)
 		u := mapUser(user)
 		redirect := "/"
+		if s.Auth != nil {
+			_, route, err := authfeature.PostLoginRoute(r.Context(), s.Auth.Store, user.ID)
+			if err == nil && route != "" {
+				redirect = route
+			}
+			// Prefer home when session already has an active org.
+			if token != "" && s.Orgs != nil {
+				if list, listErr := s.Orgs.List(r.Context(), user, token, r); listErr == nil && list.ActiveOrganizationID > 0 {
+					redirect = "/"
+				}
+			}
+		}
 		writeJSON(w, http.StatusOK, BootstrapResponse{
 			Authenticated:      true,
 			CsrfToken:          csrf,
