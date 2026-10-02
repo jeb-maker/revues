@@ -171,30 +171,3 @@ func registerAndSession(t *testing.T, handler http.Handler, email, name string) 
 	}
 	return session, csrf
 }
-
-func doJSON(t *testing.T, handler http.Handler, method, path string, body any, session *http.Cookie, csrf string) *httptest.ResponseRecorder {
-	t.Helper()
-	var reader *bytes.Reader
-	if body != nil {
-		b, err := json.Marshal(body)
-		if err != nil {
-			t.Fatalf("marshal: %v", err)
-		}
-		reader = bytes.NewReader(b)
-	} else {
-		reader = bytes.NewReader(nil)
-	}
-	req := httptest.NewRequest(method, path, reader)
-	if body != nil {
-		req.Header.Set("Content-Type", "application/json")
-	}
-	if csrf != "" {
-		req.Header.Set("X-CSRF-Token", csrf)
-	}
-	if session != nil {
-		req.AddCookie(session)
-	}
-	rec := httptest.NewRecorder()
-	handler.ServeHTTP(rec, req)
-	return rec
-}
