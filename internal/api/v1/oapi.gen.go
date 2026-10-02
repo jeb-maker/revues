@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/oapi-codegen/runtime"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
@@ -38,6 +39,14 @@ type BootstrapResponse struct {
 	// Redirect Chemin SPA suggéré si déjà authentifié
 	Redirect *string `json:"redirect,omitempty"`
 	User     *User   `json:"user,omitempty"`
+}
+
+// CreateOrganizationRequest defines model for CreateOrganizationRequest.
+type CreateOrganizationRequest struct {
+	Name string `json:"name"`
+
+	// Slug Optionnel — dérivé du nom si omis
+	Slug *string `json:"slug,omitempty"`
 }
 
 // ErrorBody defines model for ErrorBody.
@@ -72,12 +81,63 @@ type MeResponse struct {
 	User      User   `json:"user"`
 }
 
+// Organization defines model for Organization.
+type Organization struct {
+	Id   int64  `json:"id"`
+	Name string `json:"name"`
+
+	// Role Rôle org (owner|admin|member)
+	Role           string  `json:"role"`
+	Slug           string  `json:"slug"`
+	UiRunLabel     *string `json:"ui_run_label,omitempty"`
+	UiSubjectLabel *string `json:"ui_subject_label,omitempty"`
+}
+
+// OrganizationActionResponse defines model for OrganizationActionResponse.
+type OrganizationActionResponse struct {
+	Organization Organization `json:"organization"`
+
+	// Redirect Chemin SPA après action (accueil)
+	Redirect string `json:"redirect"`
+}
+
+// OrganizationInvitation defines model for OrganizationInvitation.
+type OrganizationInvitation struct {
+	CreatedAt        string `json:"created_at"`
+	Id               int64  `json:"id"`
+	OrgRole          string `json:"org_role"`
+	OrganizationId   int64  `json:"organization_id"`
+	OrganizationName string `json:"organization_name"`
+}
+
+// OrganizationListResponse defines model for OrganizationListResponse.
+type OrganizationListResponse struct {
+	// ActiveOrganizationId Org active sur la session (null si pending)
+	ActiveOrganizationId *int64 `json:"active_organization_id"`
+
+	// CanCreate true si l'utilisateur n'a encore aucune appartenance
+	CanCreate bool `json:"can_create"`
+
+	// DefaultOrganizationId Suggestion depuis cookie revues_last_org si membre
+	DefaultOrganizationId *int64                   `json:"default_organization_id"`
+	Invitations           []OrganizationInvitation `json:"invitations"`
+	Organizations         []Organization           `json:"organizations"`
+
+	// Redirect Chemin SPA suggéré selon le nombre d'orgs
+	Redirect *string `json:"redirect,omitempty"`
+}
+
 // RegisterRequest defines model for RegisterRequest.
 type RegisterRequest struct {
 	DisplayName     string              `json:"display_name"`
 	Email           openapi_types.Email `json:"email"`
 	Password        string              `json:"password"`
 	PasswordConfirm string              `json:"password_confirm"`
+}
+
+// SelectOrganizationRequest defines model for SelectOrganizationRequest.
+type SelectOrganizationRequest struct {
+	OrganizationId int64 `json:"organization_id"`
 }
 
 // User defines model for User.
@@ -95,11 +155,17 @@ type User struct {
 // BadRequest defines model for BadRequest.
 type BadRequest = ErrorResponse
 
+// Conflict defines model for Conflict.
+type Conflict = ErrorResponse
+
 // Forbidden defines model for Forbidden.
 type Forbidden = ErrorResponse
 
 // InternalError defines model for InternalError.
 type InternalError = ErrorResponse
+
+// NotFound defines model for NotFound.
+type NotFound = ErrorResponse
 
 // Unauthorized defines model for Unauthorized.
 type Unauthorized = ErrorResponse
@@ -109,6 +175,12 @@ type PostAuthLoginJSONRequestBody = LoginRequest
 
 // PostAuthRegisterJSONRequestBody defines body for PostAuthRegister for application/json ContentType.
 type PostAuthRegisterJSONRequestBody = RegisterRequest
+
+// CreateOrganizationJSONRequestBody defines body for CreateOrganization for application/json ContentType.
+type CreateOrganizationJSONRequestBody = CreateOrganizationRequest
+
+// SelectActiveOrganizationJSONRequestBody defines body for SelectActiveOrganization for application/json ContentType.
+type SelectActiveOrganizationJSONRequestBody = SelectOrganizationRequest
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
@@ -130,6 +202,18 @@ type ServerInterface interface {
 	// Utilisateur authentifié courant
 	// (GET /me)
 	GetMe(w http.ResponseWriter, r *http.Request)
+	// Organisations de l'utilisateur
+	// (GET /orgs)
+	ListOrganizations(w http.ResponseWriter, r *http.Request)
+	// Créer une organisation (onboarding)
+	// (POST /orgs)
+	CreateOrganization(w http.ResponseWriter, r *http.Request)
+	// Sélectionner / basculer l'organisation active
+	// (POST /orgs/active)
+	SelectActiveOrganization(w http.ResponseWriter, r *http.Request)
+	// Accepter une invitation d'organisation
+	// (POST /orgs/invitations/{invitationId}/accept)
+	AcceptOrganizationInvitation(w http.ResponseWriter, r *http.Request, invitationId int64)
 }
 
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
@@ -169,6 +253,30 @@ func (_ Unimplemented) GetHealth(w http.ResponseWriter, r *http.Request) {
 // Utilisateur authentifié courant
 // (GET /me)
 func (_ Unimplemented) GetMe(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Organisations de l'utilisateur
+// (GET /orgs)
+func (_ Unimplemented) ListOrganizations(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Créer une organisation (onboarding)
+// (POST /orgs)
+func (_ Unimplemented) CreateOrganization(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Sélectionner / basculer l'organisation active
+// (POST /orgs/active)
+func (_ Unimplemented) SelectActiveOrganization(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Accepter une invitation d'organisation
+// (POST /orgs/invitations/{invitationId}/accept)
+func (_ Unimplemented) AcceptOrganizationInvitation(w http.ResponseWriter, r *http.Request, invitationId int64) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -256,6 +364,73 @@ func (siw *ServerInterfaceWrapper) GetMe(w http.ResponseWriter, r *http.Request)
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetMe(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListOrganizations operation middleware
+func (siw *ServerInterfaceWrapper) ListOrganizations(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListOrganizations(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateOrganization operation middleware
+func (siw *ServerInterfaceWrapper) CreateOrganization(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateOrganization(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SelectActiveOrganization operation middleware
+func (siw *ServerInterfaceWrapper) SelectActiveOrganization(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SelectActiveOrganization(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// AcceptOrganizationInvitation operation middleware
+func (siw *ServerInterfaceWrapper) AcceptOrganizationInvitation(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "invitationId" -------------
+	var invitationId int64
+
+	err = runtime.BindStyledParameterWithOptions("simple", "invitationId", chi.URLParam(r, "invitationId"), &invitationId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "invitationId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.AcceptOrganizationInvitation(w, r, invitationId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -395,6 +570,18 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/me", wrapper.GetMe)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/orgs", wrapper.ListOrganizations)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/orgs", wrapper.CreateOrganization)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/orgs/active", wrapper.SelectActiveOrganization)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/orgs/invitations/{invitationId}/accept", wrapper.AcceptOrganizationInvitation)
 	})
 
 	return r

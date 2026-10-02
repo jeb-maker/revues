@@ -10,10 +10,9 @@ import (
 
 	"github.com/jeb-maker/revues/internal/auth"
 	"github.com/jeb-maker/revues/internal/config"
+	"github.com/jeb-maker/revues/internal/features/organizations"
 	"github.com/jeb-maker/revues/internal/store"
 )
-
-const spaHomePath = "/"
 
 // Service holds auth business logic shared by the JSON API and OAuth redirects.
 type Service struct {
@@ -32,28 +31,12 @@ type LoginResult struct {
 }
 
 // PostLoginRoute decides how to seed the session organization and where to send the SPA.
-// Org UI is out of scope for WP-004; redirects stay on SPA home while session org is set.
+// Delegates to organizations.PostLoginRoute (WP-010) for /org/new|/org/select|/ parity.
 func PostLoginRoute(ctx context.Context, st interface {
 	CountUserOrganizations(ctx context.Context, userID int64) (int, error)
 	ListUserOrganizations(ctx context.Context, userID int64) ([]store.OrganizationMembership, error)
 }, userID int64) (sessionOrgID int64, redirect string, err error) {
-	count, err := st.CountUserOrganizations(ctx, userID)
-	if err != nil {
-		return 0, "", fmt.Errorf("count user organizations: %w", err)
-	}
-
-	switch count {
-	case 0:
-		return auth.SessionOrgPending, spaHomePath, nil
-	case 1:
-		memberships, err := st.ListUserOrganizations(ctx, userID)
-		if err != nil {
-			return 0, "", fmt.Errorf("list user organizations: %w", err)
-		}
-		return memberships[0].Organization.ID, spaHomePath, nil
-	default:
-		return auth.SessionOrgPending, spaHomePath, nil
-	}
+	return organizations.PostLoginRoute(ctx, st, userID)
 }
 
 // PasswordLogin authenticates email + password and creates a session.

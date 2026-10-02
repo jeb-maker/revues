@@ -1,17 +1,42 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { goto } from '$app/navigation';
 	import { bootstrap, logout, type BootstrapResponse } from '$lib/api/auth';
+	import { listOrganizations } from '$lib/api/orgs';
 	import { getHealth } from '$lib/api';
 
 	let boot = $state<BootstrapResponse | null>(null);
 	let error = $state('');
 	let health = $state<'…' | 'ok' | 'erreur'>('…');
+	let activeOrgName = $state('');
 
 	onMount(async () => {
 		try {
 			const [b, h] = await Promise.all([bootstrap(), getHealth().catch(() => null)]);
 			boot = b;
 			health = h?.status === 'ok' ? 'ok' : 'erreur';
+			if (b.authenticated) {
+				const redirect = b.redirect || '/';
+				if (redirect === '/org/new' || redirect === '/org/select') {
+					await goto(redirect);
+					return;
+				}
+				try {
+					const orgs = await listOrganizations();
+					if (orgs.active_organization_id) {
+						const match = orgs.organizations.find((o) => o.id === orgs.active_organization_id);
+						activeOrgName = match?.name ?? '';
+					} else if (orgs.can_create) {
+						await goto('/org/new');
+						return;
+					} else if (orgs.organizations.length > 1) {
+						await goto('/org/select');
+						return;
+					}
+				} catch {
+					/* org list optional on home */
+				}
+			}
 		} catch (e) {
 			error = e instanceof Error ? e.message : 'API indisponible';
 			health = 'erreur';
@@ -23,6 +48,7 @@
 		try {
 			await logout(boot.csrf_token);
 			boot = await bootstrap();
+			activeOrgName = '';
 		} catch (e) {
 			error = e instanceof Error ? e.message : 'Déconnexion impossible';
 		}
@@ -37,7 +63,7 @@
 	<p class="brand">Revues</p>
 	<h1>API + SvelteKit</h1>
 	<p class="lede">
-		Scaffold rewrite — client OpenAPI + mb · auth API (login / register / OAuth / CSRF).
+		Scaffold rewrite — client OpenAPI + mb · auth + organisations (WP-010).
 	</p>
 	<p class="status">
 		API <code>/api/v1/health</code> :
@@ -58,7 +84,12 @@
 		<p class="status">
 			Connecté en tant que <strong>{boot.user.display_name}</strong> ({boot.user.email})
 		</p>
+		{#if activeOrgName}
+			<p class="status">Organisation active : <strong>{activeOrgName}</strong></p>
+		{/if}
 		<p class="actions">
+			<a href="/org/select">Changer d'organisation</a>
+			·
 			<button type="button" onclick={onLogout}>Se déconnecter</button>
 		</p>
 	{:else}

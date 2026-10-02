@@ -8,18 +8,20 @@ import (
 	"github.com/jeb-maker/revues/internal/auth"
 	"github.com/jeb-maker/revues/internal/config"
 	authfeature "github.com/jeb-maker/revues/internal/features/auth"
+	"github.com/jeb-maker/revues/internal/features/organizations"
 )
 
 // Server implements the OpenAPI ServerInterface for /api/v1.
 type Server struct {
 	Auth     *authfeature.Service
+	Orgs     *organizations.Service
 	Config   config.Config
 	Sessions *auth.SessionManager
 }
 
 // NewServer returns the API v1 server implementation.
-func NewServer(svc *authfeature.Service, cfg config.Config, sessions *auth.SessionManager) *Server {
-	return &Server{Auth: svc, Config: cfg, Sessions: sessions}
+func NewServer(authSvc *authfeature.Service, orgSvc *organizations.Service, cfg config.Config, sessions *auth.SessionManager) *Server {
+	return &Server{Auth: authSvc, Orgs: orgSvc, Config: cfg, Sessions: sessions}
 }
 
 // GetHealth serves GET /api/v1/health.
