@@ -419,6 +419,11 @@ func ValidateTargetURL(raw string, devMode bool) error {
 	return nil
 }
 
+// ValidateTargetHost re-checks DNS/IP anti-SSRF for a webhook URL (save + deliver).
+func ValidateTargetHost(ctx context.Context, raw string, devMode bool) error {
+	return validateResolvedIPs(ctx, hostnameFromURL(raw), devMode)
+}
+
 func NewSafeClient(devMode bool) *http.Client {
 	return safehttp.NewClient(safehttp.Options{
 		AllowDevLocalhost: devMode,

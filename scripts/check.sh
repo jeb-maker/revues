@@ -89,10 +89,10 @@ fi
 # 4. Frontend SvelteKit (npm ci / check / build + budgets SPA)
 # ---------------------------------------------------------------------------
 # Budgets documentés dans docs/PLAN.md (WP-005). Vendor mb mesuré, hors fail.
-SPA_JS_RAW_MAX=262144      # 256 KiB — stack domaines + admin + Jira/Notion
-SPA_JS_GZIP_MAX=110592     # 108 KiB gzip-9 — stack domaines + admin + Jira/Notion
+SPA_JS_RAW_MAX=270336      # 264 KiB — stack + Jira/Notion/Webhooks
+SPA_JS_GZIP_MAX=114688     # 112 KiB gzip-9 — stack + Jira/Notion/Webhooks
 SPA_CSS_RAW_MAX=40960      # 40 KiB — build/_app/**/*.css
-SPA_CSS_GZIP_MAX=16384     # 16 KiB gzip-9 — pages admin incluses (resserrage WP-030)
+SPA_CSS_GZIP_MAX=17408     # 17 KiB gzip-9 — pages admin + webhooks
 
 if [[ -f frontend/package.json ]]; then
   if command -v npm >/dev/null 2>&1; then

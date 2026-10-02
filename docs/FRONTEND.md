@@ -92,8 +92,8 @@ Appliqués par `./scripts/check.sh` — détail [PLAN.md](./PLAN.md) :
 
 | Métrique | Seuil |
 |----------|-------|
-| JS app (`frontend/build/_app/**/*.js`) | ≤ 256 KiB brut / ≤ 108 KiB gzip-9 |
-| CSS app (`frontend/build/_app/**/*.css`) | ≤ 40 KiB brut / ≤ 16 KiB gzip-9 |
+| JS app (`frontend/build/_app/**/*.js`) | ≤ 264 KiB brut / ≤ 112 KiB gzip-9 |
+| CSS app (`frontend/build/_app/**/*.css`) | ≤ 40 KiB brut / ≤ 17 KiB gzip-9 |
 | Vendor mb | mesuré, hors fail strict |
 
 ## Tests front

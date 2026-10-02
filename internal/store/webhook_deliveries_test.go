@@ -2,6 +2,7 @@ package store_test
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -63,6 +64,60 @@ func TestWebhookDeliveryQueue_EnqueueListUpdate(t *testing.T) {
 	}
 	if len(due) != 0 {
 		t.Fatalf("done row still listed: %+v", due)
+	}
+}
+
+func TestWebhookDeliveryQueue_OrgListAndRetry(t *testing.T) {
+	ctx := context.Background()
+	st, _ := testStore(t)
+	ctx = defaultOrgCtx(ctx, st)
+
+	now := time.Date(2026, 8, 5, 12, 0, 0, 0, time.UTC)
+	id, err := st.EnqueueWebhookDelivery(ctx, "evt-list", "webhook.test", "https://example.com/hook", []byte(`{}`), now, now.Add(time.Hour))
+	if err != nil {
+		t.Fatalf("enqueue: %v", err)
+	}
+	err = st.UpdateWebhookDeliveryAttempt(ctx, id, 500, false, 5, nil, store.WebhookDeliveryPoison, "max")
+	if err != nil {
+		t.Fatalf("poison: %v", err)
+	}
+
+	list, err := st.ListOrgWebhookDeliveries(ctx, 10)
+	if err != nil {
+		t.Fatalf("ListOrgWebhookDeliveries: %v", err)
+	}
+	if len(list) != 1 || list[0].ID != id || list[0].State != store.WebhookDeliveryPoison {
+		t.Fatalf("list = %+v", list)
+	}
+	if len(list[0].Payload) != 0 {
+		t.Fatalf("list must omit payload, got %q", list[0].Payload)
+	}
+
+	got, err := st.WebhookDeliveryByID(ctx, id)
+	if err != nil {
+		t.Fatalf("WebhookDeliveryByID: %v", err)
+	}
+	if got.State != store.WebhookDeliveryPoison {
+		t.Fatalf("got = %+v", got)
+	}
+
+	next := now.Add(time.Minute)
+	exp := now.Add(24 * time.Hour)
+	err = st.ResetWebhookDeliveryForRetry(ctx, id, next, exp)
+	if err != nil {
+		t.Fatalf("ResetWebhookDeliveryForRetry: %v", err)
+	}
+	got, err = st.WebhookDeliveryByID(ctx, id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.State != store.WebhookDeliveryPending || got.Attempts != 0 || got.NextAttemptAt != next.UTC().Format(time.RFC3339) {
+		t.Fatalf("after reset = %+v", got)
+	}
+
+	_, err = st.WebhookDeliveryByID(ctx, 99999)
+	if !errors.Is(err, store.ErrWebhookDeliveryNotFound) {
+		t.Fatalf("missing id err = %v", err)
 	}
 }
 

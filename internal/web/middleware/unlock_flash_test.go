@@ -62,7 +62,9 @@ func TestResolveUnlockFlash_WhitelistOrg(t *testing.T) {
 	if msg != want {
 		t.Fatalf("msg = %q, want %q", msg, want)
 	}
-	cookies := rec.Result().Cookies()
+	res := rec.Result()
+	defer res.Body.Close()
+	cookies := res.Cookies()
 	if len(cookies) != 1 || cookies[0].Name != unlockCookieName || cookies[0].Value != "org" {
 		t.Fatalf("cookie = %+v, want %s=org", cookies, unlockCookieName)
 	}

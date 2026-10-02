@@ -199,6 +199,17 @@ func (s *SettingsService) SaveWebhooks(ctx context.Context, cfg WebhookConfig) e
 	return nil
 }
 
+// ClearWebhooks removes stored webhook configuration.
+func (s *SettingsService) ClearWebhooks(ctx context.Context) error {
+	if err := s.Store.DeleteSetting(ctx, SettingKeyWebhooks); err != nil {
+		if errors.Is(err, ErrSettingNotFound) {
+			return nil
+		}
+		return fmt.Errorf("clear webhooks setting: %w", err)
+	}
+	return nil
+}
+
 // ValidateSMTP checks required SMTP fields.
 func ValidateSMTP(cfg SMTPConfig) error {
 	host := strings.TrimSpace(cfg.Host)

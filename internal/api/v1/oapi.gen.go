@@ -137,12 +137,19 @@ const (
 	UpdateRunItemRequestStatusPending UpdateRunItemRequestStatus = "pending"
 )
 
+// Defines values for WebhookDeliveryState.
+const (
+	WebhookDeliveryStateDone    WebhookDeliveryState = "done"
+	WebhookDeliveryStatePending WebhookDeliveryState = "pending"
+	WebhookDeliveryStatePoison  WebhookDeliveryState = "poison"
+)
+
 // Defines values for ListMyTasksParamsStatus.
 const (
-	Na      ListMyTasksParamsStatus = "na"
-	Nok     ListMyTasksParamsStatus = "nok"
-	Ok      ListMyTasksParamsStatus = "ok"
-	Pending ListMyTasksParamsStatus = "pending"
+	ListMyTasksParamsStatusNa      ListMyTasksParamsStatus = "na"
+	ListMyTasksParamsStatusNok     ListMyTasksParamsStatus = "nok"
+	ListMyTasksParamsStatusOk      ListMyTasksParamsStatus = "ok"
+	ListMyTasksParamsStatusPending ListMyTasksParamsStatus = "pending"
 )
 
 // Defines values for ListRunsParamsStatus.
@@ -1032,6 +1039,59 @@ type User struct {
 	Role string `json:"role"`
 }
 
+// WebhookDelivery defines model for WebhookDelivery.
+type WebhookDelivery struct {
+	Attempts      int                  `json:"attempts"`
+	CreatedAt     string               `json:"created_at"`
+	EventId       string               `json:"event_id"`
+	EventType     string               `json:"event_type"`
+	ExpiresAt     *string              `json:"expires_at"`
+	Id            int64                `json:"id"`
+	LastError     *string              `json:"last_error"`
+	NextAttemptAt *string              `json:"next_attempt_at"`
+	State         WebhookDeliveryState `json:"state"`
+	StatusCode    *int                 `json:"status_code"`
+	Success       bool                 `json:"success"`
+	Url           string               `json:"url"`
+}
+
+// WebhookDeliveryState defines model for WebhookDelivery.State.
+type WebhookDeliveryState string
+
+// WebhookDeliveryList defines model for WebhookDeliveryList.
+type WebhookDeliveryList struct {
+	Deliveries []WebhookDelivery `json:"deliveries"`
+}
+
+// WebhookSettings defines model for WebhookSettings.
+type WebhookSettings struct {
+	// Configured true si une config est stockée
+	Configured bool `json:"configured"`
+
+	// Enabled true si au moins une URL + secret permettent la livraison
+	Enabled bool `json:"enabled"`
+
+	// HasSecret true si un secret HMAC est stocké (jamais renvoyé en clair)
+	HasSecret       bool `json:"has_secret"`
+	ReviewCompleted bool `json:"review_completed"`
+	ReviewItemNok   bool `json:"review_item_nok"`
+
+	// Urls URLs cibles (https ; http://localhost en dev)
+	Urls []string `json:"urls"`
+}
+
+// WebhookSettingsUpdate defines model for WebhookSettingsUpdate.
+type WebhookSettingsUpdate struct {
+	ReviewCompleted bool `json:"review_completed"`
+	ReviewItemNok   bool `json:"review_item_nok"`
+
+	// Secret Omis ou vide = conserve le secret existant
+	Secret *string `json:"secret,omitempty"`
+
+	// Urls Au moins une URL
+	Urls []string `json:"urls"`
+}
+
 // AttachmentId defines model for AttachmentId.
 type AttachmentId = int64
 
@@ -1050,6 +1110,9 @@ type TemplateId = int64
 // TemplateVersionNumber defines model for TemplateVersionNumber.
 type TemplateVersionNumber = int
 
+// WebhookDeliveryId defines model for WebhookDeliveryId.
+type WebhookDeliveryId = int64
+
 // BadRequest defines model for BadRequest.
 type BadRequest = ErrorResponse
 
@@ -1067,6 +1130,11 @@ type NotFound = ErrorResponse
 
 // Unauthorized defines model for Unauthorized.
 type Unauthorized = ErrorResponse
+
+// ListAdminWebhookDeliveriesParams defines parameters for ListAdminWebhookDeliveries.
+type ListAdminWebhookDeliveriesParams struct {
+	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
+}
 
 // ListMyTasksParams defines parameters for ListMyTasks.
 type ListMyTasksParams struct {
@@ -1138,6 +1206,9 @@ type CreateAdminTeamJSONRequestBody = CreateAdminTeamRequest
 
 // AddAdminTeamMemberJSONRequestBody defines body for AddAdminTeamMember for application/json ContentType.
 type AddAdminTeamMemberJSONRequestBody = AdminTeamMemberRequest
+
+// PutAdminWebhooksJSONRequestBody defines body for PutAdminWebhooks for application/json ContentType.
+type PutAdminWebhooksJSONRequestBody = WebhookSettingsUpdate
 
 // PostAuthLoginJSONRequestBody defines body for PostAuthLogin for application/json ContentType.
 type PostAuthLoginJSONRequestBody = LoginRequest
@@ -1267,6 +1338,27 @@ type ServerInterface interface {
 	// Retirer un membre d'une équipe
 	// (DELETE /admin/teams/{teamId}/members/{userId})
 	RemoveAdminTeamMember(w http.ResponseWriter, r *http.Request, teamId int64, userId int64)
+	// Effacer la configuration webhooks
+	// (DELETE /admin/webhooks)
+	DeleteAdminWebhooks(w http.ResponseWriter, r *http.Request)
+	// Configuration webhooks sortants (secret masqué)
+	// (GET /admin/webhooks)
+	GetAdminWebhooks(w http.ResponseWriter, r *http.Request)
+	// Enregistrer la configuration webhooks chiffrée
+	// (PUT /admin/webhooks)
+	PutAdminWebhooks(w http.ResponseWriter, r *http.Request)
+	// File des livraisons webhooks (org active)
+	// (GET /admin/webhooks/deliveries)
+	ListAdminWebhookDeliveries(w http.ResponseWriter, r *http.Request, params ListAdminWebhookDeliveriesParams)
+	// Déclencher un drain manuel de la file
+	// (POST /admin/webhooks/deliveries/drain)
+	PostAdminWebhookDeliveriesDrain(w http.ResponseWriter, r *http.Request)
+	// Réessayer une livraison (pending ou poison)
+	// (POST /admin/webhooks/deliveries/{deliveryId}/retry)
+	PostAdminWebhookDeliveryRetry(w http.ResponseWriter, r *http.Request, deliveryId WebhookDeliveryId)
+	// Envoyer un événement webhook.test
+	// (POST /admin/webhooks/test)
+	PostAdminWebhooksTest(w http.ResponseWriter, r *http.Request)
 	// Connexion email + mot de passe
 	// (POST /auth/login)
 	PostAuthLogin(w http.ResponseWriter, r *http.Request)
@@ -1549,6 +1641,48 @@ func (_ Unimplemented) AddAdminTeamMember(w http.ResponseWriter, r *http.Request
 // Retirer un membre d'une équipe
 // (DELETE /admin/teams/{teamId}/members/{userId})
 func (_ Unimplemented) RemoveAdminTeamMember(w http.ResponseWriter, r *http.Request, teamId int64, userId int64) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Effacer la configuration webhooks
+// (DELETE /admin/webhooks)
+func (_ Unimplemented) DeleteAdminWebhooks(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Configuration webhooks sortants (secret masqué)
+// (GET /admin/webhooks)
+func (_ Unimplemented) GetAdminWebhooks(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Enregistrer la configuration webhooks chiffrée
+// (PUT /admin/webhooks)
+func (_ Unimplemented) PutAdminWebhooks(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// File des livraisons webhooks (org active)
+// (GET /admin/webhooks/deliveries)
+func (_ Unimplemented) ListAdminWebhookDeliveries(w http.ResponseWriter, r *http.Request, params ListAdminWebhookDeliveriesParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Déclencher un drain manuel de la file
+// (POST /admin/webhooks/deliveries/drain)
+func (_ Unimplemented) PostAdminWebhookDeliveriesDrain(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Réessayer une livraison (pending ou poison)
+// (POST /admin/webhooks/deliveries/{deliveryId}/retry)
+func (_ Unimplemented) PostAdminWebhookDeliveryRetry(w http.ResponseWriter, r *http.Request, deliveryId WebhookDeliveryId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Envoyer un événement webhook.test
+// (POST /admin/webhooks/test)
+func (_ Unimplemented) PostAdminWebhooksTest(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -2224,6 +2358,128 @@ func (siw *ServerInterfaceWrapper) RemoveAdminTeamMember(w http.ResponseWriter, 
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.RemoveAdminTeamMember(w, r, teamId, userId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteAdminWebhooks operation middleware
+func (siw *ServerInterfaceWrapper) DeleteAdminWebhooks(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteAdminWebhooks(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetAdminWebhooks operation middleware
+func (siw *ServerInterfaceWrapper) GetAdminWebhooks(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetAdminWebhooks(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PutAdminWebhooks operation middleware
+func (siw *ServerInterfaceWrapper) PutAdminWebhooks(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PutAdminWebhooks(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListAdminWebhookDeliveries operation middleware
+func (siw *ServerInterfaceWrapper) ListAdminWebhookDeliveries(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListAdminWebhookDeliveriesParams
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "limit", r.URL.Query(), &params.Limit)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListAdminWebhookDeliveries(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PostAdminWebhookDeliveriesDrain operation middleware
+func (siw *ServerInterfaceWrapper) PostAdminWebhookDeliveriesDrain(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PostAdminWebhookDeliveriesDrain(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PostAdminWebhookDeliveryRetry operation middleware
+func (siw *ServerInterfaceWrapper) PostAdminWebhookDeliveryRetry(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "deliveryId" -------------
+	var deliveryId WebhookDeliveryId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "deliveryId", chi.URLParam(r, "deliveryId"), &deliveryId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "deliveryId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PostAdminWebhookDeliveryRetry(w, r, deliveryId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PostAdminWebhooksTest operation middleware
+func (siw *ServerInterfaceWrapper) PostAdminWebhooksTest(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PostAdminWebhooksTest(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -3502,6 +3758,27 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Delete(options.BaseURL+"/admin/teams/{teamId}/members/{userId}", wrapper.RemoveAdminTeamMember)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/admin/webhooks", wrapper.DeleteAdminWebhooks)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/admin/webhooks", wrapper.GetAdminWebhooks)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/admin/webhooks", wrapper.PutAdminWebhooks)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/admin/webhooks/deliveries", wrapper.ListAdminWebhookDeliveries)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/admin/webhooks/deliveries/drain", wrapper.PostAdminWebhookDeliveriesDrain)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/admin/webhooks/deliveries/{deliveryId}/retry", wrapper.PostAdminWebhookDeliveryRetry)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/admin/webhooks/test", wrapper.PostAdminWebhooksTest)
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/auth/login", wrapper.PostAuthLogin)

@@ -1,6 +1,18 @@
 # Webhooks sortants — Revues
 
-See admin `/admin/settings/webhooks`. Payload JSON with `event_id`, `event_type`, `occurred_at`, `data`.
+UI admin SPA : `/admin/settings/webhooks` (hub `/admin/integrations`).
+
+API (RequireOrgAdmin + CSRF sur mutations) :
+
+| Méthode | Chemin | Rôle |
+|---------|--------|------|
+| `GET\|PUT\|DELETE` | `/api/v1/admin/webhooks` | Config singleton org (secret masqué / `has_secret`) |
+| `POST` | `/api/v1/admin/webhooks/test` | Événement `webhook.test` via Dispatcher |
+| `GET` | `/api/v1/admin/webhooks/deliveries` | File org (`webhook_deliveries`, sans payload) |
+| `POST` | `/api/v1/admin/webhooks/deliveries/drain` | Drain manuel (même logique que le cron 1′) |
+| `POST` | `/api/v1/admin/webhooks/deliveries/{id}/retry` | Reprogramme pending/poison puis drain |
+
+Payload JSON with `event_id`, `event_type`, `occurred_at`, `data`.
 
 Signature header: `X-Revues-Signature: sha256=<hmac-sha256 hex of raw body>`.
 
@@ -9,9 +21,9 @@ Events: `review.completed`, `review.item.nok`, `webhook.test`.
 ## Delivery & durable retry
 
 - HTTP timeout 5s, max 1 redirect, anti-SSRF (block private/metadata IPs; `https` only except `http://localhost` in dev).
-- **Anti-SSRF is re-checked on every attempt** (URL scheme + DNS/IP + dial).
+- **Anti-SSRF is re-checked on every attempt** (URL scheme + DNS/IP + dial) — aussi à l'enregistrement via `PUT /api/v1/admin/webhooks`.
 - Queue table: `webhook_deliveries` (payload + `state` / `attempts` / `next_attempt_at` / `expires_at`).
-- Drain: in-process cron every **1 minute** (`webhooks.StartDrainScheduler`) and opportunistic drain after emit — **same binary**, no Redis / separate worker.
+- Drain: in-process cron every **1 minute** (`webhooks.StartDrainScheduler`) and opportunistic drain after emit — **same binary**, no Redis / separate worker. Drain manuel : `POST .../deliveries/drain`.
 - Secret HMAC is loaded from settings at attempt time (not stored on the row).
 
 ### Backoff
@@ -42,7 +54,7 @@ A delivery expires **24 hours** after enqueue (`DeliveryTTL`). If the next backo
 - Successful delivery: `state = done`, `success = 1`.
 - Pending: `state = pending` with `next_attempt_at` in the future.
 
-Poison rows are kept for ops inspection; there is no automatic replay UI in this issue.
+Poison rows are kept for ops inspection ; replay manuel via `POST .../deliveries/{id}/retry` (réinitialise attempts + TTL, puis drain).
 
 ## review.completed
 

@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"time"
 )
@@ -13,6 +14,9 @@ const (
 	WebhookDeliveryDone    = "done"
 	WebhookDeliveryPoison  = "poison"
 )
+
+// ErrWebhookDeliveryNotFound is returned when a delivery row is missing or outside the org.
+var ErrWebhookDeliveryNotFound = errors.New("webhook delivery not found")
 
 // WebhookDelivery is one durable outbound webhook attempt queue row.
 type WebhookDelivery struct {
@@ -123,6 +127,106 @@ func (s *Store) UpdateWebhookDeliveryAttempt(ctx context.Context, id int64, stat
 	`, code, successInt, attempts, next, state, errMsg, id)
 	if err != nil {
 		return fmt.Errorf("update webhook delivery %d: %w", id, err)
+	}
+	return nil
+}
+
+// ListOrgWebhookDeliveries returns recent deliveries for the active organization (payload omitted).
+func (s *Store) ListOrgWebhookDeliveries(ctx context.Context, limit int) ([]WebhookDelivery, error) {
+	orgID, err := organizationIDFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if limit <= 0 {
+		limit = 50
+	}
+	if limit > 200 {
+		limit = 200
+	}
+	rows, err := s.db.QueryContext(ctx, `
+		SELECT id, COALESCE(organization_id, 0), event_id, event_type, url, status_code, success,
+		       attempts, COALESCE(next_attempt_at, ''), COALESCE(expires_at, ''),
+		       state, COALESCE(last_error, ''), created_at
+		FROM webhook_deliveries
+		WHERE organization_id = ?
+		ORDER BY id DESC
+		LIMIT ?
+	`, orgID, limit)
+	if err != nil {
+		return nil, fmt.Errorf("list org webhook deliveries: %w", err)
+	}
+	defer rows.Close()
+
+	var out []WebhookDelivery
+	for rows.Next() {
+		var d WebhookDelivery
+		var successInt int
+		if err := rows.Scan(
+			&d.ID, &d.OrganizationID, &d.EventID, &d.EventType, &d.URL, &d.StatusCode, &successInt,
+			&d.Attempts, &d.NextAttemptAt, &d.ExpiresAt, &d.State, &d.LastError, &d.CreatedAt,
+		); err != nil {
+			return nil, fmt.Errorf("scan org webhook delivery: %w", err)
+		}
+		d.Success = successInt == 1
+		out = append(out, d)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate org webhook deliveries: %w", err)
+	}
+	return out, nil
+}
+
+// WebhookDeliveryByID loads one delivery row scoped to the active organization (IDOR).
+func (s *Store) WebhookDeliveryByID(ctx context.Context, id int64) (*WebhookDelivery, error) {
+	orgID, err := organizationIDFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var d WebhookDelivery
+	var successInt int
+	var payload []byte
+	err = s.db.QueryRowContext(ctx, `
+		SELECT id, COALESCE(organization_id, 0), event_id, event_type, url, payload, status_code, success,
+		       attempts, COALESCE(next_attempt_at, ''), COALESCE(expires_at, ''),
+		       state, COALESCE(last_error, ''), created_at
+		FROM webhook_deliveries
+		WHERE id = ? AND organization_id = ?
+	`, id, orgID).Scan(
+		&d.ID, &d.OrganizationID, &d.EventID, &d.EventType, &d.URL, &payload, &d.StatusCode, &successInt,
+		&d.Attempts, &d.NextAttemptAt, &d.ExpiresAt, &d.State, &d.LastError, &d.CreatedAt,
+	)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrWebhookDeliveryNotFound
+		}
+		return nil, fmt.Errorf("webhook delivery by id: %w", err)
+	}
+	d.Payload = payload
+	d.Success = successInt == 1
+	return &d, nil
+}
+
+// ResetWebhookDeliveryForRetry requeues a delivery for immediate retry (ops).
+func (s *Store) ResetWebhookDeliveryForRetry(ctx context.Context, id int64, nextAttemptAt, expiresAt time.Time) error {
+	orgID, err := organizationIDFromContext(ctx)
+	if err != nil {
+		return err
+	}
+	res, err := s.db.ExecContext(ctx, `
+		UPDATE webhook_deliveries
+		SET state = ?, attempts = 0, success = 0, status_code = NULL, last_error = NULL,
+		    next_attempt_at = ?, expires_at = ?
+		WHERE id = ? AND organization_id = ?
+	`, WebhookDeliveryPending, nextAttemptAt.UTC().Format(time.RFC3339), expiresAt.UTC().Format(time.RFC3339), id, orgID)
+	if err != nil {
+		return fmt.Errorf("reset webhook delivery %d: %w", id, err)
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("reset webhook delivery rows: %w", err)
+	}
+	if n == 0 {
+		return ErrWebhookDeliveryNotFound
 	}
 	return nil
 }

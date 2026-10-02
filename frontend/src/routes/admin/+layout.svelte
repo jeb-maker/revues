@@ -82,7 +82,8 @@
 		align-items: center;
 		gap: 0.5rem;
 	}
-	:global(.admin-page input:not([type='checkbox'])) {
+	:global(.admin-page input:not([type='checkbox'])),
+	:global(.admin-page textarea) {
 		padding: 0.55rem 0.65rem;
 		border-radius: 0.4rem;
 		border: 1px solid #334155;
