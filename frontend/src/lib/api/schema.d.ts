@@ -67,6 +67,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/me/tasks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Mes tâches assignées
+         * @description Auth + org active. Liste les `run_items` où `assigned_to` = utilisateur
+         *     courant (IDOR garanti par le store). Périmètre : org active + sujets non
+         *     archivés + runs non archivés (parité `ListAssignedRunItems`). Filtres
+         *     `status` (pending|ok|nok|na) et `q` (sujet / modèle / label / section).
+         */
+        get: operations["listMyTasks"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/auth/login": {
         parameters: {
             query?: never;
@@ -925,6 +948,31 @@ export interface components {
             assigned_login?: string | null;
             updated_at: string;
         };
+        MyTask: {
+            /** Format: int64 */
+            id: number;
+            /** Format: int64 */
+            run_id: number;
+            section: string;
+            position: number;
+            label: string;
+            help_text?: string;
+            required: boolean;
+            /** @enum {string} */
+            status: "pending" | "ok" | "nok" | "na";
+            comment: string;
+            /** Format: int64 */
+            assigned_to?: number | null;
+            assigned_login?: string | null;
+            updated_at: string;
+            run_title: string;
+            /** Format: int64 */
+            subject_id: number;
+            subject_name: string;
+        };
+        MyTaskListResponse: {
+            tasks: components["schemas"]["MyTask"][];
+        };
         RunItemEvent: {
             /** Format: int64 */
             id: number;
@@ -1121,6 +1169,34 @@ export interface operations {
                 };
             };
             401: components["responses"]["Unauthorized"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    listMyTasks: {
+        parameters: {
+            query?: {
+                /** @description Filtre statut de l'item */
+                status?: "pending" | "ok" | "nok" | "na";
+                /** @description Recherche texte (sujet, modèle, label, section) */
+                q?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Liste des tâches assignées */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MyTaskListResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
             500: components["responses"]["InternalError"];
         };
     };

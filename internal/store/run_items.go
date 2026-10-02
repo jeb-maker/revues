@@ -205,7 +205,13 @@ func (s *Store) ListNokRunItems(ctx context.Context, runID int64) ([]RunItem, er
 }
 
 // ListAssignedRunItems returns tasks assigned to a user with optional filters.
+// Scoped to the active organization (orgctx) and non-archived subjects/runs.
+// IDOR: only rows where assigned_to = userID.
 func (s *Store) ListAssignedRunItems(ctx context.Context, userID int64, status, query string) ([]AssignedRunItemSummary, error) {
+	orgID, err := organizationIDFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
 	sqlQuery := `
 		SELECT ri.id, ri.run_id, ri.source_item_id, ri.section, ri.position, ri.label, ri.help_text, ri.required,
 		       ri.status, ri.comment, ri.assigned_to, u.login, ri.updated_at,
@@ -216,9 +222,9 @@ func (s *Store) ListAssignedRunItems(ctx context.Context, userID int64, status, 
 		INNER JOIN template_versions tv ON tv.id = cr.template_version_id
 		INNER JOIN checklist_templates t ON t.id = tv.template_id
 		LEFT JOIN users u ON u.id = ri.assigned_to
-		WHERE ri.assigned_to = ? AND cr.status != ?
+		WHERE ri.assigned_to = ? AND cr.status != ? AND p.organization_id = ? AND p.archived_at IS NULL
 	`
-	args := []any{userID, RunStatusArchived}
+	args := []any{userID, RunStatusArchived, orgID}
 
 	if status != "" {
 		sqlQuery += " AND ri.status = ?"
