@@ -166,44 +166,10 @@
 </main>
 
 <style>
-	:global(body) {
-		margin: 0;
-		min-height: 100vh;
-		font-family: var(--mb-font-sans, 'Segoe UI', system-ui, sans-serif);
-		background: linear-gradient(160deg, #0f172a 0%, #1e293b 50%, #0f766e 100%);
-		color: #f8fafc;
-	}
-	.page {
-		max-width: 44rem;
-		margin: 0 auto;
-		padding: 2rem 1.25rem 4rem;
-	}
-	.brand {
-		margin: 0 0 0.35rem;
-		font-size: 1.75rem;
-		font-weight: 700;
-	}
-	.brand a {
-		color: inherit;
-		text-decoration: none;
-	}
-	.crumbs {
-		margin: 0 0 0.5rem;
-		font-size: 0.9rem;
-		color: #94a3b8;
-	}
-	.crumbs a {
-		color: #5eead4;
-	}
-	h1 {
-		margin: 0 0 0.35rem;
-		font-size: 1.35rem;
-		font-weight: 600;
-	}
-	.lede {
-		margin: 0 0 1.25rem;
-		color: #cbd5e1;
-	}
+	
+	
+	
+	
 	.progress {
 		margin-bottom: 1.5rem;
 		padding: 1rem;
@@ -321,10 +287,5 @@
 		margin-top: 1rem;
 		color: #cbd5e1;
 	}
-	.err {
-		color: #fca5a5;
-	}
-	.muted {
-		color: #94a3b8;
-	}
+	
 </style>

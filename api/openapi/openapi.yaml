@@ -27,6 +27,8 @@ tags:
   description: Revues (exécutions) — lancement, items, clôture
 - name: tasks
   description: Mes tâches — items de revue assignés à l'utilisateur courant
+- name: integrations
+  description: Intégrations externes (Jira link/create depuis un point)
 paths:
   /health:
     get:
@@ -1460,7 +1462,7 @@ paths:
       summary: Hub intégrations (états + navigation)
       description: |
         Auth + RequireOrgAdmin. Liste SMTP / Jira / Notion / Webhooks avec
-        enabled + config_path SPA. Config détaillée Jira/Notion/webhooks = WP-020+.
+        enabled + config_path SPA. Config détaillée Jira = WP-020 ; Notion/webhooks = WP-021+.
       responses:
         '200':
           description: Vue d'ensemble
@@ -1472,6 +1474,183 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /admin/integrations/jira:
+    get:
+      operationId: getAdminJiraSettings
+      tags:
+        - admin
+      summary: Configuration Jira Cloud (masquée)
+      description: |
+        Auth + RequireOrgAdmin. Jamais de jeton API en clair — `has_api_token` seulement.
+        Hors scope WP-020 : Jira Server/DC (instance_type toujours cloud).
+      responses:
+        '200':
+          description: Config Jira courante (ou vide si non configurée)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JiraSettings'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    put:
+      operationId: putAdminJiraSettings
+      tags:
+        - admin
+      summary: Enregistrer la configuration Jira Cloud chiffrée
+      description: |
+        Auth + RequireOrgAdmin + CSRF. `api_token` omis ou vide = conserve le secret
+        existant (`MergeSecret`). Chiffrement AES-GCM. Force instance_type=cloud.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JiraSettingsUpdate'
+      responses:
+        '200':
+          description: Config enregistrée (secrets masqués)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JiraSettings'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    delete:
+      operationId: deleteAdminJiraSettings
+      tags:
+        - admin
+      summary: Effacer la configuration Jira
+      description: Auth + RequireOrgAdmin + CSRF.
+      responses:
+        '204':
+          description: Configuration effacée
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /admin/integrations/jira/test:
+    post:
+      operationId: postAdminJiraTest
+      tags:
+        - admin
+      summary: Tester la connexion Jira Cloud
+      description: |
+        Auth + RequireOrgAdmin + CSRF. Utilise la config stockée (chiffrée) via
+        GET /rest/api/3/myself. Client HTTP anti-SSRF (`internal/safehttp`).
+      responses:
+        '204':
+          description: Connexion réussie
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /runs/{runId}/items/{itemId}/jira:
+    parameters:
+      - $ref: '#/components/parameters/RunId'
+      - $ref: '#/components/parameters/RunItemId'
+    get:
+      operationId: getRunItemJira
+      tags:
+        - integrations
+      summary: Lien Jira et contexte création pour un point
+      description: |
+        Auth + accès sujet/revue (IDOR). Renvoie le lien éventuel, l'état configuré,
+        et les valeurs par défaut pour créer un ticket (si nok).
+      responses:
+        '200':
+          description: État Jira du point
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RunItemJira'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    put:
+      operationId: putRunItemJiraLink
+      tags:
+        - integrations
+      summary: Lier une issue Jira existante au point
+      description: |
+        Auth + CanLinkJira (contributeur+) + CSRF. Vérifie l'issue via API Jira
+        (safehttp), stocke clé + URL browse.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JiraLinkRequest'
+      responses:
+        '200':
+          description: Lien enregistré
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JiraLink'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      operationId: postRunItemJiraCreate
+      tags:
+        - integrations
+      summary: Créer une issue Jira depuis un point nok
+      description: |
+        Auth + CanLinkJira + CSRF. Point doit être `nok`, pas déjà lié, project_key
+        configuré. Titre/description optionnels (préremplissage serveur sinon).
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JiraCreateRequest'
+      responses:
+        '201':
+          description: Ticket créé et lié
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JiraLink'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
         '500':
           $ref: '#/components/responses/InternalError'
   /runs/{runId}/items/{itemId}/attachments:
@@ -2528,6 +2707,14 @@ components:
           allOf:
             - $ref: '#/components/schemas/Attachment'
           description: Pièce jointe courante du point (si présente)
+        jira_link:
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/JiraLink'
+          description: Lien Jira courant du point (si présent)
+        jira_configured:
+          type: boolean
+          description: true si Jira Cloud est configuré pour l'org active
         run_status:
           type: string
         run_title:
@@ -2889,6 +3076,107 @@ components:
         config_path:
           type: string
           description: Chemin SPA de configuration
+    JiraSettings:
+      type: object
+      required:
+        - configured
+        - base_url
+        - email
+        - project_key
+        - issue_type
+        - has_api_token
+      properties:
+        configured:
+          type: boolean
+          description: true si credentials Cloud complets
+        base_url:
+          type: string
+          description: URL instance (HTTPS, anti-SSRF)
+        email:
+          type: string
+          description: Email Atlassian (Cloud)
+        project_key:
+          type: string
+          description: Clé projet par défaut (création de tickets)
+        issue_type:
+          type: string
+          description: Type d'issue par défaut (ex. Task)
+        has_api_token:
+          type: boolean
+          description: true si un jeton API est stocké (jamais renvoyé en clair)
+    JiraSettingsUpdate:
+      type: object
+      required:
+        - base_url
+        - email
+      properties:
+        base_url:
+          type: string
+        email:
+          type: string
+          format: email
+        api_token:
+          type: string
+          description: Omis ou vide = conserve le secret existant
+        project_key:
+          type: string
+        issue_type:
+          type: string
+    JiraLink:
+      type: object
+      required:
+        - external_key
+        - external_url
+      properties:
+        external_key:
+          type: string
+          description: Clé issue (ex. PROJ-123)
+        external_url:
+          type: string
+          format: uri
+          description: URL browse Jira
+    JiraLinkRequest:
+      type: object
+      required:
+        - issue
+      properties:
+        issue:
+          type: string
+          description: Clé (PROJ-123) ou URL browse Jira
+    JiraCreateRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          description: Titre du ticket (défaut = label du point)
+        description:
+          type: string
+          description: Description (défaut = contexte sujet/revue/commentaire)
+    RunItemJira:
+      type: object
+      required:
+        - configured
+        - can_link
+        - link
+      properties:
+        configured:
+          type: boolean
+        can_link:
+          type: boolean
+          description: true si l'utilisateur peut lier/créer (contributeur+)
+        link:
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/JiraLink'
+        default_title:
+          type: string
+          description: Titre prérempli pour création (si nok)
+        default_description:
+          type: string
+          description: Description préremplie pour création (si nok)
+        can_create:
+          type: boolean
+          description: true si nok, configuré, pas déjà lié, project_key présent
     Attachment:
       type: object
       required:

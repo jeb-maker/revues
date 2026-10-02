@@ -66,6 +66,17 @@ func TestServiceSaveLoadCloud(t *testing.T) {
 	if got.InstanceType != cfg.InstanceType || got.BaseURL != cfg.BaseURL || got.Email != cfg.Email || got.APIToken != cfg.APIToken {
 		t.Fatalf("Load() = %+v, want %+v", got, cfg)
 	}
+
+	if clearErr := svc.Clear(ctx); clearErr != nil {
+		t.Fatalf("Clear(): %v", clearErr)
+	}
+	_, ok, err = svc.Load(ctx)
+	if err != nil {
+		t.Fatalf("Load after Clear(): %v", err)
+	}
+	if ok {
+		t.Fatal("expected no jira config after Clear")
+	}
 }
 
 func TestServiceSaveLoadServer(t *testing.T) {

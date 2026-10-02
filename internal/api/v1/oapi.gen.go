@@ -318,6 +318,61 @@ type IntegrationsOverview struct {
 	Items []IntegrationSummary `json:"items"`
 }
 
+// JiraCreateRequest defines model for JiraCreateRequest.
+type JiraCreateRequest struct {
+	// Description Description (défaut = contexte sujet/revue/commentaire)
+	Description *string `json:"description,omitempty"`
+
+	// Title Titre du ticket (défaut = label du point)
+	Title *string `json:"title,omitempty"`
+}
+
+// JiraLink defines model for JiraLink.
+type JiraLink struct {
+	// ExternalKey Clé issue (ex. PROJ-123)
+	ExternalKey string `json:"external_key"`
+
+	// ExternalUrl URL browse Jira
+	ExternalUrl string `json:"external_url"`
+}
+
+// JiraLinkRequest defines model for JiraLinkRequest.
+type JiraLinkRequest struct {
+	// Issue Clé (PROJ-123) ou URL browse Jira
+	Issue string `json:"issue"`
+}
+
+// JiraSettings defines model for JiraSettings.
+type JiraSettings struct {
+	// BaseUrl URL instance (HTTPS, anti-SSRF)
+	BaseUrl string `json:"base_url"`
+
+	// Configured true si credentials Cloud complets
+	Configured bool `json:"configured"`
+
+	// Email Email Atlassian (Cloud)
+	Email string `json:"email"`
+
+	// HasApiToken true si un jeton API est stocké (jamais renvoyé en clair)
+	HasApiToken bool `json:"has_api_token"`
+
+	// IssueType Type d'issue par défaut (ex. Task)
+	IssueType string `json:"issue_type"`
+
+	// ProjectKey Clé projet par défaut (création de tickets)
+	ProjectKey string `json:"project_key"`
+}
+
+// JiraSettingsUpdate defines model for JiraSettingsUpdate.
+type JiraSettingsUpdate struct {
+	// ApiToken Omis ou vide = conserve le secret existant
+	ApiToken   *string             `json:"api_token,omitempty"`
+	BaseUrl    string              `json:"base_url"`
+	Email      openapi_types.Email `json:"email"`
+	IssueType  *string             `json:"issue_type,omitempty"`
+	ProjectKey *string             `json:"project_key,omitempty"`
+}
+
 // LeadPolicies defines model for LeadPolicies.
 type LeadPolicies struct {
 	// LeadsMayAssignTeams Lead peut ajouter une équipe existante à son sujet
@@ -510,10 +565,16 @@ type RunItemDetail struct {
 	Capabilities RunCapabilities `json:"capabilities"`
 	Events       []RunItemEvent  `json:"events"`
 	Item         RunItem         `json:"item"`
-	RunStatus    *string         `json:"run_status,omitempty"`
-	RunTitle     *string         `json:"run_title,omitempty"`
-	SubjectId    *int64          `json:"subject_id,omitempty"`
-	SubjectName  *string         `json:"subject_name,omitempty"`
+
+	// JiraConfigured true si Jira Cloud est configuré pour l'org active
+	JiraConfigured *bool `json:"jira_configured,omitempty"`
+
+	// JiraLink Lien Jira courant du point (si présent)
+	JiraLink    *JiraLink `json:"jira_link"`
+	RunStatus   *string   `json:"run_status,omitempty"`
+	RunTitle    *string   `json:"run_title,omitempty"`
+	SubjectId   *int64    `json:"subject_id,omitempty"`
+	SubjectName *string   `json:"subject_name,omitempty"`
 }
 
 // RunItemEvent defines model for RunItemEvent.
@@ -524,6 +585,23 @@ type RunItemEvent struct {
 	NewStatus string  `json:"new_status"`
 	OldStatus *string `json:"old_status"`
 	UserLogin *string `json:"user_login"`
+}
+
+// RunItemJira defines model for RunItemJira.
+type RunItemJira struct {
+	// CanCreate true si nok, configuré, pas déjà lié, project_key présent
+	CanCreate *bool `json:"can_create,omitempty"`
+
+	// CanLink true si l'utilisateur peut lier/créer (contributeur+)
+	CanLink    bool `json:"can_link"`
+	Configured bool `json:"configured"`
+
+	// DefaultDescription Description préremplie pour création (si nok)
+	DefaultDescription *string `json:"default_description,omitempty"`
+
+	// DefaultTitle Titre prérempli pour création (si nok)
+	DefaultTitle *string   `json:"default_title,omitempty"`
+	Link         *JiraLink `json:"link"`
 }
 
 // RunListResponse defines model for RunListResponse.
@@ -908,6 +986,9 @@ type ListTemplatesParams struct {
 // CreateAllowedEmailJSONRequestBody defines body for CreateAllowedEmail for application/json ContentType.
 type CreateAllowedEmailJSONRequestBody = AllowedEmailWriteRequest
 
+// PutAdminJiraSettingsJSONRequestBody defines body for PutAdminJiraSettings for application/json ContentType.
+type PutAdminJiraSettingsJSONRequestBody = JiraSettingsUpdate
+
 // UpdateOrganizationMemberRoleJSONRequestBody defines body for UpdateOrganizationMemberRole for application/json ContentType.
 type UpdateOrganizationMemberRoleJSONRequestBody = UpdateOrganizationMemberRoleRequest
 
@@ -947,6 +1028,12 @@ type UpdateRunItemJSONRequestBody = UpdateRunItemRequest
 // UploadRunItemAttachmentMultipartRequestBody defines body for UploadRunItemAttachment for multipart/form-data ContentType.
 type UploadRunItemAttachmentMultipartRequestBody UploadRunItemAttachmentMultipartBody
 
+// PostRunItemJiraCreateJSONRequestBody defines body for PostRunItemJiraCreate for application/json ContentType.
+type PostRunItemJiraCreateJSONRequestBody = JiraCreateRequest
+
+// PutRunItemJiraLinkJSONRequestBody defines body for PutRunItemJiraLink for application/json ContentType.
+type PutRunItemJiraLinkJSONRequestBody = JiraLinkRequest
+
 // CreateSubjectJSONRequestBody defines body for CreateSubject for application/json ContentType.
 type CreateSubjectJSONRequestBody = SubjectWriteRequest
 
@@ -982,6 +1069,18 @@ type ServerInterface interface {
 	// Hub intégrations (états + navigation)
 	// (GET /admin/integrations)
 	ListAdminIntegrations(w http.ResponseWriter, r *http.Request)
+	// Effacer la configuration Jira
+	// (DELETE /admin/integrations/jira)
+	DeleteAdminJiraSettings(w http.ResponseWriter, r *http.Request)
+	// Configuration Jira Cloud (masquée)
+	// (GET /admin/integrations/jira)
+	GetAdminJiraSettings(w http.ResponseWriter, r *http.Request)
+	// Enregistrer la configuration Jira Cloud chiffrée
+	// (PUT /admin/integrations/jira)
+	PutAdminJiraSettings(w http.ResponseWriter, r *http.Request)
+	// Tester la connexion Jira Cloud
+	// (POST /admin/integrations/jira/test)
+	PostAdminJiraTest(w http.ResponseWriter, r *http.Request)
 	// Membres de l'organisation active
 	// (GET /admin/members)
 	ListOrganizationMembers(w http.ResponseWriter, r *http.Request)
@@ -1078,6 +1177,15 @@ type ServerInterface interface {
 	// Télécharger une pièce jointe
 	// (GET /runs/{runId}/items/{itemId}/attachments/{attachmentId})
 	DownloadRunItemAttachment(w http.ResponseWriter, r *http.Request, runId RunId, itemId RunItemId, attachmentId AttachmentId)
+	// Lien Jira et contexte création pour un point
+	// (GET /runs/{runId}/items/{itemId}/jira)
+	GetRunItemJira(w http.ResponseWriter, r *http.Request, runId RunId, itemId RunItemId)
+	// Créer une issue Jira depuis un point nok
+	// (POST /runs/{runId}/items/{itemId}/jira)
+	PostRunItemJiraCreate(w http.ResponseWriter, r *http.Request, runId RunId, itemId RunItemId)
+	// Lier une issue Jira existante au point
+	// (PUT /runs/{runId}/items/{itemId}/jira)
+	PutRunItemJiraLink(w http.ResponseWriter, r *http.Request, runId RunId, itemId RunItemId)
 	// Liste des sujets de l'org active
 	// (GET /subjects)
 	ListSubjects(w http.ResponseWriter, r *http.Request, params ListSubjectsParams)
@@ -1162,6 +1270,30 @@ func (_ Unimplemented) DeleteAllowedEmail(w http.ResponseWriter, r *http.Request
 // Hub intégrations (états + navigation)
 // (GET /admin/integrations)
 func (_ Unimplemented) ListAdminIntegrations(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Effacer la configuration Jira
+// (DELETE /admin/integrations/jira)
+func (_ Unimplemented) DeleteAdminJiraSettings(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Configuration Jira Cloud (masquée)
+// (GET /admin/integrations/jira)
+func (_ Unimplemented) GetAdminJiraSettings(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Enregistrer la configuration Jira Cloud chiffrée
+// (PUT /admin/integrations/jira)
+func (_ Unimplemented) PutAdminJiraSettings(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Tester la connexion Jira Cloud
+// (POST /admin/integrations/jira/test)
+func (_ Unimplemented) PostAdminJiraTest(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -1357,6 +1489,24 @@ func (_ Unimplemented) DownloadRunItemAttachment(w http.ResponseWriter, r *http.
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// Lien Jira et contexte création pour un point
+// (GET /runs/{runId}/items/{itemId}/jira)
+func (_ Unimplemented) GetRunItemJira(w http.ResponseWriter, r *http.Request, runId RunId, itemId RunItemId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Créer une issue Jira depuis un point nok
+// (POST /runs/{runId}/items/{itemId}/jira)
+func (_ Unimplemented) PostRunItemJiraCreate(w http.ResponseWriter, r *http.Request, runId RunId, itemId RunItemId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Lier une issue Jira existante au point
+// (PUT /runs/{runId}/items/{itemId}/jira)
+func (_ Unimplemented) PutRunItemJiraLink(w http.ResponseWriter, r *http.Request, runId RunId, itemId RunItemId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // Liste des sujets de l'org active
 // (GET /subjects)
 func (_ Unimplemented) ListSubjects(w http.ResponseWriter, r *http.Request, params ListSubjectsParams) {
@@ -1538,6 +1688,62 @@ func (siw *ServerInterfaceWrapper) ListAdminIntegrations(w http.ResponseWriter, 
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.ListAdminIntegrations(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteAdminJiraSettings operation middleware
+func (siw *ServerInterfaceWrapper) DeleteAdminJiraSettings(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteAdminJiraSettings(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetAdminJiraSettings operation middleware
+func (siw *ServerInterfaceWrapper) GetAdminJiraSettings(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetAdminJiraSettings(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PutAdminJiraSettings operation middleware
+func (siw *ServerInterfaceWrapper) PutAdminJiraSettings(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PutAdminJiraSettings(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PostAdminJiraTest operation middleware
+func (siw *ServerInterfaceWrapper) PostAdminJiraTest(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PostAdminJiraTest(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -2248,6 +2454,108 @@ func (siw *ServerInterfaceWrapper) DownloadRunItemAttachment(w http.ResponseWrit
 	handler.ServeHTTP(w, r)
 }
 
+// GetRunItemJira operation middleware
+func (siw *ServerInterfaceWrapper) GetRunItemJira(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "runId" -------------
+	var runId RunId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "runId", chi.URLParam(r, "runId"), &runId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "runId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "itemId" -------------
+	var itemId RunItemId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "itemId", chi.URLParam(r, "itemId"), &itemId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "itemId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetRunItemJira(w, r, runId, itemId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PostRunItemJiraCreate operation middleware
+func (siw *ServerInterfaceWrapper) PostRunItemJiraCreate(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "runId" -------------
+	var runId RunId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "runId", chi.URLParam(r, "runId"), &runId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "runId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "itemId" -------------
+	var itemId RunItemId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "itemId", chi.URLParam(r, "itemId"), &itemId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "itemId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PostRunItemJiraCreate(w, r, runId, itemId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PutRunItemJiraLink operation middleware
+func (siw *ServerInterfaceWrapper) PutRunItemJiraLink(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "runId" -------------
+	var runId RunId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "runId", chi.URLParam(r, "runId"), &runId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "runId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "itemId" -------------
+	var itemId RunItemId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "itemId", chi.URLParam(r, "itemId"), &itemId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "itemId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PutRunItemJiraLink(w, r, runId, itemId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // ListSubjects operation middleware
 func (siw *ServerInterfaceWrapper) ListSubjects(w http.ResponseWriter, r *http.Request) {
 
@@ -2849,6 +3157,18 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Get(options.BaseURL+"/admin/integrations", wrapper.ListAdminIntegrations)
 	})
 	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/admin/integrations/jira", wrapper.DeleteAdminJiraSettings)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/admin/integrations/jira", wrapper.GetAdminJiraSettings)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/admin/integrations/jira", wrapper.PutAdminJiraSettings)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/admin/integrations/jira/test", wrapper.PostAdminJiraTest)
+	})
+	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/admin/members", wrapper.ListOrganizationMembers)
 	})
 	r.Group(func(r chi.Router) {
@@ -2943,6 +3263,15 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/runs/{runId}/items/{itemId}/attachments/{attachmentId}", wrapper.DownloadRunItemAttachment)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/runs/{runId}/items/{itemId}/jira", wrapper.GetRunItemJira)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/runs/{runId}/items/{itemId}/jira", wrapper.PostRunItemJiraCreate)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/runs/{runId}/items/{itemId}/jira", wrapper.PutRunItemJiraLink)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/subjects", wrapper.ListSubjects)

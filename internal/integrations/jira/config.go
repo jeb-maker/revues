@@ -99,6 +99,17 @@ func (s *Service) Load(ctx context.Context) (Config, bool, error) {
 	return cfg, true, nil
 }
 
+// Clear removes stored Jira configuration for the active organization.
+func (s *Service) Clear(ctx context.Context) error {
+	if err := s.Store.DeleteIntegrationByType(ctx, store.IntegrationTypeJira); err != nil {
+		if errors.Is(err, ErrIntegrationNotFound) {
+			return nil
+		}
+		return fmt.Errorf("clear jira integration: %w", err)
+	}
+	return nil
+}
+
 // Save encrypts and stores Jira config.
 func (s *Service) Save(ctx context.Context, cfg Config) error {
 	if len(s.EncryptionKey) != crypto.KeySize {
