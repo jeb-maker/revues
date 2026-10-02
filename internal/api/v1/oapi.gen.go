@@ -12,10 +12,51 @@ import (
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
+// Defines values for AddSubjectMemberRequestRole.
+const (
+	AddSubjectMemberRequestRoleContributor AddSubjectMemberRequestRole = "contributor"
+	AddSubjectMemberRequestRoleLead        AddSubjectMemberRequestRole = "lead"
+	AddSubjectMemberRequestRoleViewer      AddSubjectMemberRequestRole = "viewer"
+)
+
 // Defines values for HealthResponseStatus.
 const (
 	Ok HealthResponseStatus = "ok"
 )
+
+// Defines values for SubjectDetailVisibility.
+const (
+	SubjectDetailVisibilityNormal  SubjectDetailVisibility = "normal"
+	SubjectDetailVisibilityPrivate SubjectDetailVisibility = "private"
+)
+
+// Defines values for SubjectMemberRole.
+const (
+	SubjectMemberRoleContributor SubjectMemberRole = "contributor"
+	SubjectMemberRoleLead        SubjectMemberRole = "lead"
+	SubjectMemberRoleViewer      SubjectMemberRole = "viewer"
+)
+
+// Defines values for SubjectSummaryVisibility.
+const (
+	SubjectSummaryVisibilityNormal  SubjectSummaryVisibility = "normal"
+	SubjectSummaryVisibilityPrivate SubjectSummaryVisibility = "private"
+)
+
+// Defines values for SubjectWriteRequestVisibility.
+const (
+	Normal  SubjectWriteRequestVisibility = "normal"
+	Private SubjectWriteRequestVisibility = "private"
+)
+
+// AddSubjectMemberRequest defines model for AddSubjectMemberRequest.
+type AddSubjectMemberRequest struct {
+	Email openapi_types.Email          `json:"email"`
+	Role  *AddSubjectMemberRequestRole `json:"role,omitempty"`
+}
+
+// AddSubjectMemberRequestRole defines model for AddSubjectMemberRequest.Role.
+type AddSubjectMemberRequestRole string
 
 // AuthSuccessResponse defines model for AuthSuccessResponse.
 type AuthSuccessResponse struct {
@@ -140,6 +181,100 @@ type SelectOrganizationRequest struct {
 	OrganizationId int64 `json:"organization_id"`
 }
 
+// SubjectAccessInfo defines model for SubjectAccessInfo.
+type SubjectAccessInfo struct {
+	// Role Rôle effectif (lead|contributor|viewer|"")
+	Role string `json:"role"`
+
+	// Sources Sources d'accès (direct, team:N, org_admin, …)
+	Sources []string `json:"sources"`
+}
+
+// SubjectCapabilities defines model for SubjectCapabilities.
+type SubjectCapabilities struct {
+	// CanManage Modifier / archiver
+	CanManage bool `json:"can_manage"`
+
+	// CanManageMembers Inviter / retirer des membres directs
+	CanManageMembers bool `json:"can_manage_members"`
+
+	// CanSetVisibility Changer subjects.visibility
+	CanSetVisibility bool `json:"can_set_visibility"`
+}
+
+// SubjectDetail defines model for SubjectDetail.
+type SubjectDetail struct {
+	Access       SubjectAccessInfo   `json:"access"`
+	Capabilities SubjectCapabilities `json:"capabilities"`
+	Description  string              `json:"description"`
+
+	// Domains Domaines de matching modèles (pas d'accès)
+	Domains []string        `json:"domains"`
+	Id      int64           `json:"id"`
+	Members []SubjectMember `json:"members"`
+	Name    string          `json:"name"`
+
+	// Tags Étiquettes descriptives (pas d'accès)
+	Tags       []string                `json:"tags"`
+	Visibility SubjectDetailVisibility `json:"visibility"`
+}
+
+// SubjectDetailVisibility defines model for SubjectDetail.Visibility.
+type SubjectDetailVisibility string
+
+// SubjectListResponse defines model for SubjectListResponse.
+type SubjectListResponse struct {
+	// CanCreate true si l'utilisateur peut créer un sujet (editor+)
+	CanCreate bool             `json:"can_create"`
+	Subjects  []SubjectSummary `json:"subjects"`
+}
+
+// SubjectMember defines model for SubjectMember.
+type SubjectMember struct {
+	DisplayName string              `json:"display_name"`
+	Email       openapi_types.Email `json:"email"`
+	Login       string              `json:"login"`
+	Role        SubjectMemberRole   `json:"role"`
+	UserId      int64               `json:"user_id"`
+}
+
+// SubjectMemberRole defines model for SubjectMember.Role.
+type SubjectMemberRole string
+
+// SubjectMemberListResponse defines model for SubjectMemberListResponse.
+type SubjectMemberListResponse struct {
+	Members []SubjectMember `json:"members"`
+}
+
+// SubjectSummary defines model for SubjectSummary.
+type SubjectSummary struct {
+	Description string `json:"description"`
+	Id          int64  `json:"id"`
+	Name        string `json:"name"`
+
+	// Visibility Visibilité sujet (private exige grant explicite)
+	Visibility SubjectSummaryVisibility `json:"visibility"`
+}
+
+// SubjectSummaryVisibility Visibilité sujet (private exige grant explicite)
+type SubjectSummaryVisibility string
+
+// SubjectWriteRequest defines model for SubjectWriteRequest.
+type SubjectWriteRequest struct {
+	Description *string `json:"description,omitempty"`
+
+	// Domains Domaines de matching (CSV côté legacy)
+	Domains *[]string `json:"domains,omitempty"`
+	Name    string    `json:"name"`
+	Tags    *[]string `json:"tags,omitempty"`
+
+	// Visibility Ignoré si CanSetSubjectVisibility est faux
+	Visibility *SubjectWriteRequestVisibility `json:"visibility,omitempty"`
+}
+
+// SubjectWriteRequestVisibility Ignoré si CanSetSubjectVisibility est faux
+type SubjectWriteRequestVisibility string
+
 // User defines model for User.
 type User struct {
 	AvatarUrl   *string             `json:"avatar_url,omitempty"`
@@ -151,6 +286,9 @@ type User struct {
 	// Role Rôle global (admin|editor|reader)
 	Role string `json:"role"`
 }
+
+// SubjectId defines model for SubjectId.
+type SubjectId = int64
 
 // BadRequest defines model for BadRequest.
 type BadRequest = ErrorResponse
@@ -170,6 +308,12 @@ type NotFound = ErrorResponse
 // Unauthorized defines model for Unauthorized.
 type Unauthorized = ErrorResponse
 
+// ListSubjectsParams defines parameters for ListSubjects.
+type ListSubjectsParams struct {
+	// Q Filtre texte (nom / description)
+	Q *string `form:"q,omitempty" json:"q,omitempty"`
+}
+
 // PostAuthLoginJSONRequestBody defines body for PostAuthLogin for application/json ContentType.
 type PostAuthLoginJSONRequestBody = LoginRequest
 
@@ -181,6 +325,15 @@ type CreateOrganizationJSONRequestBody = CreateOrganizationRequest
 
 // SelectActiveOrganizationJSONRequestBody defines body for SelectActiveOrganization for application/json ContentType.
 type SelectActiveOrganizationJSONRequestBody = SelectOrganizationRequest
+
+// CreateSubjectJSONRequestBody defines body for CreateSubject for application/json ContentType.
+type CreateSubjectJSONRequestBody = SubjectWriteRequest
+
+// UpdateSubjectJSONRequestBody defines body for UpdateSubject for application/json ContentType.
+type UpdateSubjectJSONRequestBody = SubjectWriteRequest
+
+// AddSubjectMemberJSONRequestBody defines body for AddSubjectMember for application/json ContentType.
+type AddSubjectMemberJSONRequestBody = AddSubjectMemberRequest
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
@@ -214,6 +367,30 @@ type ServerInterface interface {
 	// Accepter une invitation d'organisation
 	// (POST /orgs/invitations/{invitationID}/accept)
 	AcceptOrganizationInvitation(w http.ResponseWriter, r *http.Request, invitationID int64)
+	// Liste des sujets de l'org active
+	// (GET /subjects)
+	ListSubjects(w http.ResponseWriter, r *http.Request, params ListSubjectsParams)
+	// Créer un sujet
+	// (POST /subjects)
+	CreateSubject(w http.ResponseWriter, r *http.Request)
+	// Détail d'un sujet
+	// (GET /subjects/{subjectId})
+	GetSubject(w http.ResponseWriter, r *http.Request, subjectId SubjectId)
+	// Modifier un sujet
+	// (PATCH /subjects/{subjectId})
+	UpdateSubject(w http.ResponseWriter, r *http.Request, subjectId SubjectId)
+	// Archiver un sujet
+	// (POST /subjects/{subjectId}/archive)
+	ArchiveSubject(w http.ResponseWriter, r *http.Request, subjectId SubjectId)
+	// Membres directs du sujet
+	// (GET /subjects/{subjectId}/members)
+	ListSubjectMembers(w http.ResponseWriter, r *http.Request, subjectId SubjectId)
+	// Ajouter un membre direct
+	// (POST /subjects/{subjectId}/members)
+	AddSubjectMember(w http.ResponseWriter, r *http.Request, subjectId SubjectId)
+	// Retirer un membre direct
+	// (DELETE /subjects/{subjectId}/members/{userId})
+	RemoveSubjectMember(w http.ResponseWriter, r *http.Request, subjectId SubjectId, userId int64)
 }
 
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
@@ -277,6 +454,54 @@ func (_ Unimplemented) SelectActiveOrganization(w http.ResponseWriter, r *http.R
 // Accepter une invitation d'organisation
 // (POST /orgs/invitations/{invitationID}/accept)
 func (_ Unimplemented) AcceptOrganizationInvitation(w http.ResponseWriter, r *http.Request, invitationID int64) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Liste des sujets de l'org active
+// (GET /subjects)
+func (_ Unimplemented) ListSubjects(w http.ResponseWriter, r *http.Request, params ListSubjectsParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Créer un sujet
+// (POST /subjects)
+func (_ Unimplemented) CreateSubject(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Détail d'un sujet
+// (GET /subjects/{subjectId})
+func (_ Unimplemented) GetSubject(w http.ResponseWriter, r *http.Request, subjectId SubjectId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Modifier un sujet
+// (PATCH /subjects/{subjectId})
+func (_ Unimplemented) UpdateSubject(w http.ResponseWriter, r *http.Request, subjectId SubjectId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Archiver un sujet
+// (POST /subjects/{subjectId}/archive)
+func (_ Unimplemented) ArchiveSubject(w http.ResponseWriter, r *http.Request, subjectId SubjectId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Membres directs du sujet
+// (GET /subjects/{subjectId}/members)
+func (_ Unimplemented) ListSubjectMembers(w http.ResponseWriter, r *http.Request, subjectId SubjectId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Ajouter un membre direct
+// (POST /subjects/{subjectId}/members)
+func (_ Unimplemented) AddSubjectMember(w http.ResponseWriter, r *http.Request, subjectId SubjectId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Retirer un membre direct
+// (DELETE /subjects/{subjectId}/members/{userId})
+func (_ Unimplemented) RemoveSubjectMember(w http.ResponseWriter, r *http.Request, subjectId SubjectId, userId int64) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -440,6 +665,206 @@ func (siw *ServerInterfaceWrapper) AcceptOrganizationInvitation(w http.ResponseW
 	handler.ServeHTTP(w, r)
 }
 
+// ListSubjects operation middleware
+func (siw *ServerInterfaceWrapper) ListSubjects(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListSubjectsParams
+
+	// ------------- Optional query parameter "q" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "q", r.URL.Query(), &params.Q)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "q", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListSubjects(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateSubject operation middleware
+func (siw *ServerInterfaceWrapper) CreateSubject(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateSubject(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetSubject operation middleware
+func (siw *ServerInterfaceWrapper) GetSubject(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "subjectId" -------------
+	var subjectId SubjectId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "subjectId", chi.URLParam(r, "subjectId"), &subjectId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "subjectId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetSubject(w, r, subjectId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateSubject operation middleware
+func (siw *ServerInterfaceWrapper) UpdateSubject(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "subjectId" -------------
+	var subjectId SubjectId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "subjectId", chi.URLParam(r, "subjectId"), &subjectId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "subjectId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateSubject(w, r, subjectId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ArchiveSubject operation middleware
+func (siw *ServerInterfaceWrapper) ArchiveSubject(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "subjectId" -------------
+	var subjectId SubjectId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "subjectId", chi.URLParam(r, "subjectId"), &subjectId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "subjectId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ArchiveSubject(w, r, subjectId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListSubjectMembers operation middleware
+func (siw *ServerInterfaceWrapper) ListSubjectMembers(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "subjectId" -------------
+	var subjectId SubjectId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "subjectId", chi.URLParam(r, "subjectId"), &subjectId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "subjectId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListSubjectMembers(w, r, subjectId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// AddSubjectMember operation middleware
+func (siw *ServerInterfaceWrapper) AddSubjectMember(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "subjectId" -------------
+	var subjectId SubjectId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "subjectId", chi.URLParam(r, "subjectId"), &subjectId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "subjectId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.AddSubjectMember(w, r, subjectId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RemoveSubjectMember operation middleware
+func (siw *ServerInterfaceWrapper) RemoveSubjectMember(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "subjectId" -------------
+	var subjectId SubjectId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "subjectId", chi.URLParam(r, "subjectId"), &subjectId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "subjectId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "userId" -------------
+	var userId int64
+
+	err = runtime.BindStyledParameterWithOptions("simple", "userId", chi.URLParam(r, "userId"), &userId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "userId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RemoveSubjectMember(w, r, subjectId, userId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 type UnescapedCookieParamError struct {
 	ParamName string
 	Err       error
@@ -582,6 +1007,30 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/orgs/invitations/{invitationID}/accept", wrapper.AcceptOrganizationInvitation)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/subjects", wrapper.ListSubjects)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/subjects", wrapper.CreateSubject)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/subjects/{subjectId}", wrapper.GetSubject)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/subjects/{subjectId}", wrapper.UpdateSubject)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/subjects/{subjectId}/archive", wrapper.ArchiveSubject)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/subjects/{subjectId}/members", wrapper.ListSubjectMembers)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/subjects/{subjectId}/members", wrapper.AddSubjectMember)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/subjects/{subjectId}/members/{userId}", wrapper.RemoveSubjectMember)
 	})
 
 	return r

@@ -63,7 +63,7 @@
 	<p class="brand">Revues</p>
 	<h1>API + SvelteKit</h1>
 	<p class="lede">
-		Scaffold rewrite — client OpenAPI + mb · auth + organisations (WP-010).
+		Scaffold rewrite — client OpenAPI + mb · auth, organisations, sujets.
 	</p>
 	<p class="status">
 		API <code>/api/v1/health</code> :
@@ -88,6 +88,8 @@
 			<p class="status">Organisation active : <strong>{activeOrgName}</strong></p>
 		{/if}
 		<p class="actions">
+			<a href="/subjects">Sujets</a>
+			·
 			<a href="/org/select">Changer d'organisation</a>
 			·
 			<button type="button" onclick={onLogout}>Se déconnecter</button>

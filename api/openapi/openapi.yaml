@@ -2,266 +2,520 @@ openapi: 3.0.3
 info:
   title: Revues API
   version: 0.1.0
-  description: |
-    Contrat HTTP JSON de Revues (`/api/v1`). Source de vérité pour le codegen
+  description: 'Contrat HTTP JSON de Revues (`/api/v1`). Source de vérité pour le codegen
+
     serveur (oapi-codegen) et le client TypeScript (WP-005).
+
+    '
 servers:
-  - url: /api/v1
-    description: API versionnée
+- url: /api/v1
+  description: API versionnée
 tags:
-  - name: system
-    description: Santé et métadonnées techniques (hors domaines métier)
-  - name: auth
-    description: Session, login local, inscription, CSRF bootstrap
-  - name: orgs
-    description: Organisations — liste, création, sélection active, invitations
+- name: system
+  description: Santé et métadonnées techniques (hors domaines métier)
+- name: auth
+  description: Session, login local, inscription, CSRF bootstrap
+- name: orgs
+  description: Organisations — liste, création, sélection active, invitations
+- name: subjects
+  description: Sujets (CRUD, membres, domaines, étiquettes)
 paths:
   /health:
     get:
       operationId: getHealth
-      tags: [system]
+      tags:
+      - system
       summary: Santé de l'API versionnée
-      description: |
-        Endpoint de health check sous le préfixe versionné. Distinct de
+      description: 'Endpoint de health check sous le préfixe versionné. Distinct de
+
         `GET /healthz` (probe infra hors OpenAPI).
+
+        '
       responses:
-        "200":
+        '200':
           description: API joignable
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/HealthResponse"
-
+                $ref: '#/components/schemas/HealthResponse'
   /bootstrap:
     get:
       operationId: getBootstrap
-      tags: [auth]
+      tags:
+      - auth
       summary: Bootstrap session + CSRF
-      description: |
-        Renvoie l'état d'auth courant et un `csrf_token` utilisable par le front.
+      description: 'Renvoie l''état d''auth courant et un `csrf_token` utilisable par le front.
+
         Sans session, pose un cookie guest court et dérive le CSRF de ce token.
-        Avec session, renvoie l'utilisateur et le CSRF dérivé du cookie `revues_session`.
+
+        Avec session, renvoie l''utilisateur et le CSRF dérivé du cookie `revues_session`.
+
+        '
       responses:
-        "200":
+        '200':
           description: État bootstrap
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/BootstrapResponse"
-        "500":
-          $ref: "#/components/responses/InternalError"
-
+                $ref: '#/components/schemas/BootstrapResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
   /me:
     get:
       operationId: getMe
-      tags: [auth]
+      tags:
+      - auth
       summary: Utilisateur authentifié courant
-      description: |
-        Exige une session valide. Renvoie le profil + CSRF (même dérivation que bootstrap).
+      description: 'Exige une session valide. Renvoie le profil + CSRF (même dérivation que bootstrap).
+
+        '
       responses:
-        "200":
+        '200':
           description: Utilisateur courant
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/MeResponse"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "500":
-          $ref: "#/components/responses/InternalError"
-
+                $ref: '#/components/schemas/MeResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
   /auth/login:
     post:
       operationId: postAuthLogin
-      tags: [auth]
+      tags:
+      - auth
       summary: Connexion email + mot de passe
-      description: |
-        Authentifie un compte local. CSRF requis (`X-CSRF-Token`, guest ou session).
+      description: 'Authentifie un compte local. CSRF requis (`X-CSRF-Token`, guest ou session).
+
         Pose le cookie `revues_session` en cas de succès.
+
+        '
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/LoginRequest"
+              $ref: '#/components/schemas/LoginRequest'
       responses:
-        "200":
+        '200':
           description: Session créée
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/AuthSuccessResponse"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "500":
-          $ref: "#/components/responses/InternalError"
-
+                $ref: '#/components/schemas/AuthSuccessResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
   /auth/register:
     post:
       operationId: postAuthRegister
-      tags: [auth]
+      tags:
+      - auth
       summary: Inscription email + mot de passe
-      description: |
-        Crée un compte local si l'email est autorisé (whitelist / bootstrap).
+      description: 'Crée un compte local si l''email est autorisé (whitelist / bootstrap).
+
         CSRF guest requis. Pose `revues_session` en cas de succès.
+
+        '
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/RegisterRequest"
+              $ref: '#/components/schemas/RegisterRequest'
       responses:
-        "201":
+        '201':
           description: Compte créé et session ouverte
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/AuthSuccessResponse"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "500":
-          $ref: "#/components/responses/InternalError"
-
+                $ref: '#/components/schemas/AuthSuccessResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
   /auth/logout:
     post:
       operationId: postAuthLogout
-      tags: [auth]
+      tags:
+      - auth
       summary: Déconnexion
-      description: |
-        Invalide la session courante et expire le cookie. CSRF session requis.
-      responses:
-        "204":
-          description: Déconnecté
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "500":
-          $ref: "#/components/responses/InternalError"
+      description: 'Invalide la session courante et expire le cookie. CSRF session requis.
 
+        '
+      responses:
+        '204':
+          description: Déconnecté
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
   /orgs:
     get:
       operationId: listOrganizations
-      tags: [orgs]
+      tags:
+      - orgs
       summary: Organisations de l'utilisateur
-      description: |
-        Liste les organisations dont l'utilisateur est membre, l'org active
+      description: 'Liste les organisations dont l''utilisateur est membre, l''org active
+
         de session (si définie), un défaut suggéré (`revues_last_org`), les
+
         invitations en attente, et si la création self-service est possible
+
         (aucune appartenance encore — parité pré-rewrite).
+
+        '
       responses:
-        "200":
+        '200':
           description: Liste org + invitations
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/OrganizationListResponse"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "500":
-          $ref: "#/components/responses/InternalError"
+                $ref: '#/components/schemas/OrganizationListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
     post:
       operationId: createOrganization
-      tags: [orgs]
+      tags:
+      - orgs
       summary: Créer une organisation (onboarding)
-      description: |
-        Self-service : uniquement si l'utilisateur n'appartient encore à
-        aucune organisation. Pose le créateur en `owner` et active l'org
+      description: 'Self-service : uniquement si l''utilisateur n''appartient encore à
+
+        aucune organisation. Pose le créateur en `owner` et active l''org
+
         sur la session. CSRF requis.
+
+        '
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/CreateOrganizationRequest"
+              $ref: '#/components/schemas/CreateOrganizationRequest'
       responses:
-        "201":
+        '201':
           description: Organisation créée et activée
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/OrganizationActionResponse"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "409":
-          $ref: "#/components/responses/Conflict"
-        "500":
-          $ref: "#/components/responses/InternalError"
-
+                $ref: '#/components/schemas/OrganizationActionResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalError'
   /orgs/active:
     post:
       operationId: selectActiveOrganization
-      tags: [orgs]
+      tags:
+      - orgs
       summary: Sélectionner / basculer l'organisation active
-      description: |
-        Active une organisation dont l'utilisateur est membre sur la session
+      description: 'Active une organisation dont l''utilisateur est membre sur la session
+
         courante (sélecteur onboarding ou switcher). IDOR → 404. CSRF requis.
+
+        '
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/SelectOrganizationRequest"
+              $ref: '#/components/schemas/SelectOrganizationRequest'
       responses:
-        "200":
+        '200':
           description: Organisation active mise à jour
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/OrganizationActionResponse"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "500":
-          $ref: "#/components/responses/InternalError"
-
+                $ref: '#/components/schemas/OrganizationActionResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
   /orgs/invitations/{invitationID}/accept:
     post:
       operationId: acceptOrganizationInvitation
-      tags: [orgs]
+      tags:
+      - orgs
       summary: Accepter une invitation d'organisation
-      description: |
-        Ajoute le membre (si besoin), consomme l'invitation, active l'org.
-        L'email de session doit correspondre à l'invitation (sinon 404).
+      description: 'Ajoute le membre (si besoin), consomme l''invitation, active l''org.
+
+        L''email de session doit correspondre à l''invitation (sinon 404).
+
         CSRF requis.
+
+        '
       parameters:
-        - name: invitationID
-          in: path
-          required: true
-          schema:
-            type: integer
-            format: int64
+      - name: invitationID
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
       responses:
-        "200":
+        '200':
           description: Invitation acceptée, org active
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/OrganizationActionResponse"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "500":
-          $ref: "#/components/responses/InternalError"
+                $ref: '#/components/schemas/OrganizationActionResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /subjects:
+    get:
+      operationId: listSubjects
+      tags:
+      - subjects
+      summary: Liste des sujets de l'org active
+      description: 'Auth + org active. Liste filtrée selon ResolveSubjectAccess
 
+        (org admin / grants / legacy ungated). IDOR org : hors org → vide / 404.
+
+        '
+      parameters:
+      - name: q
+        in: query
+        required: false
+        description: Filtre texte (nom / description)
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Liste des sujets visibles
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubjectListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      operationId: createSubject
+      tags:
+      - subjects
+      summary: Créer un sujet
+      description: 'Auth + CanCreateSubject (editor+). CSRF requis. Domaines = matching
+
+        modèles ; tags = classification descriptive (jamais d''accès).
+
+        '
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubjectWriteRequest'
+      responses:
+        '201':
+          description: Sujet créé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubjectDetail'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /subjects/{subjectId}:
+    parameters:
+    - $ref: '#/components/parameters/SubjectId'
+    get:
+      operationId: getSubject
+      tags:
+      - subjects
+      summary: Détail d'un sujet
+      description: 'Auth + CanViewAccess. Absent ou non visible → 404 (IDOR).
+
+        Inclut domaines, tags, membres directs et capacités UI.
+
+        '
+      responses:
+        '200':
+          description: Détail sujet
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubjectDetail'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    patch:
+      operationId: updateSubject
+      tags:
+      - subjects
+      summary: Modifier un sujet
+      description: 'Auth + CanManageAccess. CSRF requis. Visibilité seulement si
+
+        CanSetSubjectVisibility.
+
+        '
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubjectWriteRequest'
+      responses:
+        '200':
+          description: Sujet mis à jour
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubjectDetail'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /subjects/{subjectId}/archive:
+    parameters:
+    - $ref: '#/components/parameters/SubjectId'
+    post:
+      operationId: archiveSubject
+      tags:
+      - subjects
+      summary: Archiver un sujet
+      description: Auth + CanManageAccess. CSRF requis. Soft-archive.
+      responses:
+        '204':
+          description: Archivé
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /subjects/{subjectId}/members:
+    parameters:
+    - $ref: '#/components/parameters/SubjectId'
+    get:
+      operationId: listSubjectMembers
+      tags:
+      - subjects
+      summary: Membres directs du sujet
+      description: Auth + CanViewAccess. Liste `subject_members` seulement.
+      responses:
+        '200':
+          description: Membres directs
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubjectMemberListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      operationId: addSubjectMember
+      tags:
+      - subjects
+      summary: Ajouter un membre direct
+      description: 'Auth + CanManageSubjectMembers / CanInviteSubjectMember.
+
+        L''invité doit déjà avoir un compte (email). CSRF requis.
+
+        '
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddSubjectMemberRequest'
+      responses:
+        '201':
+          description: Membre ajouté
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubjectMember'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /subjects/{subjectId}/members/{userId}:
+    parameters:
+    - $ref: '#/components/parameters/SubjectId'
+    - name: userId
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+    delete:
+      operationId: removeSubjectMember
+      tags:
+      - subjects
+      summary: Retirer un membre direct
+      description: Auth + CanManageSubjectMembers. CSRF requis.
+      responses:
+        '204':
+          description: Membre retiré
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
 components:
   responses:
     BadRequest:
@@ -269,52 +523,54 @@ components:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/ErrorResponse"
+            $ref: '#/components/schemas/ErrorResponse'
     Unauthorized:
       description: Non authentifié ou identifiants invalides
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/ErrorResponse"
+            $ref: '#/components/schemas/ErrorResponse'
     Forbidden:
-      description: CSRF manquant/invalide ou refus
+      description: CSRF manquant/invalide, org absente, ou refus
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/ErrorResponse"
+            $ref: '#/components/schemas/ErrorResponse'
     NotFound:
       description: Ressource absente ou non visible (IDOR)
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/ErrorResponse"
+            $ref: '#/components/schemas/ErrorResponse'
     Conflict:
       description: Conflit métier
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/ErrorResponse"
+            $ref: '#/components/schemas/ErrorResponse'
     InternalError:
       description: Erreur interne
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/ErrorResponse"
-
+            $ref: '#/components/schemas/ErrorResponse'
   schemas:
     HealthResponse:
       type: object
-      required: [status]
+      required:
+      - status
       properties:
         status:
           type: string
           description: État de santé
           example: ok
-          enum: [ok]
-
+          enum:
+          - ok
     ErrorBody:
       type: object
-      required: [code, message]
+      required:
+      - code
+      - message
       properties:
         code:
           type: string
@@ -322,17 +578,21 @@ components:
         message:
           type: string
           example: Requête invalide.
-
     ErrorResponse:
       type: object
-      required: [error]
+      required:
+      - error
       properties:
         error:
-          $ref: "#/components/schemas/ErrorBody"
-
+          $ref: '#/components/schemas/ErrorBody'
     User:
       type: object
-      required: [id, login, email, display_name, role]
+      required:
+      - id
+      - login
+      - email
+      - display_name
+      - role
       properties:
         id:
           type: integer
@@ -349,10 +609,12 @@ components:
         role:
           type: string
           description: Rôle global (admin|editor|reader)
-
     BootstrapResponse:
       type: object
-      required: [authenticated, csrf_token, github_oauth_enabled]
+      required:
+      - authenticated
+      - csrf_token
+      - github_oauth_enabled
       properties:
         authenticated:
           type: boolean
@@ -360,26 +622,28 @@ components:
           type: string
           description: Jeton CSRF à envoyer en header X-CSRF-Token sur les mutations
         user:
-          $ref: "#/components/schemas/User"
+          $ref: '#/components/schemas/User'
         github_oauth_enabled:
           type: boolean
           description: true si REVUES_GITHUB_CLIENT_ID/SECRET sont configurés
         redirect:
           type: string
           description: Chemin SPA suggéré si déjà authentifié
-
     MeResponse:
       type: object
-      required: [user, csrf_token]
+      required:
+      - user
+      - csrf_token
       properties:
         user:
-          $ref: "#/components/schemas/User"
+          $ref: '#/components/schemas/User'
         csrf_token:
           type: string
-
     LoginRequest:
       type: object
-      required: [email, password]
+      required:
+      - email
+      - password
       properties:
         email:
           type: string
@@ -387,10 +651,13 @@ components:
         password:
           type: string
           format: password
-
     RegisterRequest:
       type: object
-      required: [email, display_name, password, password_confirm]
+      required:
+      - email
+      - display_name
+      - password
+      - password_confirm
       properties:
         email:
           type: string
@@ -403,22 +670,27 @@ components:
         password_confirm:
           type: string
           format: password
-
     AuthSuccessResponse:
       type: object
-      required: [user, csrf_token, redirect]
+      required:
+      - user
+      - csrf_token
+      - redirect
       properties:
         user:
-          $ref: "#/components/schemas/User"
+          $ref: '#/components/schemas/User'
         csrf_token:
           type: string
         redirect:
           type: string
           description: Chemin SPA post-login (org onboarding ou accueil)
-
     Organization:
       type: object
-      required: [id, name, slug, role]
+      required:
+      - id
+      - name
+      - slug
+      - role
       properties:
         id:
           type: integer
@@ -434,10 +706,14 @@ components:
           type: string
         ui_run_label:
           type: string
-
     OrganizationInvitation:
       type: object
-      required: [id, organization_id, organization_name, org_role, created_at]
+      required:
+      - id
+      - organization_id
+      - organization_name
+      - org_role
+      - created_at
       properties:
         id:
           type: integer
@@ -451,19 +727,21 @@ components:
           type: string
         created_at:
           type: string
-
     OrganizationListResponse:
       type: object
-      required: [organizations, invitations, can_create]
+      required:
+      - organizations
+      - invitations
+      - can_create
       properties:
         organizations:
           type: array
           items:
-            $ref: "#/components/schemas/Organization"
+            $ref: '#/components/schemas/Organization'
         invitations:
           type: array
           items:
-            $ref: "#/components/schemas/OrganizationInvitation"
+            $ref: '#/components/schemas/OrganizationInvitation'
         active_organization_id:
           type: integer
           format: int64
@@ -480,10 +758,10 @@ components:
         redirect:
           type: string
           description: Chemin SPA suggéré selon le nombre d'orgs
-
     CreateOrganizationRequest:
       type: object
-      required: [name]
+      required:
+      - name
       properties:
         name:
           type: string
@@ -491,21 +769,211 @@ components:
         slug:
           type: string
           description: Optionnel — dérivé du nom si omis
-
     SelectOrganizationRequest:
       type: object
-      required: [organization_id]
+      required:
+      - organization_id
       properties:
         organization_id:
           type: integer
           format: int64
-
     OrganizationActionResponse:
       type: object
-      required: [organization, redirect]
+      required:
+      - organization
+      - redirect
       properties:
         organization:
-          $ref: "#/components/schemas/Organization"
+          $ref: '#/components/schemas/Organization'
         redirect:
           type: string
           description: Chemin SPA après action (accueil)
+    SubjectSummary:
+      type: object
+      required:
+      - id
+      - name
+      - description
+      - visibility
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        description:
+          type: string
+        visibility:
+          type: string
+          enum:
+          - normal
+          - private
+          description: Visibilité sujet (private exige grant explicite)
+    SubjectListResponse:
+      type: object
+      required:
+      - subjects
+      - can_create
+      properties:
+        subjects:
+          type: array
+          items:
+            $ref: '#/components/schemas/SubjectSummary'
+        can_create:
+          type: boolean
+          description: true si l'utilisateur peut créer un sujet (editor+)
+    SubjectCapabilities:
+      type: object
+      required:
+      - can_manage
+      - can_manage_members
+      - can_set_visibility
+      properties:
+        can_manage:
+          type: boolean
+          description: Modifier / archiver
+        can_manage_members:
+          type: boolean
+          description: Inviter / retirer des membres directs
+        can_set_visibility:
+          type: boolean
+          description: Changer subjects.visibility
+    SubjectAccessInfo:
+      type: object
+      required:
+      - role
+      - sources
+      properties:
+        role:
+          type: string
+          description: Rôle effectif (lead|contributor|viewer|"")
+        sources:
+          type: array
+          items:
+            type: string
+          description: Sources d'accès (direct, team:N, org_admin, …)
+    SubjectMember:
+      type: object
+      required:
+      - user_id
+      - login
+      - email
+      - display_name
+      - role
+      properties:
+        user_id:
+          type: integer
+          format: int64
+        login:
+          type: string
+        email:
+          type: string
+          format: email
+        display_name:
+          type: string
+        role:
+          type: string
+          enum:
+          - lead
+          - contributor
+          - viewer
+    SubjectMemberListResponse:
+      type: object
+      required:
+      - members
+      properties:
+        members:
+          type: array
+          items:
+            $ref: '#/components/schemas/SubjectMember'
+    SubjectDetail:
+      type: object
+      required:
+      - id
+      - name
+      - description
+      - visibility
+      - domains
+      - tags
+      - members
+      - access
+      - capabilities
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        description:
+          type: string
+        visibility:
+          type: string
+          enum:
+          - normal
+          - private
+        domains:
+          type: array
+          items:
+            type: string
+          description: Domaines de matching modèles (pas d'accès)
+        tags:
+          type: array
+          items:
+            type: string
+          description: Étiquettes descriptives (pas d'accès)
+        members:
+          type: array
+          items:
+            $ref: '#/components/schemas/SubjectMember'
+        access:
+          $ref: '#/components/schemas/SubjectAccessInfo'
+        capabilities:
+          $ref: '#/components/schemas/SubjectCapabilities'
+    SubjectWriteRequest:
+      type: object
+      required:
+      - name
+      properties:
+        name:
+          type: string
+          minLength: 1
+        description:
+          type: string
+        domains:
+          type: array
+          items:
+            type: string
+          description: Domaines de matching (CSV côté legacy)
+        tags:
+          type: array
+          items:
+            type: string
+        visibility:
+          type: string
+          enum:
+          - normal
+          - private
+          description: Ignoré si CanSetSubjectVisibility est faux
+    AddSubjectMemberRequest:
+      type: object
+      required:
+      - email
+      properties:
+        email:
+          type: string
+          format: email
+        role:
+          type: string
+          enum:
+          - lead
+          - contributor
+          - viewer
+          default: viewer
+  parameters:
+    SubjectId:
+      name: subjectId
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64

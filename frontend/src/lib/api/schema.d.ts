@@ -201,6 +201,132 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/subjects": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Liste des sujets de l'org active
+         * @description Auth + org active. Liste filtrée selon ResolveSubjectAccess
+         *     (org admin / grants / legacy ungated). IDOR org : hors org → vide / 404.
+         */
+        get: operations["listSubjects"];
+        put?: never;
+        /**
+         * Créer un sujet
+         * @description Auth + CanCreateSubject (editor+). CSRF requis. Domaines = matching
+         *     modèles ; tags = classification descriptive (jamais d'accès).
+         */
+        post: operations["createSubject"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/subjects/{subjectId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                subjectId: components["parameters"]["SubjectId"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Détail d'un sujet
+         * @description Auth + CanViewAccess. Absent ou non visible → 404 (IDOR).
+         *     Inclut domaines, tags, membres directs et capacités UI.
+         */
+        get: operations["getSubject"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Modifier un sujet
+         * @description Auth + CanManageAccess. CSRF requis. Visibilité seulement si
+         *     CanSetSubjectVisibility.
+         */
+        patch: operations["updateSubject"];
+        trace?: never;
+    };
+    "/subjects/{subjectId}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                subjectId: components["parameters"]["SubjectId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Archiver un sujet
+         * @description Auth + CanManageAccess. CSRF requis. Soft-archive.
+         */
+        post: operations["archiveSubject"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/subjects/{subjectId}/members": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                subjectId: components["parameters"]["SubjectId"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Membres directs du sujet
+         * @description Auth + CanViewAccess. Liste `subject_members` seulement.
+         */
+        get: operations["listSubjectMembers"];
+        put?: never;
+        /**
+         * Ajouter un membre direct
+         * @description Auth + CanManageSubjectMembers / CanInviteSubjectMember.
+         *     L'invité doit déjà avoir un compte (email). CSRF requis.
+         */
+        post: operations["addSubjectMember"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/subjects/{subjectId}/members/{userId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                subjectId: components["parameters"]["SubjectId"];
+                userId: number;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Retirer un membre direct
+         * @description Auth + CanManageSubjectMembers. CSRF requis.
+         */
+        delete: operations["removeSubjectMember"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -319,6 +445,85 @@ export interface components {
             /** @description Chemin SPA après action (accueil) */
             redirect: string;
         };
+        SubjectSummary: {
+            /** Format: int64 */
+            id: number;
+            name: string;
+            description: string;
+            /**
+             * @description Visibilité sujet (private exige grant explicite)
+             * @enum {string}
+             */
+            visibility: "normal" | "private";
+        };
+        SubjectListResponse: {
+            subjects: components["schemas"]["SubjectSummary"][];
+            /** @description true si l'utilisateur peut créer un sujet (editor+) */
+            can_create: boolean;
+        };
+        SubjectCapabilities: {
+            /** @description Modifier / archiver */
+            can_manage: boolean;
+            /** @description Inviter / retirer des membres directs */
+            can_manage_members: boolean;
+            /** @description Changer subjects.visibility */
+            can_set_visibility: boolean;
+        };
+        SubjectAccessInfo: {
+            /** @description Rôle effectif (lead|contributor|viewer|"") */
+            role: string;
+            /** @description Sources d'accès (direct, team:N, org_admin, …) */
+            sources: string[];
+        };
+        SubjectMember: {
+            /** Format: int64 */
+            user_id: number;
+            login: string;
+            /** Format: email */
+            email: string;
+            display_name: string;
+            /** @enum {string} */
+            role: "lead" | "contributor" | "viewer";
+        };
+        SubjectMemberListResponse: {
+            members: components["schemas"]["SubjectMember"][];
+        };
+        SubjectDetail: {
+            /** Format: int64 */
+            id: number;
+            name: string;
+            description: string;
+            /** @enum {string} */
+            visibility: "normal" | "private";
+            /** @description Domaines de matching modèles (pas d'accès) */
+            domains: string[];
+            /** @description Étiquettes descriptives (pas d'accès) */
+            tags: string[];
+            members: components["schemas"]["SubjectMember"][];
+            access: components["schemas"]["SubjectAccessInfo"];
+            capabilities: components["schemas"]["SubjectCapabilities"];
+        };
+        SubjectWriteRequest: {
+            name: string;
+            description?: string;
+            /** @description Domaines de matching (CSV côté legacy) */
+            domains?: string[];
+            tags?: string[];
+            /**
+             * @description Ignoré si CanSetSubjectVisibility est faux
+             * @enum {string}
+             */
+            visibility?: "normal" | "private";
+        };
+        AddSubjectMemberRequest: {
+            /** Format: email */
+            email: string;
+            /**
+             * @default viewer
+             * @enum {string}
+             */
+            role: "lead" | "contributor" | "viewer";
+        };
     };
     responses: {
         /** @description Requête invalide */
@@ -339,7 +544,7 @@ export interface components {
                 "application/json": components["schemas"]["ErrorResponse"];
             };
         };
-        /** @description CSRF manquant/invalide ou refus */
+        /** @description CSRF manquant/invalide, org absente, ou refus */
         Forbidden: {
             headers: {
                 [name: string]: unknown;
@@ -376,7 +581,9 @@ export interface components {
             };
         };
     };
-    parameters: never;
+    parameters: {
+        SubjectId: number;
+    };
     requestBodies: never;
     headers: never;
     pathItems: never;
@@ -621,6 +828,223 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["OrganizationActionResponse"];
                 };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    listSubjects: {
+        parameters: {
+            query?: {
+                /** @description Filtre texte (nom / description) */
+                q?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Liste des sujets visibles */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubjectListResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    createSubject: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SubjectWriteRequest"];
+            };
+        };
+        responses: {
+            /** @description Sujet créé */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubjectDetail"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getSubject: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                subjectId: components["parameters"]["SubjectId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Détail sujet */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubjectDetail"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    updateSubject: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                subjectId: components["parameters"]["SubjectId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SubjectWriteRequest"];
+            };
+        };
+        responses: {
+            /** @description Sujet mis à jour */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubjectDetail"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    archiveSubject: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                subjectId: components["parameters"]["SubjectId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Archivé */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    listSubjectMembers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                subjectId: components["parameters"]["SubjectId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Membres directs */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubjectMemberListResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    addSubjectMember: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                subjectId: components["parameters"]["SubjectId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddSubjectMemberRequest"];
+            };
+        };
+        responses: {
+            /** @description Membre ajouté */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubjectMember"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    removeSubjectMember: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                subjectId: components["parameters"]["SubjectId"];
+                userId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Membre retiré */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
