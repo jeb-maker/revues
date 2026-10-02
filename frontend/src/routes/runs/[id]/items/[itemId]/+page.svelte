@@ -278,7 +278,7 @@
 			{/if}
 		</section>
 
-		<section class="jira">
+		<section class="attach jira">
 			<h2>Issue Jira</h2>
 			{#if jiraLink}
 				<p>
@@ -355,43 +355,6 @@
 </main>
 
 <style>
-	:global(body) {
-		margin: 0;
-		min-height: 100vh;
-		font-family: var(--mb-font-sans, 'Segoe UI', system-ui, sans-serif);
-		background: linear-gradient(160deg, #0f172a 0%, #1e293b 50%, #0f766e 100%);
-		color: #f8fafc;
-	}
-	.page {
-		max-width: 40rem;
-		margin: 0 auto;
-		padding: 2rem 1.25rem 4rem;
-	}
-	.brand {
-		margin: 0 0 0.35rem;
-		font-size: 1.75rem;
-		font-weight: 700;
-	}
-	.brand a {
-		color: inherit;
-		text-decoration: none;
-	}
-	.crumbs {
-		margin: 0 0 0.5rem;
-		font-size: 0.9rem;
-		color: #94a3b8;
-	}
-	.crumbs a {
-		color: #5eead4;
-	}
-	h1 {
-		margin: 0 0 0.35rem;
-		font-size: 1.25rem;
-	}
-	.lede {
-		margin: 0 0 1rem;
-		color: #94a3b8;
-	}
 	.help {
 		padding: 0.75rem 1rem;
 		border-radius: 0.45rem;
@@ -400,65 +363,25 @@
 		color: #cbd5e1;
 		margin-bottom: 1rem;
 	}
-	.form {
-		display: flex;
-		flex-direction: column;
-		gap: 0.9rem;
-	}
-	.form label {
-		display: flex;
-		flex-direction: column;
-		gap: 0.35rem;
-		font-size: 0.9rem;
-		color: #cbd5e1;
-	}
 	.form em {
 		color: #fcd34d;
 		font-style: normal;
 		font-size: 0.85em;
 	}
-	.form select,
-	.form textarea,
-	.form input {
-		padding: 0.55rem 0.65rem;
-		border-radius: 0.4rem;
-		border: 1px solid #334155;
-		background: #0f172a;
-		color: inherit;
-		font: inherit;
-	}
-	.form button {
-		align-self: flex-start;
-		padding: 0.6rem 1rem;
-		border: none;
-		border-radius: 0.4rem;
-		background: #0f766e;
-		color: #ecfdf5;
-		font-weight: 600;
-		cursor: pointer;
-		font: inherit;
-	}
-	.form button:disabled {
-		opacity: 0.5;
-		cursor: not-allowed;
-	}
-	.audit {
-		margin-top: 2rem;
-	}
-	.attach,
-	.jira {
+	.audit,
+	.attach {
 		margin-top: 1.75rem;
 		padding-top: 1.25rem;
 		border-top: 1px solid #334155;
 	}
 	.attach h2,
-	.jira h2,
 	.audit h2 {
 		margin: 0 0 0.5rem;
 		font-size: 0.95rem;
 		color: #99f6e4;
 	}
-	.jira a {
+	.jira a,
+	.att-meta a {
 		color: #5eead4;
 		font-weight: 600;
 	}
@@ -470,10 +393,6 @@
 		flex-direction: column;
 		gap: 0.45rem;
 		margin: 0 0 0.75rem;
-	}
-	.att-meta a {
-		color: #5eead4;
-		font-weight: 600;
 	}
 	.preview {
 		max-width: 100%;
@@ -487,10 +406,6 @@
 		gap: 0.35rem;
 		font-size: 0.88rem;
 		color: #cbd5e1;
-	}
-	.file input {
-		font: inherit;
-		color: inherit;
 	}
 	.audit ul {
 		list-style: none;
@@ -515,15 +430,6 @@
 		font-size: 0.8rem;
 	}
 	.cmt {
-		color: #94a3b8;
-	}
-	.err {
-		color: #fca5a5;
-	}
-	.ok {
-		color: #99f6e4;
-	}
-	.muted {
 		color: #94a3b8;
 	}
 </style>

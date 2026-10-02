@@ -67,8 +67,8 @@ func TestServiceSaveLoadCloud(t *testing.T) {
 		t.Fatalf("Load() = %+v, want %+v", got, cfg)
 	}
 
-	if err := svc.Clear(ctx); err != nil {
-		t.Fatalf("Clear(): %v", err)
+	if clearErr := svc.Clear(ctx); clearErr != nil {
+		t.Fatalf("Clear(): %v", clearErr)
 	}
 	_, ok, err = svc.Load(ctx)
 	if err != nil {

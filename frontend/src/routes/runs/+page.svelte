@@ -116,39 +116,9 @@
 </main>
 
 <style>
-	:global(body) {
-		margin: 0;
-		min-height: 100vh;
-		font-family: var(--mb-font-sans, 'Segoe UI', system-ui, sans-serif);
-		background: linear-gradient(160deg, #0f172a 0%, #1e293b 50%, #0f766e 100%);
-		color: #f8fafc;
-	}
-	.page {
-		max-width: 44rem;
-		margin: 0 auto;
-		padding: 2rem 1.25rem 4rem;
-	}
-	.brand {
-		margin: 0 0 0.5rem;
-		font-size: 1.75rem;
-		font-weight: 700;
-		letter-spacing: -0.03em;
-	}
-	.brand a {
-		color: inherit;
-		text-decoration: none;
-	}
-	h1 {
-		margin: 0 0 0.5rem;
-		font-size: 1.15rem;
-		font-weight: 500;
-		color: #99f6e4;
-	}
-	.lede {
-		margin: 0 0 1.25rem;
-		color: #cbd5e1;
-		line-height: 1.45;
-	}
+	
+	
+	
 	.toolbar {
 		display: flex;
 		flex-wrap: wrap;
@@ -224,12 +194,7 @@
 		height: 100%;
 		background: linear-gradient(90deg, #0d9488, #5eead4);
 	}
-	.err {
-		color: #fca5a5;
-	}
-	.muted {
-		color: #94a3b8;
-	}
+	
 	.meta {
 		margin: 0 0 0.75rem;
 		color: #94a3b8;
