@@ -495,8 +495,15 @@ func (s *Server) buildRunDetail(w http.ResponseWriter, r *http.Request, run *sto
 			CanUpdateItems: editable && runs.CanUpdateAccess(user, access),
 			CanAssign:      editable && runs.CanAssignAccess(user, access),
 			CanComplete:    editable && runs.CanCompleteAccess(user, access),
+			CanExportNotion: run.Status == store.RunStatusDone &&
+				runs.CanCompleteAccess(user, access) &&
+				strings.TrimSpace(run.NotionURL) == "" &&
+				s.notionExportReady(r),
 		},
 		PendingRequiredCount: &pendingCount,
+	}
+	if run.NotionURL != "" {
+		detail.NotionUrl = &run.NotionURL
 	}
 	if run.DueDate.Valid {
 		detail.DueDate = &run.DueDate.String
@@ -604,9 +611,10 @@ func (s *Server) buildRunItemDetail(
 
 func runCaps(user *store.User, access store.SubjectAccess, editable bool) RunCapabilities {
 	return RunCapabilities{
-		CanUpdateItems: editable && runs.CanUpdateAccess(user, access),
-		CanAssign:      editable && runs.CanAssignAccess(user, access),
-		CanComplete:    editable && runs.CanCompleteAccess(user, access),
+		CanUpdateItems:  editable && runs.CanUpdateAccess(user, access),
+		CanAssign:       editable && runs.CanAssignAccess(user, access),
+		CanComplete:     editable && runs.CanCompleteAccess(user, access),
+		CanExportNotion: false,
 	}
 }
 

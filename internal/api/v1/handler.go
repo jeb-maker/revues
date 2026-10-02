@@ -16,6 +16,7 @@ import (
 	"github.com/jeb-maker/revues/internal/features/organizations"
 	"github.com/jeb-maker/revues/internal/features/subjects"
 	"github.com/jeb-maker/revues/internal/integrations/jira"
+	"github.com/jeb-maker/revues/internal/integrations/notion"
 	"github.com/jeb-maker/revues/internal/integrations/webhooks"
 	"github.com/jeb-maker/revues/internal/store"
 	appmiddleware "github.com/jeb-maker/revues/internal/web/middleware"
@@ -34,6 +35,8 @@ type Server struct {
 	Integrations *adminintegrations.IntegrationsService
 	Attachments  *attachments.Service
 	JiraClient   *jira.Client // optional; tests inject a mock HTTP client
+	Notion       *notion.Service
+	NotionClient *notion.Client // optional override (tests / mock HTTP)
 }
 
 // NewServer returns the API v1 server implementation.
@@ -48,6 +51,8 @@ func NewServer(
 	settingsSvc *adminsettings.SettingsService,
 	integrationsSvc *adminintegrations.IntegrationsService,
 	attachmentsSvc *attachments.Service,
+	notionSvc *notion.Service,
+	notionClient *notion.Client,
 ) *Server {
 	return &Server{
 		Auth:         authSvc,
@@ -60,6 +65,8 @@ func NewServer(
 		Settings:     settingsSvc,
 		Integrations: integrationsSvc,
 		Attachments:  attachmentsSvc,
+		Notion:       notionSvc,
+		NotionClient: notionClient,
 	}
 }
 

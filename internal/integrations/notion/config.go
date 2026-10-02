@@ -85,6 +85,14 @@ func (s *Service) Save(ctx context.Context, cfg Config) error {
 	return nil
 }
 
+// Clear removes stored Notion configuration for the active organization.
+func (s *Service) Clear(ctx context.Context) error {
+	if err := s.Store.DeleteIntegrationByType(ctx, store.IntegrationTypeNotion); err != nil {
+		return fmt.Errorf("clear notion integration: %w", err)
+	}
+	return nil
+}
+
 func Validate(cfg Config) error {
 	if strings.TrimSpace(cfg.APIToken) == "" {
 		return errors.New("jeton d'intégration Notion requis")

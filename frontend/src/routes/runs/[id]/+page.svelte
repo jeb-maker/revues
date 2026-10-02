@@ -4,12 +4,15 @@
 	import { page } from '$app/stores';
 	import { bootstrap } from '$lib/api/auth';
 	import { completeRun, getRun, type RunDetail, type RunItem } from '$lib/api/runs';
+	import { postRunNotionExport } from '$lib/api/notion';
 
 	let csrf = $state('');
 	let run = $state<RunDetail | null>(null);
 	let error = $state('');
+	let message = $state('');
 	let loading = $state(true);
 	let closing = $state(false);
+	let exporting = $state(false);
 	let closingNote = $state('');
 
 	function runId(): number {
@@ -48,6 +51,22 @@
 			error = err instanceof Error ? err.message : 'Clôture impossible.';
 		} finally {
 			closing = false;
+		}
+	}
+
+	async function onExportNotion() {
+		if (!run) return;
+		exporting = true;
+		error = '';
+		message = '';
+		try {
+			const res = await postRunNotionExport(run.id, csrf);
+			run = await getRun(run.id, csrf);
+			message = `Exportée vers Notion : ${res.notion_url}`;
+		} catch (err) {
+			error = err instanceof Error ? err.message : 'Export Notion impossible.';
+		} finally {
+			exporting = false;
 		}
 	}
 
@@ -112,6 +131,9 @@
 	{#if error}
 		<p class="err" role="alert">{error}</p>
 	{/if}
+	{#if message}
+		<p class="ok" role="status">{message}</p>
+	{/if}
 
 	{#if loading}
 		<p class="muted">Chargement…</p>
@@ -162,14 +184,31 @@
 		{:else if run.status === 'done' && run.closing_note}
 			<p class="note">Note : {run.closing_note}</p>
 		{/if}
+
+		{#if run.status === 'done'}
+			<section class="notion">
+				{#if run.notion_url}
+					<p>
+						<a href={run.notion_url} target="_blank" rel="noopener noreferrer"
+							>Voir sur Notion</a
+						>
+					</p>
+				{:else if run.capabilities.can_export_notion}
+					<button type="button" disabled={exporting} onclick={onExportNotion}>
+						{exporting ? 'Export…' : 'Exporter vers Notion'}
+					</button>
+				{/if}
+			</section>
+		{/if}
 	{/if}
 </main>
 
 <style>
-	
-	
-	
-	
+	h1 {
+		margin: 0 0 0.35rem;
+		font-size: 1.35rem;
+		font-weight: 600;
+	}
 	.progress {
 		margin-bottom: 1.5rem;
 		padding: 1rem;
@@ -268,7 +307,8 @@
 		color: inherit;
 		font: inherit;
 	}
-	.complete button {
+	.complete button,
+	.notion button {
 		align-self: flex-start;
 		padding: 0.6rem 1rem;
 		border: none;
@@ -279,7 +319,8 @@
 		cursor: pointer;
 		font: inherit;
 	}
-	.complete button:disabled {
+	.complete button:disabled,
+	.notion button:disabled {
 		opacity: 0.6;
 		cursor: wait;
 	}
@@ -287,5 +328,13 @@
 		margin-top: 1rem;
 		color: #cbd5e1;
 	}
-	
+	.notion {
+		margin-top: 1.25rem;
+		padding-top: 1rem;
+		border-top: 1px solid #334155;
+	}
+	.notion a {
+		color: #5eead4;
+		font-weight: 600;
+	}
 </style>

@@ -33,8 +33,9 @@ import (
 
 // Deps holds runtime dependencies for HTTP routing.
 type Deps struct {
-	Config config.Config
-	DB     *sql.DB
+	Config       config.Config
+	DB           *sql.DB
+	NotionClient *notion.Client // optional HTTP override (tests)
 }
 
 // NewRouter builds the HTTP handler tree for the application.
@@ -102,7 +103,7 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, *webhooks.Dispa
 
 	apiServer := apiv1.NewServer(
 		authSvc, orgSvc, templatesSvc, st, deps.Config, sessions, webhookDispatcher,
-		settingsSvc, integrationsSvc, attachmentsSvc,
+		settingsSvc, integrationsSvc, attachmentsSvc, notionSvc, deps.NotionClient,
 	)
 
 	r := chi.NewRouter()
