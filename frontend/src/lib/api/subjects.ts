@@ -33,8 +33,8 @@ export async function listSubjects(opts?: {
 
 export async function getSubject(id: number, csrfToken?: string): Promise<SubjectDetail> {
 	const client = createApiClient({ csrfToken });
-	const { data, error, response } = await client.GET('/subjects/{subjectID}', {
-		params: { path: { subjectID: id } }
+	const { data, error, response } = await client.GET('/subjects/{subjectId}', {
+		params: { path: { subjectId: id } }
 	});
 	if (data) return data;
 	throw new Error(errorMessage(error, `Sujet: HTTP ${response.status}`));
@@ -56,8 +56,8 @@ export async function updateSubject(
 	csrfToken: string
 ): Promise<SubjectDetail> {
 	const client = createApiClient({ csrfToken });
-	const { data, error, response } = await client.PATCH('/subjects/{subjectID}', {
-		params: { path: { subjectID: id } },
+	const { data, error, response } = await client.PATCH('/subjects/{subjectId}', {
+		params: { path: { subjectId: id } },
 		body
 	});
 	if (data) return data;
@@ -66,21 +66,21 @@ export async function updateSubject(
 
 export async function archiveSubject(id: number, csrfToken: string): Promise<void> {
 	const client = createApiClient({ csrfToken });
-	const { error, response } = await client.POST('/subjects/{subjectID}/archive', {
-		params: { path: { subjectID: id } }
+	const { error, response } = await client.POST('/subjects/{subjectId}/archive', {
+		params: { path: { subjectId: id } }
 	});
 	if (response.status === 204) return;
 	throw new Error(errorMessage(error, `Archivage: HTTP ${response.status}`));
 }
 
 export async function addSubjectMember(
-	subjectID: number,
+	subjectId: number,
 	body: AddSubjectMemberRequest,
 	csrfToken: string
 ): Promise<SubjectMember> {
 	const client = createApiClient({ csrfToken });
-	const { data, error, response } = await client.POST('/subjects/{subjectID}/members', {
-		params: { path: { subjectID } },
+	const { data, error, response } = await client.POST('/subjects/{subjectId}/members', {
+		params: { path: { subjectId } },
 		body
 	});
 	if (data) return data;
@@ -88,13 +88,13 @@ export async function addSubjectMember(
 }
 
 export async function removeSubjectMember(
-	subjectID: number,
-	userID: number,
+	subjectId: number,
+	userId: number,
 	csrfToken: string
 ): Promise<void> {
 	const client = createApiClient({ csrfToken });
-	const { error, response } = await client.DELETE('/subjects/{subjectID}/members/{userID}', {
-		params: { path: { subjectID, userID } }
+	const { error, response } = await client.DELETE('/subjects/{subjectId}/members/{userId}', {
+		params: { path: { subjectId, userId } }
 	});
 	if (response.status === 204) return;
 	throw new Error(errorMessage(error, `Retrait membre: HTTP ${response.status}`));

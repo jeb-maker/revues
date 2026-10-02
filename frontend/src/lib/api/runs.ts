@@ -41,60 +41,60 @@ export async function listRuns(opts?: {
 }
 
 export async function listSubjectRuns(
-	subjectID: number,
+	subjectId: number,
 	csrfToken?: string
 ): Promise<RunListResponse> {
 	const client = createApiClient({ csrfToken });
-	const { data, error, response } = await client.GET('/subjects/{subjectID}/runs', {
-		params: { path: { subjectID } }
+	const { data, error, response } = await client.GET('/subjects/{subjectId}/runs', {
+		params: { path: { subjectId } }
 	});
 	if (data) return data;
 	throw new Error(errorMessage(error, `Revues sujet: HTTP ${response.status}`));
 }
 
 export async function listSubjectRunTemplates(
-	subjectID: number,
+	subjectId: number,
 	csrfToken?: string
 ): Promise<{ templates: RunTemplateSummary[]; can_launch: boolean }> {
 	const client = createApiClient({ csrfToken });
-	const { data, error, response } = await client.GET('/subjects/{subjectID}/run-templates', {
-		params: { path: { subjectID } }
+	const { data, error, response } = await client.GET('/subjects/{subjectId}/run-templates', {
+		params: { path: { subjectId } }
 	});
 	if (data) return data;
 	throw new Error(errorMessage(error, `Modèles: HTTP ${response.status}`));
 }
 
 export async function createRun(
-	subjectID: number,
+	subjectId: number,
 	body: CreateRunRequest,
 	csrfToken: string
 ): Promise<RunDetail> {
 	const client = createApiClient({ csrfToken });
-	const { data, error, response } = await client.POST('/subjects/{subjectID}/runs', {
-		params: { path: { subjectID } },
+	const { data, error, response } = await client.POST('/subjects/{subjectId}/runs', {
+		params: { path: { subjectId } },
 		body
 	});
 	if (data) return data;
 	throw new Error(errorMessage(error, `Lancement: HTTP ${response.status}`));
 }
 
-export async function getRun(runID: number, csrfToken?: string): Promise<RunDetail> {
+export async function getRun(runId: number, csrfToken?: string): Promise<RunDetail> {
 	const client = createApiClient({ csrfToken });
-	const { data, error, response } = await client.GET('/runs/{runID}', {
-		params: { path: { runID } }
+	const { data, error, response } = await client.GET('/runs/{runId}', {
+		params: { path: { runId } }
 	});
 	if (data) return data;
 	throw new Error(errorMessage(error, `Revue: HTTP ${response.status}`));
 }
 
 export async function completeRun(
-	runID: number,
+	runId: number,
 	body: CompleteRunRequest,
 	csrfToken: string
 ): Promise<RunDetail> {
 	const client = createApiClient({ csrfToken });
-	const { data, error, response } = await client.POST('/runs/{runID}/complete', {
-		params: { path: { runID } },
+	const { data, error, response } = await client.POST('/runs/{runId}/complete', {
+		params: { path: { runId } },
 		body
 	});
 	if (data) return data;
@@ -102,27 +102,27 @@ export async function completeRun(
 }
 
 export async function getRunItem(
-	runID: number,
-	itemID: number,
+	runId: number,
+	itemId: number,
 	csrfToken?: string
 ): Promise<RunItemDetail> {
 	const client = createApiClient({ csrfToken });
-	const { data, error, response } = await client.GET('/runs/{runID}/items/{itemID}', {
-		params: { path: { runID, itemID } }
+	const { data, error, response } = await client.GET('/runs/{runId}/items/{itemId}', {
+		params: { path: { runId, itemId } }
 	});
 	if (data) return data;
 	throw new Error(errorMessage(error, `Point: HTTP ${response.status}`));
 }
 
 export async function updateRunItem(
-	runID: number,
-	itemID: number,
+	runId: number,
+	itemId: number,
 	body: UpdateRunItemRequest,
 	csrfToken: string
 ): Promise<RunItemDetail> {
 	const client = createApiClient({ csrfToken });
-	const { data, error, response } = await client.PATCH('/runs/{runID}/items/{itemID}', {
-		params: { path: { runID, itemID } },
+	const { data, error, response } = await client.PATCH('/runs/{runId}/items/{itemId}', {
+		params: { path: { runId, itemId } },
 		body
 	});
 	if (data) return data;
