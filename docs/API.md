@@ -68,6 +68,7 @@ Le code généré est **commité** (pas de génération obligatoire en CI pour l
 | `GET /api/v1/runs/{id}` | Détail + items + progression |
 | `PATCH /api/v1/runs/{id}/items/{itemId}` | Status / commentaire / assignation |
 | `POST /api/v1/runs/{id}/complete` | Clôturer (bloque si required pending) |
+| `GET /api/v1/me/tasks` | Mes tâches (items assignés, filtre status/q) |
 | `/api/v1/**` | API métier versionnée |
 | `GET /auth/github/start` · `/callback` | OAuth GitHub (redirects browser) |
 | `/` + assets | SPA SvelteKit (static) servie par Go en prod |
