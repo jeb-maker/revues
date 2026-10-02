@@ -2,20 +2,24 @@
 
 Normes de code et d'architecture. Tout agent et contributeur les suit.
 
+Stack cible : [ADR-001-api-first-svelte.md](./ADR-001-api-first-svelte.md).
+
 ## Arborescence
 
 ```
 cmd/revues/                 # point d'entrée
+api/openapi/                # OpenAPI source de vérité
+frontend/                   # SvelteKit + mb
 internal/
-  features/                 # handlers + services métier (vertical)
+  features/                 # services métier (vertical)
   auth/                     # OAuth, sessions, CSRF, RBAC
-  store/                    # SQL uniquement
-  web/                      # router, middleware, templates Go
+  store/                    # SQL (sqlc) uniquement
+  web/                      # router API, middleware, static SPA
   integrations/             # jira, notion, webhooks
   notifications/ attachments/ crypto/ config/
 migrations/                 # goose SQL
-web/templates/ web/static/  # HTML + CSS/JS
 data/                       # SQLite + PJ (gitignored)
+docs/rewrite/               # orchestration rewrite agents
 ```
 
 ## Go
@@ -24,10 +28,10 @@ Voir le guide complet : **[GO.md](./GO.md)** — obligatoire pour agents.
 
 Résumé :
 - Go **1.22+**
-- Handlers fins : logique dans `internal/<domain>/`
+- Handlers fins (générés / fins) : logique dans `internal/features/` ou services
 - Erreurs wrappées : `fmt.Errorf("context: %w", err)` — jamais ignorées
 - `context.Context` propagé sur tout I/O
-- Pas d'ORM : SQL paramétré dans `internal/store/` uniquement
+- Pas d'ORM : **sqlc** + SQL paramétré dans `internal/store/`
 - Interfaces petites, côté consommateur
 - Tests table-driven ; `go test -race`
 - `log/slog` structuré — pas de secrets loggés
@@ -40,55 +44,32 @@ Résumé :
 - Dates : ISO 8601 UTC en `TEXT`
 - Enums : `TEXT` + `CHECK` constraint
 - `PRAGMA foreign_keys=ON` à chaque connexion
-- Pool SQLite : `REVUES_DB_MAX_OPEN_CONNS` (défaut 10) — voir benchmarks `internal/store/concurrency_bench_test.go`
+- Pool SQLite : `REVUES_DB_MAX_OPEN_CONNS` (défaut 10)
 
-## Routes HTTP
+## HTTP
 
-```
-GET  /healthz
-GET  /login
-GET  /register
-GET  /auth/github/callback
-POST /auth/login
-POST /auth/register
-POST /logout
+Voir **[API.md](./API.md)**.
 
-GET|POST /subjects/...
-GET /subjects/{id}/modeles
-POST /subjects/{id}/revues
-GET|PATCH /runs/{id}/items/{id}
+- Métier : JSON `/api/v1/**` (OpenAPI)
+- Auth browser : `/auth/**` (redirects OAuth OK)
+- SPA : assets statiques SvelteKit servis par Go en prod
+- Admin org : routes sous tag/paths admin — `RequireOrgAdmin`
+- IDs : valider existence **et** permission (IDOR → 404)
 
-GET|POST /admin/users
-GET|POST /admin/settings/smtp
-GET|POST /admin/integrations/...
-```
+## Front
 
-- Admin org sous `/admin/` — `RequireOrgAdmin` (owner/admin org ou admin global)
-- IDs dans URL : valider existence **et** permission
+Voir **[FRONTEND.md](./FRONTEND.md)**.
 
-## Templates HTML
-
-- Layout : `web/templates/layouts/base.html`
-- Fragments HTMX : suffixe `_fragment.html`
-- Partials : `web/templates/partials/`
-- Échappement auto `html/template` — pas de `template.HTML` sur input utilisateur
-
-## HTMX
-
-```html
-<form hx-post="/runs/1/items/2" hx-target="#item-2" hx-swap="outerHTML">
-  <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
-</form>
-```
-
-- CSRF via champ hidden **et** `hx-headers` pour requêtes sans form
-- Réponses : fragment HTML partiel, pas JSON API
+- SvelteKit SPA + Web Components **mb**
+- Client TS généré depuis OpenAPI
+- CSRF header sur mutations
+- **Interdit** : nouvelles pages `html/template` / HTMX métier
 
 ## RBAC
 
 Voir [RBAC.md](./RBAC.md). Règle : **deny by default**.
 
-- `403` = pas le droit
+- `403` = pas le droit (usage rare)
 - `404` = ressource absente **ou** non visible (pas de fuite d'existence)
 
 ## Configuration
@@ -112,23 +93,19 @@ Préfixe `REVUES_` :
 - Clé : `REVUES_ENCRYPTION_KEY` en env uniquement
 - Jamais logger credentials déchiffrés
 
-## Webhooks (vague 2)
+## Webhooks
 
 - Signature : `X-Revues-Signature: sha256=<hmac>`
 - Payload : `event_id` UUID stable pour idempotence
-- Anti-SSRF :
-  - Refuser IP privées, loopback, link-local, metadata
-  - Timeout 5s, max 1 redirect
-  - Pas de schémas autres que `https://` (sauf `http://localhost` en dev)
-  - Re-check à **chaque** tentative (retry durable)
-- Retry durable : table `webhook_deliveries` + drain 1′ in-process — détail backoff / TTL / poison dans [WEBHOOKS.md](./WEBHOOKS.md)
+- Anti-SSRF : IP privées refusées, timeout 5s, https only (localhost http en dev), re-check à chaque retry
+- Retry durable : `webhook_deliveries` — [WEBHOOKS.md](./WEBHOOKS.md)
 
-## Uploads (vague 3)
+## Uploads
 
-- Vérifier magic bytes, pas seulement extension
-- Nom stockage : UUID, pas le nom original
-- `Content-Disposition: attachment` sur téléchargement
-- Auth + contrôle projet sur chaque GET
+- Magic bytes, pas seulement extension
+- Nom stockage : UUID
+- `Content-Disposition: attachment`
+- Auth + contrôle sujet/run sur chaque GET
 
 ## Commits
 
@@ -136,16 +113,15 @@ Préfixe `REVUES_` :
 type(scope): description courte
 
 Types : feat, fix, docs, test, chore, refactor
-Scope : auth, projects, runs, admin, integrations, infra
+Scope : auth, api, frontend, subjects, runs, admin, integrations, infra
 ```
-
-Exemple : `feat(auth): GitHub OAuth callback with PKCE (#7)`
 
 ## Interdits
 
-- SPA frameworks (React, Vue, Svelte, Angular)
-- Bundlers frontend (webpack, vite)
+- ORM (GORM, ent runtime, etc.) — sqlc uniquement
+- Quarkus / stack JVM (hors décision ADR-001)
 - Redis, Elasticsearch, Kafka
 - JWT en cookie (sessions ID en base)
 - SQL dans les handlers
 - `panic()` en production (sauf main)
+- Réintroduire HTMX / templates Go pour l'UI métier

@@ -29,9 +29,9 @@ Voir [.github/PULL_REQUEST_CHECKLIST.md](.github/PULL_REQUEST_CHECKLIST.md)
 
 ## Éco (si UI touchée)
 
-- [ ] Pas de SPA
-- [ ] JS ≤ 15 Ko ; CSS core ≤ 24 Ko / total ≤ 40 Ko
-- [ ] ≤ 8 requêtes page touchée
+- [ ] SvelteKit + mb ; budgets `check.sh` / PLAN.md
+- [ ] ≤ 8 requêtes API pour la navigation touchée
+- [ ] Client OpenAPI régénéré si contrat modifié
 
 ## Tests exécutés
 

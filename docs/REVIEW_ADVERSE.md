@@ -10,7 +10,7 @@ Checklist vivante pour agents et relecteurs. Ne pas élargir le scope d'une issu
 2. **IDOR** : contrôle objet-par-objet (sujet, revue, point, pièce jointe) — le middleware global ne suffit pas.
 3. **Sessions** : rotation post-OAuth, révocation en base, TTL inactivité + absolu.
 4. **Whitelist** : email GitHub **vérifié** (`email_verified=true`) avant activation.
-5. **CSRF** : tous POST/PUT/PATCH/DELETE, y compris `hx-post` HTMX (`hx-headers`).
+5. **CSRF** : tous POST/PUT/PATCH/DELETE API — header `X-CSRF-Token` (SPA same-origin).
 6. **Secrets** : AES-256-GCM, clé `REVUES_ENCRYPTION_KEY` en env uniquement, jamais en DB.
 7. **Webhooks** : anti-SSRF (blocklist IP privées, timeout 5s, max 1 redirect), `event_id` unique, HMAC-SHA256 documenté.
 8. **Uploads** : magic bytes, noms UUID, `Content-Disposition: attachment`, auth sur chaque GET.
@@ -40,7 +40,7 @@ TestWebhook_SSRF_Block, TestUpload_Rejects
 - Versionnement modèles : versionner au premier snapshot ; édition libre tant qu'aucune revue n'existe.
 - Goroutines email sans file : **obsolète** — file `email_deliveries` + drain 1′ (comme webhooks). Voir [NOTIFICATIONS.md](./NOTIFICATIONS.md).
 - Webhooks : retry durable léger via `webhook_deliveries` + drain 1′ in-process (voir [WEBHOOKS.md](./WEBHOOKS.md)) — pas de Redis.
-- Concurrence HTMX : `updated_at` sur `run_items` pour détecter écrasements.
+- Concurrence UI : `updated_at` sur `run_items` pour détecter écrasements (optimistic lock / 409).
 
 ---
 
@@ -49,8 +49,9 @@ TestWebhook_SSRF_Block, TestUpload_Rejects
 - Ne pas confondre marque « Revues » et libellés preset (`Labels.Run` / `Labels.Subject`).
 - SimpleUI / disclosure progressive : deep links peuvent rester ouverts alors que la nav est masquée — ce n'est pas forcément un bug RBAC.
 - Deny métier → **404** (trade-off IDOR acté), pas 403 révélateur.
-- Pas de SPA, pas de polling, pas de WebSocket.
-- Budgets éco : HTML ≤ 50 Ko/page ; CSS core ≤ 24 Ko / 8 Ko gzip ; CSS total ≤ 40 Ko / 12 Ko gzip ; JS ≤ 15 Ko ; ≤ 8 requêtes/page.
+- SPA SvelteKit **imposée** (ADR-001) ; pas de polling ni WebSocket.
+- Budgets éco SPA : voir [PLAN.md](./PLAN.md) ; vendor mb mesuré séparément ; ≤ 8 requêtes API / navigation.
+- OpenAPI : ne pas inventer des paths hors du domaine du WP ; régénérer client + serveur.
 
 ---
 

@@ -16,7 +16,9 @@ Critères pour qu'une issue soit considérée **terminée** et mergeable.
 - [ ] Compile sans warning (`go vet` clean)
 - [ ] `golangci-lint run` vert (CI)
 - [ ] `go test ./...` vert (`-race` via check.sh)
-- [ ] Conforme [GO.md](./GO.md) (context, erreurs, SQL dans store)
+- [ ] Front : `npm run check` / build vert si fichiers `frontend/` touchés
+- [ ] OpenAPI régénéré si spec modifiée (serveur + client TS)
+- [ ] Conforme [GO.md](./GO.md) (context, erreurs, SQL store/sqlc)
 - [ ] Pas de `TODO` sans référence issue (`TODO(#N)`)
 - [ ] Pas de code commenté mort
 - [ ] `gofmt` appliqué
@@ -24,10 +26,10 @@ Critères pour qu'une issue soit considérée **terminée** et mergeable.
 ## Sécurité
 
 - [ ] Chaque nouvelle route documentée dans la matrice RBAC de la PR
-- [ ] Routes POST protégées CSRF
+- [ ] Mutations API protégées CSRF (`X-CSRF-Token`)
 - [ ] Pas de secret en clair (code, logs, commits)
 - [ ] Contrôle IDOR sur ressources projet/revue/point
-- [ ] Templates HTML : échappement systématique (pas de HTML utilisateur brut en v1)
+- [ ] Pas de HTML métier servi par templates Go (SPA + JSON API)
 
 ## Données
 
@@ -38,10 +40,9 @@ Critères pour qu'une issue soit considérée **terminée** et mergeable.
 
 ## UI (si applicable)
 
-- [ ] Rendu serveur (pas de SPA)
-- [ ] Fonctionne sans JS (dégradation gracieuse)
-- [ ] HTMX ciblé (fragments, pas reload page entière sauf navigation)
-- [ ] Respect budgets éco (voir PLAN.md)
+- [ ] SvelteKit + mb ([FRONTEND.md](./FRONTEND.md))
+- [ ] Client API généré — pas de fetch ad hoc dupliquant le contrat
+- [ ] Respect budgets éco SPA (voir PLAN.md / check.sh)
 
 ## Tests
 
@@ -51,7 +52,7 @@ Critères pour qu'une issue soit considérée **terminée** et mergeable.
 | `area:core` | Test logique métier (snapshot, statuts, nok) |
 | `area:integrations` | Test HMAC webhook, mock API, anti-SSRF |
 | `area:data` | Test migration up/down |
-| `area:ui` | Test handler HTTP (status code) |
+| `area:ui` | Build front + tests API des endpoints exposés |
 
 ## Documentation
 
