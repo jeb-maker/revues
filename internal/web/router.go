@@ -12,6 +12,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 
+	apiv1 "github.com/jeb-maker/revues/internal/api/v1"
 	"github.com/jeb-maker/revues/internal/config"
 	adminsettings "github.com/jeb-maker/revues/internal/features/admin/settings"
 	"github.com/jeb-maker/revues/internal/integrations/webhooks"
@@ -29,9 +30,8 @@ type Deps struct {
 
 // NewRouter builds the HTTP handler tree for the application.
 //
-// WP-001 scaffold: /healthz, optional /static vendor assets, and SPA
-// (frontend/build when present, otherwise a documented stub). HTML/HTMX
-// business routes are removed; API routes arrive in WP-002+.
+// NewRouter wires /healthz, OpenAPI handlers under /api/v1, optional
+// /static vendor assets, and the SPA (frontend/build or stub).
 func NewRouter(deps Deps) (http.Handler, *notifications.Service, *webhooks.Dispatcher, error) {
 	staticFS, err := fs.Sub(webassets.Static, "static")
 	if err != nil {
@@ -71,6 +71,10 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, *webhooks.Dispa
 
 	r.Get("/healthz", Health)
 	r.Handle("/static/*", http.StripPrefix("/static/", StaticHandler(http.FileServer(http.FS(staticFS)), deps.Config.Env)))
+
+	r.Route("/api/v1", func(r chi.Router) {
+		apiv1.HandlerFromMux(apiv1.NewServer(), r)
+	})
 
 	spa := spaHandler(spaBuildDir())
 	r.Get("/", spa)

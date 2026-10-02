@@ -15,7 +15,11 @@ Application de gestion de check-lists pour revues de projets — simple d'utilis
 ```bash
 # API Go (:8080) — migrations goose au boot
 go run ./cmd/revues
-curl -sf http://localhost:8080/healthz   # → ok
+curl -sf http://localhost:8080/healthz          # → ok
+curl -sf http://localhost:8080/api/v1/health    # → {"status":"ok"}
+
+# Régénérer stubs serveur depuis OpenAPI
+make api   # ou ./scripts/generate-api.sh
 
 # Front SvelteKit (dev) — proxy vers l'API
 cd frontend && npm ci && npm run dev
@@ -35,9 +39,9 @@ Go · OpenAPI · sqlc · SQLite · SvelteKit · miniature-broccoli · GitHub OAu
 ## Arborescence (cible)
 
 ```
-api/openapi/     # contrat OpenAPI (WP-002+)
+api/openapi/     # contrat OpenAPI (make api → internal/api/v1)
 frontend/        # SvelteKit SPA
-internal/        # métier, store, auth, integrations
+internal/        # métier, store, auth, api/v1, integrations
 web/static/      # vendor mb (intégration front = WP-005)
 ```
 
