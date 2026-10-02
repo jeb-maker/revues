@@ -18,10 +18,10 @@ const (
 
 func validateTemplateItemFields(label, help string) string {
 	if utf8.RuneCountInString(label) > MaxTemplateItemLabelLen {
-		return fmt.Sprintf("Le libellé ne peut pas dépasser %d caractères.", MaxTemplateItemLabelLen)
+		return fmt.Sprintf("Le libellé ne peut pas dépasser %d caractères", MaxTemplateItemLabelLen)
 	}
 	if utf8.RuneCountInString(help) > MaxTemplateItemHelpLen {
-		return fmt.Sprintf("Le texte d'aide ne peut pas dépasser %d caractères.", MaxTemplateItemHelpLen)
+		return fmt.Sprintf("Le texte d'aide ne peut pas dépasser %d caractères", MaxTemplateItemHelpLen)
 	}
 	return ""
 }

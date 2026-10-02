@@ -192,10 +192,10 @@ func (s *Service) Save(ctx context.Context, user *store.User, templateID int64, 
 		return nil, ErrNotFound
 	}
 
-	if err := s.Store.UpdateChecklistTemplateName(ctx, templateID, name); err != nil {
+	if err = s.Store.UpdateChecklistTemplateName(ctx, templateID, name); err != nil {
 		return nil, fmt.Errorf("update name: %w", err)
 	}
-	if err := s.Store.SetTemplateTags(ctx, templateID, domains); err != nil {
+	if err = s.Store.SetTemplateTags(ctx, templateID, domains); err != nil {
 		return nil, fmt.Errorf("update domains: %w", err)
 	}
 
@@ -273,10 +273,10 @@ func (s *Service) MutatePublishedItems(ctx context.Context, versionID int64, ite
 func normalizeWrite(name string, items []store.TemplateItemInput) (string, []store.TemplateItemInput, error) {
 	name = strings.TrimSpace(name)
 	if name == "" {
-		return "", nil, fmt.Errorf("%w: Le nom est obligatoire.", ErrValidation)
+		return "", nil, fmt.Errorf("%w: Le nom est obligatoire", ErrValidation)
 	}
 	if utf8.RuneCountInString(name) > MaxTemplateNameLen {
-		return "", nil, fmt.Errorf("%w: Le nom ne peut pas dépasser %d caractères.", ErrValidation, MaxTemplateNameLen)
+		return "", nil, fmt.Errorf("%w: Le nom ne peut pas dépasser %d caractères", ErrValidation, MaxTemplateNameLen)
 	}
 	normalized, err := normalizeItems(items)
 	if err != nil {
@@ -300,10 +300,10 @@ func normalizeItems(items []store.TemplateItemInput) ([]store.TemplateItemInput,
 		})
 	}
 	if len(normalized) == 0 {
-		return nil, fmt.Errorf("%w: Ajoutez au moins un point au modèle.", ErrValidation)
+		return nil, fmt.Errorf("%w: Ajoutez au moins un point au modèle", ErrValidation)
 	}
 	if msg := validateTemplateItems(normalized); msg != "" {
-		return nil, fmt.Errorf("%w: %s", ErrValidation, msg)
+		return nil, fmt.Errorf("%w: %s", ErrValidation, strings.TrimSuffix(msg, "."))
 	}
 	return normalized, nil
 }

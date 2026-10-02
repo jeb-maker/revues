@@ -53,6 +53,8 @@ func (s *Server) CreateTemplate(w http.ResponseWriter, r *http.Request) {
 }
 
 // GetTemplate serves GET /api/v1/templates/{templateId}.
+//
+//nolint:staticcheck // OpenAPI operation param name (templateId)
 func (s *Server) GetTemplate(w http.ResponseWriter, r *http.Request, templateId TemplateId) {
 	user, ok := requireAPIUser(w, r)
 	if !ok {
@@ -67,6 +69,8 @@ func (s *Server) GetTemplate(w http.ResponseWriter, r *http.Request, templateId 
 }
 
 // SaveTemplate serves PUT /api/v1/templates/{templateId}.
+//
+//nolint:staticcheck // OpenAPI operation param name (templateId)
 func (s *Server) SaveTemplate(w http.ResponseWriter, r *http.Request, templateId TemplateId) {
 	user, ok := requireAPIUser(w, r)
 	if !ok {
@@ -90,6 +94,8 @@ func (s *Server) SaveTemplate(w http.ResponseWriter, r *http.Request, templateId
 }
 
 // ArchiveTemplate serves DELETE /api/v1/templates/{templateId}.
+//
+//nolint:staticcheck // OpenAPI operation param name (templateId)
 func (s *Server) ArchiveTemplate(w http.ResponseWriter, r *http.Request, templateId TemplateId) {
 	user, ok := requireAPIUser(w, r)
 	if !ok {
@@ -103,6 +109,8 @@ func (s *Server) ArchiveTemplate(w http.ResponseWriter, r *http.Request, templat
 }
 
 // ListTemplateVersions serves GET /api/v1/templates/{templateId}/versions.
+//
+//nolint:staticcheck // OpenAPI operation param name (templateId)
 func (s *Server) ListTemplateVersions(w http.ResponseWriter, r *http.Request, templateId TemplateId) {
 	if _, ok := requireAPIUser(w, r); !ok {
 		return
@@ -120,6 +128,8 @@ func (s *Server) ListTemplateVersions(w http.ResponseWriter, r *http.Request, te
 }
 
 // CreateTemplateVersion serves POST /api/v1/templates/{templateId}/versions.
+//
+//nolint:staticcheck // OpenAPI operation param name (templateId)
 func (s *Server) CreateTemplateVersion(w http.ResponseWriter, r *http.Request, templateId TemplateId) {
 	user, ok := requireAPIUser(w, r)
 	if !ok {
@@ -139,6 +149,8 @@ func (s *Server) CreateTemplateVersion(w http.ResponseWriter, r *http.Request, t
 }
 
 // GetTemplateVersion serves GET /api/v1/templates/{templateId}/versions/{version}.
+//
+//nolint:staticcheck // OpenAPI operation param name (templateId)
 func (s *Server) GetTemplateVersion(w http.ResponseWriter, r *http.Request, templateId TemplateId, version TemplateVersionNumber) {
 	user, ok := requireAPIUser(w, r)
 	if !ok {
