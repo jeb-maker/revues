@@ -182,6 +182,8 @@ func (s *Server) PostAdminWebhookDeliveriesDrain(w http.ResponseWriter, r *http.
 }
 
 // PostAdminWebhookDeliveryRetry serves POST /api/v1/admin/webhooks/deliveries/{deliveryId}/retry.
+//
+//nolint:staticcheck // SA1003: deliveryId matches OpenAPI path param / oapi-codegen ServerInterface
 func (s *Server) PostAdminWebhookDeliveryRetry(w http.ResponseWriter, r *http.Request, deliveryId WebhookDeliveryId) {
 	if _, _, ok := s.requireOrgAdmin(w, r); !ok {
 		return

@@ -240,7 +240,8 @@ func TestAdminWebhooks_DrainAndRetry(t *testing.T) {
 	if err != nil {
 		t.Fatalf("enqueue: %v", err)
 	}
-	if err := st.UpdateWebhookDeliveryAttempt(ctx, poisonID, 500, false, webhooks.MaxAttempts, nil, store.WebhookDeliveryPoison, "max"); err != nil {
+	err = st.UpdateWebhookDeliveryAttempt(ctx, poisonID, 500, false, webhooks.MaxAttempts, nil, store.WebhookDeliveryPoison, "max")
+	if err != nil {
 		t.Fatalf("poison: %v", err)
 	}
 

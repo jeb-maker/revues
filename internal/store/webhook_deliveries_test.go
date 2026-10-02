@@ -77,7 +77,8 @@ func TestWebhookDeliveryQueue_OrgListAndRetry(t *testing.T) {
 	if err != nil {
 		t.Fatalf("enqueue: %v", err)
 	}
-	if err := st.UpdateWebhookDeliveryAttempt(ctx, id, 500, false, 5, nil, store.WebhookDeliveryPoison, "max"); err != nil {
+	err = st.UpdateWebhookDeliveryAttempt(ctx, id, 500, false, 5, nil, store.WebhookDeliveryPoison, "max")
+	if err != nil {
 		t.Fatalf("poison: %v", err)
 	}
 
@@ -102,7 +103,8 @@ func TestWebhookDeliveryQueue_OrgListAndRetry(t *testing.T) {
 
 	next := now.Add(time.Minute)
 	exp := now.Add(24 * time.Hour)
-	if err := st.ResetWebhookDeliveryForRetry(ctx, id, next, exp); err != nil {
+	err = st.ResetWebhookDeliveryForRetry(ctx, id, next, exp)
+	if err != nil {
 		t.Fatalf("ResetWebhookDeliveryForRetry: %v", err)
 	}
 	got, err = st.WebhookDeliveryByID(ctx, id)
