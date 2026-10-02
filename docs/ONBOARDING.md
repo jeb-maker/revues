@@ -18,14 +18,16 @@ Exporter les variables avant de lancer l'application (le binaire ne charge pas `
 go run ./cmd/revues
 ```
 
-Ouvrir `http://localhost:8080/login`.
+Ouvrir l’UI (SPA SvelteKit servie par Go, ou `npm run dev` en dev — [FRONTEND.md](./FRONTEND.md)).
+
+Stack cible : [ADR-001](./ADR-001-api-first-svelte.md). Rewrite agents : [rewrite/README.md](./rewrite/README.md).
 
 ## 3. Se connecter
 
 Deux voies d'auth (complémentaires) :
 
-- **GitHub OAuth** — bouton « Se connecter avec GitHub » (email GitHub **vérifié** requis pour la whitelist)
-- **Email + mot de passe** — inscription `/register` puis login formulaire (mêmes règles whitelist)
+- **GitHub OAuth** — « Se connecter avec GitHub » (email GitHub **vérifié** requis pour la whitelist)
+- **Email + mot de passe** — inscription puis login (mêmes règles whitelist)
 
 **Instance migrée (organisation `default` existante)** : se connecter avec le compte correspondant à `REVUES_BOOTSTRAP_ADMIN_EMAIL`. Au premier login, cet email reçoit le rôle global **admin** et devient **owner** de l'organisation `default`.
 

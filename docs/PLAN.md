@@ -19,35 +19,33 @@ Remplace Excel, fils de mails et check-lists éparpillées, sans devenir une usi
 | Pilier | Concrètement |
 |--------|--------------|
 | **Simple d'utilisation** | Parcours guidés, vocabulaire clair, progressive disclosure |
-| **Éco-conçue** | Rendu serveur, HTMX (pas SPA), SQLite, 1 binaire, appels API à la demande |
+| **Éco-conçue** | API sobre + SvelteKit léger + mb, SQLite, 1 binaire, appels API à la demande |
 | **Riche fonctionnel** | Versionnement, audit, assignation, intégrations, export |
 
 ### Budget sobriété
 
+Stack SPA — seuils exacts calés par le WP CI rewrite ([rewrite/WORK_PACKAGES.md](./rewrite/WORK_PACKAGES.md) WP-005 / WP-030).
+
 | Métrique | Cible |
 |----------|-------|
-| HTML par page | < 50 Ko |
-| CSS core (`app.css`) | < 24 Ko brut, < 8 Ko gzip |
-| CSS total (tous fichiers app) | < 40 Ko brut, < 12 Ko gzip cumulé |
-| CSS page (core + feuille dédiée) | chargé à la demande (`run.css`, `editor.css`) |
-| JS app (hors `vendor/`) | < 15 Ko brut — HTMX + `app.js` + pages |
-| JS vendor (`mb-boot`, reports) | hors seuil app ; **reports lazy** au clic « Signaler » ; `check.sh` reporte gzip vendor |
-| Transfert shell estimé | `check.sh` affiche gzip app+vendor sans reports ; warn si > 45 Ko gzip |
-| Requêtes par page | ≤ 8 |
+| JS **app** (hors vendor mb / reports) | sobriété ; fail dans `check.sh` une fois seuils fixés |
+| CSS **app** (hors tokens mb) | sobriété ; fail dans `check.sh` |
+| Vendor mb + reports | mesurés ; reports **lazy** |
+| Requêtes API par navigation écran | viser ≤ 8 |
 | RAM serveur | < 128 Mo en charge normale |
-
-`scripts/check.sh` échoue toujours sur les seuils **app** ; le vendor est mesuré (visibilité) et reports n’est plus chargé sur chaque page authentifiée.
 
 ---
 
 ## Stack technique
 
+Décision : [ADR-001-api-first-svelte.md](./ADR-001-api-first-svelte.md).
+
 ```
-Go + chi + html/template + HTMX
+Go + chi + OpenAPI (codegen) + sqlc
+SvelteKit (SPA) + @jeb-maker/mb
 SQLite (WAL) + goose
-OAuth2 GitHub (v1) · Google (v2)
-Sessions en base · SMTP configurable
-Stockage local (attachments/)
+OAuth2 GitHub · sessions cookie + CSRF
+SMTP · Jira / webhooks / Notion
 Caddy · 1 binaire · 1 VM
 ```
 
@@ -56,20 +54,16 @@ Caddy · 1 binaire · 1 VM
 ```
 revues/
   cmd/revues/main.go
+  api/openapi/        # contrat OpenAPI
+  frontend/           # SvelteKit + mb
   internal/
-    auth/           # OAuth GitHub, sessions, RBAC
-    subjects/       # sujets (choses revues)
-    templates/      # modèles versionnés
-    runs/           # exécutions + snapshot
-    items/          # statuts, commentaires, assignations
-    notifications/  # email SMTP
-    integrations/   # jira, notion, webhooks
-    admin/          # users, settings
-    store/          # requêtes SQL
-    web/            # handlers, middleware
+    auth/             # OAuth, sessions, CSRF, RBAC
+    features/         # services métier (vertical)
+    store/            # SQL (sqlc)
+    integrations/     # jira, notion, webhooks
+    notifications/ attachments/ crypto/ config/
+    web/              # router API, middleware, static SPA
   migrations/
-  web/templates/
-  web/static/
   data/attachments/
 ```
 
@@ -138,7 +132,7 @@ erDiagram
 - **Inscription manuelle** (email + mot de passe argon2id) en complément de GitHub
 - Liste blanche admin (emails ou domaine `@entreprise.com`) — email GitHub **vérifié** obligatoire ; mêmes règles whitelist pour l'inscription locale
 - Sessions cookie `HttpOnly` + `Secure` + `SameSite=Lax`, ID hashé en base, rotation au login
-- CSRF sur tous les POST **y compris HTMX** (`hx-headers`) ; cookie guest pour formulaires login/register non authentifiés
+- CSRF sur toutes les mutations API (`X-CSRF-Token`) ; cookie guest pour login/register non authentifiés
 - Matrice RBAC : voir [RBAC.md](./RBAC.md)
 - Google OAuth en v2
 
@@ -151,7 +145,7 @@ erDiagram
 3. Fiche sujet — revues, collab (équipes/membres si P1+), domaines/étiquettes si multi-sujet
 4. Liste / éditeur modèles ou listes (vocabulaire via `ShowSubjectColumn`)
 5. Assistant lancement revue (`/revues/nouvelle`) — **2 étapes** (sujet → modèle/liste)
-6. Détail revue — points (HTMX), progression, Jira/Notion/preuve selon capabilities
+6. Détail revue — points (SvelteKit + mb), progression, Jira/Notion/preuve selon capabilities
 7. Mes tâches (si ≥2 membres)
 8. Admin org — utilisateurs, sujets, SMTP, intégrations, libellés UI
 
@@ -245,10 +239,10 @@ Reste et icebox : [ROADMAP.md](./ROADMAP.md). Délégation : [DELEGATION.md](./D
 - [x] Webhooks : `review.completed` + `review.item.nok`
 - [x] SMTP configurable par admin
 - [x] Notion en companion (export prioritaire, import ensuite)
-- [x] Rendu serveur + HTMX, pas de SPA
 - [x] SQLite WAL en v1
 - [x] Harness agents (AGENTS.md, CI, check.sh) avant code métier
 - [x] Schéma canonique : [schema/canonical.sql](./schema/canonical.sql)
+- [x] **ADR-001** : API-first Go + SvelteKit + mb (big bang, remplace HTMX/templates)
 
 ## Reporté v2+
 

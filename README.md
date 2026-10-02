@@ -5,9 +5,10 @@ Application de gestion de check-lists pour revues de projets — simple d'utilis
 ## Docs
 
 - [AGENTS.md](AGENTS.md) — contrat agents · `./scripts/check.sh`
+- [ADR-001](docs/ADR-001-api-first-svelte.md) — stack API Go + SvelteKit + mb
+- [Rewrite agents](docs/rewrite/README.md) · [Work packages](docs/rewrite/WORK_PACKAGES.md)
 - [Onboarding](docs/ONBOARDING.md) · [Plan](docs/PLAN.md) · [Roadmap](docs/ROADMAP.md)
-- [GO.md](docs/GO.md) · [RBAC.md](docs/RBAC.md) · [REVIEW_ADVERSE.md](docs/REVIEW_ADVERSE.md)
-- [Déploiement](deploy/README.md) · [Issues](https://github.com/jeb-maker/revues/issues)
+- [API.md](docs/API.md) · [FRONTEND.md](docs/FRONTEND.md) · [GO.md](docs/GO.md) · [RBAC.md](docs/RBAC.md)
 
 ## Démarrage
 
@@ -16,8 +17,16 @@ go run ./cmd/revues   # :8080 — migrations goose au boot
 curl -sf http://localhost:8080/healthz   # → ok
 ```
 
+Front SvelteKit : voir [docs/FRONTEND.md](docs/FRONTEND.md) (après WP fondation).
+
 Variables : [.env.example](.env.example) (pas de chargement auto de `.env`).
 
-## Stack
+## Stack (cible)
 
-Go · SQLite · HTML + HTMX · GitHub OAuth · SMTP · Jira / webhooks / Notion
+Go · OpenAPI · sqlc · SQLite · SvelteKit · miniature-broccoli · GitHub OAuth · SMTP · Jira / webhooks / Notion
+
+## Délégation rewrite
+
+```bash
+./scripts/create-rewrite-issues.sh
+```

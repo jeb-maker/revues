@@ -19,9 +19,9 @@
 
 - [ ] RBAC serveur sur chaque nouvelle route (voir [docs/RBAC.md](../docs/RBAC.md))
 - [ ] Contrôle IDOR projet/revue/point
-- [ ] CSRF sur tous les POST (y compris HTMX)
+- [ ] CSRF sur toutes les mutations API (`X-CSRF-Token`)
 - [ ] Pas de secret en clair (code, logs, commit)
-- [ ] Templates : échappement HTML
+- [ ] Pas de réintroduction templates Go / HTMX métier
 
 ## Données
 
@@ -36,10 +36,10 @@
 - [ ] Snapshot revue = copie SQL transactionnelle
 - [ ] `due_date` respecté si issue concerne les revues
 
-## Éco
+## Éco / front
 
-- [ ] Pas de SPA / React / Vue / Vite
-- [ ] HTMX ciblé (fragments)
+- [ ] SvelteKit + mb ; client OpenAPI généré si endpoints touchés
+- [ ] Budgets `check.sh` respectés (PLAN.md)
 - [ ] Pas de polling / WebSocket
 
 ## Revue humaine obligatoire ?

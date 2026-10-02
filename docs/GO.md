@@ -213,7 +213,7 @@ slog.Error("webhook delivery failed",
 | `crypto/rand` | tokens session, CSRF |
 | Pas `math/rand` | pour secrets |
 | Comparaison constant-time | `subtle.ConstantTimeCompare` pour tokens |
-| `html/template` | auto-escape ; pas `template.HTML` sur input user |
+| JSON API | pas de HTML métier via `html/template` (SPA SvelteKit) |
 | `json.Decoder` | `DisallowUnknownFields()` si API externe |
 
 ---

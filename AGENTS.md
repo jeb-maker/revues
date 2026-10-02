@@ -10,13 +10,17 @@ Implémenter **une seule** issue. Lire le contexte, respecter le périmètre, li
 
 1. Ce fichier (`AGENTS.md`)
 2. Issue GitHub assignée (critères d'acceptation)
-3. [docs/PLAN.md](docs/PLAN.md) — vision
-4. [docs/CONVENTIONS.md](docs/CONVENTIONS.md) — code et structure
-5. [docs/GO.md](docs/GO.md) — **bonnes pratiques Go obligatoires**
-6. [docs/DEFINITION_OF_DONE.md](docs/DEFINITION_OF_DONE.md) — critères merge
-7. [docs/RBAC.md](docs/RBAC.md) — si route ou permission touchée
-8. [docs/schema/canonical.sql](docs/schema/canonical.sql) — si données touchées
-9. [docs/REVIEW_ADVERSE.md](docs/REVIEW_ADVERSE.md) — pièges connus
+3. [docs/ADR-001-api-first-svelte.md](docs/ADR-001-api-first-svelte.md) — stack cible
+4. [docs/PLAN.md](docs/PLAN.md) — vision
+5. [docs/CONVENTIONS.md](docs/CONVENTIONS.md) — code et structure
+6. [docs/API.md](docs/API.md) — si surface HTTP `/api/v1`
+7. [docs/FRONTEND.md](docs/FRONTEND.md) — si SvelteKit / mb
+8. [docs/GO.md](docs/GO.md) — **bonnes pratiques Go obligatoires**
+9. [docs/DEFINITION_OF_DONE.md](docs/DEFINITION_OF_DONE.md) — critères merge
+10. [docs/RBAC.md](docs/RBAC.md) — si route ou permission touchée
+11. [docs/schema/canonical.sql](docs/schema/canonical.sql) — si données touchées
+12. [docs/REVIEW_ADVERSE.md](docs/REVIEW_ADVERSE.md) — pièges connus
+13. Rewrite : [docs/rewrite/README.md](docs/rewrite/README.md) + WP dans [docs/rewrite/WORK_PACKAGES.md](docs/rewrite/WORK_PACKAGES.md)
 
 ## Règles strictes
 
@@ -37,9 +41,11 @@ Corps PR : Closes #<N>
 
 ### Stack imposée
 
-- Go + chi + `html/template` + HTMX — voir [docs/GO.md](docs/GO.md)
-- SQLite WAL + goose
-- **Pas de SPA** (React, Vue, Vite, webpack)
+- **API** : Go + chi + OpenAPI (codegen) — [docs/API.md](docs/API.md)
+- **Données** : SQLite WAL + goose + **sqlc** (pas d'ORM) — [docs/GO.md](docs/GO.md)
+- **Front** : SvelteKit (SPA) + **@jeb-maker/mb** — [docs/FRONTEND.md](docs/FRONTEND.md)
+- Client TS **généré** depuis OpenAPI
+- Pas de `html/template` / HTMX pour l'UI métier (rewrite big bang)
 - Pas de polling ni WebSocket
 - Appels API externes à la demande uniquement
 
@@ -47,7 +53,7 @@ Corps PR : Closes #<N>
 
 - RBAC **côté serveur** sur chaque route sensible
 - Contrôle **IDOR** : vérifier appartenance sujet/revue org active
-- CSRF sur **tous** les POST (y compris HTMX via `hx-headers`)
+- CSRF sur **toutes** les mutations API (`X-CSRF-Token`)
 - Secrets en variables d'environnement, credentials chiffrés en base
 - Email GitHub **vérifié** avant whitelist
 - Voir [docs/RBAC.md](docs/RBAC.md) pour la matrice
@@ -62,22 +68,22 @@ Corps PR : Closes #<N>
 
 ### Éco-contraintes
 
-| Métrique | Max |
-|----------|-----|
-| HTML page | 50 Ko |
-| CSS core (`app.css`) | 24 Ko brut / 8 Ko gzip |
-| CSS total | 40 Ko brut / 12 Ko gzip cumulé |
-| JS / HTMX | 15 Ko |
-| Requêtes / page | 8 |
+Budgets SPA — détail et seuils dans [docs/PLAN.md](docs/PLAN.md) (mesurés par `check.sh`).
+
+| Zone | Règle |
+|------|--------|
+| JS/CSS **app** | seuils fail dans `check.sh` |
+| Vendor mb / reports | mesurés ; hors ou seuil dédié documenté |
+| Requêtes API par navigation | viser sobriété (pas de chatty loops) |
 
 ### Tests minimum
 
 ```bash
-./scripts/check.sh   # doit passer (gofmt, vet, test -race, golangci-lint)
+./scripts/check.sh   # Go + front (gofmt, vet, test -race, golangci-lint, build front)
 go test ./...        # vert
 ```
 
-- Suivre [docs/GO.md](docs/GO.md) : context, erreurs wrappées, SQL dans `store`, tests table-driven
+- Suivre [docs/GO.md](docs/GO.md) : context, erreurs wrappées, SQL dans store/sqlc, tests table-driven
 - Ajouter un test si logique métier ou middleware RBAC touché
 - Issues `area:auth` ou `area:integrations` : tests sécurité requis (voir DoD)
 
@@ -93,31 +99,35 @@ git push -u origin cursor/issue-<N>-<slug>-f21b
 
 ```
 Repo jeb-maker/revues. Implémente UNIQUEMENT l'issue #N.
-Lis AGENTS.md, docs/CONVENTIONS.md, docs/GO.md, docs/DEFINITION_OF_DONE.md.
-Si RBAC : docs/RBAC.md. Si données : docs/schema/canonical.sql.
+Lis AGENTS.md, docs/ADR-001-api-first-svelte.md, docs/CONVENTIONS.md,
+docs/API.md, docs/FRONTEND.md, docs/GO.md, docs/DEFINITION_OF_DONE.md.
+Si rewrite : docs/rewrite/WORK_PACKAGES.md. Si RBAC : docs/RBAC.md.
+Si données : docs/schema/canonical.sql.
 Branche cursor/issue-N-<slug>-f21b. PR avec Closes #N.
 ./scripts/check.sh doit passer avant push.
 ```
 
 ## Issues à revue humaine obligatoire
 
-- #7 Auth GitHub OAuth
+- Auth GitHub OAuth
 - Toute issue `area:integrations`
 - Toute issue touchant chiffrement ou webhooks
 
-## Fichiers sacrés (ne pas modifier sans issue dédiée)
+## Fichiers sensibles (issue dédiée préférable)
 
 - `docs/schema/canonical.sql`
 - `docs/RBAC.md`
 - `AGENTS.md`
 - `.github/workflows/ci.yml`
+- `api/openapi/openapi.yaml` (conflits multi-agents : coordonner par tags/domaines)
 
 ## Cursor Cloud specific instructions
 
 Contexte durable pour les agents Cloud (l'update script a déjà installé les dépendances).
 
-- **Stack/run** : app Go 1.22 (pas de CGO — driver `modernc.org/sqlite` pur Go). Lancer en dev : `go run ./cmd/revues` (écoute `:8080`, migrations goose appliquées au démarrage). Variables : `.env.example` (le binaire lit `os.Getenv`, **il n'y a pas de chargement automatique de `.env`** — exporter les variables soi-même).
-- **Gatekeeper** : `./scripts/check.sh` lance gofmt, `go vet`, `go test -race`, build, **`go mod tidy` puis échoue si `go.mod`/`go.sum` changent**, et `golangci-lint`. `golangci-lint` (v1.62, comme la CI) doit être sur le `PATH` ; il est installé dans `$(go env GOPATH)/bin`, déjà présent dans le `PATH` du login shell.
-- **Auth / démo locale** : toutes les pages métier sont derrière l'OAuth GitHub. Sans `REVUES_GITHUB_CLIENT_ID`/`REVUES_GITHUB_CLIENT_SECRET`, `/auth/github/start` redirige vers `/login?error=...` et on ne peut pas se connecter via l'UI. Pour exercer les fonctionnalités authentifiées en local sans OAuth : créer un user + session directement en base (réutiliser `store.UpsertGitHubUser` puis `store.CreateSession` avec le hash de `auth.RandomToken`), puis poser le cookie `revues_session`. Le jeton CSRF est dérivé de `session token + REVUES_SESSION_SECRET` et rendu dans les pages (`<meta name="csrf-token">` et champ caché `csrf_token`). `REVUES_BOOTSTRAP_ADMIN_EMAIL` donne le rôle admin au premier login de cet email.
-- **SQLite** : pool `REVUES_DB_MAX_OPEN_CONNS` (défaut 10) + WAL + `busy_timeout`, base `data/revues.db` (gitignored). Accès concurrent (serveur + script de seed) OK grâce au WAL.
-- **Reset base dev** : `./scripts/reset-db.sh` supprime `data/revues.db` ; relancer `go run ./cmd/revues` ou `./scripts/reset-db.sh --seed`. Schéma = une seule migration `00001_initial_schema.sql` (greenfield).
+- **Stack/run** : API Go 1.22 (pas de CGO — driver `modernc.org/sqlite` pur Go) + front SvelteKit. Lancer l'API : `go run ./cmd/revues` (écoute `:8080`, migrations goose au démarrage). Front dev : voir [docs/FRONTEND.md](docs/FRONTEND.md) (proxy vers l'API). Variables : `.env.example` (le binaire lit `os.Getenv`, **pas de chargement automatique de `.env`**).
+- **Gatekeeper** : `./scripts/check.sh` — Go (gofmt, vet, test -race, build, `go mod tidy` strict, golangci-lint) + front (`npm` check/build). `golangci-lint` v1.62 sur le `PATH` (`$(go env GOPATH)/bin`).
+- **Auth / démo locale** : UI derrière session. Sans OAuth GitHub configuré, utiliser login local ou seed session (`store` + cookie `revues_session`). CSRF dérivé de `session token + REVUES_SESSION_SECRET`, exposé via bootstrap API et envoyé en `X-CSRF-Token`. `REVUES_BOOTSTRAP_ADMIN_EMAIL` : admin au premier login de cet email.
+- **SQLite** : pool `REVUES_DB_MAX_OPEN_CONNS` (défaut 10) + WAL + `busy_timeout`, base `data/revues.db` (gitignored).
+- **Reset base dev** : `./scripts/reset-db.sh` ; `--seed` disponible. Migrations goose dans `migrations/`.
+- **Rewrite** : orchestration [docs/rewrite/README.md](docs/rewrite/README.md). Créer les issues : `./scripts/create-rewrite-issues.sh`.

@@ -2,12 +2,20 @@
 
 État courant et reste éventuel. Harness : [AGENTS.md](../AGENTS.md) · `./scripts/check.sh`.
 
-## Livré
+## En cours — Rewrite API-first + SvelteKit
 
-Cœur métier, auth GitHub, RBAC, orgs/équipes, SimpleUI, preuve ZIP, SMTP, Jira Cloud, webhooks, Notion, pièces jointes, hardening sécu récent.  
-Pilote [#66](https://github.com/jeb-maker/revues/issues/66) : **PASS**.
+Décision : [ADR-001](./ADR-001-api-first-svelte.md).  
+Orchestration agents : [rewrite/README.md](./rewrite/README.md) · [WORK_PACKAGES.md](./rewrite/WORK_PACKAGES.md).
 
-## Ouvert
+Big bang : remplacement de l’UI `html/template` + HTMX par **Go OpenAPI + SvelteKit + mb**.
+
+Créer les issues : `./scripts/create-rewrite-issues.sh`.
+
+## Livré (pré-rewrite)
+
+Cœur métier, auth GitHub, RBAC, orgs/équipes, SimpleUI, preuve ZIP, SMTP, Jira Cloud, webhooks, Notion, pièces jointes, hardening sécu — sur l’ancienne stack HTML/HTMX (référence comportementale pour les WP).
+
+## Ouvert hors rewrite
 
 | Issue | Notes |
 |-------|-------|
