@@ -20,14 +20,14 @@ func CSRF(sessionSecret string) func(http.Handler) http.Handler {
 
 			sessionToken := SessionTokenFromContext(r)
 			if sessionToken == "" {
-				// Unauthenticated login/register forms use a short-lived guest cookie.
+				// Unauthenticated login/register use a short-lived guest cookie.
 				path := r.URL.Path
-				if path == "/auth/login" || path == "/auth/register" {
+				if isGuestCSRFPath(path) {
 					sessionToken = auth.GuestTokenFromRequest(r)
 				}
 			}
 			if sessionToken == "" {
-				http.Error(w, "Forbidden", http.StatusForbidden)
+				writeCSRFForbidden(w, r)
 				return
 			}
 
@@ -49,20 +49,40 @@ func CSRF(sessionSecret string) func(http.Handler) http.Handler {
 						http.Error(w, "Request Entity Too Large", http.StatusRequestEntityTooLarge)
 						return
 					}
-					http.Error(w, "Forbidden", http.StatusForbidden)
+					writeCSRFForbidden(w, r)
 					return
 				}
 				token = r.FormValue("csrf_token")
 			}
 
 			if !auth.ValidateCSRF(sessionToken, sessionSecret, token) {
-				http.Error(w, "Forbidden", http.StatusForbidden)
+				writeCSRFForbidden(w, r)
 				return
 			}
 
 			next.ServeHTTP(w, r)
 		})
 	}
+}
+
+func isGuestCSRFPath(path string) bool {
+	switch path {
+	case "/auth/login", "/auth/register",
+		"/api/v1/auth/login", "/api/v1/auth/register":
+		return true
+	default:
+		return false
+	}
+}
+
+func writeCSRFForbidden(w http.ResponseWriter, r *http.Request) {
+	if strings.HasPrefix(r.URL.Path, "/api/") {
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(http.StatusForbidden)
+		_, _ = w.Write([]byte(`{"error":{"code":"csrf_invalid","message":"Jeton CSRF manquant ou invalide."}}`))
+		return
+	}
+	http.Error(w, "Forbidden", http.StatusForbidden)
 }
 
 func needsCSRF(r *http.Request) bool {
@@ -76,7 +96,7 @@ func needsCSRF(r *http.Request) bool {
 	if strings.HasPrefix(path, "/auth/github/callback") {
 		return false
 	}
-	// Local DevAuth user switcher on /login has no session yet; handler enforces loopback.
+	// Local DevAuth user switcher; handler enforces loopback.
 	if path == "/auth/dev/login" {
 		return false
 	}

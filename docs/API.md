@@ -39,14 +39,20 @@ Le code généré est **commité** (pas de génération obligatoire en CI pour l
 |---------|------|
 | `GET /healthz` | Health probe infra (texte `ok`, hors OpenAPI) |
 | `GET /api/v1/health` | Health API versionnée (JSON `{"status":"ok"}`, tag `system`) |
+| `GET /api/v1/bootstrap` | Auth bootstrap : user optionnel + `csrf_token` (+ cookie guest) |
+| `GET /api/v1/me` | Utilisateur courant (401 sans session) |
+| `POST /api/v1/auth/login` | Login email/mot de passe (CSRF guest) |
+| `POST /api/v1/auth/register` | Inscription locale (CSRF guest) |
+| `POST /api/v1/auth/logout` | Logout (CSRF session) |
 | `/api/v1/**` | API métier versionnée |
-| `/auth/**` | Démarrage OAuth / callbacks (peuvent rediriger) |
+| `GET /auth/github/start` · `/callback` | OAuth GitHub (redirects browser) |
 | `/` + assets | SPA SvelteKit (static) servie par Go en prod |
 
 ## Auth & CSRF
 
 - Cookie `revues_session` HttpOnly, Secure, SameSite=Lax (comportement actuel).
-- `GET /api/v1/me` (ou bootstrap) renvoie user + **csrf_token**.
+- Cookie `revues_guest` court pour CSRF des formulaires login/register anonymes.
+- `GET /api/v1/bootstrap` et `GET /api/v1/me` renvoient **csrf_token**.
 - Mutations (`POST`/`PATCH`/`PUT`/`DELETE`) : header `X-CSRF-Token`.
 - Same-origin SPA ; pas de JWT en cookie.
 

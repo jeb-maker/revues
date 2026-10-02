@@ -11,6 +11,8 @@ servers:
 tags:
   - name: system
     description: Santé et métadonnées techniques (hors domaines métier)
+  - name: auth
+    description: Session, login local, inscription, CSRF bootstrap
 paths:
   /health:
     get:
@@ -27,7 +29,147 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthResponse"
+
+  /bootstrap:
+    get:
+      operationId: getBootstrap
+      tags: [auth]
+      summary: Bootstrap session + CSRF
+      description: |
+        Renvoie l'état d'auth courant et un `csrf_token` utilisable par le front.
+        Sans session, pose un cookie guest court et dérive le CSRF de ce token.
+        Avec session, renvoie l'utilisateur et le CSRF dérivé du cookie `revues_session`.
+      responses:
+        "200":
+          description: État bootstrap
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BootstrapResponse"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      summary: Utilisateur authentifié courant
+      description: |
+        Exige une session valide. Renvoie le profil + CSRF (même dérivation que bootstrap).
+      responses:
+        "200":
+          description: Utilisateur courant
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MeResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /auth/login:
+    post:
+      operationId: postAuthLogin
+      tags: [auth]
+      summary: Connexion email + mot de passe
+      description: |
+        Authentifie un compte local. CSRF requis (`X-CSRF-Token`, guest ou session).
+        Pose le cookie `revues_session` en cas de succès.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Session créée
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthSuccessResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /auth/register:
+    post:
+      operationId: postAuthRegister
+      tags: [auth]
+      summary: Inscription email + mot de passe
+      description: |
+        Crée un compte local si l'email est autorisé (whitelist / bootstrap).
+        CSRF guest requis. Pose `revues_session` en cas de succès.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+      responses:
+        "201":
+          description: Compte créé et session ouverte
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthSuccessResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /auth/logout:
+    post:
+      operationId: postAuthLogout
+      tags: [auth]
+      summary: Déconnexion
+      description: |
+        Invalide la session courante et expire le cookie. CSRF session requis.
+      responses:
+        "204":
+          description: Déconnecté
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
 components:
+  responses:
+    BadRequest:
+      description: Requête invalide
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    Unauthorized:
+      description: Non authentifié ou identifiants invalides
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    Forbidden:
+      description: CSRF manquant/invalide ou refus
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    InternalError:
+      description: Erreur interne
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+
   schemas:
     HealthResponse:
       type: object
@@ -38,3 +180,107 @@ components:
           description: État de santé
           example: ok
           enum: [ok]
+
+    ErrorBody:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          example: validation_failed
+        message:
+          type: string
+          example: Requête invalide.
+
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          $ref: "#/components/schemas/ErrorBody"
+
+    User:
+      type: object
+      required: [id, login, email, display_name, role]
+      properties:
+        id:
+          type: integer
+          format: int64
+        login:
+          type: string
+        email:
+          type: string
+          format: email
+        display_name:
+          type: string
+        avatar_url:
+          type: string
+        role:
+          type: string
+          description: Rôle global (admin|editor|reader)
+
+    BootstrapResponse:
+      type: object
+      required: [authenticated, csrf_token, github_oauth_enabled]
+      properties:
+        authenticated:
+          type: boolean
+        csrf_token:
+          type: string
+          description: Jeton CSRF à envoyer en header X-CSRF-Token sur les mutations
+        user:
+          $ref: "#/components/schemas/User"
+        github_oauth_enabled:
+          type: boolean
+          description: true si REVUES_GITHUB_CLIENT_ID/SECRET sont configurés
+        redirect:
+          type: string
+          description: Chemin SPA suggéré si déjà authentifié
+
+    MeResponse:
+      type: object
+      required: [user, csrf_token]
+      properties:
+        user:
+          $ref: "#/components/schemas/User"
+        csrf_token:
+          type: string
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+
+    RegisterRequest:
+      type: object
+      required: [email, display_name, password, password_confirm]
+      properties:
+        email:
+          type: string
+          format: email
+        display_name:
+          type: string
+        password:
+          type: string
+          format: password
+        password_confirm:
+          type: string
+          format: password
+
+    AuthSuccessResponse:
+      type: object
+      required: [user, csrf_token, redirect]
+      properties:
+        user:
+          $ref: "#/components/schemas/User"
+        csrf_token:
+          type: string
+        redirect:
+          type: string
+          description: Chemin SPA post-login (org onboarding ou accueil)

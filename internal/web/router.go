@@ -8,13 +8,16 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 
 	apiv1 "github.com/jeb-maker/revues/internal/api/v1"
+	"github.com/jeb-maker/revues/internal/auth"
 	"github.com/jeb-maker/revues/internal/config"
 	adminsettings "github.com/jeb-maker/revues/internal/features/admin/settings"
+	authfeature "github.com/jeb-maker/revues/internal/features/auth"
 	"github.com/jeb-maker/revues/internal/integrations/webhooks"
 	"github.com/jeb-maker/revues/internal/notifications"
 	"github.com/jeb-maker/revues/internal/store"
@@ -30,8 +33,8 @@ type Deps struct {
 
 // NewRouter builds the HTTP handler tree for the application.
 //
-// NewRouter wires /healthz, OpenAPI handlers under /api/v1, optional
-// /static vendor assets, and the SPA (frontend/build or stub).
+// NewRouter wires /healthz, auth (OAuth + API), OpenAPI handlers under /api/v1,
+// optional /static vendor assets, and the SPA (frontend/build or stub).
 func NewRouter(deps Deps) (http.Handler, *notifications.Service, *webhooks.Dispatcher, error) {
 	staticFS, err := fs.Sub(webassets.Static, "static")
 	if err != nil {
@@ -39,6 +42,24 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, *webhooks.Dispa
 	}
 
 	st := store.New(deps.DB)
+	sessions := &auth.SessionManager{
+		Store:         st,
+		SessionSecret: deps.Config.SessionSecret,
+		SecureCookies: deps.Config.SecureCookies(),
+	}
+	github := &auth.GitHubOAuth{
+		ClientID:     deps.Config.GitHubClientID,
+		ClientSecret: deps.Config.GitHubClientSecret,
+		BaseURL:      deps.Config.BaseURL,
+	}
+	authSvc := &authfeature.Service{
+		Store:    st,
+		Sessions: sessions,
+		GitHub:   github,
+		Config:   deps.Config,
+	}
+	oauthHandlers := &authfeature.OAuthHandlers{Service: authSvc}
+
 	adminSMTPKey, err := deps.Config.EncryptionKeyBytes()
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("encryption key: %w", err)
@@ -59,6 +80,8 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, *webhooks.Dispa
 		DevMode:  deps.Config.Env == "development",
 	}
 
+	apiServer := apiv1.NewServer(authSvc, deps.Config, sessions)
+
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
 	r.Use(appmiddleware.SecurityHeaders)
@@ -68,12 +91,21 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, *webhooks.Dispa
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.Compress(5))
 	r.Use(DevNoCache(deps.Config.Env))
+	r.Use(appmiddleware.LoadUser(st))
+	r.Use(appmiddleware.EnsureDevAuth(st, sessions, deps.Config.DevAuthEnabled(), deps.Config.DevAuthEmail))
+	r.Use(appmiddleware.LoadActiveOrganization(st))
+	r.Use(appmiddleware.CSRF(deps.Config.SessionSecret))
 
 	r.Get("/healthz", Health)
 	r.Handle("/static/*", http.StripPrefix("/static/", StaticHandler(http.FileServer(http.FS(staticFS)), deps.Config.Env)))
 
+	authLimit := appmiddleware.RateLimit(appmiddleware.RateLimitConfig{Max: 30, Window: time.Minute})
+	r.With(authLimit).Get("/auth/github/start", oauthHandlers.StartGitHub)
+	r.With(authLimit).Get("/auth/github/callback", oauthHandlers.Callback)
+	r.With(authLimit).Post("/auth/dev/login", oauthHandlers.DevLogin)
+
 	r.Route("/api/v1", func(r chi.Router) {
-		apiv1.HandlerFromMux(apiv1.NewServer(), r)
+		apiv1.HandlerFromMux(apiServer, r)
 	})
 
 	spa := spaHandler(spaBuildDir())
@@ -131,7 +163,7 @@ func spaStub(w http.ResponseWriter, _ *http.Request) {
   <pre>cd frontend &amp;&amp; npm ci &amp;&amp; npm run build</pre>
   <p>Puis relancer <code>go run ./cmd/revues</code> (sert <code>frontend/build</code>),
   ou définir <code>REVUES_SPA_DIR</code>. Voir <code>docs/FRONTEND.md</code>.</p>
-  <p><a href="/healthz">/healthz</a></p>
+  <p><a href="/healthz">/healthz</a> · <a href="/login">/login</a></p>
 </body>
 </html>`))
 }

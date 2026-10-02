@@ -6,6 +6,8 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
+export PATH="$(go env GOPATH)/bin:${PATH}"
+
 OAPI_CODEGEN_VERSION="${OAPI_CODEGEN_VERSION:-v2.4.1}"
 SPEC="api/openapi/openapi.yaml"
 CFG="api/openapi/oapi-codegen.yaml"
