@@ -800,6 +800,136 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/settings/smtp": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Configuration SMTP (masquée)
+         * @description Auth + RequireOrgAdmin (owner/admin org active ou admin global).
+         *     Jamais de mot de passe en clair dans la réponse — `has_password` seulement.
+         */
+        get: operations["getAdminSMTPSettings"];
+        /**
+         * Enregistrer la configuration SMTP chiffrée
+         * @description Auth + RequireOrgAdmin + CSRF. Mot de passe omis ou vide = conserve
+         *     le secret existant (`MergePassword`). Chiffrement AES-GCM via SettingsService.
+         */
+        put: operations["putAdminSMTPSettings"];
+        post?: never;
+        /**
+         * Effacer la configuration SMTP
+         * @description Auth + RequireOrgAdmin + CSRF.
+         */
+        delete: operations["deleteAdminSMTPSettings"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/settings/smtp/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Envoyer un email de test SMTP
+         * @description Auth + RequireOrgAdmin + CSRF. Utilise la config stockée (chiffrée).
+         *     Destinataire optionnel (défaut = email de l'utilisateur courant).
+         */
+        post: operations["postAdminSMTPTest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/integrations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Hub intégrations (états + navigation)
+         * @description Auth + RequireOrgAdmin. Liste SMTP / Jira / Notion / Webhooks avec
+         *     enabled + config_path SPA. Config détaillée Jira/Notion/webhooks = WP-020+.
+         */
+        get: operations["listAdminIntegrations"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/runs/{runId}/items/{itemId}/attachments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identifiant de la revue */
+                runId: components["parameters"]["RunId"];
+                /** @description Identifiant du point (run item) */
+                itemId: components["parameters"]["RunItemId"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Métadonnées pièce jointe du point
+         * @description Auth + accès sujet/revue (IDOR). 404 si aucune pièce ou point hors revue.
+         */
+        get: operations["getRunItemAttachment"];
+        put?: never;
+        /**
+         * Upload pièce jointe (magic bytes, max 5 Mo)
+         * @description Auth + CanUpdateAccess + run in_progress + CSRF.
+         *     multipart field `file` (JPEG/PNG/WebP/PDF). Remplace l'éventuelle PJ existante.
+         */
+        post: operations["uploadRunItemAttachment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/runs/{runId}/items/{itemId}/attachments/{attachmentId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identifiant de la revue */
+                runId: components["parameters"]["RunId"];
+                /** @description Identifiant du point (run item) */
+                itemId: components["parameters"]["RunItemId"];
+                /** @description Identifiant de la pièce jointe */
+                attachmentId: components["parameters"]["AttachmentId"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Télécharger une pièce jointe
+         * @description Auth + accès sujet/revue (IDOR). Content-Disposition attachment ;
+         *     Content-Type = mime stocké. Vérifie runId/itemId vs attachment.
+         */
+        get: operations["downloadRunItemAttachment"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1189,6 +1319,8 @@ export interface components {
             events: components["schemas"]["RunItemEvent"][];
             assignees?: components["schemas"]["RunAssignee"][];
             capabilities: components["schemas"]["RunCapabilities"];
+            /** @description Pièce jointe courante du point (si présente) */
+            attachment?: components["schemas"]["Attachment"] | null;
             run_status?: string;
             run_title?: string;
             /** Format: int64 */
@@ -1316,6 +1448,65 @@ export interface components {
             /** @description Lead peut inviter une adresse hors org */
             leads_may_invite_externals: boolean;
         };
+        SMTPSettings: {
+            /** @description true si une config est stockée */
+            configured: boolean;
+            /** @description true si host+port+from permettent l'envoi */
+            enabled: boolean;
+            host: string;
+            port: number;
+            tls: boolean;
+            username: string;
+            /** @description Adresse expéditeur */
+            from: string;
+            /** @description true si un mot de passe est stocké (jamais renvoyé en clair) */
+            has_password: boolean;
+        };
+        SMTPSettingsUpdate: {
+            host: string;
+            port: number;
+            /** @default true */
+            tls: boolean;
+            username?: string;
+            /** @description Omis ou vide = conserve le secret existant */
+            password?: string;
+            from: string;
+        };
+        SMTPTestRequest: {
+            /**
+             * Format: email
+             * @description Destinataire (défaut = email session)
+             */
+            recipient?: string;
+        };
+        IntegrationsOverview: {
+            items: components["schemas"]["IntegrationSummary"][];
+        };
+        IntegrationSummary: {
+            /**
+             * @description Identifiant stable (smtp|jira|notion|webhooks)
+             * @enum {string}
+             */
+            key: "smtp" | "jira" | "notion" | "webhooks";
+            name: string;
+            description: string;
+            enabled: boolean;
+            /** @description Chemin SPA de configuration */
+            config_path: string;
+        };
+        Attachment: {
+            /** Format: int64 */
+            id: number;
+            /** Format: int64 */
+            run_item_id: number;
+            filename: string;
+            mime_type: string;
+            /** Format: int64 */
+            size_bytes: number;
+            created_at: string;
+            /** @description true si mime image affichable inline */
+            is_image: boolean;
+        };
     };
     responses: {
         /** @description Requête invalide */
@@ -1383,6 +1574,8 @@ export interface components {
         RunId: number;
         /** @description Identifiant du point (run item) */
         RunItemId: number;
+        /** @description Identifiant de la pièce jointe */
+        AttachmentId: number;
     };
     requestBodies: never;
     headers: never;
@@ -2653,6 +2846,243 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getAdminSMTPSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Config SMTP courante (ou vide si non configurée) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SMTPSettings"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    putAdminSMTPSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SMTPSettingsUpdate"];
+            };
+        };
+        responses: {
+            /** @description Config enregistrée (password masqué) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SMTPSettings"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    deleteAdminSMTPSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Configuration effacée */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    postAdminSMTPTest: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["SMTPTestRequest"];
+            };
+        };
+        responses: {
+            /** @description Email de test envoyé */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    listAdminIntegrations: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Vue d'ensemble */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IntegrationsOverview"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getRunItemAttachment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identifiant de la revue */
+                runId: components["parameters"]["RunId"];
+                /** @description Identifiant du point (run item) */
+                itemId: components["parameters"]["RunItemId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Métadonnées */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Attachment"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    uploadRunItemAttachment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identifiant de la revue */
+                runId: components["parameters"]["RunId"];
+                /** @description Identifiant du point (run item) */
+                itemId: components["parameters"]["RunItemId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    /**
+                     * Format: binary
+                     * @description Fichier (magic bytes validés côté serveur)
+                     */
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Pièce jointe enregistrée */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Attachment"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            /** @description Corps trop volumineux */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            500: components["responses"]["InternalError"];
+        };
+    };
+    downloadRunItemAttachment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identifiant de la revue */
+                runId: components["parameters"]["RunId"];
+                /** @description Identifiant du point (run item) */
+                itemId: components["parameters"]["RunItemId"];
+                /** @description Identifiant de la pièce jointe */
+                attachmentId: components["parameters"]["AttachmentId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Contenu binaire */
+            200: {
+                headers: {
+                    /** @description attachment; filename="…" */
+                    "Content-Disposition"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/octet-stream": string;
+                    "application/pdf": string;
+                    "image/jpeg": string;
+                    "image/png": string;
+                    "image/webp": string;
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
             500: components["responses"]["InternalError"];
         };
     };

@@ -64,7 +64,7 @@
 	<h1>API + SvelteKit</h1>
 	<p class="lede">
 		Scaffold rewrite — client OpenAPI + mb · auth, organisations, sujets, modèles, revues, tâches,
-		admin.
+		admin, SMTP / intégrations, pièces jointes.
 	</p>
 	<p class="status">
 		API <code>/api/v1/health</code> :

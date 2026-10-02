@@ -9,16 +9,24 @@
 		type RunItemDetail,
 		type UpdateRunItemRequest
 	} from '$lib/api/runs';
+	import {
+		attachmentDownloadURL,
+		uploadRunItemAttachment,
+		type Attachment
+	} from '$lib/api/attachments';
 
 	let csrf = $state('');
 	let detail = $state<RunItemDetail | null>(null);
 	let error = $state('');
 	let loading = $state(true);
 	let saving = $state(false);
+	let uploading = $state(false);
+	let uploadError = $state('');
 
 	let status = $state<'pending' | 'ok' | 'nok' | 'na'>('pending');
 	let comment = $state('');
 	let assignedTo = $state<string>('');
+	let attachment = $state<Attachment | null>(null);
 
 	function runId(): number {
 		return Number($page.params.id);
@@ -32,6 +40,7 @@
 		status = d.item.status;
 		comment = d.item.comment ?? '';
 		assignedTo = d.item.assigned_to != null ? String(d.item.assigned_to) : '';
+		attachment = d.attachment ?? null;
 	}
 
 	async function refresh() {
@@ -77,6 +86,22 @@
 			error = err instanceof Error ? err.message : 'Enregistrement impossible.';
 		} finally {
 			saving = false;
+		}
+	}
+
+	async function onUpload(e: Event) {
+		const input = e.currentTarget as HTMLInputElement;
+		const file = input.files?.[0];
+		if (!file || !detail?.capabilities.can_update_items) return;
+		uploading = true;
+		uploadError = '';
+		try {
+			attachment = await uploadRunItemAttachment(runId(), itemId(), file, csrf);
+		} catch (err) {
+			uploadError = err instanceof Error ? err.message : 'Upload impossible.';
+		} finally {
+			uploading = false;
+			input.value = '';
 		}
 	}
 </script>
@@ -154,6 +179,39 @@
 				<p class="muted">Revue non éditable.</p>
 			{/if}
 		</form>
+
+		<section class="attach">
+			<h2>Pièce jointe</h2>
+			{#if attachment}
+				<p class="att-meta">
+					{#if attachment.is_image}
+						<img
+							class="preview"
+							src={attachmentDownloadURL(runId(), itemId(), attachment.id)}
+							alt={attachment.filename}
+						/>
+					{/if}
+					<a
+						href={attachmentDownloadURL(runId(), itemId(), attachment.id)}
+						download={attachment.filename}
+					>
+						{attachment.filename}
+					</a>
+					<span class="muted">({Math.round(attachment.size_bytes / 1024)} Ko)</span>
+				</p>
+			{:else}
+				<p class="muted">Aucune pièce jointe.</p>
+			{/if}
+			{#if detail.capabilities.can_update_items}
+				<label class="file">
+					{uploading ? 'Envoi…' : 'Ajouter / remplacer (JPEG, PNG, WebP, PDF · max 5 Mo)'}
+					<input type="file" accept=".jpg,.jpeg,.png,.webp,.pdf,image/*,application/pdf" onchange={onUpload} disabled={uploading} />
+				</label>
+			{/if}
+			{#if uploadError}
+				<p class="err" role="alert">{uploadError}</p>
+			{/if}
+		</section>
 
 		{#if detail.events?.length}
 			<section class="audit">
@@ -263,10 +321,43 @@
 	.audit {
 		margin-top: 2rem;
 	}
+	.attach {
+		margin-top: 1.75rem;
+		padding-top: 1.25rem;
+		border-top: 1px solid #334155;
+	}
+	.attach h2,
 	.audit h2 {
 		margin: 0 0 0.5rem;
 		font-size: 0.95rem;
 		color: #99f6e4;
+	}
+	.att-meta {
+		display: flex;
+		flex-direction: column;
+		gap: 0.45rem;
+		margin: 0 0 0.75rem;
+	}
+	.att-meta a {
+		color: #5eead4;
+		font-weight: 600;
+	}
+	.preview {
+		max-width: 100%;
+		max-height: 220px;
+		border-radius: 0.35rem;
+		border: 1px solid #334155;
+	}
+	.file {
+		display: flex;
+		flex-direction: column;
+		gap: 0.35rem;
+		font-size: 0.88rem;
+		color: #cbd5e1;
+	}
+	.file input {
+		font: inherit;
+		color: inherit;
 	}
 	.audit ul {
 		list-style: none;

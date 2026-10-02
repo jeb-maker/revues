@@ -5,7 +5,7 @@
 		section,
 		children
 	}: {
-		section: 'hub' | 'users' | 'members' | 'teams' | 'policies';
+		section: 'hub' | 'users' | 'members' | 'teams' | 'policies' | 'integrations' | 'smtp';
 		children: Snippet;
 	} = $props();
 
@@ -14,7 +14,9 @@
 		{ href: '/admin/users', id: 'users', label: 'Emails autorisés' },
 		{ href: '/admin/members', id: 'members', label: 'Membres' },
 		{ href: '/admin/teams', id: 'teams', label: 'Équipes' },
-		{ href: '/admin/settings/policies', id: 'policies', label: 'Politiques' }
+		{ href: '/admin/settings/policies', id: 'policies', label: 'Politiques' },
+		{ href: '/admin/integrations', id: 'integrations', label: 'Intégrations' },
+		{ href: '/admin/settings/smtp', id: 'smtp', label: 'SMTP' }
 	] as const;
 </script>
 

@@ -56,6 +56,9 @@ func TestIntegrationsServiceOverview(t *testing.T) {
 		t.Fatalf("len(Items) = %d, want 4", len(overview.Items))
 	}
 	for _, item := range overview.Items {
+		if item.Key == "" {
+			t.Fatalf("%s missing key", item.Name)
+		}
 		if item.Enabled {
 			t.Fatalf("%s should be disabled when unset", item.Name)
 		}

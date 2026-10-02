@@ -144,3 +144,51 @@ export async function updateLeadPolicies(body: LeadPolicies, csrf: string): Prom
 	if (data) return data;
 	throw new Error(errorMessage(error, `Enregistrement politiques: ${response.status}`));
 }
+
+export type SMTPSettings =
+	paths['/admin/settings/smtp']['get']['responses']['200']['content']['application/json'];
+export type SMTPSettingsUpdate =
+	paths['/admin/settings/smtp']['put']['requestBody']['content']['application/json'];
+export type IntegrationsOverview =
+	paths['/admin/integrations']['get']['responses']['200']['content']['application/json'];
+export type IntegrationSummary = IntegrationsOverview['items'][number];
+
+export async function getAdminSMTPSettings(csrfToken?: string): Promise<SMTPSettings> {
+	const client = createApiClient({ csrfToken });
+	const { data, error, response } = await client.GET('/admin/settings/smtp');
+	if (data) return data;
+	throw new Error(errorMessage(error, `SMTP: HTTP ${response.status}`));
+}
+
+export async function putAdminSMTPSettings(
+	body: SMTPSettingsUpdate,
+	csrfToken: string
+): Promise<SMTPSettings> {
+	const client = createApiClient({ csrfToken });
+	const { data, error, response } = await client.PUT('/admin/settings/smtp', { body });
+	if (data) return data;
+	throw new Error(errorMessage(error, `Enregistrement SMTP: HTTP ${response.status}`));
+}
+
+export async function deleteAdminSMTPSettings(csrfToken: string): Promise<void> {
+	const client = createApiClient({ csrfToken });
+	const { error, response } = await client.DELETE('/admin/settings/smtp');
+	if (response.ok) return;
+	throw new Error(errorMessage(error, `Suppression SMTP: HTTP ${response.status}`));
+}
+
+export async function postAdminSMTPTest(csrfToken: string, recipient?: string): Promise<void> {
+	const client = createApiClient({ csrfToken });
+	const { error, response } = await client.POST('/admin/settings/smtp/test', {
+		body: recipient ? { recipient } : {}
+	});
+	if (response.status === 204) return;
+	throw new Error(errorMessage(error, `Test SMTP: HTTP ${response.status}`));
+}
+
+export async function listAdminIntegrations(csrfToken?: string): Promise<IntegrationsOverview> {
+	const client = createApiClient({ csrfToken });
+	const { data, error, response } = await client.GET('/admin/integrations');
+	if (data) return data;
+	throw new Error(errorMessage(error, `Intégrations: HTTP ${response.status}`));
+}
