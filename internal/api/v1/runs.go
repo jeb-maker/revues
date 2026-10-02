@@ -558,7 +558,7 @@ func (s *Server) buildRunItemDetail(
 		mappedEvents = append(mappedEvents, mapRunItemEvent(ev))
 	}
 
-	return RunItemDetail{
+	detail := RunItemDetail{
 		Item:         mapRunItem(*item),
 		Events:       mappedEvents,
 		Assignees:    &assignees,
@@ -567,7 +567,18 @@ func (s *Server) buildRunItemDetail(
 		RunTitle:     ptrString(title),
 		SubjectId:    &subject.ID,
 		SubjectName:  &subject.Name,
-	}, true
+	}
+
+	if att, err := s.Store.AttachmentByRunItemID(r.Context(), item.ID); err == nil {
+		mapped := mapAttachment(att)
+		detail.Attachment = &mapped
+	} else if !errors.Is(err, store.ErrAttachmentNotFound) {
+		slog.Error("load attachment for item detail", "err", err)
+		writeAPIError(w, http.StatusInternalServerError, "internal_error", "Erreur interne.")
+		return RunItemDetail{}, false
+	}
+
+	return detail, true
 }
 
 func runCaps(user *store.User, access store.SubjectAccess, editable bool) RunCapabilities {

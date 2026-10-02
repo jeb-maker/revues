@@ -36,6 +36,14 @@ const (
 	HealthResponseStatusOk HealthResponseStatus = "ok"
 )
 
+// Defines values for IntegrationSummaryKey.
+const (
+	Jira     IntegrationSummaryKey = "jira"
+	Notion   IntegrationSummaryKey = "notion"
+	Smtp     IntegrationSummaryKey = "smtp"
+	Webhooks IntegrationSummaryKey = "webhooks"
+)
+
 // Defines values for MyTaskStatus.
 const (
 	MyTaskStatusNa      MyTaskStatus = "na"
@@ -203,6 +211,19 @@ type AllowedEmailWriteRequest struct {
 // AllowedEmailWriteRequestRole defines model for AllowedEmailWriteRequest.Role.
 type AllowedEmailWriteRequestRole string
 
+// Attachment defines model for Attachment.
+type Attachment struct {
+	CreatedAt string `json:"created_at"`
+	Filename  string `json:"filename"`
+	Id        int64  `json:"id"`
+
+	// IsImage true si mime image affichable inline
+	IsImage   bool   `json:"is_image"`
+	MimeType  string `json:"mime_type"`
+	RunItemId int64  `json:"run_item_id"`
+	SizeBytes int64  `json:"size_bytes"`
+}
+
 // AuthSuccessResponse defines model for AuthSuccessResponse.
 type AuthSuccessResponse struct {
 	CsrfToken string `json:"csrf_token"`
@@ -276,6 +297,26 @@ type HealthResponse struct {
 
 // HealthResponseStatus État de santé
 type HealthResponseStatus string
+
+// IntegrationSummary defines model for IntegrationSummary.
+type IntegrationSummary struct {
+	// ConfigPath Chemin SPA de configuration
+	ConfigPath  string `json:"config_path"`
+	Description string `json:"description"`
+	Enabled     bool   `json:"enabled"`
+
+	// Key Identifiant stable (smtp|jira|notion|webhooks)
+	Key  IntegrationSummaryKey `json:"key"`
+	Name string                `json:"name"`
+}
+
+// IntegrationSummaryKey Identifiant stable (smtp|jira|notion|webhooks)
+type IntegrationSummaryKey string
+
+// IntegrationsOverview defines model for IntegrationsOverview.
+type IntegrationsOverview struct {
+	Items []IntegrationSummary `json:"items"`
+}
 
 // LeadPolicies defines model for LeadPolicies.
 type LeadPolicies struct {
@@ -462,7 +503,10 @@ type RunItemStatus string
 
 // RunItemDetail defines model for RunItemDetail.
 type RunItemDetail struct {
-	Assignees    *[]RunAssignee  `json:"assignees,omitempty"`
+	Assignees *[]RunAssignee `json:"assignees,omitempty"`
+
+	// Attachment Pièce jointe courante du point (si présente)
+	Attachment   *Attachment     `json:"attachment"`
 	Capabilities RunCapabilities `json:"capabilities"`
 	Events       []RunItemEvent  `json:"events"`
 	Item         RunItem         `json:"item"`
@@ -526,6 +570,43 @@ type RunTemplateSummary struct {
 	ItemCount     int       `json:"item_count"`
 	LatestVersion int       `json:"latest_version"`
 	Name          string    `json:"name"`
+}
+
+// SMTPSettings defines model for SMTPSettings.
+type SMTPSettings struct {
+	// Configured true si une config est stockée
+	Configured bool `json:"configured"`
+
+	// Enabled true si host+port+from permettent l'envoi
+	Enabled bool `json:"enabled"`
+
+	// From Adresse expéditeur
+	From string `json:"from"`
+
+	// HasPassword true si un mot de passe est stocké (jamais renvoyé en clair)
+	HasPassword bool   `json:"has_password"`
+	Host        string `json:"host"`
+	Port        int    `json:"port"`
+	Tls         bool   `json:"tls"`
+	Username    string `json:"username"`
+}
+
+// SMTPSettingsUpdate defines model for SMTPSettingsUpdate.
+type SMTPSettingsUpdate struct {
+	From string `json:"from"`
+	Host string `json:"host"`
+
+	// Password Omis ou vide = conserve le secret existant
+	Password *string `json:"password,omitempty"`
+	Port     int     `json:"port"`
+	Tls      *bool   `json:"tls,omitempty"`
+	Username *string `json:"username,omitempty"`
+}
+
+// SMTPTestRequest defines model for SMTPTestRequest.
+type SMTPTestRequest struct {
+	// Recipient Destinataire (défaut = email session)
+	Recipient *openapi_types.Email `json:"recipient,omitempty"`
 }
 
 // SelectOrganizationRequest defines model for SelectOrganizationRequest.
@@ -744,6 +825,9 @@ type User struct {
 	Role string `json:"role"`
 }
 
+// AttachmentId defines model for AttachmentId.
+type AttachmentId = int64
+
 // RunId defines model for RunId.
 type RunId = int64
 
@@ -803,6 +887,12 @@ type ListRunsParams struct {
 // ListRunsParamsStatus defines parameters for ListRuns.
 type ListRunsParamsStatus string
 
+// UploadRunItemAttachmentMultipartBody defines parameters for UploadRunItemAttachment.
+type UploadRunItemAttachmentMultipartBody struct {
+	// File Fichier (magic bytes validés côté serveur)
+	File openapi_types.File `json:"file"`
+}
+
 // ListSubjectsParams defines parameters for ListSubjects.
 type ListSubjectsParams struct {
 	// Q Filtre texte (nom / description)
@@ -823,6 +913,12 @@ type UpdateOrganizationMemberRoleJSONRequestBody = UpdateOrganizationMemberRoleR
 
 // UpdateLeadPoliciesJSONRequestBody defines body for UpdateLeadPolicies for application/json ContentType.
 type UpdateLeadPoliciesJSONRequestBody = LeadPolicies
+
+// PutAdminSMTPSettingsJSONRequestBody defines body for PutAdminSMTPSettings for application/json ContentType.
+type PutAdminSMTPSettingsJSONRequestBody = SMTPSettingsUpdate
+
+// PostAdminSMTPTestJSONRequestBody defines body for PostAdminSMTPTest for application/json ContentType.
+type PostAdminSMTPTestJSONRequestBody = SMTPTestRequest
 
 // CreateAdminTeamJSONRequestBody defines body for CreateAdminTeam for application/json ContentType.
 type CreateAdminTeamJSONRequestBody = CreateAdminTeamRequest
@@ -847,6 +943,9 @@ type CompleteRunJSONRequestBody = CompleteRunRequest
 
 // UpdateRunItemJSONRequestBody defines body for UpdateRunItem for application/json ContentType.
 type UpdateRunItemJSONRequestBody = UpdateRunItemRequest
+
+// UploadRunItemAttachmentMultipartRequestBody defines body for UploadRunItemAttachment for multipart/form-data ContentType.
+type UploadRunItemAttachmentMultipartRequestBody UploadRunItemAttachmentMultipartBody
 
 // CreateSubjectJSONRequestBody defines body for CreateSubject for application/json ContentType.
 type CreateSubjectJSONRequestBody = SubjectWriteRequest
@@ -880,6 +979,9 @@ type ServerInterface interface {
 	// Retirer un email de la whitelist
 	// (DELETE /admin/allowed-emails/{email})
 	DeleteAllowedEmail(w http.ResponseWriter, r *http.Request, email openapi_types.Email)
+	// Hub intégrations (états + navigation)
+	// (GET /admin/integrations)
+	ListAdminIntegrations(w http.ResponseWriter, r *http.Request)
 	// Membres de l'organisation active
 	// (GET /admin/members)
 	ListOrganizationMembers(w http.ResponseWriter, r *http.Request)
@@ -892,6 +994,18 @@ type ServerInterface interface {
 	// Mettre à jour les politiques lead
 	// (PUT /admin/settings/policies)
 	UpdateLeadPolicies(w http.ResponseWriter, r *http.Request)
+	// Effacer la configuration SMTP
+	// (DELETE /admin/settings/smtp)
+	DeleteAdminSMTPSettings(w http.ResponseWriter, r *http.Request)
+	// Configuration SMTP (masquée)
+	// (GET /admin/settings/smtp)
+	GetAdminSMTPSettings(w http.ResponseWriter, r *http.Request)
+	// Enregistrer la configuration SMTP chiffrée
+	// (PUT /admin/settings/smtp)
+	PutAdminSMTPSettings(w http.ResponseWriter, r *http.Request)
+	// Envoyer un email de test SMTP
+	// (POST /admin/settings/smtp/test)
+	PostAdminSMTPTest(w http.ResponseWriter, r *http.Request)
 	// Équipes de l'organisation active
 	// (GET /admin/teams)
 	ListAdminTeams(w http.ResponseWriter, r *http.Request)
@@ -955,6 +1069,15 @@ type ServerInterface interface {
 	// Mettre a jour status/comment/assign
 	// (PATCH /runs/{runId}/items/{itemId})
 	UpdateRunItem(w http.ResponseWriter, r *http.Request, runId RunId, itemId RunItemId)
+	// Métadonnées pièce jointe du point
+	// (GET /runs/{runId}/items/{itemId}/attachments)
+	GetRunItemAttachment(w http.ResponseWriter, r *http.Request, runId RunId, itemId RunItemId)
+	// Upload pièce jointe (magic bytes, max 5 Mo)
+	// (POST /runs/{runId}/items/{itemId}/attachments)
+	UploadRunItemAttachment(w http.ResponseWriter, r *http.Request, runId RunId, itemId RunItemId)
+	// Télécharger une pièce jointe
+	// (GET /runs/{runId}/items/{itemId}/attachments/{attachmentId})
+	DownloadRunItemAttachment(w http.ResponseWriter, r *http.Request, runId RunId, itemId RunItemId, attachmentId AttachmentId)
 	// Liste des sujets de l'org active
 	// (GET /subjects)
 	ListSubjects(w http.ResponseWriter, r *http.Request, params ListSubjectsParams)
@@ -1036,6 +1159,12 @@ func (_ Unimplemented) DeleteAllowedEmail(w http.ResponseWriter, r *http.Request
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// Hub intégrations (états + navigation)
+// (GET /admin/integrations)
+func (_ Unimplemented) ListAdminIntegrations(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // Membres de l'organisation active
 // (GET /admin/members)
 func (_ Unimplemented) ListOrganizationMembers(w http.ResponseWriter, r *http.Request) {
@@ -1057,6 +1186,30 @@ func (_ Unimplemented) GetLeadPolicies(w http.ResponseWriter, r *http.Request) {
 // Mettre à jour les politiques lead
 // (PUT /admin/settings/policies)
 func (_ Unimplemented) UpdateLeadPolicies(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Effacer la configuration SMTP
+// (DELETE /admin/settings/smtp)
+func (_ Unimplemented) DeleteAdminSMTPSettings(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Configuration SMTP (masquée)
+// (GET /admin/settings/smtp)
+func (_ Unimplemented) GetAdminSMTPSettings(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Enregistrer la configuration SMTP chiffrée
+// (PUT /admin/settings/smtp)
+func (_ Unimplemented) PutAdminSMTPSettings(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Envoyer un email de test SMTP
+// (POST /admin/settings/smtp/test)
+func (_ Unimplemented) PostAdminSMTPTest(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -1183,6 +1336,24 @@ func (_ Unimplemented) GetRunItem(w http.ResponseWriter, r *http.Request, runId 
 // Mettre a jour status/comment/assign
 // (PATCH /runs/{runId}/items/{itemId})
 func (_ Unimplemented) UpdateRunItem(w http.ResponseWriter, r *http.Request, runId RunId, itemId RunItemId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Métadonnées pièce jointe du point
+// (GET /runs/{runId}/items/{itemId}/attachments)
+func (_ Unimplemented) GetRunItemAttachment(w http.ResponseWriter, r *http.Request, runId RunId, itemId RunItemId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Upload pièce jointe (magic bytes, max 5 Mo)
+// (POST /runs/{runId}/items/{itemId}/attachments)
+func (_ Unimplemented) UploadRunItemAttachment(w http.ResponseWriter, r *http.Request, runId RunId, itemId RunItemId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Télécharger une pièce jointe
+// (GET /runs/{runId}/items/{itemId}/attachments/{attachmentId})
+func (_ Unimplemented) DownloadRunItemAttachment(w http.ResponseWriter, r *http.Request, runId RunId, itemId RunItemId, attachmentId AttachmentId) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -1362,6 +1533,20 @@ func (siw *ServerInterfaceWrapper) DeleteAllowedEmail(w http.ResponseWriter, r *
 	handler.ServeHTTP(w, r)
 }
 
+// ListAdminIntegrations operation middleware
+func (siw *ServerInterfaceWrapper) ListAdminIntegrations(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListAdminIntegrations(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // ListOrganizationMembers operation middleware
 func (siw *ServerInterfaceWrapper) ListOrganizationMembers(w http.ResponseWriter, r *http.Request) {
 
@@ -1420,6 +1605,62 @@ func (siw *ServerInterfaceWrapper) UpdateLeadPolicies(w http.ResponseWriter, r *
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.UpdateLeadPolicies(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteAdminSMTPSettings operation middleware
+func (siw *ServerInterfaceWrapper) DeleteAdminSMTPSettings(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteAdminSMTPSettings(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetAdminSMTPSettings operation middleware
+func (siw *ServerInterfaceWrapper) GetAdminSMTPSettings(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetAdminSMTPSettings(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PutAdminSMTPSettings operation middleware
+func (siw *ServerInterfaceWrapper) PutAdminSMTPSettings(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PutAdminSMTPSettings(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PostAdminSMTPTest operation middleware
+func (siw *ServerInterfaceWrapper) PostAdminSMTPTest(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PostAdminSMTPTest(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1887,6 +2128,117 @@ func (siw *ServerInterfaceWrapper) UpdateRunItem(w http.ResponseWriter, r *http.
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.UpdateRunItem(w, r, runId, itemId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetRunItemAttachment operation middleware
+func (siw *ServerInterfaceWrapper) GetRunItemAttachment(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "runId" -------------
+	var runId RunId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "runId", chi.URLParam(r, "runId"), &runId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "runId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "itemId" -------------
+	var itemId RunItemId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "itemId", chi.URLParam(r, "itemId"), &itemId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "itemId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetRunItemAttachment(w, r, runId, itemId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UploadRunItemAttachment operation middleware
+func (siw *ServerInterfaceWrapper) UploadRunItemAttachment(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "runId" -------------
+	var runId RunId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "runId", chi.URLParam(r, "runId"), &runId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "runId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "itemId" -------------
+	var itemId RunItemId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "itemId", chi.URLParam(r, "itemId"), &itemId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "itemId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UploadRunItemAttachment(w, r, runId, itemId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DownloadRunItemAttachment operation middleware
+func (siw *ServerInterfaceWrapper) DownloadRunItemAttachment(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "runId" -------------
+	var runId RunId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "runId", chi.URLParam(r, "runId"), &runId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "runId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "itemId" -------------
+	var itemId RunItemId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "itemId", chi.URLParam(r, "itemId"), &itemId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "itemId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "attachmentId" -------------
+	var attachmentId AttachmentId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "attachmentId", chi.URLParam(r, "attachmentId"), &attachmentId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "attachmentId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DownloadRunItemAttachment(w, r, runId, itemId, attachmentId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -2494,6 +2846,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Delete(options.BaseURL+"/admin/allowed-emails/{email}", wrapper.DeleteAllowedEmail)
 	})
 	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/admin/integrations", wrapper.ListAdminIntegrations)
+	})
+	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/admin/members", wrapper.ListOrganizationMembers)
 	})
 	r.Group(func(r chi.Router) {
@@ -2504,6 +2859,18 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Put(options.BaseURL+"/admin/settings/policies", wrapper.UpdateLeadPolicies)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/admin/settings/smtp", wrapper.DeleteAdminSMTPSettings)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/admin/settings/smtp", wrapper.GetAdminSMTPSettings)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/admin/settings/smtp", wrapper.PutAdminSMTPSettings)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/admin/settings/smtp/test", wrapper.PostAdminSMTPTest)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/admin/teams", wrapper.ListAdminTeams)
@@ -2567,6 +2934,15 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Patch(options.BaseURL+"/runs/{runId}/items/{itemId}", wrapper.UpdateRunItem)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/runs/{runId}/items/{itemId}/attachments", wrapper.GetRunItemAttachment)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/runs/{runId}/items/{itemId}/attachments", wrapper.UploadRunItemAttachment)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/runs/{runId}/items/{itemId}/attachments/{attachmentId}", wrapper.DownloadRunItemAttachment)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/subjects", wrapper.ListSubjects)

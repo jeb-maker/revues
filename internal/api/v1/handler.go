@@ -6,8 +6,11 @@ import (
 	"log/slog"
 	"net/http"
 
+	"github.com/jeb-maker/revues/internal/attachments"
 	"github.com/jeb-maker/revues/internal/auth"
 	"github.com/jeb-maker/revues/internal/config"
+	adminintegrations "github.com/jeb-maker/revues/internal/features/admin/integrations"
+	adminsettings "github.com/jeb-maker/revues/internal/features/admin/settings"
 	authfeature "github.com/jeb-maker/revues/internal/features/auth"
 	"github.com/jeb-maker/revues/internal/features/checklisttemplates"
 	"github.com/jeb-maker/revues/internal/features/organizations"
@@ -19,13 +22,16 @@ import (
 
 // Server implements the OpenAPI ServerInterface for /api/v1.
 type Server struct {
-	Auth      *authfeature.Service
-	Orgs      *organizations.Service
-	Templates *checklisttemplates.Service
-	Store     *store.Store
-	Config    config.Config
-	Sessions  *auth.SessionManager
-	Webhooks  *webhooks.Dispatcher
+	Auth         *authfeature.Service
+	Orgs         *organizations.Service
+	Templates    *checklisttemplates.Service
+	Store        *store.Store
+	Config       config.Config
+	Sessions     *auth.SessionManager
+	Webhooks     *webhooks.Dispatcher
+	Settings     *adminsettings.SettingsService
+	Integrations *adminintegrations.IntegrationsService
+	Attachments  *attachments.Service
 }
 
 // NewServer returns the API v1 server implementation.
@@ -37,15 +43,21 @@ func NewServer(
 	cfg config.Config,
 	sessions *auth.SessionManager,
 	hooks *webhooks.Dispatcher,
+	settingsSvc *adminsettings.SettingsService,
+	integrationsSvc *adminintegrations.IntegrationsService,
+	attachmentsSvc *attachments.Service,
 ) *Server {
 	return &Server{
-		Auth:      authSvc,
-		Orgs:      orgSvc,
-		Templates: templates,
-		Store:     st,
-		Config:    cfg,
-		Sessions:  sessions,
-		Webhooks:  hooks,
+		Auth:         authSvc,
+		Orgs:         orgSvc,
+		Templates:    templates,
+		Store:        st,
+		Config:       cfg,
+		Sessions:     sessions,
+		Webhooks:     hooks,
+		Settings:     settingsSvc,
+		Integrations: integrationsSvc,
+		Attachments:  attachmentsSvc,
 	}
 }
 

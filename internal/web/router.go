@@ -14,12 +14,16 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 
 	apiv1 "github.com/jeb-maker/revues/internal/api/v1"
+	"github.com/jeb-maker/revues/internal/attachments"
 	"github.com/jeb-maker/revues/internal/auth"
 	"github.com/jeb-maker/revues/internal/config"
+	adminintegrations "github.com/jeb-maker/revues/internal/features/admin/integrations"
 	adminsettings "github.com/jeb-maker/revues/internal/features/admin/settings"
 	authfeature "github.com/jeb-maker/revues/internal/features/auth"
 	"github.com/jeb-maker/revues/internal/features/checklisttemplates"
 	"github.com/jeb-maker/revues/internal/features/organizations"
+	"github.com/jeb-maker/revues/internal/integrations/jira"
+	"github.com/jeb-maker/revues/internal/integrations/notion"
 	"github.com/jeb-maker/revues/internal/integrations/webhooks"
 	"github.com/jeb-maker/revues/internal/notifications"
 	"github.com/jeb-maker/revues/internal/store"
@@ -76,6 +80,14 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, *webhooks.Dispa
 		Store:         st,
 		EncryptionKey: adminSMTPKey,
 	}
+	jiraSvc := &jira.Service{Store: st, EncryptionKey: adminSMTPKey}
+	notionSvc := &notion.Service{Store: st, EncryptionKey: adminSMTPKey}
+	integrationsSvc := &adminintegrations.IntegrationsService{
+		Settings: settingsSvc,
+		Jira:     jiraSvc,
+		Notion:   notionSvc,
+	}
+	attachmentsSvc := &attachments.Service{Store: st, Dir: deps.Config.AttachmentsDir}
 	notificationsSvc := &notifications.Service{
 		Store:    st,
 		Settings: settingsSvc,
@@ -88,7 +100,10 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, *webhooks.Dispa
 		DevMode:  deps.Config.Env == "development",
 	}
 
-	apiServer := apiv1.NewServer(authSvc, orgSvc, templatesSvc, st, deps.Config, sessions, webhookDispatcher)
+	apiServer := apiv1.NewServer(
+		authSvc, orgSvc, templatesSvc, st, deps.Config, sessions, webhookDispatcher,
+		settingsSvc, integrationsSvc, attachmentsSvc,
+	)
 
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)

@@ -10,6 +10,11 @@ import (
 )
 
 const (
+	IntegrationKeySMTP     = "smtp"
+	IntegrationKeyJira     = "jira"
+	IntegrationKeyNotion   = "notion"
+	IntegrationKeyWebhooks = "webhooks"
+
 	integrationPathSMTP     = "/admin/settings/smtp"
 	integrationPathWebhooks = "/admin/settings/webhooks"
 	integrationPathJira     = "/admin/integrations/jira"
@@ -18,6 +23,7 @@ const (
 
 // IntegrationSummary describes one integration row on the admin overview.
 type IntegrationSummary struct {
+	Key         string
 	Name        string
 	Description string
 	Enabled     bool
@@ -65,10 +71,10 @@ func (s *IntegrationsService) Overview(ctx context.Context) (IntegrationsOvervie
 	}
 	return IntegrationsOverview{
 		Items: []IntegrationSummary{
-			{Name: "SMTP", Description: "Relais email pour les notifications.", Enabled: smtpEnabled, ConfigPath: integrationPathSMTP},
-			{Name: "Jira", Description: "Lier et créer des tickets depuis les revues.", Enabled: jiraEnabled, ConfigPath: integrationPathJira},
-			{Name: "Notion", Description: "Archiver et importer des contenus depuis Notion.", Enabled: notionEnabled, ConfigPath: integrationPathNotion},
-			{Name: "Webhooks", Description: "Notifications JSON signées vers des URLs externes.", Enabled: webhooksEnabled, ConfigPath: integrationPathWebhooks},
+			{Key: IntegrationKeySMTP, Name: "SMTP", Description: "Relais email pour les notifications.", Enabled: smtpEnabled, ConfigPath: integrationPathSMTP},
+			{Key: IntegrationKeyJira, Name: "Jira", Description: "Lier et créer des tickets depuis les revues.", Enabled: jiraEnabled, ConfigPath: integrationPathJira},
+			{Key: IntegrationKeyNotion, Name: "Notion", Description: "Archiver et importer des contenus depuis Notion.", Enabled: notionEnabled, ConfigPath: integrationPathNotion},
+			{Key: IntegrationKeyWebhooks, Name: "Webhooks", Description: "Notifications JSON signées vers des URLs externes.", Enabled: webhooksEnabled, ConfigPath: integrationPathWebhooks},
 		},
 	}, nil
 }

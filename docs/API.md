@@ -69,6 +69,11 @@ Le code généré est **commité** (pas de génération obligatoire en CI pour l
 | `PATCH /api/v1/runs/{id}/items/{itemId}` | Status / commentaire / assignation |
 | `POST /api/v1/runs/{id}/complete` | Clôturer (bloque si required pending) |
 | `GET /api/v1/me/tasks` | Mes tâches (items assignés, filtre status/q) |
+| `GET\|PUT\|DELETE /api/v1/admin/settings/smtp` | Config SMTP chiffrée (password masqué) |
+| `POST /api/v1/admin/settings/smtp/test` | Email de test SMTP |
+| `GET /api/v1/admin/integrations` | Hub intégrations (états + config_path SPA) |
+| `GET\|POST /api/v1/runs/{runId}/items/{itemId}/attachments` | Métadonnées / upload pièce jointe |
+| `GET .../attachments/{attachmentId}` | Download (`Content-Disposition: attachment`) |
 | `/api/v1/**` | API métier versionnée |
 | `GET /auth/github/start` · `/callback` | OAuth GitHub (redirects browser) |
 | `/` + assets | SPA SvelteKit (static) servie par Go en prod |

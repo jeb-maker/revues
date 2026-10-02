@@ -1360,6 +1360,243 @@ paths:
         "500":
           $ref: "#/components/responses/InternalError"
 
+  /admin/settings/smtp:
+    get:
+      operationId: getAdminSMTPSettings
+      tags:
+        - admin
+      summary: Configuration SMTP (masquée)
+      description: |
+        Auth + RequireOrgAdmin (owner/admin org active ou admin global).
+        Jamais de mot de passe en clair dans la réponse — `has_password` seulement.
+      responses:
+        '200':
+          description: Config SMTP courante (ou vide si non configurée)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SMTPSettings'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    put:
+      operationId: putAdminSMTPSettings
+      tags:
+        - admin
+      summary: Enregistrer la configuration SMTP chiffrée
+      description: |
+        Auth + RequireOrgAdmin + CSRF. Mot de passe omis ou vide = conserve
+        le secret existant (`MergePassword`). Chiffrement AES-GCM via SettingsService.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SMTPSettingsUpdate'
+      responses:
+        '200':
+          description: Config enregistrée (password masqué)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SMTPSettings'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    delete:
+      operationId: deleteAdminSMTPSettings
+      tags:
+        - admin
+      summary: Effacer la configuration SMTP
+      description: Auth + RequireOrgAdmin + CSRF.
+      responses:
+        '204':
+          description: Configuration effacée
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /admin/settings/smtp/test:
+    post:
+      operationId: postAdminSMTPTest
+      tags:
+        - admin
+      summary: Envoyer un email de test SMTP
+      description: |
+        Auth + RequireOrgAdmin + CSRF. Utilise la config stockée (chiffrée).
+        Destinataire optionnel (défaut = email de l'utilisateur courant).
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SMTPTestRequest'
+      responses:
+        '204':
+          description: Email de test envoyé
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /admin/integrations:
+    get:
+      operationId: listAdminIntegrations
+      tags:
+        - admin
+      summary: Hub intégrations (états + navigation)
+      description: |
+        Auth + RequireOrgAdmin. Liste SMTP / Jira / Notion / Webhooks avec
+        enabled + config_path SPA. Config détaillée Jira/Notion/webhooks = WP-020+.
+      responses:
+        '200':
+          description: Vue d'ensemble
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntegrationsOverview'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /runs/{runId}/items/{itemId}/attachments:
+    parameters:
+      - $ref: '#/components/parameters/RunId'
+      - $ref: '#/components/parameters/RunItemId'
+    get:
+      operationId: getRunItemAttachment
+      tags:
+        - attachments
+      summary: Métadonnées pièce jointe du point
+      description: |
+        Auth + accès sujet/revue (IDOR). 404 si aucune pièce ou point hors revue.
+      responses:
+        '200':
+          description: Métadonnées
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Attachment'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      operationId: uploadRunItemAttachment
+      tags:
+        - attachments
+      summary: Upload pièce jointe (magic bytes, max 5 Mo)
+      description: |
+        Auth + CanUpdateAccess + run in_progress + CSRF.
+        multipart field `file` (JPEG/PNG/WebP/PDF). Remplace l'éventuelle PJ existante.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: Fichier (magic bytes validés côté serveur)
+      responses:
+        '201':
+          description: Pièce jointe enregistrée
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Attachment'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '413':
+          description: Corps trop volumineux
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /runs/{runId}/items/{itemId}/attachments/{attachmentId}:
+    parameters:
+      - $ref: '#/components/parameters/RunId'
+      - $ref: '#/components/parameters/RunItemId'
+      - $ref: '#/components/parameters/AttachmentId'
+    get:
+      operationId: downloadRunItemAttachment
+      tags:
+        - attachments
+      summary: Télécharger une pièce jointe
+      description: |
+        Auth + accès sujet/revue (IDOR). Content-Disposition attachment ;
+        Content-Type = mime stocké. Vérifie runId/itemId vs attachment.
+      responses:
+        '200':
+          description: Contenu binaire
+          headers:
+            Content-Disposition:
+              schema:
+                type: string
+              description: 'attachment; filename="…"'
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+            image/png:
+              schema:
+                type: string
+                format: binary
+            image/webp:
+              schema:
+                type: string
+                format: binary
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
 components:
   responses:
     BadRequest:
@@ -2286,6 +2523,11 @@ components:
             $ref: '#/components/schemas/RunAssignee'
         capabilities:
           $ref: '#/components/schemas/RunCapabilities'
+        attachment:
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/Attachment'
+          description: Pièce jointe courante du point (si présente)
         run_status:
           type: string
         run_title:
@@ -2550,6 +2792,133 @@ components:
         leads_may_invite_externals:
           type: boolean
           description: Lead peut inviter une adresse hors org
+    SMTPSettings:
+      type: object
+      required:
+        - configured
+        - enabled
+        - host
+        - port
+        - tls
+        - username
+        - from
+        - has_password
+      properties:
+        configured:
+          type: boolean
+          description: true si une config est stockée
+        enabled:
+          type: boolean
+          description: true si host+port+from permettent l'envoi
+        host:
+          type: string
+        port:
+          type: integer
+        tls:
+          type: boolean
+        username:
+          type: string
+        from:
+          type: string
+          description: Adresse expéditeur
+        has_password:
+          type: boolean
+          description: true si un mot de passe est stocké (jamais renvoyé en clair)
+    SMTPSettingsUpdate:
+      type: object
+      required:
+        - host
+        - port
+        - from
+      properties:
+        host:
+          type: string
+        port:
+          type: integer
+          minimum: 1
+          maximum: 65535
+        tls:
+          type: boolean
+          default: true
+        username:
+          type: string
+        password:
+          type: string
+          description: Omis ou vide = conserve le secret existant
+        from:
+          type: string
+    SMTPTestRequest:
+      type: object
+      properties:
+        recipient:
+          type: string
+          format: email
+          description: Destinataire (défaut = email session)
+    IntegrationsOverview:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/IntegrationSummary'
+    IntegrationSummary:
+      type: object
+      required:
+        - key
+        - name
+        - description
+        - enabled
+        - config_path
+      properties:
+        key:
+          type: string
+          description: Identifiant stable (smtp|jira|notion|webhooks)
+          enum:
+            - smtp
+            - jira
+            - notion
+            - webhooks
+        name:
+          type: string
+        description:
+          type: string
+        enabled:
+          type: boolean
+        config_path:
+          type: string
+          description: Chemin SPA de configuration
+    Attachment:
+      type: object
+      required:
+        - id
+        - run_item_id
+        - filename
+        - mime_type
+        - size_bytes
+        - created_at
+        - is_image
+      properties:
+        id:
+          type: integer
+          format: int64
+        run_item_id:
+          type: integer
+          format: int64
+        filename:
+          type: string
+        mime_type:
+          type: string
+        size_bytes:
+          type: integer
+          format: int64
+        created_at:
+          type: string
+        is_image:
+          type: boolean
+          description: true si mime image affichable inline
+
   parameters:
     SubjectId:
       name: subjectId
@@ -2593,3 +2962,12 @@ components:
         format: int64
         minimum: 1
       description: Identifiant du point (run item)
+    AttachmentId:
+      name: attachmentId
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+        minimum: 1
+      description: Identifiant de la pièce jointe
