@@ -23,3 +23,4 @@ export {
 	type SelectOrganizationRequest
 } from './orgs';
 export * from './subjects';
+export * from './templates';

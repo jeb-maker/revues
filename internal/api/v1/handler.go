@@ -9,6 +9,7 @@ import (
 	"github.com/jeb-maker/revues/internal/auth"
 	"github.com/jeb-maker/revues/internal/config"
 	authfeature "github.com/jeb-maker/revues/internal/features/auth"
+	"github.com/jeb-maker/revues/internal/features/checklisttemplates"
 	"github.com/jeb-maker/revues/internal/features/organizations"
 	"github.com/jeb-maker/revues/internal/features/subjects"
 	"github.com/jeb-maker/revues/internal/store"
@@ -16,22 +17,31 @@ import (
 
 // Server implements the OpenAPI ServerInterface for /api/v1.
 type Server struct {
-	Auth     *authfeature.Service
-	Orgs     *organizations.Service
-	Store    *store.Store
-	Config   config.Config
-	Sessions *auth.SessionManager
+	Auth      *authfeature.Service
+	Orgs      *organizations.Service
+	Templates *checklisttemplates.Service
+	Store     *store.Store
+	Config    config.Config
+	Sessions  *auth.SessionManager
 }
 
 // NewServer returns the API v1 server implementation.
 func NewServer(
 	authSvc *authfeature.Service,
 	orgSvc *organizations.Service,
+	templates *checklisttemplates.Service,
 	st *store.Store,
 	cfg config.Config,
 	sessions *auth.SessionManager,
 ) *Server {
-	return &Server{Auth: authSvc, Orgs: orgSvc, Store: st, Config: cfg, Sessions: sessions}
+	return &Server{
+		Auth:      authSvc,
+		Orgs:      orgSvc,
+		Templates: templates,
+		Store:     st,
+		Config:    cfg,
+		Sessions:  sessions,
+	}
 }
 
 // GetHealth serves GET /api/v1/health.

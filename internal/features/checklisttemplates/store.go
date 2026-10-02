@@ -6,14 +6,18 @@ import (
 	"github.com/jeb-maker/revues/internal/store"
 )
 
+// ChecklistTemplateStore is the data access surface used by the templates service.
 type ChecklistTemplateStore interface {
 	ChecklistTemplateByID(ctx context.Context, id int64) (*ChecklistTemplate, error)
 	ListChecklistTemplates(ctx context.Context, subjectID int64) ([]ChecklistTemplateSummary, error)
 	CreateChecklistTemplate(ctx context.Context, name string, createdBy int64, tags []string, items []TemplateItemInput) (*ChecklistTemplate, *TemplateVersion, error)
 	ArchiveChecklistTemplate(ctx context.Context, id int64) error
 	LatestTemplateVersion(ctx context.Context, templateID int64) (*TemplateVersion, error)
+	ListTemplateVersions(ctx context.Context, templateID int64) ([]TemplateVersion, error)
+	TemplateVersionByNumber(ctx context.Context, templateID int64, versionNum int) (*TemplateVersion, error)
 	CreateTemplateVersion(ctx context.Context, templateID, createdBy int64, items []TemplateItemInput) (*TemplateVersion, error)
 	ListTemplateItems(ctx context.Context, versionID int64) ([]TemplateItem, error)
+	ReplaceTemplateItems(ctx context.Context, versionID int64, items []TemplateItemInput) error
 	ListTemplateIndex(ctx context.Context, userID int64, admin bool, query string) ([]TemplateIndexRow, error)
 	UpdateChecklistTemplateName(ctx context.Context, id int64, name string) error
 	SetTemplateTags(ctx context.Context, templateID int64, tags []string) error

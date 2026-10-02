@@ -327,6 +327,117 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Catalogue des modèles
+         * @description Liste les modèles actifs de l'organisation courante (dernière version).
+         *     Recherche optionnelle sur nom et domaines (`q`).
+         */
+        get: operations["listTemplates"];
+        put?: never;
+        /**
+         * Créer un modèle (version 1)
+         * @description Crée un modèle et publie immédiatement la version 1 (snapshot immuable).
+         *     Réservé aux rôles editor+.
+         */
+        post: operations["createTemplate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/templates/{templateId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identifiant du modèle */
+                templateId: components["parameters"]["TemplateId"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Détail modèle (dernière version)
+         * @description Renvoie le modèle avec sa dernière version publiée et ses items.
+         */
+        get: operations["getTemplate"];
+        /**
+         * Enregistrer (nouvelle version)
+         * @description Met à jour le nom / les domaines et **publie une nouvelle version** avec
+         *     les items fournis. Les versions déjà publiées ne sont jamais mutées.
+         */
+        put: operations["saveTemplate"];
+        post?: never;
+        /**
+         * Archiver un modèle
+         * @description Soft-delete (archive) — les versions publiées restent en base.
+         */
+        delete: operations["archiveTemplate"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/templates/{templateId}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identifiant du modèle */
+                templateId: components["parameters"]["TemplateId"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Historique des versions
+         * @description Liste les versions publiées (plus récente en premier).
+         */
+        get: operations["listTemplateVersions"];
+        put?: never;
+        /**
+         * Publier une nouvelle version
+         * @description Crée une nouvelle version immuable à partir des items fournis
+         *     (sans changer le nom/domaines).
+         */
+        post: operations["createTemplateVersion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/templates/{templateId}/versions/{version}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identifiant du modèle */
+                templateId: components["parameters"]["TemplateId"];
+                /** @description Numéro de version publiée (1, 2, …) */
+                version: components["parameters"]["TemplateVersionNumber"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Snapshot d'une version publiée
+         * @description Lecture seule — les versions publiées sont immuables.
+         */
+        get: operations["getTemplateVersion"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -524,6 +635,81 @@ export interface components {
              */
             role: "lead" | "contributor" | "viewer";
         };
+        TemplateItemInput: {
+            /**
+             * @description Titre de section (optionnel)
+             * @default
+             */
+            section: string;
+            /** @description Libellé du point */
+            label: string;
+            /**
+             * @description Texte d'aide optionnel
+             * @default
+             */
+            help_text: string;
+            /**
+             * @description Point obligatoire à la revue
+             * @default false
+             */
+            required: boolean;
+        };
+        TemplateItem: {
+            /** Format: int64 */
+            id: number;
+            position: number;
+            section: string;
+            label: string;
+            help_text: string;
+            required: boolean;
+        };
+        TemplateVersionSummary: {
+            /** Format: int64 */
+            id: number;
+            version: number;
+            /** @description Horodatage ISO 8601 UTC de publication */
+            published_at: string;
+            /** Format: int64 */
+            created_by?: number | null;
+        };
+        TemplateSummary: {
+            /** Format: int64 */
+            id: number;
+            name: string;
+            latest_version: number;
+            item_count: number;
+            domains: string[];
+            created_at: string;
+        };
+        TemplateListResponse: {
+            templates: components["schemas"]["TemplateSummary"][];
+        };
+        TemplateVersionListResponse: {
+            versions: components["schemas"]["TemplateVersionSummary"][];
+        };
+        TemplateWriteRequest: {
+            name: string;
+            /**
+             * @description Domaines de matching sujets (vide = tous)
+             * @default []
+             */
+            domains: string[];
+            items: components["schemas"]["TemplateItemInput"][];
+        };
+        TemplateVersionCreateRequest: {
+            items: components["schemas"]["TemplateItemInput"][];
+        };
+        TemplateDetail: {
+            /** Format: int64 */
+            id: number;
+            name: string;
+            domains: string[];
+            version: components["schemas"]["TemplateVersionSummary"];
+            items: components["schemas"]["TemplateItem"][];
+            created_at: string;
+            /** @description true si l'utilisateur courant peut éditer/archiver */
+            can_manage?: boolean;
+        };
     };
     responses: {
         /** @description Requête invalide */
@@ -544,7 +730,7 @@ export interface components {
                 "application/json": components["schemas"]["ErrorResponse"];
             };
         };
-        /** @description CSRF manquant/invalide, org absente, ou refus */
+        /** @description CSRF manquant/invalide ou refus */
         Forbidden: {
             headers: {
                 [name: string]: unknown;
@@ -562,7 +748,7 @@ export interface components {
                 "application/json": components["schemas"]["ErrorResponse"];
             };
         };
-        /** @description Conflit métier */
+        /** @description Conflit métier (ex. version publiée immuable) */
         Conflict: {
             headers: {
                 [name: string]: unknown;
@@ -583,6 +769,10 @@ export interface components {
     };
     parameters: {
         SubjectId: number;
+        /** @description Identifiant du modèle */
+        TemplateId: number;
+        /** @description Numéro de version publiée (1, 2, …) */
+        TemplateVersionNumber: number;
     };
     requestBodies: never;
     headers: never;
@@ -1048,6 +1238,231 @@ export interface operations {
             };
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    listTemplates: {
+        parameters: {
+            query?: {
+                /** @description Filtre texte (nom / domaines) */
+                q?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Catalogue */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TemplateListResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    createTemplate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TemplateWriteRequest"];
+            };
+        };
+        responses: {
+            /** @description Modèle créé */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TemplateDetail"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getTemplate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identifiant du modèle */
+                templateId: components["parameters"]["TemplateId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Détail */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TemplateDetail"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    saveTemplate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identifiant du modèle */
+                templateId: components["parameters"]["TemplateId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TemplateWriteRequest"];
+            };
+        };
+        responses: {
+            /** @description Nouvelle version publiée */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TemplateDetail"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    archiveTemplate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identifiant du modèle */
+                templateId: components["parameters"]["TemplateId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Archivé */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    listTemplateVersions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identifiant du modèle */
+                templateId: components["parameters"]["TemplateId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Versions */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TemplateVersionListResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    createTemplateVersion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identifiant du modèle */
+                templateId: components["parameters"]["TemplateId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TemplateVersionCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Version publiée */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TemplateDetail"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getTemplateVersion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identifiant du modèle */
+                templateId: components["parameters"]["TemplateId"];
+                /** @description Numéro de version publiée (1, 2, …) */
+                version: components["parameters"]["TemplateVersionNumber"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Version + items */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TemplateDetail"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
             404: components["responses"]["NotFound"];
             500: components["responses"]["InternalError"];
         };

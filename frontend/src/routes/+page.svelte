@@ -90,6 +90,8 @@
 		<p class="actions">
 			<a href="/subjects">Sujets</a>
 			·
+			<a href="/modeles">Modèles</a>
+			·
 			<a href="/org/select">Changer d'organisation</a>
 			·
 			<button type="button" onclick={onLogout}>Se déconnecter</button>

@@ -19,6 +19,8 @@ tags:
   description: Organisations — liste, création, sélection active, invitations
 - name: subjects
   description: Sujets (CRUD, membres, domaines, étiquettes)
+- name: templates
+  description: Modèles de check-list versionnés (catalogue + éditeur)
 paths:
   /health:
     get:
@@ -516,6 +518,222 @@ paths:
           $ref: '#/components/responses/NotFound'
         '500':
           $ref: '#/components/responses/InternalError'
+  /templates:
+    get:
+      operationId: listTemplates
+      tags:
+      - templates
+      summary: Catalogue des modèles
+      description: 'Liste les modèles actifs de l''organisation courante (dernière version).
+
+        Recherche optionnelle sur nom et domaines (`q`).
+
+        '
+      parameters:
+      - name: q
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Filtre texte (nom / domaines)
+      responses:
+        '200':
+          description: Catalogue
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TemplateListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      operationId: createTemplate
+      tags:
+      - templates
+      summary: Créer un modèle (version 1)
+      description: 'Crée un modèle et publie immédiatement la version 1 (snapshot immuable).
+
+        Réservé aux rôles editor+.
+
+        '
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TemplateWriteRequest'
+      responses:
+        '201':
+          description: Modèle créé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TemplateDetail'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /templates/{templateId}:
+    parameters:
+    - $ref: '#/components/parameters/TemplateId'
+    get:
+      operationId: getTemplate
+      tags:
+      - templates
+      summary: Détail modèle (dernière version)
+      description: Renvoie le modèle avec sa dernière version publiée et ses items.
+      responses:
+        '200':
+          description: Détail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TemplateDetail'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    put:
+      operationId: saveTemplate
+      tags:
+      - templates
+      summary: Enregistrer (nouvelle version)
+      description: 'Met à jour le nom / les domaines et **publie une nouvelle version** avec
+
+        les items fournis. Les versions déjà publiées ne sont jamais mutées.
+
+        '
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TemplateWriteRequest'
+      responses:
+        '200':
+          description: Nouvelle version publiée
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TemplateDetail'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    delete:
+      operationId: archiveTemplate
+      tags:
+      - templates
+      summary: Archiver un modèle
+      description: Soft-delete (archive) — les versions publiées restent en base.
+      responses:
+        '204':
+          description: Archivé
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /templates/{templateId}/versions:
+    parameters:
+    - $ref: '#/components/parameters/TemplateId'
+    get:
+      operationId: listTemplateVersions
+      tags:
+      - templates
+      summary: Historique des versions
+      description: Liste les versions publiées (plus récente en premier).
+      responses:
+        '200':
+          description: Versions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TemplateVersionListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      operationId: createTemplateVersion
+      tags:
+      - templates
+      summary: Publier une nouvelle version
+      description: 'Crée une nouvelle version immuable à partir des items fournis
+
+        (sans changer le nom/domaines).
+
+        '
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TemplateVersionCreateRequest'
+      responses:
+        '201':
+          description: Version publiée
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TemplateDetail'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /templates/{templateId}/versions/{version}:
+    parameters:
+    - $ref: '#/components/parameters/TemplateId'
+    - $ref: '#/components/parameters/TemplateVersionNumber'
+    get:
+      operationId: getTemplateVersion
+      tags:
+      - templates
+      summary: Snapshot d'une version publiée
+      description: Lecture seule — les versions publiées sont immuables.
+      responses:
+        '200':
+          description: Version + items
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TemplateDetail'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
 components:
   responses:
     BadRequest:
@@ -531,7 +749,7 @@ components:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
     Forbidden:
-      description: CSRF manquant/invalide, org absente, ou refus
+      description: CSRF manquant/invalide ou refus
       content:
         application/json:
           schema:
@@ -543,7 +761,7 @@ components:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
     Conflict:
-      description: Conflit métier
+      description: Conflit métier (ex. version publiée immuable)
       content:
         application/json:
           schema:
@@ -969,6 +1187,173 @@ components:
           - contributor
           - viewer
           default: viewer
+    TemplateItemInput:
+      type: object
+      required:
+      - label
+      properties:
+        section:
+          type: string
+          description: Titre de section (optionnel)
+          default: ''
+        label:
+          type: string
+          description: Libellé du point
+          maxLength: 120
+        help_text:
+          type: string
+          description: Texte d'aide optionnel
+          maxLength: 2000
+          default: ''
+        required:
+          type: boolean
+          description: Point obligatoire à la revue
+          default: false
+    TemplateItem:
+      type: object
+      required:
+      - id
+      - position
+      - section
+      - label
+      - help_text
+      - required
+      properties:
+        id:
+          type: integer
+          format: int64
+        position:
+          type: integer
+        section:
+          type: string
+        label:
+          type: string
+        help_text:
+          type: string
+        required:
+          type: boolean
+    TemplateVersionSummary:
+      type: object
+      required:
+      - id
+      - version
+      - published_at
+      properties:
+        id:
+          type: integer
+          format: int64
+        version:
+          type: integer
+        published_at:
+          type: string
+          description: Horodatage ISO 8601 UTC de publication
+        created_by:
+          type: integer
+          format: int64
+          nullable: true
+    TemplateSummary:
+      type: object
+      required:
+      - id
+      - name
+      - latest_version
+      - item_count
+      - domains
+      - created_at
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        latest_version:
+          type: integer
+        item_count:
+          type: integer
+        domains:
+          type: array
+          items:
+            type: string
+        created_at:
+          type: string
+    TemplateListResponse:
+      type: object
+      required:
+      - templates
+      properties:
+        templates:
+          type: array
+          items:
+            $ref: '#/components/schemas/TemplateSummary'
+    TemplateVersionListResponse:
+      type: object
+      required:
+      - versions
+      properties:
+        versions:
+          type: array
+          items:
+            $ref: '#/components/schemas/TemplateVersionSummary'
+    TemplateWriteRequest:
+      type: object
+      required:
+      - name
+      - items
+      properties:
+        name:
+          type: string
+          maxLength: 200
+        domains:
+          type: array
+          items:
+            type: string
+          description: Domaines de matching sujets (vide = tous)
+          default: []
+        items:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/TemplateItemInput'
+    TemplateVersionCreateRequest:
+      type: object
+      required:
+      - items
+      properties:
+        items:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/TemplateItemInput'
+    TemplateDetail:
+      type: object
+      required:
+      - id
+      - name
+      - domains
+      - version
+      - items
+      - created_at
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        domains:
+          type: array
+          items:
+            type: string
+        version:
+          $ref: '#/components/schemas/TemplateVersionSummary'
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/TemplateItem'
+        created_at:
+          type: string
+        can_manage:
+          type: boolean
+          description: true si l'utilisateur courant peut éditer/archiver
   parameters:
     SubjectId:
       name: subjectId
@@ -977,3 +1362,20 @@ components:
       schema:
         type: integer
         format: int64
+    TemplateId:
+      name: templateId
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+        minimum: 1
+      description: Identifiant du modèle
+    TemplateVersionNumber:
+      name: version
+      in: path
+      required: true
+      schema:
+        type: integer
+        minimum: 1
+      description: Numéro de version publiée (1, 2, …)

@@ -242,6 +242,15 @@ func (s *Store) ArchiveChecklistTemplate(ctx context.Context, id int64) error {
 	return nil
 }
 
+// ErrTemplateVersionNotFound is returned when a template version does not exist
+// in the active organization (or the parent template is missing).
+var ErrTemplateVersionNotFound = errors.New("template version not found")
+
+// ErrPublishedVersionImmutable is returned when a caller attempts to mutate
+// items of an already published template version. Published versions are
+// immutable: changes require CreateTemplateVersion.
+var ErrPublishedVersionImmutable = errors.New("published template version is immutable")
+
 // LatestTemplateVersion returns the highest version for a template.
 func (s *Store) LatestTemplateVersion(ctx context.Context, templateID int64) (*TemplateVersion, error) {
 	var v TemplateVersion
@@ -259,6 +268,68 @@ func (s *Store) LatestTemplateVersion(ctx context.Context, templateID int64) (*T
 		return nil, fmt.Errorf("latest template version: %w", err)
 	}
 	return &v, nil
+}
+
+// ListTemplateVersions returns all versions of a template (newest first), scoped to the active org.
+func (s *Store) ListTemplateVersions(ctx context.Context, templateID int64) ([]TemplateVersion, error) {
+	orgID, err := organizationIDFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := s.db.QueryContext(ctx, `
+		SELECT v.id, v.template_id, v.version, v.published_at, v.created_by
+		FROM template_versions v
+		INNER JOIN checklist_templates t ON t.id = v.template_id
+		WHERE v.template_id = ? AND t.organization_id = ?
+		ORDER BY v.version DESC
+	`, templateID, orgID)
+	if err != nil {
+		return nil, fmt.Errorf("list template versions: %w", err)
+	}
+	defer rows.Close()
+
+	var versions []TemplateVersion
+	for rows.Next() {
+		var v TemplateVersion
+		if err := rows.Scan(&v.ID, &v.TemplateID, &v.Version, &v.PublishedAt, &v.CreatedBy); err != nil {
+			return nil, fmt.Errorf("scan template version: %w", err)
+		}
+		versions = append(versions, v)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate template versions: %w", err)
+	}
+	return versions, nil
+}
+
+// TemplateVersionByNumber loads a version by template id + version number in the active org.
+func (s *Store) TemplateVersionByNumber(ctx context.Context, templateID int64, versionNum int) (*TemplateVersion, error) {
+	orgID, err := organizationIDFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var v TemplateVersion
+	err = s.db.QueryRowContext(ctx, `
+		SELECT v.id, v.template_id, v.version, v.published_at, v.created_by
+		FROM template_versions v
+		INNER JOIN checklist_templates t ON t.id = v.template_id
+		WHERE v.template_id = ? AND v.version = ? AND t.organization_id = ?
+	`, templateID, versionNum, orgID).Scan(&v.ID, &v.TemplateID, &v.Version, &v.PublishedAt, &v.CreatedBy)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, ErrTemplateVersionNotFound
+	}
+	if err != nil {
+		return nil, fmt.Errorf("template version by number: %w", err)
+	}
+	return &v, nil
+}
+
+// ReplaceTemplateItems is intentionally unsupported: published versions are immutable.
+// Callers must use CreateTemplateVersion to publish a new snapshot.
+func (s *Store) ReplaceTemplateItems(_ context.Context, _ int64, _ []TemplateItemInput) error {
+	return ErrPublishedVersionImmutable
 }
 
 // ListTemplateItems returns ordered items for a version.

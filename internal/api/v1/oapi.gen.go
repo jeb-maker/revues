@@ -275,6 +275,86 @@ type SubjectWriteRequest struct {
 // SubjectWriteRequestVisibility Ignoré si CanSetSubjectVisibility est faux
 type SubjectWriteRequestVisibility string
 
+// TemplateDetail defines model for TemplateDetail.
+type TemplateDetail struct {
+	// CanManage true si l'utilisateur courant peut éditer/archiver
+	CanManage *bool                  `json:"can_manage,omitempty"`
+	CreatedAt string                 `json:"created_at"`
+	Domains   []string               `json:"domains"`
+	Id        int64                  `json:"id"`
+	Items     []TemplateItem         `json:"items"`
+	Name      string                 `json:"name"`
+	Version   TemplateVersionSummary `json:"version"`
+}
+
+// TemplateItem defines model for TemplateItem.
+type TemplateItem struct {
+	HelpText string `json:"help_text"`
+	Id       int64  `json:"id"`
+	Label    string `json:"label"`
+	Position int    `json:"position"`
+	Required bool   `json:"required"`
+	Section  string `json:"section"`
+}
+
+// TemplateItemInput defines model for TemplateItemInput.
+type TemplateItemInput struct {
+	// HelpText Texte d'aide optionnel
+	HelpText *string `json:"help_text,omitempty"`
+
+	// Label Libellé du point
+	Label string `json:"label"`
+
+	// Required Point obligatoire à la revue
+	Required *bool `json:"required,omitempty"`
+
+	// Section Titre de section (optionnel)
+	Section *string `json:"section,omitempty"`
+}
+
+// TemplateListResponse defines model for TemplateListResponse.
+type TemplateListResponse struct {
+	Templates []TemplateSummary `json:"templates"`
+}
+
+// TemplateSummary defines model for TemplateSummary.
+type TemplateSummary struct {
+	CreatedAt     string   `json:"created_at"`
+	Domains       []string `json:"domains"`
+	Id            int64    `json:"id"`
+	ItemCount     int      `json:"item_count"`
+	LatestVersion int      `json:"latest_version"`
+	Name          string   `json:"name"`
+}
+
+// TemplateVersionCreateRequest defines model for TemplateVersionCreateRequest.
+type TemplateVersionCreateRequest struct {
+	Items []TemplateItemInput `json:"items"`
+}
+
+// TemplateVersionListResponse defines model for TemplateVersionListResponse.
+type TemplateVersionListResponse struct {
+	Versions []TemplateVersionSummary `json:"versions"`
+}
+
+// TemplateVersionSummary defines model for TemplateVersionSummary.
+type TemplateVersionSummary struct {
+	CreatedBy *int64 `json:"created_by"`
+	Id        int64  `json:"id"`
+
+	// PublishedAt Horodatage ISO 8601 UTC de publication
+	PublishedAt string `json:"published_at"`
+	Version     int    `json:"version"`
+}
+
+// TemplateWriteRequest defines model for TemplateWriteRequest.
+type TemplateWriteRequest struct {
+	// Domains Domaines de matching sujets (vide = tous)
+	Domains *[]string           `json:"domains,omitempty"`
+	Items   []TemplateItemInput `json:"items"`
+	Name    string              `json:"name"`
+}
+
 // User defines model for User.
 type User struct {
 	AvatarUrl   *string             `json:"avatar_url,omitempty"`
@@ -289,6 +369,12 @@ type User struct {
 
 // SubjectId defines model for SubjectId.
 type SubjectId = int64
+
+// TemplateId defines model for TemplateId.
+type TemplateId = int64
+
+// TemplateVersionNumber defines model for TemplateVersionNumber.
+type TemplateVersionNumber = int
 
 // BadRequest defines model for BadRequest.
 type BadRequest = ErrorResponse
@@ -314,6 +400,12 @@ type ListSubjectsParams struct {
 	Q *string `form:"q,omitempty" json:"q,omitempty"`
 }
 
+// ListTemplatesParams defines parameters for ListTemplates.
+type ListTemplatesParams struct {
+	// Q Filtre texte (nom / domaines)
+	Q *string `form:"q,omitempty" json:"q,omitempty"`
+}
+
 // PostAuthLoginJSONRequestBody defines body for PostAuthLogin for application/json ContentType.
 type PostAuthLoginJSONRequestBody = LoginRequest
 
@@ -334,6 +426,15 @@ type UpdateSubjectJSONRequestBody = SubjectWriteRequest
 
 // AddSubjectMemberJSONRequestBody defines body for AddSubjectMember for application/json ContentType.
 type AddSubjectMemberJSONRequestBody = AddSubjectMemberRequest
+
+// CreateTemplateJSONRequestBody defines body for CreateTemplate for application/json ContentType.
+type CreateTemplateJSONRequestBody = TemplateWriteRequest
+
+// SaveTemplateJSONRequestBody defines body for SaveTemplate for application/json ContentType.
+type SaveTemplateJSONRequestBody = TemplateWriteRequest
+
+// CreateTemplateVersionJSONRequestBody defines body for CreateTemplateVersion for application/json ContentType.
+type CreateTemplateVersionJSONRequestBody = TemplateVersionCreateRequest
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
@@ -391,6 +492,30 @@ type ServerInterface interface {
 	// Retirer un membre direct
 	// (DELETE /subjects/{subjectId}/members/{userId})
 	RemoveSubjectMember(w http.ResponseWriter, r *http.Request, subjectId SubjectId, userId int64)
+	// Catalogue des modèles
+	// (GET /templates)
+	ListTemplates(w http.ResponseWriter, r *http.Request, params ListTemplatesParams)
+	// Créer un modèle (version 1)
+	// (POST /templates)
+	CreateTemplate(w http.ResponseWriter, r *http.Request)
+	// Archiver un modèle
+	// (DELETE /templates/{templateId})
+	ArchiveTemplate(w http.ResponseWriter, r *http.Request, templateId TemplateId)
+	// Détail modèle (dernière version)
+	// (GET /templates/{templateId})
+	GetTemplate(w http.ResponseWriter, r *http.Request, templateId TemplateId)
+	// Enregistrer (nouvelle version)
+	// (PUT /templates/{templateId})
+	SaveTemplate(w http.ResponseWriter, r *http.Request, templateId TemplateId)
+	// Historique des versions
+	// (GET /templates/{templateId}/versions)
+	ListTemplateVersions(w http.ResponseWriter, r *http.Request, templateId TemplateId)
+	// Publier une nouvelle version
+	// (POST /templates/{templateId}/versions)
+	CreateTemplateVersion(w http.ResponseWriter, r *http.Request, templateId TemplateId)
+	// Snapshot d'une version publiée
+	// (GET /templates/{templateId}/versions/{version})
+	GetTemplateVersion(w http.ResponseWriter, r *http.Request, templateId TemplateId, version TemplateVersionNumber)
 }
 
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
@@ -502,6 +627,54 @@ func (_ Unimplemented) AddSubjectMember(w http.ResponseWriter, r *http.Request, 
 // Retirer un membre direct
 // (DELETE /subjects/{subjectId}/members/{userId})
 func (_ Unimplemented) RemoveSubjectMember(w http.ResponseWriter, r *http.Request, subjectId SubjectId, userId int64) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Catalogue des modèles
+// (GET /templates)
+func (_ Unimplemented) ListTemplates(w http.ResponseWriter, r *http.Request, params ListTemplatesParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Créer un modèle (version 1)
+// (POST /templates)
+func (_ Unimplemented) CreateTemplate(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Archiver un modèle
+// (DELETE /templates/{templateId})
+func (_ Unimplemented) ArchiveTemplate(w http.ResponseWriter, r *http.Request, templateId TemplateId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Détail modèle (dernière version)
+// (GET /templates/{templateId})
+func (_ Unimplemented) GetTemplate(w http.ResponseWriter, r *http.Request, templateId TemplateId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Enregistrer (nouvelle version)
+// (PUT /templates/{templateId})
+func (_ Unimplemented) SaveTemplate(w http.ResponseWriter, r *http.Request, templateId TemplateId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Historique des versions
+// (GET /templates/{templateId}/versions)
+func (_ Unimplemented) ListTemplateVersions(w http.ResponseWriter, r *http.Request, templateId TemplateId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Publier une nouvelle version
+// (POST /templates/{templateId}/versions)
+func (_ Unimplemented) CreateTemplateVersion(w http.ResponseWriter, r *http.Request, templateId TemplateId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Snapshot d'une version publiée
+// (GET /templates/{templateId}/versions/{version})
+func (_ Unimplemented) GetTemplateVersion(w http.ResponseWriter, r *http.Request, templateId TemplateId, version TemplateVersionNumber) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -865,6 +1038,206 @@ func (siw *ServerInterfaceWrapper) RemoveSubjectMember(w http.ResponseWriter, r 
 	handler.ServeHTTP(w, r)
 }
 
+// ListTemplates operation middleware
+func (siw *ServerInterfaceWrapper) ListTemplates(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListTemplatesParams
+
+	// ------------- Optional query parameter "q" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "q", r.URL.Query(), &params.Q)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "q", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListTemplates(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateTemplate operation middleware
+func (siw *ServerInterfaceWrapper) CreateTemplate(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateTemplate(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ArchiveTemplate operation middleware
+func (siw *ServerInterfaceWrapper) ArchiveTemplate(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "templateId" -------------
+	var templateId TemplateId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "templateId", chi.URLParam(r, "templateId"), &templateId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "templateId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ArchiveTemplate(w, r, templateId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetTemplate operation middleware
+func (siw *ServerInterfaceWrapper) GetTemplate(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "templateId" -------------
+	var templateId TemplateId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "templateId", chi.URLParam(r, "templateId"), &templateId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "templateId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetTemplate(w, r, templateId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SaveTemplate operation middleware
+func (siw *ServerInterfaceWrapper) SaveTemplate(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "templateId" -------------
+	var templateId TemplateId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "templateId", chi.URLParam(r, "templateId"), &templateId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "templateId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SaveTemplate(w, r, templateId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListTemplateVersions operation middleware
+func (siw *ServerInterfaceWrapper) ListTemplateVersions(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "templateId" -------------
+	var templateId TemplateId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "templateId", chi.URLParam(r, "templateId"), &templateId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "templateId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListTemplateVersions(w, r, templateId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateTemplateVersion operation middleware
+func (siw *ServerInterfaceWrapper) CreateTemplateVersion(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "templateId" -------------
+	var templateId TemplateId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "templateId", chi.URLParam(r, "templateId"), &templateId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "templateId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateTemplateVersion(w, r, templateId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetTemplateVersion operation middleware
+func (siw *ServerInterfaceWrapper) GetTemplateVersion(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "templateId" -------------
+	var templateId TemplateId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "templateId", chi.URLParam(r, "templateId"), &templateId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "templateId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "version" -------------
+	var version TemplateVersionNumber
+
+	err = runtime.BindStyledParameterWithOptions("simple", "version", chi.URLParam(r, "version"), &version, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "version", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetTemplateVersion(w, r, templateId, version)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 type UnescapedCookieParamError struct {
 	ParamName string
 	Err       error
@@ -1031,6 +1404,30 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Delete(options.BaseURL+"/subjects/{subjectId}/members/{userId}", wrapper.RemoveSubjectMember)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/templates", wrapper.ListTemplates)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/templates", wrapper.CreateTemplate)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/templates/{templateId}", wrapper.ArchiveTemplate)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/templates/{templateId}", wrapper.GetTemplate)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/templates/{templateId}", wrapper.SaveTemplate)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/templates/{templateId}/versions", wrapper.ListTemplateVersions)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/templates/{templateId}/versions", wrapper.CreateTemplateVersion)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/templates/{templateId}/versions/{version}", wrapper.GetTemplateVersion)
 	})
 
 	return r

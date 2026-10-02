@@ -2,11 +2,12 @@ package store_test
 
 import (
 	"context"
-	"github.com/jeb-maker/revues/internal/testutil"
+	"errors"
 	"testing"
 
 	"github.com/jeb-maker/revues/internal/auth"
 	"github.com/jeb-maker/revues/internal/store"
+	"github.com/jeb-maker/revues/internal/testutil"
 )
 
 func sampleItems() []store.TemplateItemInput {
@@ -108,5 +109,76 @@ func TestCreateTemplateVersionIncrements(t *testing.T) {
 	}
 	if len(newItems) != 1 || newItems[0].Label != "Point A bis" {
 		t.Fatalf("new items = %+v", newItems)
+	}
+}
+
+func TestReplaceTemplateItemsRejectsPublishedVersion(t *testing.T) {
+	ctx := context.Background()
+	db := openMemoryDB(t)
+	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
+
+	lead, err := st.UpsertGitHubUser(ctx, 1, "lead", "lead@example.com", "Lead", "", auth.RoleEditor)
+	if err != nil {
+		t.Fatalf("UpsertGitHubUser(): %v", err)
+	}
+
+	_, version, err := st.CreateChecklistTemplate(ctx, "Modèle A", lead.ID, nil, sampleItems())
+	if err != nil {
+		t.Fatalf("CreateChecklistTemplate(): %v", err)
+	}
+
+	err = st.ReplaceTemplateItems(ctx, version.ID, []store.TemplateItemInput{
+		{Label: "mutated"},
+	})
+	if !errors.Is(err, store.ErrPublishedVersionImmutable) {
+		t.Fatalf("ReplaceTemplateItems() err = %v, want ErrPublishedVersionImmutable", err)
+	}
+
+	items, err := st.ListTemplateItems(ctx, version.ID)
+	if err != nil {
+		t.Fatalf("ListTemplateItems(): %v", err)
+	}
+	if len(items) != 3 || items[0].Label != "Point A" {
+		t.Fatalf("published items mutated: %+v", items)
+	}
+}
+
+func TestListTemplateVersionsAndByNumber(t *testing.T) {
+	ctx := context.Background()
+	db := openMemoryDB(t)
+	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
+
+	lead, err := st.UpsertGitHubUser(ctx, 1, "lead", "lead@example.com", "Lead", "", auth.RoleEditor)
+	if err != nil {
+		t.Fatalf("UpsertGitHubUser(): %v", err)
+	}
+
+	template, _, err := st.CreateChecklistTemplate(ctx, "Modèle A", lead.ID, nil, sampleItems())
+	if err != nil {
+		t.Fatalf("CreateChecklistTemplate(): %v", err)
+	}
+	_, err = st.CreateTemplateVersion(ctx, template.ID, lead.ID, []store.TemplateItemInput{
+		{Label: "Only"},
+	})
+	if err != nil {
+		t.Fatalf("CreateTemplateVersion(): %v", err)
+	}
+
+	versions, err := st.ListTemplateVersions(ctx, template.ID)
+	if err != nil {
+		t.Fatalf("ListTemplateVersions(): %v", err)
+	}
+	if len(versions) != 2 || versions[0].Version != 2 || versions[1].Version != 1 {
+		t.Fatalf("versions = %+v", versions)
+	}
+
+	v1, err := st.TemplateVersionByNumber(ctx, template.ID, 1)
+	if err != nil {
+		t.Fatalf("TemplateVersionByNumber(1): %v", err)
+	}
+	if v1.Version != 1 {
+		t.Fatalf("v1 = %+v", v1)
 	}
 }
