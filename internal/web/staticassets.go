@@ -24,7 +24,6 @@ func StaticAssetVersion(staticFS fs.FS) (string, error) {
 			return "", fmt.Errorf("stat static asset %q: %w", path, statErr)
 		}
 		if info.IsDir() {
-			// fs.Glob may return nested directories (e.g. vendor/…); only hash files.
 			continue
 		}
 		data, readErr := fs.ReadFile(staticFS, path)
@@ -40,20 +39,6 @@ func StaticAssetVersion(staticFS fs.FS) (string, error) {
 		return sum, nil
 	}
 	return sum[:12], nil
-}
-
-// ServeServiceWorkerKill serves a script that unregisters orphan service workers.
-func ServeServiceWorkerKill(staticFS fs.FS) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		data, err := fs.ReadFile(staticFS, "sw.js")
-		if err != nil {
-			http.NotFound(w, r)
-			return
-		}
-		w.Header().Set("Content-Type", "application/javascript; charset=utf-8")
-		w.Header().Set("Cache-Control", "no-store")
-		_, _ = w.Write(data)
-	}
 }
 
 // DevNoCache disables caching in development (HTML and API responses).

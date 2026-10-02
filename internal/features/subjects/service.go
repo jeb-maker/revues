@@ -193,17 +193,6 @@ func CanManageSubjectMembers(user *User, access store.SubjectAccess, policies st
 	return policies.LeadsMayInviteMembers || policies.LeadsMayInviteExternals
 }
 
-// leadBlockedByAssignTeamsPolicy is true when a subject lead is denied only by leads_may_assign_teams.
-func leadBlockedByAssignTeamsPolicy(user *User, access store.SubjectAccess, policies store.OrgLeadPolicies) bool {
-	if policies.LeadsMayAssignTeams {
-		return false
-	}
-	if auth.HasMinRole(user.Role, auth.RoleAdmin) || access.HasSource(store.AccessSourceOrgAdmin) {
-		return false
-	}
-	return CanLeadAccess(user, access)
-}
-
 const (
 	LocalRoleLead        = "lead"
 	LocalRoleContributor = "contributor"

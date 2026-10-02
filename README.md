@@ -13,17 +13,33 @@ Application de gestion de check-lists pour revues de projets — simple d'utilis
 ## Démarrage
 
 ```bash
-go run ./cmd/revues   # :8080 — migrations goose au boot
+# API Go (:8080) — migrations goose au boot
+go run ./cmd/revues
 curl -sf http://localhost:8080/healthz   # → ok
+
+# Front SvelteKit (dev) — proxy vers l'API
+cd frontend && npm ci && npm run dev
+
+# Ou build SPA servi par Go
+cd frontend && npm ci && npm run build
+go run ./cmd/revues   # sert frontend/build (sinon stub HTML documenté)
 ```
 
-Front SvelteKit : voir [docs/FRONTEND.md](docs/FRONTEND.md) (après WP fondation).
+Variables : [.env.example](.env.example) (pas de chargement auto de `.env`).  
+Optionnel : `REVUES_SPA_DIR` pour pointer vers un autre dossier de build SPA.
 
-Variables : [.env.example](.env.example) (pas de chargement auto de `.env`).
-
-## Stack (cible)
+## Stack
 
 Go · OpenAPI · sqlc · SQLite · SvelteKit · miniature-broccoli · GitHub OAuth · SMTP · Jira / webhooks / Notion
+
+## Arborescence (cible)
+
+```
+api/openapi/     # contrat OpenAPI (WP-002+)
+frontend/        # SvelteKit SPA
+internal/        # métier, store, auth, integrations
+web/static/      # vendor mb (intégration front = WP-005)
+```
 
 ## Délégation rewrite
 
