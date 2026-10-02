@@ -16,6 +16,20 @@ declare module 'svelte/elements' {
 		href?: string;
 		role?: string;
 		max?: number | string;
+		minlength?: number | string;
+		maxlength?: number | string;
+		autocomplete?: string;
+		label?: string;
+		columns?: string;
+		align?: string;
+		actions?: boolean | string | null;
+		'sticky-header'?: boolean | string | null;
+		oninput?: (e: Event) => void;
+		onchange?: (e: Event) => void;
+		onclick?: (e: MouseEvent) => void;
+		class?: string;
+		id?: string;
+		slot?: string;
 	}
 
 	export interface SvelteHTMLElements {
