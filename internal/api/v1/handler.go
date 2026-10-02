@@ -86,3 +86,20 @@ func (s *Server) ensureSubjectAccess(w http.ResponseWriter, r *http.Request, sub
 	}
 	return subject, user, access, true
 }
+
+func requireUser(w http.ResponseWriter, r *http.Request) (*store.User, bool) {
+	user, ok := userFromRequest(r)
+	if !ok {
+		writeAPIError(w, http.StatusUnauthorized, "unauthenticated", "Authentification requise.")
+		return nil, false
+	}
+	return user, true
+}
+
+func requireOrg(w http.ResponseWriter, r *http.Request) bool {
+	if _, ok := orgFromRequest(r); ok {
+		return true
+	}
+	writeAPIError(w, http.StatusForbidden, "org_required", "Organisation active requise.")
+	return false
+}

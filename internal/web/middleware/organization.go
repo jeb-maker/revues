@@ -2,7 +2,6 @@ package middleware
 
 import (
 	"context"
-	"encoding/json"
 	"net/http"
 	"strings"
 
@@ -15,8 +14,7 @@ const orgContextKey contextKey = 2
 
 // LoadActiveOrganization validates the session organization and injects it into context.
 // HTML routes without an org redirect to org select/new.
-// Authenticated API routes (except auth/bootstrap/health) soft-load the org when
-// present; missing org yields JSON 403 org_required (SPA handles onboarding).
+// Authenticated API routes soft-load the org when present; handlers call requireOrg when needed.
 func LoadActiveOrganization(st *store.Store) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -27,7 +25,7 @@ func LoadActiveOrganization(st *store.Store) func(http.Handler) http.Handler {
 			}
 
 			if isAPIPath(r.URL.Path) {
-				loadAPIOrganization(w, r, st, user, next)
+				loadAPIOrganization(r, st, user, next, w)
 				return
 			}
 
@@ -61,44 +59,33 @@ func LoadActiveOrganization(st *store.Store) func(http.Handler) http.Handler {
 	}
 }
 
-func loadAPIOrganization(w http.ResponseWriter, r *http.Request, st *store.Store, user *store.User, next http.Handler) {
+func loadAPIOrganization(r *http.Request, st *store.Store, user *store.User, next http.Handler, w http.ResponseWriter) {
 	token := SessionTokenFromContext(r)
 	if token == "" {
-		writeOrgRequired(w)
+		next.ServeHTTP(w, r)
 		return
 	}
 
 	_, orgID, err := st.SessionByTokenHash(r.Context(), auth.HashToken(token))
 	if err != nil || orgID <= 0 {
-		writeOrgRequired(w)
+		next.ServeHTTP(w, r)
 		return
 	}
 
 	org, err := st.OrganizationByID(r.Context(), orgID)
 	if err != nil {
-		writeOrgRequired(w)
+		next.ServeHTTP(w, r)
 		return
 	}
 
 	if _, member, err := st.OrganizationMemberRole(r.Context(), orgID, user.ID); err != nil || !member {
-		writeOrgRequired(w)
+		next.ServeHTTP(w, r)
 		return
 	}
 
 	ctx := orgctx.WithOrganizationID(r.Context(), org.ID)
 	ctx = context.WithValue(ctx, orgContextKey, org)
 	next.ServeHTTP(w, r.WithContext(ctx))
-}
-
-func writeOrgRequired(w http.ResponseWriter) {
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	w.WriteHeader(http.StatusForbidden)
-	_ = json.NewEncoder(w).Encode(map[string]any{
-		"error": map[string]string{
-			"code":    "org_required",
-			"message": "Organisation active requise.",
-		},
-	})
 }
 
 // OrganizationFromContext returns the active organization for the request, if any.
@@ -130,7 +117,6 @@ func isOrganizationExemptPath(path string) bool {
 		strings.HasPrefix(path, "/api/v1/auth/"):
 		return true
 	case strings.HasPrefix(path, "/api/") && !strings.HasPrefix(path, "/api/v1/"):
-		// Non-v1 API probes stay exempt.
 		return true
 	default:
 		return false
