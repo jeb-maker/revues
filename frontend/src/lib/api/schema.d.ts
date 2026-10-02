@@ -179,7 +179,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/orgs/invitations/{invitationId}/accept": {
+    "/orgs/invitations/{invitationID}/accept": {
         parameters: {
             query?: never;
             header?: never;
@@ -607,7 +607,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                invitationId: number;
+                invitationID: number;
             };
             cookie?: never;
         };

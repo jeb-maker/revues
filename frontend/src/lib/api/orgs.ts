@@ -51,12 +51,12 @@ export async function selectActiveOrganization(
 }
 
 export async function acceptOrganizationInvitation(
-	invitationId: number,
+	invitationID: number,
 	csrf: string
 ): Promise<OrganizationActionResponse> {
 	const client = createApiClient({ csrfToken: csrf });
-	const { data, error, response } = await client.POST('/orgs/invitations/{invitationId}/accept', {
-		params: { path: { invitationId } }
+	const { data, error, response } = await client.POST('/orgs/invitations/{invitationID}/accept', {
+		params: { path: { invitationID } }
 	});
 	if (data) return data;
 	throw new Error(errorMessage(error, `Acceptation invitation: ${response.status}`));

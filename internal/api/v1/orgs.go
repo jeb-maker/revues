@@ -107,8 +107,8 @@ func (s *Server) SelectActiveOrganization(w http.ResponseWriter, r *http.Request
 	})
 }
 
-// AcceptOrganizationInvitation serves POST /api/v1/orgs/invitations/{invitationId}/accept.
-func (s *Server) AcceptOrganizationInvitation(w http.ResponseWriter, r *http.Request, invitationId int64) {
+// AcceptOrganizationInvitation serves POST /api/v1/orgs/invitations/{invitationID}/accept.
+func (s *Server) AcceptOrganizationInvitation(w http.ResponseWriter, r *http.Request, invitationID int64) {
 	user, ok := appmiddleware.UserFromContext(r.Context())
 	if !ok {
 		writeAPIError(w, http.StatusUnauthorized, "unauthenticated", "Authentification requise.")
@@ -116,7 +116,7 @@ func (s *Server) AcceptOrganizationInvitation(w http.ResponseWriter, r *http.Req
 	}
 
 	token := appmiddleware.SessionTokenFromContext(r)
-	result, err := s.Orgs.AcceptInvitation(r.Context(), user, token, invitationId, w)
+	result, err := s.Orgs.AcceptInvitation(r.Context(), user, token, invitationID, w)
 	if err != nil {
 		writeOrgError(w, err)
 		return
