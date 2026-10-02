@@ -60,6 +60,7 @@
 		<button type="submit">Filtrer</button>
 		{#if canManage}
 			<a class="primary" href="/modeles/new">Nouveau modèle</a>
+			<a class="secondary" href="/modeles/notion-import">Import Notion</a>
 		{/if}
 	</form>
 
@@ -85,36 +86,10 @@
 </main>
 
 <style>
-	:global(body) {
-		margin: 0;
-		min-height: 100vh;
-		font-family: var(--mb-font-sans, 'Segoe UI', system-ui, sans-serif);
-		background: linear-gradient(160deg, #0f172a 0%, #1e293b 50%, #0f766e 100%);
-		color: #f8fafc;
-	}
-	.page {
-		max-width: 44rem;
-		margin: 0 auto;
-		padding: 2rem 1.25rem 4rem;
-	}
-	.brand {
-		margin: 0 0 0.5rem;
-		font-size: 1.5rem;
-		font-weight: 700;
-		letter-spacing: -0.03em;
-	}
-	.brand a {
-		color: inherit;
-		text-decoration: none;
-	}
 	h1 {
 		margin: 0 0 0.35rem;
 		font-size: 1.35rem;
 		font-weight: 600;
-	}
-	.lede {
-		margin: 0 0 1.25rem;
-		color: #cbd5e1;
 	}
 	.toolbar {
 		display: flex;
@@ -149,6 +124,9 @@
 		color: #ecfdf5;
 		font-weight: 600;
 	}
+	.toolbar a.secondary {
+		border-color: #5eead4;
+	}
 	.list {
 		list-style: none;
 		margin: 0;
@@ -158,28 +136,18 @@
 		gap: 0.5rem;
 	}
 	.list a {
-		display: flex;
-		flex-direction: column;
-		gap: 0.15rem;
+		display: block;
 		padding: 0.75rem 0.9rem;
 		border-radius: 0.5rem;
-		border: 1px solid color-mix(in srgb, #94a3b8 28%, transparent);
+		border: 1px solid #334155;
 		color: inherit;
 		text-decoration: none;
-		background: color-mix(in srgb, #0f172a 55%, transparent);
-	}
-	.list a:hover {
-		border-color: #5eead4;
+		background: rgba(15, 23, 42, 0.55);
 	}
 	.meta,
 	.domains {
+		display: block;
 		font-size: 0.85rem;
-		color: #94a3b8;
-	}
-	.err {
-		color: #fca5a5;
-	}
-	.muted {
 		color: #94a3b8;
 	}
 	.muted a {

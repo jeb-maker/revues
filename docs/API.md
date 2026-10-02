@@ -75,6 +75,10 @@ Le code généré est **commité** (pas de génération obligatoire en CI pour l
 | `GET\|PUT\|DELETE /api/v1/admin/integrations/jira` | Config Jira Cloud chiffrée (jeton masqué) |
 | `POST /api/v1/admin/integrations/jira/test` | Test connexion Jira (`/myself`, safehttp) |
 | `GET\|PUT\|POST /api/v1/runs/{runId}/items/{itemId}/jira` | État / lier / créer issue Jira |
+| `GET\|PUT\|DELETE /api/v1/admin/integrations/notion` | Config Notion chiffrée (jeton masqué) |
+| `POST /api/v1/admin/integrations/notion/test` | Test connexion Notion (`users/me`) |
+| `POST /api/v1/templates/notion-import` | Import modèle depuis DB Notion (wizard) |
+| `POST /api/v1/runs/{runId}/notion-export` | Export revue clôturée vers Notion |
 | `GET\|POST /api/v1/runs/{runId}/items/{itemId}/attachments` | Métadonnées / upload pièce jointe |
 | `GET .../attachments/{attachmentId}` | Download (`Content-Disposition: attachment`) |
 | `/api/v1/**` | API métier versionnée |

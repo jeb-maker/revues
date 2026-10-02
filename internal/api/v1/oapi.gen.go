@@ -52,6 +52,20 @@ const (
 	MyTaskStatusPending MyTaskStatus = "pending"
 )
 
+// Defines values for NotionImportRequestAction.
+const (
+	NotionImportRequestActionFetch   NotionImportRequestAction = "fetch"
+	NotionImportRequestActionImport  NotionImportRequestAction = "import"
+	NotionImportRequestActionPreview NotionImportRequestAction = "preview"
+)
+
+// Defines values for NotionImportResponseStep.
+const (
+	NotionImportResponseStepDone    NotionImportResponseStep = "done"
+	NotionImportResponseStepMapping NotionImportResponseStep = "mapping"
+	NotionImportResponseStepPreview NotionImportResponseStep = "preview"
+)
+
 // Defines values for OrganizationMemberRole.
 const (
 	OrganizationMemberRoleAdmin  OrganizationMemberRole = "admin"
@@ -424,6 +438,115 @@ type MyTaskListResponse struct {
 	Tasks []MyTask `json:"tasks"`
 }
 
+// NotionColumnMapping defines model for NotionColumnMapping.
+type NotionColumnMapping struct {
+	HelpText *string `json:"help_text,omitempty"`
+
+	// Label Colonne titre Notion → libellé point
+	Label *string `json:"label,omitempty"`
+
+	// Required Colonne checkbox → point obligatoire
+	Required *string `json:"required,omitempty"`
+	Section  *string `json:"section,omitempty"`
+}
+
+// NotionExportResponse defines model for NotionExportResponse.
+type NotionExportResponse struct {
+	// NotionUrl URL de la page Notion créée
+	NotionUrl string `json:"notion_url"`
+}
+
+// NotionImportPreviewItem defines model for NotionImportPreviewItem.
+type NotionImportPreviewItem struct {
+	HelpText string `json:"help_text"`
+	Label    string `json:"label"`
+	Required bool   `json:"required"`
+	Section  string `json:"section"`
+}
+
+// NotionImportRequest defines model for NotionImportRequest.
+type NotionImportRequest struct {
+	Action NotionImportRequestAction `json:"action"`
+
+	// DatabaseId ID normalisé renvoyé par fetch (requis pour preview/import)
+	DatabaseId *string `json:"database_id,omitempty"`
+
+	// DatabaseRef URL ou ID base (fetch) ; optionnel si database_id déjà connu
+	DatabaseRef *string `json:"database_ref,omitempty"`
+
+	// Domains Domaines du modèle créé (action=import)
+	Domains      *[]string            `json:"domains,omitempty"`
+	Mapping      *NotionColumnMapping `json:"mapping,omitempty"`
+	TemplateName *string              `json:"template_name,omitempty"`
+}
+
+// NotionImportRequestAction defines model for NotionImportRequest.Action.
+type NotionImportRequestAction string
+
+// NotionImportResponse defines model for NotionImportResponse.
+type NotionImportResponse struct {
+	DatabaseId    *string                    `json:"database_id,omitempty"`
+	DatabaseTitle *string                    `json:"database_title,omitempty"`
+	Mapping       *NotionColumnMapping       `json:"mapping,omitempty"`
+	PreviewCount  *int                       `json:"preview_count,omitempty"`
+	PreviewItems  *[]NotionImportPreviewItem `json:"preview_items,omitempty"`
+	Properties    *[]NotionPropertyOption    `json:"properties,omitempty"`
+
+	// Step Étape atteinte après l'action
+	Step NotionImportResponseStep `json:"step"`
+
+	// Template Présent si step=done (modèle créé)
+	Template     *TemplateDetail `json:"template,omitempty"`
+	TemplateName *string         `json:"template_name,omitempty"`
+}
+
+// NotionImportResponseStep Étape atteinte après l'action
+type NotionImportResponseStep string
+
+// NotionPropertyOption defines model for NotionPropertyOption.
+type NotionPropertyOption struct {
+	Name string `json:"name"`
+
+	// Type Type propriété Notion (title, rich_text, select, …)
+	Type string `json:"type"`
+}
+
+// NotionSettings defines model for NotionSettings.
+type NotionSettings struct {
+	// Configured true si un jeton est stocké
+	Configured bool `json:"configured"`
+
+	// DefaultDatabaseId ID base Notion (32 hex, sans tirets)
+	DefaultDatabaseId string `json:"default_database_id"`
+
+	// ExportReady true si jeton + default_database_id permettent l'export
+	ExportReady bool `json:"export_ready"`
+
+	// HasApiToken true si un jeton est stocké (jamais renvoyé en clair)
+	HasApiToken bool `json:"has_api_token"`
+
+	// WorkspaceName Libellé admin du workspace
+	WorkspaceName string `json:"workspace_name"`
+}
+
+// NotionSettingsUpdate defines model for NotionSettingsUpdate.
+type NotionSettingsUpdate struct {
+	// ApiToken Omis ou vide = conserve le secret existant
+	ApiToken *string `json:"api_token,omitempty"`
+
+	// DefaultDatabaseId UUID ou 32 hex (avec ou sans tirets)
+	DefaultDatabaseId *string `json:"default_database_id,omitempty"`
+	WorkspaceName     *string `json:"workspace_name,omitempty"`
+}
+
+// NotionTestResponse defines model for NotionTestResponse.
+type NotionTestResponse struct {
+	Message       string  `json:"message"`
+	Ok            bool    `json:"ok"`
+	UserName      *string `json:"user_name,omitempty"`
+	WorkspaceName *string `json:"workspace_name,omitempty"`
+}
+
 // Organization defines model for Organization.
 type Organization struct {
 	Id   int64  `json:"id"`
@@ -507,21 +630,27 @@ type RunAssignee struct {
 
 // RunCapabilities defines model for RunCapabilities.
 type RunCapabilities struct {
-	CanAssign      bool `json:"can_assign"`
-	CanComplete    bool `json:"can_complete"`
-	CanUpdateItems bool `json:"can_update_items"`
+	CanAssign   bool `json:"can_assign"`
+	CanComplete bool `json:"can_complete"`
+
+	// CanExportNotion true si revue done, droits CanCompleteAccess, Notion ExportReady
+	CanExportNotion bool `json:"can_export_notion"`
+	CanUpdateItems  bool `json:"can_update_items"`
 }
 
 // RunDetail defines model for RunDetail.
 type RunDetail struct {
-	Assignees            *[]RunAssignee  `json:"assignees,omitempty"`
-	Capabilities         RunCapabilities `json:"capabilities"`
-	ClosingNote          *string         `json:"closing_note,omitempty"`
-	CompletedAt          *string         `json:"completed_at"`
-	CreatedAt            string          `json:"created_at"`
-	DueDate              *string         `json:"due_date"`
-	Id                   int64           `json:"id"`
-	Items                []RunItem       `json:"items"`
+	Assignees    *[]RunAssignee  `json:"assignees,omitempty"`
+	Capabilities RunCapabilities `json:"capabilities"`
+	ClosingNote  *string         `json:"closing_note,omitempty"`
+	CompletedAt  *string         `json:"completed_at"`
+	CreatedAt    string          `json:"created_at"`
+	DueDate      *string         `json:"due_date"`
+	Id           int64           `json:"id"`
+	Items        []RunItem       `json:"items"`
+
+	// NotionUrl URL page Notion si exportée
+	NotionUrl            *string         `json:"notion_url"`
 	PendingRequiredCount *int            `json:"pending_required_count,omitempty"`
 	Progress             RunProgress     `json:"progress"`
 	StartedAt            *string         `json:"started_at"`
@@ -989,6 +1118,9 @@ type CreateAllowedEmailJSONRequestBody = AllowedEmailWriteRequest
 // PutAdminJiraSettingsJSONRequestBody defines body for PutAdminJiraSettings for application/json ContentType.
 type PutAdminJiraSettingsJSONRequestBody = JiraSettingsUpdate
 
+// PutAdminNotionSettingsJSONRequestBody defines body for PutAdminNotionSettings for application/json ContentType.
+type PutAdminNotionSettingsJSONRequestBody = NotionSettingsUpdate
+
 // UpdateOrganizationMemberRoleJSONRequestBody defines body for UpdateOrganizationMemberRole for application/json ContentType.
 type UpdateOrganizationMemberRoleJSONRequestBody = UpdateOrganizationMemberRoleRequest
 
@@ -1049,6 +1181,9 @@ type CreateRunJSONRequestBody = CreateRunRequest
 // CreateTemplateJSONRequestBody defines body for CreateTemplate for application/json ContentType.
 type CreateTemplateJSONRequestBody = TemplateWriteRequest
 
+// PostTemplatesNotionImportJSONRequestBody defines body for PostTemplatesNotionImport for application/json ContentType.
+type PostTemplatesNotionImportJSONRequestBody = NotionImportRequest
+
 // SaveTemplateJSONRequestBody defines body for SaveTemplate for application/json ContentType.
 type SaveTemplateJSONRequestBody = TemplateWriteRequest
 
@@ -1081,6 +1216,18 @@ type ServerInterface interface {
 	// Tester la connexion Jira Cloud
 	// (POST /admin/integrations/jira/test)
 	PostAdminJiraTest(w http.ResponseWriter, r *http.Request)
+	// Effacer la configuration Notion
+	// (DELETE /admin/integrations/notion)
+	DeleteAdminNotionSettings(w http.ResponseWriter, r *http.Request)
+	// Configuration Notion (jeton masqué)
+	// (GET /admin/integrations/notion)
+	GetAdminNotionSettings(w http.ResponseWriter, r *http.Request)
+	// Enregistrer la configuration Notion chiffrée
+	// (PUT /admin/integrations/notion)
+	PutAdminNotionSettings(w http.ResponseWriter, r *http.Request)
+	// Tester la connexion Notion (users/me)
+	// (POST /admin/integrations/notion/test)
+	PostAdminNotionTest(w http.ResponseWriter, r *http.Request)
 	// Membres de l'organisation active
 	// (GET /admin/members)
 	ListOrganizationMembers(w http.ResponseWriter, r *http.Request)
@@ -1186,6 +1333,9 @@ type ServerInterface interface {
 	// Lier une issue Jira existante au point
 	// (PUT /runs/{runId}/items/{itemId}/jira)
 	PutRunItemJiraLink(w http.ResponseWriter, r *http.Request, runId RunId, itemId RunItemId)
+	// Exporter une revue clôturée vers Notion
+	// (POST /runs/{runId}/notion-export)
+	PostRunNotionExport(w http.ResponseWriter, r *http.Request, runId RunId)
 	// Liste des sujets de l'org active
 	// (GET /subjects)
 	ListSubjects(w http.ResponseWriter, r *http.Request, params ListSubjectsParams)
@@ -1225,6 +1375,9 @@ type ServerInterface interface {
 	// Créer un modèle (version 1)
 	// (POST /templates)
 	CreateTemplate(w http.ResponseWriter, r *http.Request)
+	// Import modèle depuis une base Notion (wizard)
+	// (POST /templates/notion-import)
+	PostTemplatesNotionImport(w http.ResponseWriter, r *http.Request)
 	// Archiver un modèle
 	// (DELETE /templates/{templateId})
 	ArchiveTemplate(w http.ResponseWriter, r *http.Request, templateId TemplateId)
@@ -1294,6 +1447,30 @@ func (_ Unimplemented) PutAdminJiraSettings(w http.ResponseWriter, r *http.Reque
 // Tester la connexion Jira Cloud
 // (POST /admin/integrations/jira/test)
 func (_ Unimplemented) PostAdminJiraTest(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Effacer la configuration Notion
+// (DELETE /admin/integrations/notion)
+func (_ Unimplemented) DeleteAdminNotionSettings(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Configuration Notion (jeton masqué)
+// (GET /admin/integrations/notion)
+func (_ Unimplemented) GetAdminNotionSettings(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Enregistrer la configuration Notion chiffrée
+// (PUT /admin/integrations/notion)
+func (_ Unimplemented) PutAdminNotionSettings(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Tester la connexion Notion (users/me)
+// (POST /admin/integrations/notion/test)
+func (_ Unimplemented) PostAdminNotionTest(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -1507,6 +1684,12 @@ func (_ Unimplemented) PutRunItemJiraLink(w http.ResponseWriter, r *http.Request
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// Exporter une revue clôturée vers Notion
+// (POST /runs/{runId}/notion-export)
+func (_ Unimplemented) PostRunNotionExport(w http.ResponseWriter, r *http.Request, runId RunId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // Liste des sujets de l'org active
 // (GET /subjects)
 func (_ Unimplemented) ListSubjects(w http.ResponseWriter, r *http.Request, params ListSubjectsParams) {
@@ -1582,6 +1765,12 @@ func (_ Unimplemented) ListTemplates(w http.ResponseWriter, r *http.Request, par
 // Créer un modèle (version 1)
 // (POST /templates)
 func (_ Unimplemented) CreateTemplate(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Import modèle depuis une base Notion (wizard)
+// (POST /templates/notion-import)
+func (_ Unimplemented) PostTemplatesNotionImport(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -1744,6 +1933,62 @@ func (siw *ServerInterfaceWrapper) PostAdminJiraTest(w http.ResponseWriter, r *h
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.PostAdminJiraTest(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteAdminNotionSettings operation middleware
+func (siw *ServerInterfaceWrapper) DeleteAdminNotionSettings(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteAdminNotionSettings(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetAdminNotionSettings operation middleware
+func (siw *ServerInterfaceWrapper) GetAdminNotionSettings(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetAdminNotionSettings(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PutAdminNotionSettings operation middleware
+func (siw *ServerInterfaceWrapper) PutAdminNotionSettings(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PutAdminNotionSettings(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PostAdminNotionTest operation middleware
+func (siw *ServerInterfaceWrapper) PostAdminNotionTest(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PostAdminNotionTest(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -2556,6 +2801,31 @@ func (siw *ServerInterfaceWrapper) PutRunItemJiraLink(w http.ResponseWriter, r *
 	handler.ServeHTTP(w, r)
 }
 
+// PostRunNotionExport operation middleware
+func (siw *ServerInterfaceWrapper) PostRunNotionExport(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "runId" -------------
+	var runId RunId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "runId", chi.URLParam(r, "runId"), &runId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "runId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PostRunNotionExport(w, r, runId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // ListSubjects operation middleware
 func (siw *ServerInterfaceWrapper) ListSubjects(w http.ResponseWriter, r *http.Request) {
 
@@ -2872,6 +3142,20 @@ func (siw *ServerInterfaceWrapper) CreateTemplate(w http.ResponseWriter, r *http
 	handler.ServeHTTP(w, r)
 }
 
+// PostTemplatesNotionImport operation middleware
+func (siw *ServerInterfaceWrapper) PostTemplatesNotionImport(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PostTemplatesNotionImport(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // ArchiveTemplate operation middleware
 func (siw *ServerInterfaceWrapper) ArchiveTemplate(w http.ResponseWriter, r *http.Request) {
 
@@ -3169,6 +3453,18 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Post(options.BaseURL+"/admin/integrations/jira/test", wrapper.PostAdminJiraTest)
 	})
 	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/admin/integrations/notion", wrapper.DeleteAdminNotionSettings)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/admin/integrations/notion", wrapper.GetAdminNotionSettings)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/admin/integrations/notion", wrapper.PutAdminNotionSettings)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/admin/integrations/notion/test", wrapper.PostAdminNotionTest)
+	})
+	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/admin/members", wrapper.ListOrganizationMembers)
 	})
 	r.Group(func(r chi.Router) {
@@ -3274,6 +3570,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Put(options.BaseURL+"/runs/{runId}/items/{itemId}/jira", wrapper.PutRunItemJiraLink)
 	})
 	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/runs/{runId}/notion-export", wrapper.PostRunNotionExport)
+	})
+	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/subjects", wrapper.ListSubjects)
 	})
 	r.Group(func(r chi.Router) {
@@ -3311,6 +3610,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/templates", wrapper.CreateTemplate)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/templates/notion-import", wrapper.PostTemplatesNotionImport)
 	})
 	r.Group(func(r chi.Router) {
 		r.Delete(options.BaseURL+"/templates/{templateId}", wrapper.ArchiveTemplate)
