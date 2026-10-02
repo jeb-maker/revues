@@ -14,8 +14,6 @@ import (
 	appmiddleware "github.com/jeb-maker/revues/internal/web/middleware"
 )
 
-const maxSubjectBodyBytes = 1 << 20 // 1 MiB
-
 // ListSubjects serves GET /api/v1/subjects.
 func (s *Server) ListSubjects(w http.ResponseWriter, r *http.Request, params ListSubjectsParams) {
 	user, ok := requireUser(w, r)
@@ -111,9 +109,9 @@ func (s *Server) CreateSubject(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, detail)
 }
 
-// GetSubject serves GET /api/v1/subjects/{subjectId}.
-func (s *Server) GetSubject(w http.ResponseWriter, r *http.Request, subjectId SubjectId) {
-	subject, user, _, ok := s.ensureSubjectAccess(w, r, subjectId)
+// GetSubject serves GET /api/v1/subjects/{subjectID}.
+func (s *Server) GetSubject(w http.ResponseWriter, r *http.Request, subjectID SubjectId) {
+	subject, user, _, ok := s.ensureSubjectAccess(w, r, subjectID)
 	if !ok {
 		return
 	}
@@ -124,9 +122,9 @@ func (s *Server) GetSubject(w http.ResponseWriter, r *http.Request, subjectId Su
 	writeJSON(w, http.StatusOK, detail)
 }
 
-// UpdateSubject serves PATCH /api/v1/subjects/{subjectId}.
-func (s *Server) UpdateSubject(w http.ResponseWriter, r *http.Request, subjectId SubjectId) {
-	subject, user, access, ok := s.ensureSubjectAccess(w, r, subjectId)
+// UpdateSubject serves PATCH /api/v1/subjects/{subjectID}.
+func (s *Server) UpdateSubject(w http.ResponseWriter, r *http.Request, subjectID SubjectId) {
+	subject, user, access, ok := s.ensureSubjectAccess(w, r, subjectID)
 	if !ok {
 		return
 	}
@@ -200,9 +198,9 @@ func (s *Server) UpdateSubject(w http.ResponseWriter, r *http.Request, subjectId
 	writeJSON(w, http.StatusOK, detail)
 }
 
-// ArchiveSubject serves POST /api/v1/subjects/{subjectId}/archive.
-func (s *Server) ArchiveSubject(w http.ResponseWriter, r *http.Request, subjectId SubjectId) {
-	_, user, access, ok := s.ensureSubjectAccess(w, r, subjectId)
+// ArchiveSubject serves POST /api/v1/subjects/{subjectID}/archive.
+func (s *Server) ArchiveSubject(w http.ResponseWriter, r *http.Request, subjectID SubjectId) {
+	_, user, access, ok := s.ensureSubjectAccess(w, r, subjectID)
 	if !ok {
 		return
 	}
@@ -210,7 +208,7 @@ func (s *Server) ArchiveSubject(w http.ResponseWriter, r *http.Request, subjectI
 		writeAPIError(w, http.StatusNotFound, "not_found", "Sujet introuvable.")
 		return
 	}
-	if err := s.Store.ArchiveSubject(r.Context(), subjectId); err != nil {
+	if err := s.Store.ArchiveSubject(r.Context(), subjectID); err != nil {
 		if errors.Is(err, store.ErrSubjectNotFound) {
 			writeAPIError(w, http.StatusNotFound, "not_found", "Sujet introuvable.")
 			return
@@ -222,12 +220,12 @@ func (s *Server) ArchiveSubject(w http.ResponseWriter, r *http.Request, subjectI
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// ListSubjectMembers serves GET /api/v1/subjects/{subjectId}/members.
-func (s *Server) ListSubjectMembers(w http.ResponseWriter, r *http.Request, subjectId SubjectId) {
-	if _, _, _, ok := s.ensureSubjectAccess(w, r, subjectId); !ok {
+// ListSubjectMembers serves GET /api/v1/subjects/{subjectID}/members.
+func (s *Server) ListSubjectMembers(w http.ResponseWriter, r *http.Request, subjectID SubjectId) {
+	if _, _, _, ok := s.ensureSubjectAccess(w, r, subjectID); !ok {
 		return
 	}
-	members, err := s.Store.ListDirectSubjectMembers(r.Context(), subjectId)
+	members, err := s.Store.ListDirectSubjectMembers(r.Context(), subjectID)
 	if err != nil {
 		slog.Error("list subject members", "err", err)
 		writeAPIError(w, http.StatusInternalServerError, "internal_error", "Erreur interne.")
@@ -236,9 +234,9 @@ func (s *Server) ListSubjectMembers(w http.ResponseWriter, r *http.Request, subj
 	writeJSON(w, http.StatusOK, SubjectMemberListResponse{Members: mapMembers(members)})
 }
 
-// AddSubjectMember serves POST /api/v1/subjects/{subjectId}/members.
-func (s *Server) AddSubjectMember(w http.ResponseWriter, r *http.Request, subjectId SubjectId) {
-	subject, user, access, ok := s.ensureSubjectAccess(w, r, subjectId)
+// AddSubjectMember serves POST /api/v1/subjects/{subjectID}/members.
+func (s *Server) AddSubjectMember(w http.ResponseWriter, r *http.Request, subjectID SubjectId) {
+	subject, user, access, ok := s.ensureSubjectAccess(w, r, subjectID)
 	if !ok {
 		return
 	}
@@ -296,7 +294,7 @@ func (s *Server) AddSubjectMember(w http.ResponseWriter, r *http.Request, subjec
 		return
 	}
 
-	if err := s.Store.UpsertDirectSubjectMember(r.Context(), subject.ID, invitee.ID, role); err != nil {
+	if err = s.Store.UpsertDirectSubjectMember(r.Context(), subject.ID, invitee.ID, role); err != nil {
 		if errors.Is(err, store.ErrInvalidSubjectRole) {
 			writeAPIError(w, http.StatusBadRequest, "validation_failed", "Rôle invalide.")
 			return
@@ -331,9 +329,9 @@ func (s *Server) AddSubjectMember(w http.ResponseWriter, r *http.Request, subjec
 	})
 }
 
-// RemoveSubjectMember serves DELETE /api/v1/subjects/{subjectId}/members/{userId}.
-func (s *Server) RemoveSubjectMember(w http.ResponseWriter, r *http.Request, subjectId SubjectId, userId int64) {
-	_, user, access, ok := s.ensureSubjectAccess(w, r, subjectId)
+// RemoveSubjectMember serves DELETE /api/v1/subjects/{subjectID}/members/{userID}.
+func (s *Server) RemoveSubjectMember(w http.ResponseWriter, r *http.Request, subjectID SubjectId, userID int64) {
+	_, user, access, ok := s.ensureSubjectAccess(w, r, subjectID)
 	if !ok {
 		return
 	}
@@ -348,11 +346,11 @@ func (s *Server) RemoveSubjectMember(w http.ResponseWriter, r *http.Request, sub
 		writeAPIError(w, http.StatusNotFound, "not_found", "Sujet introuvable.")
 		return
 	}
-	if userId <= 0 {
+	if userID <= 0 {
 		writeAPIError(w, http.StatusBadRequest, "validation_failed", "Membre invalide.")
 		return
 	}
-	if err := s.Store.RemoveDirectSubjectMember(r.Context(), subjectId, userId); err != nil {
+	if err := s.Store.RemoveDirectSubjectMember(r.Context(), subjectID, userID); err != nil {
 		if errors.Is(err, store.ErrDirectSubjectMemberNotFound) || errors.Is(err, store.ErrSubjectNotFound) {
 			writeAPIError(w, http.StatusNotFound, "not_found", "Ce membre n'est pas affecté à ce sujet.")
 			return

@@ -138,8 +138,8 @@ func TestSubjectsAPI_IDOR_CrossOrg(t *testing.T) {
 	handler, st := newTestRouterWithStore(t, cfg)
 	ctx := context.Background()
 
-	alice, aliceSession, _ := seedSessionUser(t, st, cfg, "alice-idor@example.com", "Alice", auth.RoleEditor, true)
-	bob, bobSession, _ := seedSessionUser(t, st, cfg, "bob-idor@example.com", "Bob", auth.RoleEditor, false)
+	alice, _, _ := seedSessionUser(t, st, cfg, "alice-idor@example.com", "Alice", auth.RoleEditor, true)
+	bob, _, _ := seedSessionUser(t, st, cfg, "bob-idor@example.com", "Bob", auth.RoleEditor, false)
 
 	orgB, err := st.CreateOrganization(ctx, "Org B", "org-b-subjects", bob.ID)
 	if err != nil {
@@ -154,8 +154,7 @@ func TestSubjectsAPI_IDOR_CrossOrg(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateLoginSession(bob): %v", err)
 	}
-	bobSession = &http.Cookie{Name: "revues_session", Value: bobToken}
-	_ = alice
+	bobSession := &http.Cookie{Name: "revues_session", Value: bobToken}
 
 	orgA := mustDefaultOrgID(t, st)
 	ctxA := orgctx.WithOrganizationID(ctx, orgA)
@@ -177,8 +176,6 @@ func TestSubjectsAPI_IDOR_CrossOrg(t *testing.T) {
 	if strings.Contains(listRec.Body.String(), "Secret A") {
 		t.Fatalf("bob must not list alice subject: %s", listRec.Body.String())
 	}
-
-	_ = aliceSession
 }
 
 func TestSubjectsAPI_IDOR_PrivateSubject(t *testing.T) {
@@ -193,7 +190,7 @@ func TestSubjectsAPI_IDOR_PrivateSubject(t *testing.T) {
 	orgID := mustDefaultOrgID(t, st)
 	orgCtx := orgctx.WithOrganizationID(ctx, orgID)
 
-	lead, leadSession, leadCSRF := seedSessionUser(t, st, cfg, "lead-priv@example.com", "Lead", auth.RoleEditor, true)
+	lead, _, _ := seedSessionUser(t, st, cfg, "lead-priv@example.com", "Lead", auth.RoleEditor, true)
 	// Org owner may set visibility=private on create.
 	if err := st.AddOrganizationMember(ctx, orgID, lead.ID, store.OrgRoleOwner); err != nil {
 		t.Fatalf("promote lead to org owner: %v", err)
@@ -204,8 +201,8 @@ func TestSubjectsAPI_IDOR_PrivateSubject(t *testing.T) {
 	if err != nil {
 		t.Fatalf("relogin lead: %v", err)
 	}
-	leadSession = &http.Cookie{Name: "revues_session", Value: token}
-	leadCSRF = csrf
+	leadSession := &http.Cookie{Name: "revues_session", Value: token}
+	leadCSRF := csrf
 
 	member, memberSession, _ := seedSessionUser(t, st, cfg, "member-priv@example.com", "Member", auth.RoleEditor, true)
 
