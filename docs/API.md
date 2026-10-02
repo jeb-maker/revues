@@ -21,9 +21,18 @@ Contrat HTTP JSON pour le front SvelteKit et éventuels clients. Complète [ADR-
 | Sortie | `internal/api/v1/oapi.gen.go` (**commité** ; régénérer après chaque changement de spec) |
 | Montage chi | `r.Route("/api/v1", …)` + `apiv1.HandlerFromMux` dans `internal/web/router.go` |
 
-Pourquoi oapi-codegen : intégration native chi (`HandlerFromMux`), compatible Go 1.22 du module, surface minimale pour démarrer. Le client TypeScript (WP-005) consommera la même spec.
+Pourquoi oapi-codegen : intégration native chi (`HandlerFromMux`), compatible Go 1.22 du module, surface minimale pour démarrer.
 
-Régénération :
+### Client TypeScript (WP-005)
+
+| Élément | Choix |
+|---------|--------|
+| Outil | **openapi-typescript** `7.x` + **openapi-fetch** |
+| Script | `make frontend-api` / [`./scripts/generate-frontend-api.sh`](../scripts/generate-frontend-api.sh) |
+| Types | `frontend/src/lib/api/schema.d.ts` (**commité**) |
+| Wrappers | `frontend/src/lib/api/client.ts` (credentials + CSRF) |
+
+Régénération serveur :
 
 ```bash
 make api
@@ -31,7 +40,13 @@ make api
 ./scripts/generate-api.sh
 ```
 
-Le code généré est **commité** (pas de génération obligatoire en CI pour l’instant) : les PR qui touchent la spec doivent inclure `oapi.gen.go` à jour. La CI exécute `./scripts/check.sh` (compile + tests) sur le code présent dans le dépôt.
+Régénération client front :
+
+```bash
+make frontend-api
+```
+
+Le code généré est **commité** (pas de génération obligatoire en CI pour l’instant) : les PR qui touchent la spec doivent inclure `oapi.gen.go` **et** `schema.d.ts` à jour. La CI exécute `./scripts/check.sh` (Go + npm front) sur le code présent dans le dépôt.
 
 ## Surface
 
@@ -81,7 +96,7 @@ Le code généré est **commité** (pas de génération obligatoire en CI pour l
 - Spec : `api/openapi/openapi.yaml` (ou découpe par domaine + bundler).
 - `operationId` stable → noms générés stables.
 - Tags = domaines (`system`, `auth`, `orgs`, `subjects`, `templates`, `runs`, `admin`, `integrations`).
-- Régénérer après chaque changement de spec (`make api` / `./scripts/generate-api.sh`).
+- Régénérer après chaque changement de spec : `make api` (serveur) **et** `make frontend-api` (client TS).
 
 ## sqlc
 

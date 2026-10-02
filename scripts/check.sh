@@ -86,11 +86,17 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# 4. Frontend SvelteKit (build minimal)
+# 4. Frontend SvelteKit (npm ci / check / build + budgets SPA)
 # ---------------------------------------------------------------------------
+# Budgets documentés dans docs/PLAN.md (WP-005). Vendor mb mesuré, hors fail.
+SPA_JS_RAW_MAX=204800      # 200 KiB — build/_app/**/*.js
+SPA_JS_GZIP_MAX=61440      # 60 KiB gzip-9
+SPA_CSS_RAW_MAX=40960      # 40 KiB — build/_app/**/*.css
+SPA_CSS_GZIP_MAX=12288     # 12 KiB gzip-9
+
 if [[ -f frontend/package.json ]]; then
   if command -v npm >/dev/null 2>&1; then
-    step "frontend npm ci + build"
+    step "frontend npm ci + check + build"
     (
       cd frontend
       if [[ -f package-lock.json ]]; then
@@ -102,6 +108,43 @@ if [[ -f frontend/package.json ]]; then
       npm run build
     )
     [[ -f frontend/build/index.html ]] || fail "frontend/build/index.html manquant après build"
+
+    step "budgets SPA (app JS/CSS hors vendor mb)"
+    python3 - "$SPA_JS_RAW_MAX" "$SPA_JS_GZIP_MAX" "$SPA_CSS_RAW_MAX" "$SPA_CSS_GZIP_MAX" <<'PY' || fail "budgets SPA dépassés"
+import gzip, pathlib, sys
+
+js_raw_max, js_gz_max, css_raw_max, css_gz_max = map(int, sys.argv[1:5])
+root = pathlib.Path("frontend/build/_app")
+if not root.is_dir():
+    print("missing frontend/build/_app", file=sys.stderr)
+    sys.exit(1)
+
+def measure(pattern: str):
+    files = list(root.rglob(pattern))
+    raw = sum(f.stat().st_size for f in files)
+    gz = sum(len(gzip.compress(f.read_bytes(), compresslevel=9)) for f in files)
+    return len(files), raw, gz
+
+n_js, js_raw, js_gz = measure("*.js")
+n_css, css_raw, css_gz = measure("*.css")
+print(f"SPA JS  : {n_js} files, {js_raw} B raw / {js_gz} B gzip-9 (max {js_raw_max}/{js_gz_max})")
+print(f"SPA CSS : {n_css} files, {css_raw} B raw / {css_gz} B gzip-9 (max {css_raw_max}/{css_gz_max})")
+
+mb = pathlib.Path("web/static/vendor/jeb-maker-mb")
+if mb.is_dir():
+    mfiles = [p for p in mb.rglob("*") if p.is_file()]
+    mb_raw = sum(f.stat().st_size for f in mfiles)
+    print(f"Vendor mb: {len(mfiles)} files, {mb_raw} B raw (mesuré, hors fail — PLAN.md)")
+
+ok = True
+if js_raw > js_raw_max or js_gz > js_gz_max:
+    print("FAIL JS app budget", file=sys.stderr)
+    ok = False
+if css_raw > css_raw_max or css_gz > css_gz_max:
+    print("FAIL CSS app budget", file=sys.stderr)
+    ok = False
+sys.exit(0 if ok else 1)
+PY
   else
     echo -e "${YELLOW}WARN${NC} npm absent — build frontend ignoré localement"
   fi

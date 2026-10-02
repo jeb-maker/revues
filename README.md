@@ -18,10 +18,11 @@ go run ./cmd/revues
 curl -sf http://localhost:8080/healthz          # → ok
 curl -sf http://localhost:8080/api/v1/health    # → {"status":"ok"}
 
-# Régénérer stubs serveur depuis OpenAPI
-make api   # ou ./scripts/generate-api.sh
+# Régénérer stubs serveur + client TS depuis OpenAPI
+make api            # Go → internal/api/v1/oapi.gen.go
+make frontend-api   # TS → frontend/src/lib/api/schema.d.ts
 
-# Front SvelteKit (dev) — proxy vers l'API
+# Front SvelteKit (dev) — proxy Vite → Go (:8080) pour /api /auth /healthz /static
 cd frontend && npm ci && npm run dev
 
 # Ou build SPA servi par Go
@@ -39,10 +40,10 @@ Go · OpenAPI · sqlc · SQLite · SvelteKit · miniature-broccoli · GitHub OAu
 ## Arborescence (cible)
 
 ```
-api/openapi/     # contrat OpenAPI (make api → internal/api/v1)
-frontend/        # SvelteKit SPA
+api/openapi/     # contrat OpenAPI (make api + make frontend-api)
+frontend/        # SvelteKit SPA + client OpenAPI + mb
 internal/        # métier, store, auth, api/v1, integrations
-web/static/      # vendor mb (intégration front = WP-005)
+web/static/      # vendor mb (/static/…, proxy Vite en dev)
 ```
 
 ## Délégation rewrite
