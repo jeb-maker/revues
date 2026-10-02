@@ -70,7 +70,9 @@ func TestEnsureDevAuth_InjectsUserAndCookie(t *testing.T) {
 		t.Fatal("expected session token in context")
 	}
 	foundCookie := false
-	for _, c := range rec.Result().Cookies() {
+	res := rec.Result()
+	defer res.Body.Close()
+	for _, c := range res.Cookies() {
 		if c.Name == "revues_session" && c.Value != "" {
 			foundCookie = true
 		}

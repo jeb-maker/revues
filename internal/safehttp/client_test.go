@@ -74,7 +74,11 @@ func TestNewClient_AllowsPublicViaMock(t *testing.T) {
 	client := srv.Client()
 	// httptest TLS client is not SSRF-safe; just ensure safe client can be built.
 	_ = safehttp.NewClient(safehttp.Options{Timeout: time.Second})
-	resp, err := client.Get(srv.URL)
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, srv.URL, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp, err := client.Do(req)
 	if err != nil {
 		t.Fatal(err)
 	}

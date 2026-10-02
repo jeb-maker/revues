@@ -196,7 +196,7 @@ func (s *Store) WebhookDeliveryByID(ctx context.Context, id int64) (*WebhookDeli
 		&d.Attempts, &d.NextAttemptAt, &d.ExpiresAt, &d.State, &d.LastError, &d.CreatedAt,
 	)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrWebhookDeliveryNotFound
 		}
 		return nil, fmt.Errorf("webhook delivery by id: %w", err)

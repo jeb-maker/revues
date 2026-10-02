@@ -2,6 +2,7 @@ package store_test
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -113,7 +114,7 @@ func TestWebhookDeliveryQueue_OrgListAndRetry(t *testing.T) {
 	}
 
 	_, err = st.WebhookDeliveryByID(ctx, 99999)
-	if err != store.ErrWebhookDeliveryNotFound {
+	if !errors.Is(err, store.ErrWebhookDeliveryNotFound) {
 		t.Fatalf("missing id err = %v", err)
 	}
 }

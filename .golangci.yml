@@ -62,3 +62,24 @@ linters:
 issues:
   max-issues-per-linter: 0
   max-same-issues: 0
+  # golangci-lint v1.62 (CI) ignores linters.exclusions (v2) — mirror here.
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - errcheck
+        - noctx
+    - path: cmd/seed/
+      linters:
+        - misspell
+    - path: internal/auth/github\.go
+      linters:
+        - errcheck
+    - path: internal/integrations/
+      linters:
+        - errcheck
+    - path: internal/store/dashboard\.go
+      linters:
+        - errcheck
+    - path: internal/notifications/mailer\.go
+      linters:
+        - noctx

@@ -204,8 +204,8 @@
 			</div>
 		</form>
 
-		<section class="deliveries">
-			<div class="deliveries-head">
+		<section class="panel">
+			<div class="row">
 				<h2>File de livraisons</h2>
 				<button type="button" class="ghost" onclick={onDrain}>Drain maintenant</button>
 			</div>
@@ -236,7 +236,7 @@
 								<td>{d.status_code ?? '—'}</td>
 								<td>
 									{#if d.state === 'pending' || d.state === 'poison'}
-										<button type="button" class="linkish" onclick={() => onRetry(d.id)}>Retry</button>
+										<button type="button" class="ghost tight" onclick={() => onRetry(d.id)}>Retry</button>
 									{/if}
 								</td>
 							</tr>
@@ -254,81 +254,12 @@
 </main>
 
 <style>
-	.form,
-	.deliveries {
-		display: flex;
-		flex-direction: column;
-		gap: 0.85rem;
-	}
-	.deliveries {
-		margin-top: 2rem;
-		padding-top: 1.25rem;
-		border-top: 1px solid #334155;
-	}
-	.deliveries-head {
+	.row {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
 		gap: 1rem;
 		flex-wrap: wrap;
-	}
-	.deliveries h2 {
-		margin: 0;
-		font-size: 1rem;
-		color: #99f6e4;
-	}
-	label {
-		display: flex;
-		flex-direction: column;
-		gap: 0.35rem;
-		font-size: 0.9rem;
-		color: #cbd5e1;
-	}
-	label.check {
-		flex-direction: row;
-		align-items: center;
-		gap: 0.5rem;
-	}
-	input:not([type='checkbox']),
-	textarea {
-		padding: 0.55rem 0.65rem;
-		border-radius: 0.4rem;
-		border: 1px solid #334155;
-		background: #0f172a;
-		color: inherit;
-		font: inherit;
-	}
-	.actions {
-		display: flex;
-		gap: 0.75rem;
-		flex-wrap: wrap;
-	}
-	button {
-		align-self: flex-start;
-		padding: 0.6rem 1rem;
-		border: none;
-		border-radius: 0.4rem;
-		background: #0f766e;
-		color: #ecfdf5;
-		font-weight: 600;
-		cursor: pointer;
-		font: inherit;
-	}
-	button:disabled {
-		opacity: 0.5;
-		cursor: not-allowed;
-	}
-	button.ghost {
-		background: transparent;
-		border: 1px solid #475569;
-		color: #cbd5e1;
-	}
-	button.linkish {
-		background: transparent;
-		color: #5eead4;
-		padding: 0.2rem 0.4rem;
-		font-weight: 500;
-		font-size: 0.85rem;
 	}
 	table {
 		width: 100%;
@@ -350,9 +281,10 @@
 	.err-row td {
 		color: #fca5a5;
 		font-size: 0.8rem;
-		border-bottom: 1px solid #334155;
 	}
-	code {
-		font-size: 0.85em;
+	button.tight {
+		padding: 0.2rem 0.45rem;
+		font-size: 0.85rem;
+		font-weight: 500;
 	}
 </style>
