@@ -172,8 +172,12 @@
 					<span class="role">rôle {subject.access.role}</span>
 				{/if}
 			</p>
-			{#if subject.capabilities.can_manage}
-				<p class="actions">
+			<p class="actions">
+				{#if subject.capabilities.can_launch}
+					<a class="launch" href={`/subjects/${subject.id}/launch`}>Lancer une revue</a>
+				{/if}
+				<a class="launch secondary" href="/runs">Voir les revues</a>
+				{#if subject.capabilities.can_manage}
 					<mb-button
 						variant="secondary"
 						onclick={() => {
@@ -183,8 +187,8 @@
 						{editing ? 'Annuler' : 'Modifier'}
 					</mb-button>
 					<mb-button variant="danger" onclick={onArchive}>Archiver</mb-button>
-				</p>
-			{/if}
+				{/if}
+			</p>
 		</section>
 
 		{#if editing}
@@ -369,8 +373,26 @@
 	}
 	.actions {
 		display: flex;
+		flex-wrap: wrap;
 		gap: 0.5rem;
-		margin: 0 0 1.5rem;
+		align-items: center;
+		margin: 0.75rem 0 1.5rem;
+	}
+	.launch {
+		display: inline-flex;
+		align-items: center;
+		padding: 0.45rem 0.85rem;
+		border-radius: 0.4rem;
+		background: #0f766e;
+		color: #ecfdf5;
+		font-weight: 600;
+		text-decoration: none;
+		font-size: 0.9rem;
+	}
+	.launch.secondary {
+		background: transparent;
+		border: 1px solid #334155;
+		color: #99f6e4;
 	}
 	.block {
 		margin: 1.5rem 0;

@@ -21,7 +21,31 @@ const (
 
 // Defines values for HealthResponseStatus.
 const (
-	Ok HealthResponseStatus = "ok"
+	HealthResponseStatusOk HealthResponseStatus = "ok"
+)
+
+// Defines values for RunDetailStatus.
+const (
+	RunDetailStatusArchived   RunDetailStatus = "archived"
+	RunDetailStatusDone       RunDetailStatus = "done"
+	RunDetailStatusDraft      RunDetailStatus = "draft"
+	RunDetailStatusInProgress RunDetailStatus = "in_progress"
+)
+
+// Defines values for RunItemStatus.
+const (
+	RunItemStatusNa      RunItemStatus = "na"
+	RunItemStatusNok     RunItemStatus = "nok"
+	RunItemStatusOk      RunItemStatus = "ok"
+	RunItemStatusPending RunItemStatus = "pending"
+)
+
+// Defines values for RunSummaryStatus.
+const (
+	RunSummaryStatusArchived   RunSummaryStatus = "archived"
+	RunSummaryStatusDone       RunSummaryStatus = "done"
+	RunSummaryStatusDraft      RunSummaryStatus = "draft"
+	RunSummaryStatusInProgress RunSummaryStatus = "in_progress"
 )
 
 // Defines values for SubjectDetailVisibility.
@@ -47,6 +71,22 @@ const (
 const (
 	Normal  SubjectWriteRequestVisibility = "normal"
 	Private SubjectWriteRequestVisibility = "private"
+)
+
+// Defines values for UpdateRunItemRequestStatus.
+const (
+	Na      UpdateRunItemRequestStatus = "na"
+	Nok     UpdateRunItemRequestStatus = "nok"
+	Ok      UpdateRunItemRequestStatus = "ok"
+	Pending UpdateRunItemRequestStatus = "pending"
+)
+
+// Defines values for ListRunsParamsStatus.
+const (
+	Done       ListRunsParamsStatus = "done"
+	Draft      ListRunsParamsStatus = "draft"
+	InProgress ListRunsParamsStatus = "in_progress"
+	Overdue    ListRunsParamsStatus = "overdue"
 )
 
 // AddSubjectMemberRequest defines model for AddSubjectMemberRequest.
@@ -82,12 +122,25 @@ type BootstrapResponse struct {
 	User     *User   `json:"user,omitempty"`
 }
 
+// CompleteRunRequest defines model for CompleteRunRequest.
+type CompleteRunRequest struct {
+	// ClosingNote Note de cloture optionnelle
+	ClosingNote *string `json:"closing_note,omitempty"`
+}
+
 // CreateOrganizationRequest defines model for CreateOrganizationRequest.
 type CreateOrganizationRequest struct {
 	Name string `json:"name"`
 
 	// Slug Optionnel — dérivé du nom si omis
 	Slug *string `json:"slug,omitempty"`
+}
+
+// CreateRunRequest defines model for CreateRunRequest.
+type CreateRunRequest struct {
+	// DueDate Date YYYY-MM-DD optionnelle
+	DueDate    *string `json:"due_date"`
+	TemplateId int64   `json:"template_id"`
 }
 
 // ErrorBody defines model for ErrorBody.
@@ -176,6 +229,132 @@ type RegisterRequest struct {
 	PasswordConfirm string              `json:"password_confirm"`
 }
 
+// RunAssignee defines model for RunAssignee.
+type RunAssignee struct {
+	DisplayName string `json:"display_name"`
+	Login       string `json:"login"`
+	UserId      int64  `json:"user_id"`
+}
+
+// RunCapabilities defines model for RunCapabilities.
+type RunCapabilities struct {
+	CanAssign      bool `json:"can_assign"`
+	CanComplete    bool `json:"can_complete"`
+	CanUpdateItems bool `json:"can_update_items"`
+}
+
+// RunDetail defines model for RunDetail.
+type RunDetail struct {
+	Assignees            *[]RunAssignee  `json:"assignees,omitempty"`
+	Capabilities         RunCapabilities `json:"capabilities"`
+	ClosingNote          *string         `json:"closing_note,omitempty"`
+	CompletedAt          *string         `json:"completed_at"`
+	CreatedAt            string          `json:"created_at"`
+	DueDate              *string         `json:"due_date"`
+	Id                   int64           `json:"id"`
+	Items                []RunItem       `json:"items"`
+	PendingRequiredCount *int            `json:"pending_required_count,omitempty"`
+	Progress             RunProgress     `json:"progress"`
+	StartedAt            *string         `json:"started_at"`
+	Status               RunDetailStatus `json:"status"`
+	SubjectId            int64           `json:"subject_id"`
+	SubjectName          string          `json:"subject_name"`
+	TemplateId           int64           `json:"template_id"`
+	TemplateName         string          `json:"template_name"`
+	TemplateVersion      int             `json:"template_version"`
+	Title                string          `json:"title"`
+}
+
+// RunDetailStatus defines model for RunDetail.Status.
+type RunDetailStatus string
+
+// RunItem defines model for RunItem.
+type RunItem struct {
+	AssignedLogin *string       `json:"assigned_login"`
+	AssignedTo    *int64        `json:"assigned_to"`
+	Comment       string        `json:"comment"`
+	HelpText      *string       `json:"help_text,omitempty"`
+	Id            int64         `json:"id"`
+	Label         string        `json:"label"`
+	Position      int           `json:"position"`
+	Required      bool          `json:"required"`
+	RunId         int64         `json:"run_id"`
+	Section       string        `json:"section"`
+	Status        RunItemStatus `json:"status"`
+	UpdatedAt     string        `json:"updated_at"`
+}
+
+// RunItemStatus defines model for RunItem.Status.
+type RunItemStatus string
+
+// RunItemDetail defines model for RunItemDetail.
+type RunItemDetail struct {
+	Assignees    *[]RunAssignee  `json:"assignees,omitempty"`
+	Capabilities RunCapabilities `json:"capabilities"`
+	Events       []RunItemEvent  `json:"events"`
+	Item         RunItem         `json:"item"`
+	RunStatus    *string         `json:"run_status,omitempty"`
+	RunTitle     *string         `json:"run_title,omitempty"`
+	SubjectId    *int64          `json:"subject_id,omitempty"`
+	SubjectName  *string         `json:"subject_name,omitempty"`
+}
+
+// RunItemEvent defines model for RunItemEvent.
+type RunItemEvent struct {
+	Comment   *string `json:"comment,omitempty"`
+	CreatedAt string  `json:"created_at"`
+	Id        int64   `json:"id"`
+	NewStatus string  `json:"new_status"`
+	OldStatus *string `json:"old_status"`
+	UserLogin *string `json:"user_login"`
+}
+
+// RunListResponse defines model for RunListResponse.
+type RunListResponse struct {
+	Runs  []RunSummary `json:"runs"`
+	Total int          `json:"total"`
+}
+
+// RunProgress defines model for RunProgress.
+type RunProgress struct {
+	Done    int `json:"done"`
+	Percent int `json:"percent"`
+	Total   int `json:"total"`
+}
+
+// RunSummary defines model for RunSummary.
+type RunSummary struct {
+	CompletedAt    *string          `json:"completed_at"`
+	CreatedAt      string           `json:"created_at"`
+	CreatedByLogin *string          `json:"created_by_login"`
+	DueDate        *string          `json:"due_date"`
+	Id             int64            `json:"id"`
+	Progress       RunProgress      `json:"progress"`
+	StartedAt      *string          `json:"started_at"`
+	Status         RunSummaryStatus `json:"status"`
+	SubjectId      int64            `json:"subject_id"`
+	SubjectName    string           `json:"subject_name"`
+	Title          string           `json:"title"`
+}
+
+// RunSummaryStatus defines model for RunSummary.Status.
+type RunSummaryStatus string
+
+// RunTemplateListResponse defines model for RunTemplateListResponse.
+type RunTemplateListResponse struct {
+	CanLaunch bool                 `json:"can_launch"`
+	Templates []RunTemplateSummary `json:"templates"`
+}
+
+// RunTemplateSummary defines model for RunTemplateSummary.
+type RunTemplateSummary struct {
+	Domains       *[]string `json:"domains,omitempty"`
+	Id            int64     `json:"id"`
+	ItemCount     int       `json:"item_count"`
+	LatestVersion int       `json:"latest_version"`
+	Name          string    `json:"name"`
+}
+
 // SelectOrganizationRequest defines model for SelectOrganizationRequest.
 type SelectOrganizationRequest struct {
 	OrganizationId int64 `json:"organization_id"`
@@ -192,6 +371,9 @@ type SubjectAccessInfo struct {
 
 // SubjectCapabilities defines model for SubjectCapabilities.
 type SubjectCapabilities struct {
+	// CanLaunch Lancer une revue (contributor+ effectif)
+	CanLaunch bool `json:"can_launch"`
+
 	// CanManage Modifier / archiver
 	CanManage bool `json:"can_manage"`
 
@@ -355,6 +537,20 @@ type TemplateWriteRequest struct {
 	Name    string              `json:"name"`
 }
 
+// UpdateRunItemRequest defines model for UpdateRunItemRequest.
+type UpdateRunItemRequest struct {
+	// AssignedTo Assignee user id (omit = no change)
+	AssignedTo *int64                      `json:"assigned_to,omitempty"`
+	Comment    *string                     `json:"comment,omitempty"`
+	Status     *UpdateRunItemRequestStatus `json:"status,omitempty"`
+
+	// Unassign true to clear assignee (takes precedence over assigned_to)
+	Unassign *bool `json:"unassign,omitempty"`
+}
+
+// UpdateRunItemRequestStatus defines model for UpdateRunItemRequest.Status.
+type UpdateRunItemRequestStatus string
+
 // User defines model for User.
 type User struct {
 	AvatarUrl   *string             `json:"avatar_url,omitempty"`
@@ -366,6 +562,12 @@ type User struct {
 	// Role Rôle global (admin|editor|reader)
 	Role string `json:"role"`
 }
+
+// RunId defines model for RunId.
+type RunId = int64
+
+// RunItemId defines model for RunItemId.
+type RunItemId = int64
 
 // SubjectId defines model for SubjectId.
 type SubjectId = int64
@@ -394,6 +596,20 @@ type NotFound = ErrorResponse
 // Unauthorized defines model for Unauthorized.
 type Unauthorized = ErrorResponse
 
+// ListRunsParams defines parameters for ListRuns.
+type ListRunsParams struct {
+	// Status Filtre statut
+	Status *ListRunsParamsStatus `form:"status,omitempty" json:"status,omitempty"`
+
+	// Q Recherche texte
+	Q      *string `form:"q,omitempty" json:"q,omitempty"`
+	Limit  *int    `form:"limit,omitempty" json:"limit,omitempty"`
+	Offset *int    `form:"offset,omitempty" json:"offset,omitempty"`
+}
+
+// ListRunsParamsStatus defines parameters for ListRuns.
+type ListRunsParamsStatus string
+
 // ListSubjectsParams defines parameters for ListSubjects.
 type ListSubjectsParams struct {
 	// Q Filtre texte (nom / description)
@@ -418,6 +634,12 @@ type CreateOrganizationJSONRequestBody = CreateOrganizationRequest
 // SelectActiveOrganizationJSONRequestBody defines body for SelectActiveOrganization for application/json ContentType.
 type SelectActiveOrganizationJSONRequestBody = SelectOrganizationRequest
 
+// CompleteRunJSONRequestBody defines body for CompleteRun for application/json ContentType.
+type CompleteRunJSONRequestBody = CompleteRunRequest
+
+// UpdateRunItemJSONRequestBody defines body for UpdateRunItem for application/json ContentType.
+type UpdateRunItemJSONRequestBody = UpdateRunItemRequest
+
 // CreateSubjectJSONRequestBody defines body for CreateSubject for application/json ContentType.
 type CreateSubjectJSONRequestBody = SubjectWriteRequest
 
@@ -426,6 +648,9 @@ type UpdateSubjectJSONRequestBody = SubjectWriteRequest
 
 // AddSubjectMemberJSONRequestBody defines body for AddSubjectMember for application/json ContentType.
 type AddSubjectMemberJSONRequestBody = AddSubjectMemberRequest
+
+// CreateRunJSONRequestBody defines body for CreateRun for application/json ContentType.
+type CreateRunJSONRequestBody = CreateRunRequest
 
 // CreateTemplateJSONRequestBody defines body for CreateTemplate for application/json ContentType.
 type CreateTemplateJSONRequestBody = TemplateWriteRequest
@@ -468,6 +693,21 @@ type ServerInterface interface {
 	// Accepter une invitation d'organisation
 	// (POST /orgs/invitations/{invitationID}/accept)
 	AcceptOrganizationInvitation(w http.ResponseWriter, r *http.Request, invitationID int64)
+	// Liste des revues visibles
+	// (GET /runs)
+	ListRuns(w http.ResponseWriter, r *http.Request, params ListRunsParams)
+	// Detail revue + items + progression
+	// (GET /runs/{runId})
+	GetRun(w http.ResponseWriter, r *http.Request, runId RunId)
+	// Cloturer une revue
+	// (POST /runs/{runId}/complete)
+	CompleteRun(w http.ResponseWriter, r *http.Request, runId RunId)
+	// Detail d'un point + audit
+	// (GET /runs/{runId}/items/{itemId})
+	GetRunItem(w http.ResponseWriter, r *http.Request, runId RunId, itemId RunItemId)
+	// Mettre a jour status/comment/assign
+	// (PATCH /runs/{runId}/items/{itemId})
+	UpdateRunItem(w http.ResponseWriter, r *http.Request, runId RunId, itemId RunItemId)
 	// Liste des sujets de l'org active
 	// (GET /subjects)
 	ListSubjects(w http.ResponseWriter, r *http.Request, params ListSubjectsParams)
@@ -492,6 +732,15 @@ type ServerInterface interface {
 	// Retirer un membre direct
 	// (DELETE /subjects/{subjectId}/members/{userId})
 	RemoveSubjectMember(w http.ResponseWriter, r *http.Request, subjectId SubjectId, userId int64)
+	// Modeles lanables pour un sujet
+	// (GET /subjects/{subjectId}/run-templates)
+	ListSubjectRunTemplates(w http.ResponseWriter, r *http.Request, subjectId SubjectId)
+	// Revues d'un sujet
+	// (GET /subjects/{subjectId}/runs)
+	ListSubjectRuns(w http.ResponseWriter, r *http.Request, subjectId SubjectId)
+	// Lancer une revue (snapshot transactionnel)
+	// (POST /subjects/{subjectId}/runs)
+	CreateRun(w http.ResponseWriter, r *http.Request, subjectId SubjectId)
 	// Catalogue des modèles
 	// (GET /templates)
 	ListTemplates(w http.ResponseWriter, r *http.Request, params ListTemplatesParams)
@@ -582,6 +831,36 @@ func (_ Unimplemented) AcceptOrganizationInvitation(w http.ResponseWriter, r *ht
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// Liste des revues visibles
+// (GET /runs)
+func (_ Unimplemented) ListRuns(w http.ResponseWriter, r *http.Request, params ListRunsParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Detail revue + items + progression
+// (GET /runs/{runId})
+func (_ Unimplemented) GetRun(w http.ResponseWriter, r *http.Request, runId RunId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Cloturer une revue
+// (POST /runs/{runId}/complete)
+func (_ Unimplemented) CompleteRun(w http.ResponseWriter, r *http.Request, runId RunId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Detail d'un point + audit
+// (GET /runs/{runId}/items/{itemId})
+func (_ Unimplemented) GetRunItem(w http.ResponseWriter, r *http.Request, runId RunId, itemId RunItemId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Mettre a jour status/comment/assign
+// (PATCH /runs/{runId}/items/{itemId})
+func (_ Unimplemented) UpdateRunItem(w http.ResponseWriter, r *http.Request, runId RunId, itemId RunItemId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // Liste des sujets de l'org active
 // (GET /subjects)
 func (_ Unimplemented) ListSubjects(w http.ResponseWriter, r *http.Request, params ListSubjectsParams) {
@@ -627,6 +906,24 @@ func (_ Unimplemented) AddSubjectMember(w http.ResponseWriter, r *http.Request, 
 // Retirer un membre direct
 // (DELETE /subjects/{subjectId}/members/{userId})
 func (_ Unimplemented) RemoveSubjectMember(w http.ResponseWriter, r *http.Request, subjectId SubjectId, userId int64) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Modeles lanables pour un sujet
+// (GET /subjects/{subjectId}/run-templates)
+func (_ Unimplemented) ListSubjectRunTemplates(w http.ResponseWriter, r *http.Request, subjectId SubjectId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Revues d'un sujet
+// (GET /subjects/{subjectId}/runs)
+func (_ Unimplemented) ListSubjectRuns(w http.ResponseWriter, r *http.Request, subjectId SubjectId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Lancer une revue (snapshot transactionnel)
+// (POST /subjects/{subjectId}/runs)
+func (_ Unimplemented) CreateRun(w http.ResponseWriter, r *http.Request, subjectId SubjectId) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -838,6 +1135,175 @@ func (siw *ServerInterfaceWrapper) AcceptOrganizationInvitation(w http.ResponseW
 	handler.ServeHTTP(w, r)
 }
 
+// ListRuns operation middleware
+func (siw *ServerInterfaceWrapper) ListRuns(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListRunsParams
+
+	// ------------- Optional query parameter "status" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "status", r.URL.Query(), &params.Status)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "status", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "q" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "q", r.URL.Query(), &params.Q)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "q", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "limit", r.URL.Query(), &params.Limit)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "offset" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "offset", r.URL.Query(), &params.Offset)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "offset", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListRuns(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetRun operation middleware
+func (siw *ServerInterfaceWrapper) GetRun(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "runId" -------------
+	var runId RunId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "runId", chi.URLParam(r, "runId"), &runId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "runId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetRun(w, r, runId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CompleteRun operation middleware
+func (siw *ServerInterfaceWrapper) CompleteRun(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "runId" -------------
+	var runId RunId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "runId", chi.URLParam(r, "runId"), &runId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "runId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CompleteRun(w, r, runId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetRunItem operation middleware
+func (siw *ServerInterfaceWrapper) GetRunItem(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "runId" -------------
+	var runId RunId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "runId", chi.URLParam(r, "runId"), &runId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "runId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "itemId" -------------
+	var itemId RunItemId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "itemId", chi.URLParam(r, "itemId"), &itemId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "itemId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetRunItem(w, r, runId, itemId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateRunItem operation middleware
+func (siw *ServerInterfaceWrapper) UpdateRunItem(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "runId" -------------
+	var runId RunId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "runId", chi.URLParam(r, "runId"), &runId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "runId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "itemId" -------------
+	var itemId RunItemId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "itemId", chi.URLParam(r, "itemId"), &itemId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "itemId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateRunItem(w, r, runId, itemId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // ListSubjects operation middleware
 func (siw *ServerInterfaceWrapper) ListSubjects(w http.ResponseWriter, r *http.Request) {
 
@@ -1029,6 +1495,81 @@ func (siw *ServerInterfaceWrapper) RemoveSubjectMember(w http.ResponseWriter, r 
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.RemoveSubjectMember(w, r, subjectId, userId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListSubjectRunTemplates operation middleware
+func (siw *ServerInterfaceWrapper) ListSubjectRunTemplates(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "subjectId" -------------
+	var subjectId SubjectId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "subjectId", chi.URLParam(r, "subjectId"), &subjectId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "subjectId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListSubjectRunTemplates(w, r, subjectId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListSubjectRuns operation middleware
+func (siw *ServerInterfaceWrapper) ListSubjectRuns(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "subjectId" -------------
+	var subjectId SubjectId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "subjectId", chi.URLParam(r, "subjectId"), &subjectId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "subjectId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListSubjectRuns(w, r, subjectId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateRun operation middleware
+func (siw *ServerInterfaceWrapper) CreateRun(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "subjectId" -------------
+	var subjectId SubjectId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "subjectId", chi.URLParam(r, "subjectId"), &subjectId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "subjectId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateRun(w, r, subjectId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1382,6 +1923,21 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Post(options.BaseURL+"/orgs/invitations/{invitationID}/accept", wrapper.AcceptOrganizationInvitation)
 	})
 	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/runs", wrapper.ListRuns)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/runs/{runId}", wrapper.GetRun)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/runs/{runId}/complete", wrapper.CompleteRun)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/runs/{runId}/items/{itemId}", wrapper.GetRunItem)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/runs/{runId}/items/{itemId}", wrapper.UpdateRunItem)
+	})
+	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/subjects", wrapper.ListSubjects)
 	})
 	r.Group(func(r chi.Router) {
@@ -1404,6 +1960,15 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Delete(options.BaseURL+"/subjects/{subjectId}/members/{userId}", wrapper.RemoveSubjectMember)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/subjects/{subjectId}/run-templates", wrapper.ListSubjectRunTemplates)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/subjects/{subjectId}/runs", wrapper.ListSubjectRuns)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/subjects/{subjectId}/runs", wrapper.CreateRun)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/templates", wrapper.ListTemplates)

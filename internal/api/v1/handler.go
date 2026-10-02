@@ -12,6 +12,7 @@ import (
 	"github.com/jeb-maker/revues/internal/features/checklisttemplates"
 	"github.com/jeb-maker/revues/internal/features/organizations"
 	"github.com/jeb-maker/revues/internal/features/subjects"
+	"github.com/jeb-maker/revues/internal/integrations/webhooks"
 	"github.com/jeb-maker/revues/internal/store"
 )
 
@@ -23,6 +24,7 @@ type Server struct {
 	Store     *store.Store
 	Config    config.Config
 	Sessions  *auth.SessionManager
+	Webhooks  *webhooks.Dispatcher
 }
 
 // NewServer returns the API v1 server implementation.
@@ -33,6 +35,7 @@ func NewServer(
 	st *store.Store,
 	cfg config.Config,
 	sessions *auth.SessionManager,
+	hooks *webhooks.Dispatcher,
 ) *Server {
 	return &Server{
 		Auth:      authSvc,
@@ -41,12 +44,13 @@ func NewServer(
 		Store:     st,
 		Config:    cfg,
 		Sessions:  sessions,
+		Webhooks:  hooks,
 	}
 }
 
 // GetHealth serves GET /api/v1/health.
 func (s *Server) GetHealth(w http.ResponseWriter, _ *http.Request) {
-	writeJSON(w, http.StatusOK, HealthResponse{Status: Ok})
+	writeJSON(w, http.StatusOK, HealthResponse{Status: HealthResponseStatusOk})
 }
 
 func writeJSON(w http.ResponseWriter, status int, v any) {

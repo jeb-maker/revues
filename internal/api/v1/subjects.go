@@ -419,6 +419,7 @@ func (s *Server) buildSubjectDetail(w http.ResponseWriter, r *http.Request, subj
 			CanManage:        subjects.CanManageAccess(user, access),
 			CanManageMembers: subjects.CanManageSubjectMembers(user, access, policies),
 			CanSetVisibility: subjects.CanSetSubjectVisibility(user, orgRole, orgMember, access),
+			CanLaunch:        subjects.CanContributeAccess(user, access),
 		},
 	}, true
 }

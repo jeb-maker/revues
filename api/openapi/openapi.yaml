@@ -734,6 +734,251 @@ paths:
           $ref: '#/components/responses/NotFound'
         '500':
           $ref: '#/components/responses/InternalError'
+  /runs:
+    get:
+      operationId: listRuns
+      tags:
+        - runs
+      summary: Liste des revues visibles
+      description: Auth + org. Filtre status/q. Visibilite via ResolveSubjectAccess.
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - draft
+              - in_progress
+              - done
+              - overdue
+          description: Filtre statut
+        - name: q
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Recherche texte
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 25
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        '200':
+          description: Liste
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RunListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /subjects/{subjectId}/runs:
+    parameters:
+      - $ref: '#/components/parameters/SubjectId'
+    get:
+      operationId: listSubjectRuns
+      tags:
+        - runs
+      summary: Revues d'un sujet
+      description: Auth + CanViewAccess sur le sujet.
+      responses:
+        '200':
+          description: Liste
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RunListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      operationId: createRun
+      tags:
+        - runs
+      summary: Lancer une revue (snapshot transactionnel)
+      description: Auth + CanLaunchAccess. Copie SQL template_items vers run_items en transaction. CSRF requis.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateRunRequest'
+      responses:
+        '201':
+          description: Revue creee
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RunDetail'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /subjects/{subjectId}/run-templates:
+    parameters:
+      - $ref: '#/components/parameters/SubjectId'
+    get:
+      operationId: listSubjectRunTemplates
+      tags:
+        - runs
+      summary: Modeles lanables pour un sujet
+      description: Auth + CanViewAccess. Matching domaines sujet / modeles.
+      responses:
+        '200':
+          description: Catalogue filtre
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RunTemplateListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /runs/{runId}:
+    parameters:
+      - $ref: '#/components/parameters/RunId'
+    get:
+      operationId: getRun
+      tags:
+        - runs
+      summary: Detail revue + items + progression
+      description: Auth + Visible sur le sujet. Inclut capacites UI.
+      responses:
+        '200':
+          description: Detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RunDetail'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /runs/{runId}/complete:
+    parameters:
+      - $ref: '#/components/parameters/RunId'
+    post:
+      operationId: completeRun
+      tags:
+        - runs
+      summary: Cloturer une revue
+      description: Auth + CanCompleteAccess. Bloque si points obligatoires pending. Emit review.completed. CSRF.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CompleteRunRequest'
+      responses:
+        '200':
+          description: Revue cloturee
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RunDetail'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /runs/{runId}/items/{itemId}:
+    parameters:
+      - $ref: '#/components/parameters/RunId'
+      - $ref: '#/components/parameters/RunItemId'
+    get:
+      operationId: getRunItem
+      tags:
+        - runs
+      summary: Detail d'un point + audit
+      description: Auth + Visible. Inclut historique run_item_events.
+      responses:
+        '200':
+          description: Point
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RunItemDetail'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    patch:
+      operationId: updateRunItem
+      tags:
+        - runs
+      summary: Mettre a jour status/comment/assign
+      description: Auth + CanUpdateAccess; assign exige CanAssignAccess. Comment obligatoire si nok. Run done -> 409. 
+        Emit review.item.nok. CSRF.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateRunItemRequest'
+      responses:
+        '200':
+          description: Point mis a jour
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RunItemDetail'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalError'
 components:
   responses:
     BadRequest:
@@ -1046,6 +1291,7 @@ components:
       - can_manage
       - can_manage_members
       - can_set_visibility
+      - can_launch
       properties:
         can_manage:
           type: boolean
@@ -1056,6 +1302,9 @@ components:
         can_set_visibility:
           type: boolean
           description: Changer subjects.visibility
+        can_launch:
+          type: boolean
+          description: Lancer une revue (contributor+ effectif)
     SubjectAccessInfo:
       type: object
       required:
@@ -1354,6 +1603,337 @@ components:
         can_manage:
           type: boolean
           description: true si l'utilisateur courant peut éditer/archiver
+    RunProgress:
+      type: object
+      required:
+        - done
+        - total
+        - percent
+      properties:
+        done:
+          type: integer
+        total:
+          type: integer
+        percent:
+          type: integer
+    RunSummary:
+      type: object
+      required:
+        - id
+        - title
+        - subject_id
+        - subject_name
+        - status
+        - created_at
+        - progress
+      properties:
+        id:
+          type: integer
+          format: int64
+        title:
+          type: string
+        subject_id:
+          type: integer
+          format: int64
+        subject_name:
+          type: string
+        status:
+          type: string
+          enum:
+            - draft
+            - in_progress
+            - done
+            - archived
+        due_date:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+        started_at:
+          type: string
+          nullable: true
+        completed_at:
+          type: string
+          nullable: true
+        created_by_login:
+          type: string
+          nullable: true
+        progress:
+          $ref: '#/components/schemas/RunProgress'
+    RunListResponse:
+      type: object
+      required:
+        - runs
+        - total
+      properties:
+        runs:
+          type: array
+          items:
+            $ref: '#/components/schemas/RunSummary'
+        total:
+          type: integer
+    RunTemplateSummary:
+      type: object
+      required:
+        - id
+        - name
+        - latest_version
+        - item_count
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        latest_version:
+          type: integer
+        item_count:
+          type: integer
+        domains:
+          type: array
+          items:
+            type: string
+    RunTemplateListResponse:
+      type: object
+      required:
+        - templates
+        - can_launch
+      properties:
+        templates:
+          type: array
+          items:
+            $ref: '#/components/schemas/RunTemplateSummary'
+        can_launch:
+          type: boolean
+    CreateRunRequest:
+      type: object
+      required:
+        - template_id
+      properties:
+        template_id:
+          type: integer
+          format: int64
+          minimum: 1
+        due_date:
+          type: string
+          description: Date YYYY-MM-DD optionnelle
+          nullable: true
+    CompleteRunRequest:
+      type: object
+      properties:
+        closing_note:
+          type: string
+          description: Note de cloture optionnelle
+    RunCapabilities:
+      type: object
+      required:
+        - can_update_items
+        - can_assign
+        - can_complete
+      properties:
+        can_update_items:
+          type: boolean
+        can_assign:
+          type: boolean
+        can_complete:
+          type: boolean
+    RunItem:
+      type: object
+      required:
+        - id
+        - run_id
+        - section
+        - position
+        - label
+        - required
+        - status
+        - comment
+        - updated_at
+      properties:
+        id:
+          type: integer
+          format: int64
+        run_id:
+          type: integer
+          format: int64
+        section:
+          type: string
+        position:
+          type: integer
+        label:
+          type: string
+        help_text:
+          type: string
+        required:
+          type: boolean
+        status:
+          type: string
+          enum:
+            - pending
+            - ok
+            - nok
+            - na
+        comment:
+          type: string
+        assigned_to:
+          type: integer
+          format: int64
+          nullable: true
+        assigned_login:
+          type: string
+          nullable: true
+        updated_at:
+          type: string
+    RunItemEvent:
+      type: object
+      required:
+        - id
+        - new_status
+        - created_at
+      properties:
+        id:
+          type: integer
+          format: int64
+        user_login:
+          type: string
+          nullable: true
+        old_status:
+          type: string
+          nullable: true
+        new_status:
+          type: string
+        comment:
+          type: string
+        created_at:
+          type: string
+    RunAssignee:
+      type: object
+      required:
+        - user_id
+        - login
+        - display_name
+      properties:
+        user_id:
+          type: integer
+          format: int64
+        login:
+          type: string
+        display_name:
+          type: string
+    RunItemDetail:
+      type: object
+      required:
+        - item
+        - events
+        - capabilities
+      properties:
+        item:
+          $ref: '#/components/schemas/RunItem'
+        events:
+          type: array
+          items:
+            $ref: '#/components/schemas/RunItemEvent'
+        assignees:
+          type: array
+          items:
+            $ref: '#/components/schemas/RunAssignee'
+        capabilities:
+          $ref: '#/components/schemas/RunCapabilities'
+        run_status:
+          type: string
+        run_title:
+          type: string
+        subject_id:
+          type: integer
+          format: int64
+        subject_name:
+          type: string
+    UpdateRunItemRequest:
+      type: object
+      properties:
+        status:
+          type: string
+          enum:
+            - pending
+            - ok
+            - nok
+            - na
+        comment:
+          type: string
+        assigned_to:
+          type: integer
+          format: int64
+          description: Assignee user id (omit = no change)
+        unassign:
+          type: boolean
+          description: true to clear assignee (takes precedence over assigned_to)
+    RunDetail:
+      type: object
+      required:
+        - id
+        - title
+        - subject_id
+        - subject_name
+        - status
+        - template_id
+        - template_name
+        - template_version
+        - created_at
+        - progress
+        - items
+        - capabilities
+      properties:
+        id:
+          type: integer
+          format: int64
+        title:
+          type: string
+        subject_id:
+          type: integer
+          format: int64
+        subject_name:
+          type: string
+        status:
+          type: string
+          enum:
+            - draft
+            - in_progress
+            - done
+            - archived
+        due_date:
+          type: string
+          nullable: true
+        closing_note:
+          type: string
+        template_id:
+          type: integer
+          format: int64
+        template_name:
+          type: string
+        template_version:
+          type: integer
+        created_at:
+          type: string
+        started_at:
+          type: string
+          nullable: true
+        completed_at:
+          type: string
+          nullable: true
+        progress:
+          $ref: '#/components/schemas/RunProgress'
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/RunItem'
+        assignees:
+          type: array
+          items:
+            $ref: '#/components/schemas/RunAssignee'
+        capabilities:
+          $ref: '#/components/schemas/RunCapabilities'
+        pending_required_count:
+          type: integer
   parameters:
     SubjectId:
       name: subjectId
@@ -1379,3 +1959,21 @@ components:
         type: integer
         minimum: 1
       description: Numéro de version publiée (1, 2, …)
+    RunId:
+      name: runId
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+        minimum: 1
+      description: Identifiant de la revue
+    RunItemId:
+      name: itemId
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+        minimum: 1
+      description: Identifiant du point (run item)

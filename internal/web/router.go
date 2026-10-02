@@ -88,7 +88,7 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, *webhooks.Dispa
 		DevMode:  deps.Config.Env == "development",
 	}
 
-	apiServer := apiv1.NewServer(authSvc, orgSvc, templatesSvc, st, deps.Config, sessions)
+	apiServer := apiv1.NewServer(authSvc, orgSvc, templatesSvc, st, deps.Config, sessions, webhookDispatcher)
 
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)

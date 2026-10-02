@@ -30,7 +30,7 @@ func TestGetHealth(t *testing.T) {
 	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
 		t.Fatalf("json decode: %v (body=%q)", err, rec.Body.String())
 	}
-	if body.Status != apiv1.Ok {
-		t.Errorf("status = %q, want %q", body.Status, apiv1.Ok)
+	if body.Status != apiv1.HealthResponseStatusOk {
+		t.Errorf("status = %q, want %q", body.Status, apiv1.HealthResponseStatusOk)
 	}
 }

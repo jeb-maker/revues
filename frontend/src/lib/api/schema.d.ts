@@ -438,6 +438,149 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Liste des revues visibles
+         * @description Auth + org. Filtre status/q. Visibilite via ResolveSubjectAccess.
+         */
+        get: operations["listRuns"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/subjects/{subjectId}/runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                subjectId: components["parameters"]["SubjectId"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Revues d'un sujet
+         * @description Auth + CanViewAccess sur le sujet.
+         */
+        get: operations["listSubjectRuns"];
+        put?: never;
+        /**
+         * Lancer une revue (snapshot transactionnel)
+         * @description Auth + CanLaunchAccess. Copie SQL template_items vers run_items en transaction. CSRF requis.
+         */
+        post: operations["createRun"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/subjects/{subjectId}/run-templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                subjectId: components["parameters"]["SubjectId"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Modeles lanables pour un sujet
+         * @description Auth + CanViewAccess. Matching domaines sujet / modeles.
+         */
+        get: operations["listSubjectRunTemplates"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/runs/{runId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identifiant de la revue */
+                runId: components["parameters"]["RunId"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Detail revue + items + progression
+         * @description Auth + Visible sur le sujet. Inclut capacites UI.
+         */
+        get: operations["getRun"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/runs/{runId}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identifiant de la revue */
+                runId: components["parameters"]["RunId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cloturer une revue
+         * @description Auth + CanCompleteAccess. Bloque si points obligatoires pending. Emit review.completed. CSRF.
+         */
+        post: operations["completeRun"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/runs/{runId}/items/{itemId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identifiant de la revue */
+                runId: components["parameters"]["RunId"];
+                /** @description Identifiant du point (run item) */
+                itemId: components["parameters"]["RunItemId"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Detail d'un point + audit
+         * @description Auth + Visible. Inclut historique run_item_events.
+         */
+        get: operations["getRunItem"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Mettre a jour status/comment/assign
+         * @description Auth + CanUpdateAccess; assign exige CanAssignAccess. Comment obligatoire si nok. Run done -> 409. Emit review.item.nok. CSRF.
+         */
+        patch: operations["updateRunItem"];
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -579,6 +722,8 @@ export interface components {
             can_manage_members: boolean;
             /** @description Changer subjects.visibility */
             can_set_visibility: boolean;
+            /** @description Lancer une revue (contributor+ effectif) */
+            can_launch: boolean;
         };
         SubjectAccessInfo: {
             /** @description Rôle effectif (lead|contributor|viewer|"") */
@@ -710,6 +855,138 @@ export interface components {
             /** @description true si l'utilisateur courant peut éditer/archiver */
             can_manage?: boolean;
         };
+        RunProgress: {
+            done: number;
+            total: number;
+            percent: number;
+        };
+        RunSummary: {
+            /** Format: int64 */
+            id: number;
+            title: string;
+            /** Format: int64 */
+            subject_id: number;
+            subject_name: string;
+            /** @enum {string} */
+            status: "draft" | "in_progress" | "done" | "archived";
+            due_date?: string | null;
+            created_at: string;
+            started_at?: string | null;
+            completed_at?: string | null;
+            created_by_login?: string | null;
+            progress: components["schemas"]["RunProgress"];
+        };
+        RunListResponse: {
+            runs: components["schemas"]["RunSummary"][];
+            total: number;
+        };
+        RunTemplateSummary: {
+            /** Format: int64 */
+            id: number;
+            name: string;
+            latest_version: number;
+            item_count: number;
+            domains?: string[];
+        };
+        RunTemplateListResponse: {
+            templates: components["schemas"]["RunTemplateSummary"][];
+            can_launch: boolean;
+        };
+        CreateRunRequest: {
+            /** Format: int64 */
+            template_id: number;
+            /** @description Date YYYY-MM-DD optionnelle */
+            due_date?: string | null;
+        };
+        CompleteRunRequest: {
+            /** @description Note de cloture optionnelle */
+            closing_note?: string;
+        };
+        RunCapabilities: {
+            can_update_items: boolean;
+            can_assign: boolean;
+            can_complete: boolean;
+        };
+        RunItem: {
+            /** Format: int64 */
+            id: number;
+            /** Format: int64 */
+            run_id: number;
+            section: string;
+            position: number;
+            label: string;
+            help_text?: string;
+            required: boolean;
+            /** @enum {string} */
+            status: "pending" | "ok" | "nok" | "na";
+            comment: string;
+            /** Format: int64 */
+            assigned_to?: number | null;
+            assigned_login?: string | null;
+            updated_at: string;
+        };
+        RunItemEvent: {
+            /** Format: int64 */
+            id: number;
+            user_login?: string | null;
+            old_status?: string | null;
+            new_status: string;
+            comment?: string;
+            created_at: string;
+        };
+        RunAssignee: {
+            /** Format: int64 */
+            user_id: number;
+            login: string;
+            display_name: string;
+        };
+        RunItemDetail: {
+            item: components["schemas"]["RunItem"];
+            events: components["schemas"]["RunItemEvent"][];
+            assignees?: components["schemas"]["RunAssignee"][];
+            capabilities: components["schemas"]["RunCapabilities"];
+            run_status?: string;
+            run_title?: string;
+            /** Format: int64 */
+            subject_id?: number;
+            subject_name?: string;
+        };
+        UpdateRunItemRequest: {
+            /** @enum {string} */
+            status?: "pending" | "ok" | "nok" | "na";
+            comment?: string;
+            /**
+             * Format: int64
+             * @description Assignee user id (omit = no change)
+             */
+            assigned_to?: number;
+            /** @description true to clear assignee (takes precedence over assigned_to) */
+            unassign?: boolean;
+        };
+        RunDetail: {
+            /** Format: int64 */
+            id: number;
+            title: string;
+            /** Format: int64 */
+            subject_id: number;
+            subject_name: string;
+            /** @enum {string} */
+            status: "draft" | "in_progress" | "done" | "archived";
+            due_date?: string | null;
+            closing_note?: string;
+            /** Format: int64 */
+            template_id: number;
+            template_name: string;
+            template_version: number;
+            created_at: string;
+            started_at?: string | null;
+            completed_at?: string | null;
+            progress: components["schemas"]["RunProgress"];
+            items: components["schemas"]["RunItem"][];
+            assignees?: components["schemas"]["RunAssignee"][];
+            capabilities: components["schemas"]["RunCapabilities"];
+            pending_required_count?: number;
+        };
     };
     responses: {
         /** @description Requête invalide */
@@ -773,6 +1050,10 @@ export interface components {
         TemplateId: number;
         /** @description Numéro de version publiée (1, 2, …) */
         TemplateVersionNumber: number;
+        /** @description Identifiant de la revue */
+        RunId: number;
+        /** @description Identifiant du point (run item) */
+        RunItemId: number;
     };
     requestBodies: never;
     headers: never;
@@ -1464,6 +1745,243 @@ export interface operations {
             };
             401: components["responses"]["Unauthorized"];
             404: components["responses"]["NotFound"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    listRuns: {
+        parameters: {
+            query?: {
+                /** @description Filtre statut */
+                status?: "draft" | "in_progress" | "done" | "overdue";
+                /** @description Recherche texte */
+                q?: string;
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Liste */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunListResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    listSubjectRuns: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                subjectId: components["parameters"]["SubjectId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Liste */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunListResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    createRun: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                subjectId: components["parameters"]["SubjectId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateRunRequest"];
+            };
+        };
+        responses: {
+            /** @description Revue creee */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunDetail"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    listSubjectRunTemplates: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                subjectId: components["parameters"]["SubjectId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Catalogue filtre */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunTemplateListResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getRun: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identifiant de la revue */
+                runId: components["parameters"]["RunId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Detail */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunDetail"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    completeRun: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identifiant de la revue */
+                runId: components["parameters"]["RunId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["CompleteRunRequest"];
+            };
+        };
+        responses: {
+            /** @description Revue cloturee */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunDetail"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getRunItem: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identifiant de la revue */
+                runId: components["parameters"]["RunId"];
+                /** @description Identifiant du point (run item) */
+                itemId: components["parameters"]["RunItemId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Point */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunItemDetail"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    updateRunItem: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identifiant de la revue */
+                runId: components["parameters"]["RunId"];
+                /** @description Identifiant du point (run item) */
+                itemId: components["parameters"]["RunItemId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateRunItemRequest"];
+            };
+        };
+        responses: {
+            /** @description Point mis a jour */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunItemDetail"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             500: components["responses"]["InternalError"];
         };
     };
