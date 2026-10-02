@@ -46,9 +46,15 @@ step "Vérification interdits stack"
 if git grep -l -E '\b(react|vue|webpack)\b' -- '*.go' '*.html' '*.js' '*.css' 2>/dev/null | grep -vE '^(docs/|frontend/)' ; then
   fail "Framework frontend interdit détecté (React/Vue/webpack)"
 fi
-# Pas de retour de pages métier html/template
-if [[ -d web/templates/pages ]]; then
-  fail "web/templates/pages ne doit plus exister (rewrite WP-001)"
+# Pas de retour de pages métier html/template / HTMX
+if [[ -d web/templates ]]; then
+  fail "web/templates/ ne doit plus exister (rewrite WP-001 / WP-030)"
+fi
+# Code applicatif seulement (docs/ADR/AGENTS peuvent mentionner HTMX comme interdit).
+if git grep -l -i -E '\bhtmx\b|hx-get|hx-post|hx-boost' -- \
+  ':*.go' ':*.html' ':frontend/src/**/*.js' ':frontend/src/**/*.svelte' ':frontend/src/**/*.ts' \
+  2>/dev/null | grep -vE '^docs/' ; then
+  fail "Réintroduction HTMX / attributs hx-* détectée dans le code"
 fi
 
 # ---------------------------------------------------------------------------

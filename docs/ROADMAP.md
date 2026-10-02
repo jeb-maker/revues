@@ -2,18 +2,21 @@
 
 État courant et reste éventuel. Harness : [AGENTS.md](../AGENTS.md) · `./scripts/check.sh`.
 
-## En cours — Rewrite API-first + SvelteKit
+## Rewrite API-first + SvelteKit
 
 Décision : [ADR-001](./ADR-001-api-first-svelte.md).  
-Orchestration agents : [rewrite/README.md](./rewrite/README.md) · [WORK_PACKAGES.md](./rewrite/WORK_PACKAGES.md).
+Orchestration : [rewrite/README.md](./rewrite/README.md) · [WORK_PACKAGES.md](./rewrite/WORK_PACKAGES.md) · [ISSUE_MAP.md](./rewrite/ISSUE_MAP.md).
 
-Big bang : remplacement de l’UI `html/template` + HTMX par **Go OpenAPI + SvelteKit + mb**.
+Big bang : UI `html/template` + HTMX remplacée par **Go OpenAPI + SvelteKit + mb**.
 
-Créer les issues : `./scripts/create-rewrite-issues.sh`.
+| WP | Issue | Statut |
+|----|-------|--------|
+| WP-001–005, 010–016, 020–022 | #244–#258 | Mergé sur `main` |
+| WP-030 Clôture | #259 | Cette PR — garde HTMX + docs |
 
-## Livré (pré-rewrite)
+## Livré (pré-rewrite — référence métier)
 
-Cœur métier, auth GitHub, RBAC, orgs/équipes, SimpleUI, preuve ZIP, SMTP, Jira Cloud, webhooks, Notion, pièces jointes, hardening sécu — sur l’ancienne stack HTML/HTMX (référence comportementale pour les WP).
+Cœur métier, auth GitHub, RBAC, orgs/équipes, SMTP, Jira Cloud, webhooks, Notion, pièces jointes — comportement de référence pour les WP sur l’ancienne stack HTML/HTMX.
 
 ## Ouvert hors rewrite
 

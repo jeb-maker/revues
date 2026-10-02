@@ -41,8 +41,10 @@ Une personne peut aussi rejoindre si elle est déjà membre d'une organisation, 
 
 ## 5. Créer un sujet et lancer une revue
 
-1. Créer un **sujet** (hub Organisation ou `/subjects`)
-2. Créer ou rattacher un **modèle** / une **liste** (`/modeles` — vocabulaire selon mono-sujet ou multi-sujet)
-3. **Lancer une revue** via l'assistant en 2 étapes (`/revues/nouvelle` : sujet → modèle)
+1. Créer un **sujet** (`/subjects` ou `/subjects/new`)
+2. Créer ou rattacher un **modèle** (`/modeles`)
+3. **Lancer une revue** depuis le sujet (`/subjects/{id}/launch`) puis suivre la progression dans `/runs`
 
 Les lecteurs (`reader`) voient les sujets auxquels ils ont accès ; ils ne cochent pas.
+
+Admin org : `/admin` (emails, membres, équipes, politiques, SMTP, hub intégrations) — réservé owner/admin.
