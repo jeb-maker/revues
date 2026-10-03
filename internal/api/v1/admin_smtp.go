@@ -225,8 +225,6 @@ func mapIntegrationSummary(row adminintegrations.IntegrationSummary) Integration
 		key = Smtp
 	case adminintegrations.IntegrationKeyJira:
 		key = Jira
-	case adminintegrations.IntegrationKeyNotion:
-		key = Notion
 	case adminintegrations.IntegrationKeyWebhooks:
 		key = Webhooks
 	}

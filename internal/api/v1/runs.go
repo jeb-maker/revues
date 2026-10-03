@@ -238,7 +238,7 @@ func (s *Server) CompleteRun(w http.ResponseWriter, r *http.Request, runID RunId
 	}
 	hash := runs.SHA256Hex(csvData)
 
-	if err = s.Store.CompleteRunWithEvidence(r.Context(), run.ID, closingNote, hash, completedAt); err != nil {
+	if err = s.Store.CompleteRunWithEvidence(r.Context(), run.ID, closingNote, hash, completedAt, user.ID); err != nil {
 		if errors.Is(err, store.ErrPendingRequiredItems) {
 			writeAPIError(w, http.StatusBadRequest, "validation_failed",
 				"Des points obligatoires sont encore en attente.")
@@ -538,15 +538,8 @@ func (s *Server) buildRunDetail(w http.ResponseWriter, r *http.Request, run *sto
 			CanUpdateItems: editable && runs.CanUpdateAccess(user, access),
 			CanAssign:      editable && runs.CanAssignAccess(user, access),
 			CanComplete:    editable && runs.CanCompleteAccess(user, access),
-			CanExportNotion: run.Status == store.RunStatusDone &&
-				runs.CanCompleteAccess(user, access) &&
-				strings.TrimSpace(run.NotionURL) == "" &&
-				s.notionExportReady(r),
 		},
 		PendingRequiredCount: &pendingCount,
-	}
-	if run.NotionURL != "" {
-		detail.NotionUrl = &run.NotionURL
 	}
 	if run.DueDate.Valid {
 		detail.DueDate = &run.DueDate.String
@@ -556,6 +549,10 @@ func (s *Server) buildRunDetail(w http.ResponseWriter, r *http.Request, run *sto
 	}
 	if run.CompletedAt.Valid {
 		detail.CompletedAt = &run.CompletedAt.String
+	}
+	if run.CompletedByLogin != "" {
+		login := run.CompletedByLogin
+		detail.CompletedByLogin = &login
 	}
 	return detail, true
 }
@@ -654,10 +651,9 @@ func (s *Server) buildRunItemDetail(
 
 func runCaps(user *store.User, access store.SubjectAccess, editable bool) RunCapabilities {
 	return RunCapabilities{
-		CanUpdateItems:  editable && runs.CanUpdateAccess(user, access),
-		CanAssign:       editable && runs.CanAssignAccess(user, access),
-		CanComplete:     editable && runs.CanCompleteAccess(user, access),
-		CanExportNotion: false,
+		CanUpdateItems: editable && runs.CanUpdateAccess(user, access),
+		CanAssign:      editable && runs.CanAssignAccess(user, access),
+		CanComplete:    editable && runs.CanCompleteAccess(user, access),
 	}
 }
 

@@ -11,7 +11,7 @@ import (
 	"github.com/jeb-maker/revues/internal/store"
 )
 
-const spaHomePath = "/"
+const spaHomePath = "/runs"
 
 // Service holds organization onboarding / selection business logic.
 type Service struct {

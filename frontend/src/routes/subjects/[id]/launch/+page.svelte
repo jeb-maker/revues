@@ -28,7 +28,10 @@
 			const res = await listSubjectRunTemplates(subjectId(), csrf);
 			templates = res.templates ?? [];
 			canLaunch = res.can_launch;
-			if (templates.length === 1) {
+			const preset = page.url.searchParams.get('template_id');
+			if (preset && templates.some((t) => String(t.id) === preset)) {
+				templateId = preset;
+			} else if (templates.length === 1) {
 				templateId = String(templates[0].id);
 			}
 		} catch (e) {

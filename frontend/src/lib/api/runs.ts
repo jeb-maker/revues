@@ -25,6 +25,8 @@ function errorMessage(error: unknown, fallback: string): string {
 export async function listRuns(opts?: {
 	status?: 'draft' | 'in_progress' | 'done' | 'overdue';
 	q?: string;
+	limit?: number;
+	offset?: number;
 	csrfToken?: string;
 }): Promise<RunListResponse> {
 	const client = createApiClient({ csrfToken: opts?.csrfToken });
@@ -32,7 +34,9 @@ export async function listRuns(opts?: {
 		params: {
 			query: {
 				...(opts?.status ? { status: opts.status } : {}),
-				...(opts?.q ? { q: opts.q } : {})
+				...(opts?.q ? { q: opts.q } : {}),
+				...(opts?.limit != null ? { limit: opts.limit } : {}),
+				...(opts?.offset != null ? { offset: opts.offset } : {})
 			}
 		}
 	});

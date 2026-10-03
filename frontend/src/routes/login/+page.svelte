@@ -20,7 +20,7 @@
 		try {
 			const res = await login({ email, password }, session().csrf_token);
 			resetSession();
-			await goto(res.redirect || '/', { invalidateAll: true });
+			await goto(res.redirect || '/runs', { invalidateAll: true });
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Connexion impossible.';
 			await refreshSession().catch(() => undefined);

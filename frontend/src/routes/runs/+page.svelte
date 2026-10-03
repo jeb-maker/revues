@@ -1,27 +1,52 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { goto } from '$app/navigation';
+	import { page } from '$app/state';
 	import { listRuns, type RunSummary } from '$lib/api/runs';
 	import { session } from '$lib/auth/session';
 	import { formatRunStatus, runStatusVariant } from '$lib/i18n/labels';
+	import { launchRunCTA, runLabels, subjectLabels } from '$lib/i18n/uiLabels';
 	import { inputValue } from '$lib/mb';
 
 	type RunFilter = '' | 'draft' | 'in_progress' | 'done' | 'overdue';
+	const PAGE_SIZE = 25;
 	const STATUS_FILTERS: { value: RunFilter; label: string }[] = [
-		{ value: '', label: 'Tous les statuts' },
+		{ value: '', label: 'Tous' },
 		{ value: 'in_progress', label: 'En cours' },
 		{ value: 'done', label: 'Terminées' },
 		{ value: 'overdue', label: 'En retard' },
 		{ value: 'draft', label: 'Brouillons' }
 	];
 
-	const csrf = session().csrf_token;
+	const boot = session();
+	const csrf = boot.csrf_token;
+	const run = $derived(runLabels(boot.organization?.ui_run_label));
+	const subject = $derived(subjectLabels(boot.organization?.ui_subject_label));
 
 	let runs = $state<RunSummary[]>([]);
 	let total = $state(0);
 	let q = $state('');
 	let status = $state<RunFilter>('');
+	let offset = $state(0);
 	let error = $state('');
 	let loading = $state(true);
+
+	function readURL() {
+		const sp = page.url.searchParams;
+		const st = (sp.get('status') ?? '') as RunFilter;
+		status = STATUS_FILTERS.some((f) => f.value === st) ? st : '';
+		q = sp.get('q') ?? '';
+		const off = Number(sp.get('offset') ?? '0');
+		offset = Number.isFinite(off) && off >= 0 ? off : 0;
+	}
+
+	async function syncURL() {
+		const sp = new URLSearchParams();
+		if (status) sp.set('status', status);
+		if (q.trim()) sp.set('q', q.trim());
+		if (offset > 0) sp.set('offset', String(offset));
+		const qs = sp.toString();
+		await goto(qs ? `/runs?${qs}` : '/runs', { replaceState: true, keepFocus: true, noScroll: true });
+	}
 
 	async function load() {
 		loading = true;
@@ -30,7 +55,9 @@
 			const res = await listRuns({
 				csrfToken: csrf,
 				q: q.trim() || undefined,
-				status: status || undefined
+				status: status || undefined,
+				limit: PAGE_SIZE,
+				offset
 			});
 			runs = res.runs ?? [];
 			total = res.total;
@@ -41,24 +68,42 @@
 		}
 	}
 
-	onMount(() => {
+	$effect(() => {
+		// Re-read when search params change (back/forward).
+		void page.url.search;
+		readURL();
 		void load();
 	});
 
 	async function onFilter(e: Event) {
 		e.preventDefault();
+		offset = 0;
+		await syncURL();
 		await load();
 	}
+
+	async function goPage(nextOffset: number) {
+		offset = Math.max(0, nextOffset);
+		await syncURL();
+		await load();
+	}
+
+	const pageEnd = $derived(Math.min(offset + PAGE_SIZE, total));
+	const hasPrev = $derived(offset > 0);
+	const hasNext = $derived(offset + PAGE_SIZE < total);
 </script>
 
 <svelte:head>
-	<title>Revues — Revues</title>
+	<title>{run.nav} — Revues</title>
 </svelte:head>
 
 <div class="page">
 	<header class="page-header">
-		<h1>Revues</h1>
+		<h1>{run.nav}</h1>
 		<p class="lede">Exécutions en cours et historiques — progression par snapshot.</p>
+		<p class="actions toolbar">
+			<mb-button href="/subjects" variant="primary">{launchRunCTA(run)}</mb-button>
+		</p>
 	</header>
 
 	{#if error}
@@ -90,34 +135,58 @@
 	{#if loading}
 		<p class="loading"><mb-spinner label="Chargement"></mb-spinner> Chargement…</p>
 	{:else if runs.length === 0}
-		<mb-empty-state heading="Aucune revue">
-			Lancez-en une depuis un <a href="/subjects">sujet</a>.
+		<mb-empty-state heading="{run.noneArticle} {run.singular}">
+			<a href="/subjects">{launchRunCTA(run)}</a> depuis un {subject.singular.toLowerCase()}.
 		</mb-empty-state>
 	{:else}
-		<p class="muted">{total} revue{total > 1 ? 's' : ''}</p>
+		<p class="muted">
+			{total} {total > 1 ? run.plural : run.singular}
+			{#if total > PAGE_SIZE}
+				· {offset + 1}–{pageEnd}
+			{/if}
+		</p>
 		<ul class="card-list">
-			{#each runs as run (run.id)}
+			{#each runs as item (item.id)}
 				<li>
-					<a href={`/runs/${run.id}`}>
-						<strong>{run.title}</strong>
+					<a href={`/runs/${item.id}`}>
+						<strong>{item.title}</strong>
 						<span class="row">
-							<span class="muted">{run.subject_name}</span>
-							<mb-badge variant={runStatusVariant(run.status)}>{formatRunStatus(run.status)}</mb-badge>
-							<span class="pct">{run.progress.percent} %</span>
+							{#if boot.show_subject_column}
+								<span class="muted">{item.subject_name}</span>
+							{/if}
+							<mb-badge variant={runStatusVariant(item.status)}>{formatRunStatus(item.status)}</mb-badge>
+							<span class="pct">{item.progress.percent} %</span>
 						</span>
 						<mb-progress
-							percent={run.progress.percent}
-							aria-label={`Progression ${run.progress.percent} %`}
+							percent={item.progress.percent}
+							aria-label={`Progression ${item.progress.percent} %`}
 						></mb-progress>
 					</a>
 				</li>
 			{/each}
 		</ul>
+		{#if hasPrev || hasNext}
+			<p class="actions">
+				<mb-button variant="secondary" disabled={!hasPrev} onclick={() => goPage(offset - PAGE_SIZE)}>
+					Précédent
+				</mb-button>
+				<mb-button variant="secondary" disabled={!hasNext} onclick={() => goPage(offset + PAGE_SIZE)}>
+					Suivant
+				</mb-button>
+			</p>
+		{/if}
 	{/if}
 </div>
 
 <style>
+	.toolbar {
+		margin-top: var(--mb-space-3);
+	}
 	.row {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--mb-space-2);
+		align-items: center;
 		margin-top: var(--mb-space-1);
 		font-size: var(--mb-font-size-sm);
 	}

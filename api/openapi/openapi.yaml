@@ -24,7 +24,7 @@ tags:
 - name: templates
   description: Modèles de check-list versionnés (catalogue + éditeur)
 - name: runs
-  description: Revues (lancement, points, clôture, export Notion)
+  description: Revues (lancement, points, clôture)
 - name: tasks
   description: Mes tâches — items de revue assignés à l'utilisateur courant
 - name: integrations
@@ -788,52 +788,6 @@ paths:
           $ref: '#/components/responses/NotFound'
         '500':
           $ref: '#/components/responses/InternalError'
-  /templates/notion-import:
-    post:
-      operationId: postTemplatesNotionImport
-      tags:
-        - integrations
-        - templates
-      summary: Import modèle depuis une base Notion (wizard)
-      description: |
-        Auth + org + CanManageGlobal (editor+) + CSRF. Parité métier avec
-        l'ancien flux multi-étapes (fetch → mapping → preview → create).
-
-        - `action=fetch` : lit le schéma de la base (URL ou ID) et propose un mapping.
-        - `action=preview` : requête les pages et construit l'aperçu des points.
-        - `action=import` : crée le modèle (version 1) à partir de l'aperçu.
-
-        Chemin collection (pas `{templateId}`) : l'import **crée** un nouveau
-        modèle ; équivalent documenté de `/templates/{templateId}/notion-import`.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/NotionImportRequest'
-      responses:
-        '200':
-          description: Étape fetch ou preview
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/NotionImportResponse'
-        '201':
-          description: Modèle créé (`action=import`)
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/NotionImportResponse'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalError'
   /runs:
     get:
       operationId: listRuns
@@ -1010,38 +964,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/RunDetail'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '409':
-          $ref: '#/components/responses/Conflict'
-        '500':
-          $ref: '#/components/responses/InternalError'
-  /runs/{runId}/notion-export:
-    parameters:
-      - $ref: '#/components/parameters/RunId'
-    post:
-      operationId: postRunNotionExport
-      tags:
-        - integrations
-        - runs
-      summary: Exporter une revue clôturée vers Notion
-      description: |
-        Auth + CanCompleteAccess sur le sujet + CSRF. Revue `done` uniquement.
-        Crée une page dans la base Notion par défaut (config admin) et stocke
-        `notion_url` sur la revue. 409 si déjà exportée.
-      responses:
-        '200':
-          description: Page Notion créée
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/NotionExportResponse'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -1541,8 +1463,8 @@ paths:
         - admin
       summary: Hub intégrations (états + navigation)
       description: |
-        Auth + RequireOrgAdmin. Liste SMTP / Jira / Notion / Webhooks avec
-        enabled + config_path SPA. Config détaillée Jira/Notion/Webhooks = WP-020/021/022.
+        Auth + RequireOrgAdmin. Liste SMTP / Jira / Webhooks avec
+        enabled + config_path SPA. Config détaillée Jira/Webhooks = WP-020/022.
       responses:
         '200':
           description: Vue d'ensemble
@@ -1731,101 +1653,6 @@ paths:
           $ref: '#/components/responses/NotFound'
         '409':
           $ref: '#/components/responses/Conflict'
-        '500':
-          $ref: '#/components/responses/InternalError'
-  /admin/integrations/notion:
-    get:
-      operationId: getAdminNotionSettings
-      tags:
-        - integrations
-        - admin
-      summary: Configuration Notion (jeton masqué)
-      description: |
-        Auth + RequireOrgAdmin (owner/admin org active ou admin global).
-        Jamais de jeton en clair — `has_api_token` seulement. Parité métier
-        avec l'ancienne UI `/admin/integrations/notion` (WP-021).
-      responses:
-        '200':
-          description: Config Notion courante (ou vide si non configurée)
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/NotionSettings'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '500':
-          $ref: '#/components/responses/InternalError'
-    put:
-      operationId: putAdminNotionSettings
-      tags:
-        - integrations
-        - admin
-      summary: Enregistrer la configuration Notion chiffrée
-      description: |
-        Auth + RequireOrgAdmin + CSRF. Jeton omis ou vide = conserve le secret
-        existant (`MergeSecret`). Chiffrement AES-GCM (`REVUES_ENCRYPTION_KEY`).
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/NotionSettingsUpdate'
-      responses:
-        '200':
-          description: Config enregistrée (jeton masqué)
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/NotionSettings'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '500':
-          $ref: '#/components/responses/InternalError'
-    delete:
-      operationId: deleteAdminNotionSettings
-      tags:
-        - integrations
-        - admin
-      summary: Effacer la configuration Notion
-      description: Auth + RequireOrgAdmin + CSRF. Supprime la ligne `integrations` type notion.
-      responses:
-        '204':
-          description: Configuration effacée
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '500':
-          $ref: '#/components/responses/InternalError'
-  /admin/integrations/notion/test:
-    post:
-      operationId: postAdminNotionTest
-      tags:
-        - integrations
-        - admin
-      summary: Tester la connexion Notion (users/me)
-      description: |
-        Auth + RequireOrgAdmin + CSRF. Utilise le jeton stocké (chiffré).
-        Appelle `GET https://api.notion.com/v1/users/me` (Notion-Version 2022-06-28).
-      responses:
-        '200':
-          description: Connexion réussie
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/NotionTestResponse'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
         '500':
           $ref: '#/components/responses/InternalError'
   /admin/webhooks:
@@ -2284,6 +2111,7 @@ components:
       - name
       - slug
       - role
+      - member_count
       properties:
         id:
           type: integer
@@ -2299,6 +2127,12 @@ components:
           type: string
         ui_run_label:
           type: string
+        member_count:
+          type: integer
+          description: Nombre de membres de l'organisation (disclosure Mes tâches / assign)
+        visible_subject_count:
+          type: integer
+          description: Sujets visibles pour l'appelant dans cette org (colonne Sujet si ≥ 2)
     OrganizationInvitation:
       type: object
       required:
@@ -2860,7 +2694,6 @@ components:
         - can_update_items
         - can_assign
         - can_complete
-        - can_export_notion
       properties:
         can_update_items:
           type: boolean
@@ -2868,9 +2701,6 @@ components:
           type: boolean
         can_complete:
           type: boolean
-        can_export_notion:
-          type: boolean
-          description: true si revue done, droits CanCompleteAccess, Notion ExportReady
     RunItem:
       type: object
       required:
@@ -3102,11 +2932,6 @@ components:
         - items
         - capabilities
       properties:
-        notion_url:
-          type: string
-          format: uri
-          nullable: true
-          description: URL page Notion si exportée
         id:
           type: integer
           format: int64
@@ -3144,6 +2969,10 @@ components:
         completed_at:
           type: string
           nullable: true
+        completed_by_login:
+          type: string
+          nullable: true
+          description: Login de l'utilisateur qui a clôturé (attestation)
         progress:
           $ref: '#/components/schemas/RunProgress'
         items:
@@ -3409,11 +3238,10 @@ components:
       properties:
         key:
           type: string
-          description: Identifiant stable (smtp|jira|notion|webhooks)
+          description: Identifiant stable (smtp|jira|webhooks)
           enum:
             - smtp
             - jira
-            - notion
             - webhooks
         name:
           type: string
@@ -3555,164 +3383,6 @@ components:
           type: boolean
           description: true si mime image affichable inline
 
-    NotionColumnMapping:
-      type: object
-      properties:
-        label:
-          type: string
-          description: Colonne titre Notion → libellé point
-        section:
-          type: string
-        help_text:
-          type: string
-        required:
-          type: string
-          description: Colonne checkbox → point obligatoire
-    NotionExportResponse:
-      type: object
-      required:
-        - notion_url
-      properties:
-        notion_url:
-          type: string
-          format: uri
-          description: URL de la page Notion créée
-    NotionImportPreviewItem:
-      type: object
-      required:
-        - label
-        - section
-        - help_text
-        - required
-      properties:
-        label:
-          type: string
-        section:
-          type: string
-        help_text:
-          type: string
-        required:
-          type: boolean
-    NotionImportRequest:
-      type: object
-      required:
-        - action
-      properties:
-        action:
-          type: string
-          enum:
-            - fetch
-            - preview
-            - import
-        database_ref:
-          type: string
-          description: URL ou ID base (fetch) ; optionnel si database_id déjà connu
-        database_id:
-          type: string
-          description: ID normalisé renvoyé par fetch (requis pour preview/import)
-        template_name:
-          type: string
-        domains:
-          type: array
-          items:
-            type: string
-          description: Domaines du modèle créé (action=import)
-        mapping:
-          $ref: '#/components/schemas/NotionColumnMapping'
-    NotionImportResponse:
-      type: object
-      required:
-        - step
-      properties:
-        step:
-          type: string
-          enum:
-            - mapping
-            - preview
-            - done
-          description: Étape atteinte après l'action
-        database_id:
-          type: string
-        database_title:
-          type: string
-        properties:
-          type: array
-          items:
-            $ref: '#/components/schemas/NotionPropertyOption'
-        mapping:
-          $ref: '#/components/schemas/NotionColumnMapping'
-        template_name:
-          type: string
-        preview_items:
-          type: array
-          items:
-            $ref: '#/components/schemas/NotionImportPreviewItem'
-        preview_count:
-          type: integer
-        template:
-          description: Présent si step=done (modèle créé)
-          allOf:
-            - $ref: '#/components/schemas/TemplateDetail'
-    NotionPropertyOption:
-      type: object
-      required:
-        - name
-        - type
-      properties:
-        name:
-          type: string
-        type:
-          type: string
-          description: Type propriété Notion (title, rich_text, select, …)
-    NotionSettings:
-      type: object
-      required:
-        - configured
-        - export_ready
-        - workspace_name
-        - default_database_id
-        - has_api_token
-      properties:
-        configured:
-          type: boolean
-          description: true si un jeton est stocké
-        export_ready:
-          type: boolean
-          description: true si jeton + default_database_id permettent l'export
-        workspace_name:
-          type: string
-          description: Libellé admin du workspace
-        default_database_id:
-          type: string
-          description: ID base Notion (32 hex, sans tirets)
-        has_api_token:
-          type: boolean
-          description: true si un jeton est stocké (jamais renvoyé en clair)
-    NotionSettingsUpdate:
-      type: object
-      properties:
-        api_token:
-          type: string
-          description: Omis ou vide = conserve le secret existant
-        workspace_name:
-          type: string
-        default_database_id:
-          type: string
-          description: UUID ou 32 hex (avec ou sans tirets)
-    NotionTestResponse:
-      type: object
-      required:
-        - ok
-        - message
-      properties:
-        ok:
-          type: boolean
-        message:
-          type: string
-        user_name:
-          type: string
-        workspace_name:
-          type: string
     WebhookSettings:
       type: object
       required:

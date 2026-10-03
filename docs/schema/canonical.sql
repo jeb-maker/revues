@@ -59,8 +59,8 @@ CREATE TABLE organizations (
     id              INTEGER PRIMARY KEY,
     name            TEXT NOT NULL,
     slug            TEXT NOT NULL UNIQUE,
-    ui_subject_label TEXT NOT NULL DEFAULT 'sujet'
-                    CHECK (ui_subject_label IN ('sujet', 'cible', 'entite', 'asset')),
+    ui_subject_label TEXT NOT NULL DEFAULT 'projet'
+                    CHECK (ui_subject_label IN ('projet', 'sujet', 'cible', 'entite', 'asset')),
     ui_run_label TEXT NOT NULL DEFAULT 'revues'
                     CHECK (ui_run_label IN ('revues', 'listes_en_cours', 'audits', 'checklists')),
     leads_may_assign_teams     INTEGER NOT NULL DEFAULT 1 CHECK (leads_may_assign_teams IN (0, 1)),
@@ -237,6 +237,7 @@ CREATE TABLE checklist_runs (
     created_by          INTEGER REFERENCES users(id) ON DELETE SET NULL,
     started_at          TEXT,
     completed_at        TEXT,
+    completed_by        INTEGER REFERENCES users(id) ON DELETE SET NULL,
     notion_url          TEXT NOT NULL DEFAULT '',
     evidence_csv_sha256 TEXT NOT NULL DEFAULT '',
     created_at          TEXT NOT NULL

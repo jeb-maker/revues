@@ -60,7 +60,7 @@ type RunItemStore interface {
 type RunLifecycleStore interface {
 	StartRun(ctx context.Context, id int64) error
 	CompleteRun(ctx context.Context, id int64, closingNote string) error
-	CompleteRunWithEvidence(ctx context.Context, id int64, closingNote, csvSHA256, completedAt string) error
+	CompleteRunWithEvidence(ctx context.Context, id int64, closingNote, csvSHA256, completedAt string, completedBy int64) error
 	SealRunEvidenceHash(ctx context.Context, id int64, csvSHA256 string) error
 }
 

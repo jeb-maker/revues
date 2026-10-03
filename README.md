@@ -35,7 +35,7 @@ Optionnel : `REVUES_SPA_DIR` pour pointer vers un autre dossier de build SPA.
 
 ## Stack
 
-Go · OpenAPI · sqlc · SQLite · SvelteKit · miniature-broccoli · GitHub OAuth · SMTP · Jira / webhooks / Notion
+Go · OpenAPI · sqlc · SQLite · SvelteKit · miniature-broccoli · GitHub OAuth · SMTP · Jira / webhooks
 
 ## Arborescence (cible)
 

@@ -16,16 +16,19 @@ Big bang : UI `html/template` + HTMX remplacée par **Go OpenAPI + SvelteKit + m
 
 ## Livré (pré-rewrite — référence métier)
 
-Cœur métier, auth GitHub, RBAC, orgs/équipes, SMTP, Jira Cloud, webhooks, Notion, pièces jointes — comportement de référence pour les WP sur l’ancienne stack HTML/HTMX.
+Cœur métier, auth GitHub, RBAC, orgs/équipes, SMTP, Jira Cloud, webhooks, pièces jointes — comportement de référence pour les WP sur l’ancienne stack HTML/HTMX.
 
 ## Ouvert hors rewrite
 
 | Issue | Notes |
 |-------|-------|
 | [#65](https://github.com/jeb-maker/revues/issues/65) | Jira Server/DC — **icebox** (pas sans demande produit) |
+| (à créer) | **Retrait Notion** — hors périmètre produit (décisions UI) ; PR `area:integrations` : SPA + OpenAPI + `internal/integrations/notion` + docs |
 
 ## Icebox (pas d’issue tant que signal d’usage)
 
-Séries/campagnes, fusion sujets, rapport org, Slack/Teams, Google OAuth, gouvernance avancée, audit admin, concurrency items, antivirus uploads, PostgreSQL, CSP stricte, rotation clés.
+Séries/campagnes, fusion sujets, rapport org, Slack/Teams, Google OAuth, gouvernance avancée, audit admin, progressive disclosure SPA (SimpleUI / ShowSubject*), écran admin libellés UI, antivirus uploads, PostgreSQL, CSP stricte, rotation clés, **Notion** (réintro seulement sur signal), **Confluence archive** (cible préférée à Notion si besoin d’archivage wiki).
+
+Livré hors icebox : verrou optimiste `run_items.updated_at` (#281).
 
 Voir aussi [REVIEW_ADVERSE.md](./REVIEW_ADVERSE.md) § CAN DEFER.
