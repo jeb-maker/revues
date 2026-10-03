@@ -109,7 +109,7 @@
 			if (err instanceof UpdateRunItemError && err.status === 409) {
 				// Conflit : recharger le point pour afficher l'état courant (le message reste visible).
 				try {
-					await refresh();
+					apply(await getRunItem(runId(), itemId(), csrf));
 				} catch {
 					/* le message de conflit reste affiché */
 				}
