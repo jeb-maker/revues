@@ -59,4 +59,12 @@ if [[ "$ok" -ne 1 ]]; then
   exit 1
 fi
 
+# La SPA doit être servie : sans build embarqué, le binaire répond 503 « SPA non construite ».
+SPA_URL="${REVUES_SPA_CHECK_URL:-${HEALTH_URL%/healthz}/login}"
+if ! curl -sf "$SPA_URL" | grep -q '_app/'; then
+  echo "ERREUR : ${SPA_URL} ne sert pas la SPA SvelteKit (stub ou 503) — image sans frontend/build ?" >&2
+  docker compose --project-directory "$APP_DIR" logs --tail=40 app
+  exit 1
+fi
+
 echo "=== Revues — mise à jour OK ($(git rev-parse --short HEAD)) ==="

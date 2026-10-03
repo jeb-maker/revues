@@ -175,9 +175,14 @@ func spaHandler(root string) http.HandlerFunc {
 	}
 }
 
+// spaStub answers when no SvelteKit build is available. It is a deployment
+// error, so it returns 503: a 200 would hide the outage from Docker
+// healthchecks, deploy scripts and HTTP monitoring (the API stays up).
 func spaStub(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Cache-Control", "no-store")
+	w.Header().Set("Retry-After", "60")
+	w.WriteHeader(http.StatusServiceUnavailable)
 	_, _ = w.Write([]byte(`<!doctype html>
 <html lang="fr">
 <head><meta charset="utf-8"><title>Revues</title></head>
