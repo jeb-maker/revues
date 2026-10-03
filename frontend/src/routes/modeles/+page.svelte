@@ -1,9 +1,11 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { goto } from '$app/navigation';
+	import { page } from '$app/state';
 	import { listTemplates, type TemplateSummary } from '$lib/api/templates';
 	import { session } from '$lib/auth/session';
 	import { templateNavLabel } from '$lib/i18n/uiLabels';
-	import { inputValue } from '$lib/mb';
+	import { searchHrefFromListQuery } from '$lib/navigation/listQueryRedirect';
 
 	const boot = session();
 	const canManage = boot.can_edit;
@@ -11,15 +13,14 @@
 	const newTemplateCTA = $derived(templatesLabel === 'Listes' ? 'Nouvelle liste' : 'Nouveau modèle');
 
 	let templates = $state<TemplateSummary[]>([]);
-	let q = $state('');
 	let error = $state('');
 	let loading = $state(true);
 
-	async function load(query = q) {
+	async function load() {
 		loading = true;
 		error = '';
 		try {
-			templates = await listTemplates(boot.csrf_token, query);
+			templates = await listTemplates(boot.csrf_token);
 		} catch (e) {
 			error = e instanceof Error ? e.message : 'Erreur de chargement';
 		} finally {
@@ -28,13 +29,13 @@
 	}
 
 	onMount(() => {
+		const redirect = searchHrefFromListQuery(page.url.searchParams.get('q'));
+		if (redirect) {
+			void goto(redirect, { replaceState: true });
+			return;
+		}
 		void load();
 	});
-
-	async function onSearch(e: Event) {
-		e.preventDefault();
-		await load(q);
-	}
 </script>
 
 <svelte:head>
@@ -55,18 +56,6 @@
 	{#if error}
 		<mb-alert variant="danger">{error}</mb-alert>
 	{/if}
-
-	<form class="filters" onsubmit={onSearch}>
-		<mb-input
-			label="Rechercher"
-			hide-label
-			type="search"
-			placeholder="Rechercher…"
-			value={q}
-			oninput={(e) => (q = inputValue(e))}
-		></mb-input>
-		<mb-button type="submit" variant="secondary">Filtrer</mb-button>
-	</form>
 
 	{#if loading}
 		<p class="loading"><mb-spinner label="Chargement"></mb-spinner> Chargement…</p>

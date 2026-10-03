@@ -5,7 +5,7 @@
 	import { session } from '$lib/auth/session';
 	import { formatRunStatus, runStatusVariant } from '$lib/i18n/labels';
 	import { launchRunCTA, runLabels, subjectLabels } from '$lib/i18n/uiLabels';
-	import { inputValue } from '$lib/mb';
+	import { searchHrefFromListQuery } from '$lib/navigation/listQueryRedirect';
 
 	type RunFilter = '' | 'draft' | 'in_progress' | 'done' | 'overdue';
 	const PAGE_SIZE = 25;
@@ -24,7 +24,6 @@
 
 	let runs = $state<RunSummary[]>([]);
 	let total = $state(0);
-	let q = $state('');
 	let status = $state<RunFilter>('');
 	let offset = $state(0);
 	let error = $state('');
@@ -34,7 +33,6 @@
 		const sp = page.url.searchParams;
 		const st = (sp.get('status') ?? '') as RunFilter;
 		status = STATUS_FILTERS.some((f) => f.value === st) ? st : '';
-		q = sp.get('q') ?? '';
 		const off = Number(sp.get('offset') ?? '0');
 		offset = Number.isFinite(off) && off >= 0 ? off : 0;
 	}
@@ -42,7 +40,6 @@
 	async function syncURL() {
 		const sp = new URLSearchParams();
 		if (status) sp.set('status', status);
-		if (q.trim()) sp.set('q', q.trim());
 		if (offset > 0) sp.set('offset', String(offset));
 		const qs = sp.toString();
 		await goto(qs ? `/runs?${qs}` : '/runs', { replaceState: true, keepFocus: true, noScroll: true });
@@ -54,7 +51,6 @@
 		try {
 			const res = await listRuns({
 				csrfToken: csrf,
-				q: q.trim() || undefined,
 				status: status || undefined,
 				limit: PAGE_SIZE,
 				offset
@@ -69,8 +65,12 @@
 	}
 
 	$effect(() => {
-		// Re-read when search params change (back/forward).
 		void page.url.search;
+		const redirect = searchHrefFromListQuery(page.url.searchParams.get('q'));
+		if (redirect) {
+			void goto(redirect, { replaceState: true });
+			return;
+		}
 		readURL();
 		void load();
 	});
@@ -114,14 +114,6 @@
 	{/if}
 
 	<form class="filters" onsubmit={onFilter}>
-		<mb-input
-			label="Rechercher"
-			hide-label
-			type="search"
-			placeholder="Rechercher…"
-			value={q}
-			oninput={(e) => (q = inputValue(e))}
-		></mb-input>
 		<mb-select
 			label="Statut"
 			hide-label

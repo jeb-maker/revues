@@ -1,11 +1,12 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { listSubjects, type SubjectSummary } from '$lib/api/subjects';
 	import { session } from '$lib/auth/session';
 	import { formatVisibility } from '$lib/i18n/labels';
 	import { runLabels, subjectLabels } from '$lib/i18n/uiLabels';
-	import { inputValue } from '$lib/mb';
+	import { searchHrefFromListQuery } from '$lib/navigation/listQueryRedirect';
 
 	const boot = session();
 	const subject = $derived(subjectLabels(boot.organization?.ui_subject_label));
@@ -14,7 +15,6 @@
 
 	let subjects = $state<SubjectSummary[]>([]);
 	let canCreate = $state(false);
-	let q = $state('');
 	let error = $state('');
 	let loading = $state(true);
 
@@ -23,11 +23,11 @@
 		return `/subjects/${id}`;
 	}
 
-	async function load(query?: string) {
+	async function load() {
 		loading = true;
 		error = '';
 		try {
-			const res = await listSubjects({ q: query });
+			const res = await listSubjects();
 			subjects = res.subjects ?? [];
 			canCreate = res.can_create;
 		} catch (e) {
@@ -39,13 +39,13 @@
 	}
 
 	onMount(() => {
+		const redirect = searchHrefFromListQuery(page.url.searchParams.get('q'));
+		if (redirect) {
+			void goto(redirect, { replaceState: true });
+			return;
+		}
 		void load();
 	});
-
-	async function onSearch(e: Event) {
-		e.preventDefault();
-		await load(q.trim());
-	}
 </script>
 
 <svelte:head>
@@ -68,19 +68,6 @@
 			</p>
 		{/if}
 	</header>
-
-	<form class="filters" onsubmit={onSearch}>
-		<mb-input
-			label="Rechercher"
-			hide-label
-			type="search"
-			name="q"
-			placeholder="Filtrer par nom…"
-			value={q}
-			oninput={(e) => (q = inputValue(e))}
-		></mb-input>
-		<mb-button type="submit" variant="secondary">Filtrer</mb-button>
-	</form>
 
 	{#if error}
 		<mb-alert variant="danger">{error}</mb-alert>

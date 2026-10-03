@@ -1,9 +1,11 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { goto } from '$app/navigation';
+	import { page } from '$app/state';
 	import { listMyTasks, type MyTask } from '$lib/api/mytasks';
 	import { session } from '$lib/auth/session';
 	import { formatItemStatus, itemStatusVariant, type ItemStatus } from '$lib/i18n/labels';
-	import { inputValue } from '$lib/mb';
+	import { searchHrefFromListQuery } from '$lib/navigation/listQueryRedirect';
 
 	type StatusFilter = '' | ItemStatus;
 	const STATUS_FILTERS: { value: StatusFilter; label: string }[] = [
@@ -17,7 +19,6 @@
 	const csrf = session().csrf_token;
 
 	let tasks = $state<MyTask[]>([]);
-	let q = $state('');
 	let status = $state<StatusFilter>('');
 	let error = $state('');
 	let loading = $state(true);
@@ -28,7 +29,6 @@
 		try {
 			const res = await listMyTasks({
 				csrfToken: csrf,
-				q: q.trim() || undefined,
 				status: status || undefined
 			});
 			tasks = res.tasks ?? [];
@@ -41,6 +41,11 @@
 	}
 
 	onMount(() => {
+		const redirect = searchHrefFromListQuery(page.url.searchParams.get('q'));
+		if (redirect) {
+			void goto(redirect, { replaceState: true });
+			return;
+		}
 		void load();
 	});
 
@@ -57,19 +62,10 @@
 <div class="page page--wide">
 	<header class="page-header">
 		<h1>Mes tâches</h1>
-		<p class="lede">Points de revue qui vous sont assignés — filtrez et ouvrez le détail.</p>
+		<p class="lede">Points de revue qui vous sont assignés — filtrez par statut et ouvrez le détail.</p>
 	</header>
 
 	<form class="filters" onsubmit={onFilter}>
-		<mb-input
-			label="Rechercher"
-			hide-label
-			type="search"
-			name="q"
-			placeholder="Sujet, modèle, libellé…"
-			value={q}
-			oninput={(e) => (q = inputValue(e))}
-		></mb-input>
 		<mb-select
 			label="Statut"
 			hide-label
