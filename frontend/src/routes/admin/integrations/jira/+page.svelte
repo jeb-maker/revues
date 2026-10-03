@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { goto } from '$app/navigation';
-	import { bootstrap } from '$lib/api/auth';
+	import AdminNav from '$lib/components/AdminNav.svelte';
 	import {
 		deleteAdminJiraSettings,
 		getAdminJiraSettings,
@@ -9,8 +8,11 @@
 		putAdminJiraSettings,
 		type JiraSettings
 	} from '$lib/api/admin';
+	import { session } from '$lib/auth/session';
+	import { inputValue } from '$lib/mb';
 
-	let csrf = $state('');
+	const csrf = session().csrf_token;
+
 	let error = $state('');
 	let message = $state('');
 	let loading = $state(true);
@@ -36,15 +38,9 @@
 
 	onMount(async () => {
 		try {
-			const boot = await bootstrap();
-			if (!boot.authenticated) {
-				await goto('/login');
-				return;
-			}
-			csrf = boot.csrf_token;
 			apply(await getAdminJiraSettings(csrf));
 		} catch (e) {
-			error = e instanceof Error ? e.message : 'Jira indisponible.';
+			error = e instanceof Error ? e.message : 'Configuration Jira indisponible.';
 		} finally {
 			loading = false;
 		}
@@ -88,6 +84,7 @@
 	}
 
 	async function onClear() {
+		if (!confirm('Effacer la configuration Jira ?')) return;
 		error = '';
 		message = '';
 		try {
@@ -111,76 +108,92 @@
 	<title>Jira — Revues</title>
 </svelte:head>
 
-<main class="admin-page">
-	<header>
-		<p class="brand"><a href="/">Revues</a></p>
+<div class="page">
+	<header class="page-header">
 		<p class="crumbs">
-			<a href="/">Accueil</a> · <a href="/admin/integrations">Intégrations</a> · Jira
+			<a href="/admin">Administration</a> · <a href="/admin/integrations">Intégrations</a> · Jira
 		</p>
 		<h1>Jira Cloud</h1>
 		<p class="lede">
-			Credentials chiffrés — le jeton API n'est jamais renvoyé par l'API. Server/DC hors scope.
+			Identifiants chiffrés — le jeton API n’est jamais renvoyé par l’API. Jira Server / Data
+			Center hors périmètre.
 		</p>
 	</header>
 
 	{#if error}
-		<p class="err" role="alert">{error}</p>
+		<mb-alert variant="danger">{error}</mb-alert>
 	{/if}
 	{#if message}
-		<p class="ok" role="status">{message}</p>
+		<mb-alert variant="success">{message}</mb-alert>
 	{/if}
 
-	{#if loading}
-		<p class="muted">Chargement…</p>
-	{:else}
-		<form class="form" onsubmit={onSave}>
-			<label>
-				URL de l'instance
-				<input
+	<AdminNav section="integrations">
+		{#if loading}
+			<p class="loading">Chargement…</p>
+		{:else}
+			<form class="stack-form" onsubmit={onSave}>
+				<mb-input
+					label="URL de l’instance"
 					type="url"
-					bind:value={baseUrl}
 					required
 					autocomplete="off"
 					placeholder="https://votre-domaine.atlassian.net"
-				/>
-			</label>
-			<label>
-				Email Atlassian
-				<input type="email" bind:value={email} required autocomplete="username" />
-			</label>
-			<label>
-				Jeton API
-				<input
+					value={baseUrl}
+					oninput={(e) => (baseUrl = inputValue(e))}
+				></mb-input>
+				<mb-input
+					label="Email Atlassian"
+					type="email"
+					required
+					autocomplete="username"
+					value={email}
+					oninput={(e) => (email = inputValue(e))}
+				></mb-input>
+				<mb-input
+					label="Jeton API"
 					type="password"
-					bind:value={apiToken}
-					placeholder={hasApiToken ? '•••••••• (laisser vide pour conserver)' : 'Jeton API Atlassian'}
 					autocomplete="new-password"
-				/>
-			</label>
-			<label>
-				Clé projet par défaut
-				<input
-					bind:value={projectKey}
+					hint={hasApiToken
+						? 'Un jeton est enregistré ; laissez vide pour le conserver.'
+						: 'Jeton API Atlassian.'}
+					value={apiToken}
+					oninput={(e) => (apiToken = inputValue(e))}
+				></mb-input>
+				<mb-input
+					label="Clé de projet par défaut"
+					hint="Requise pour créer des tickets, ex. REV."
+					type="text"
 					autocomplete="off"
-					placeholder="REV (requis pour créer des tickets)"
-				/>
-			</label>
-			<label>
-				Type d'issue par défaut
-				<input bind:value={issueType} autocomplete="off" placeholder="Task" />
-			</label>
-			<div class="actions">
-				<button type="submit" disabled={saving}>{saving ? 'Enregistrement…' : 'Enregistrer'}</button>
-				{#if configured}
-					<button type="button" class="ghost" onclick={onClear}>Effacer</button>
-				{/if}
-			</div>
-		</form>
+					value={projectKey}
+					oninput={(e) => (projectKey = inputValue(e))}
+				></mb-input>
+				<mb-input
+					label="Type de ticket par défaut"
+					type="text"
+					autocomplete="off"
+					placeholder="Task"
+					value={issueType}
+					oninput={(e) => (issueType = inputValue(e))}
+				></mb-input>
+				<p class="actions">
+					<mb-button type="submit" variant="primary" disabled={saving}>
+						{saving ? 'Enregistrement…' : 'Enregistrer'}
+					</mb-button>
+					{#if configured}
+						<mb-button type="button" variant="danger" onclick={onClear}>Effacer</mb-button>
+					{/if}
+				</p>
+			</form>
 
-		<section class="test">
-			<h2>Test de connexion</h2>
-			<p class="muted">Vérifie les identifiants enregistrés via l'API REST Jira (<code>/myself</code>).</p>
-			<button type="button" disabled={!configured} onclick={onTest}>Tester la connexion</button>
-		</section>
-	{/if}
-</main>
+			<section class="section">
+				<h2>Test de connexion</h2>
+				<p class="muted">
+					Vérifie les identifiants enregistrés via l’API REST Jira (<code>/myself</code>).
+				</p>
+				<mb-button type="button" variant="secondary" disabled={!configured} onclick={onTest}>
+					Tester la connexion
+				</mb-button>
+			</section>
+		{/if}
+	</AdminNav>
+</div>
