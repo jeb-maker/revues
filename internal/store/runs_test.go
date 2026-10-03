@@ -9,6 +9,7 @@ import (
 	"github.com/jeb-maker/revues/internal/testutil"
 
 	"github.com/jeb-maker/revues/internal/auth"
+	runs "github.com/jeb-maker/revues/internal/features/runs"
 	"github.com/jeb-maker/revues/internal/store"
 )
 
@@ -230,7 +231,7 @@ func TestCompleteRunWithEvidence_RejectsPendingRequired(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = st.CompleteRunWithEvidence(ctx, run.ID, "note", "abc")
+	err = st.CompleteRunWithEvidence(ctx, run.ID, "note", "abc", "2026-10-03T12:00:00Z")
 	if !errors.Is(err, store.ErrPendingRequiredItems) {
 		t.Fatalf("CompleteRunWithEvidence() = %v, want ErrPendingRequiredItems", err)
 	}
@@ -279,7 +280,8 @@ func TestCompleteRunWithEvidence_AtomicSeal(t *testing.T) {
 	}
 
 	hash := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
-	if err = st.CompleteRunWithEvidence(ctx, run.ID, "done", hash); err != nil {
+	completedAt := "2026-10-03T12:00:00Z"
+	if err = st.CompleteRunWithEvidence(ctx, run.ID, "done", hash, completedAt); err != nil {
 		t.Fatalf("CompleteRunWithEvidence(): %v", err)
 	}
 	got, err := st.RunByID(ctx, run.ID)
@@ -288,5 +290,73 @@ func TestCompleteRunWithEvidence_AtomicSeal(t *testing.T) {
 	}
 	if got.Status != store.RunStatusDone || got.EvidenceCSVSHA256 != hash {
 		t.Fatalf("got status=%q hash=%q", got.Status, got.EvidenceCSVSHA256)
+	}
+	if !got.CompletedAt.Valid || got.CompletedAt.String != completedAt {
+		t.Fatalf("completed_at = %+v, want %s", got.CompletedAt, completedAt)
+	}
+}
+
+func TestCompleteRunWithEvidence_HashMatchesPostCompleteExport(t *testing.T) {
+	ctx := context.Background()
+	db := openMemoryDB(t)
+	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
+
+	lead, err := st.UpsertGitHubUser(ctx, 1, "lead", "lead@example.com", "Lead", "", auth.RoleEditor)
+	if err != nil {
+		t.Fatal(err)
+	}
+	subject, err := st.CreateSubject(ctx, "P", "", lead.ID, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	template, _, err := st.CreateChecklistTemplate(ctx, "Modèle", lead.ID, nil, []store.TemplateItemInput{
+		{Label: "Point", Required: true},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	run, err := st.CreateChecklistRun(ctx, subject.ID, template.ID, lead.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = st.StartRun(ctx, run.ID); err != nil {
+		t.Fatal(err)
+	}
+	items, err := st.ListRunItems(ctx, run.ID)
+	if err != nil || len(items) == 0 {
+		t.Fatalf("ListRunItems: %v %v", items, err)
+	}
+	if err = st.UpdateRunItemStatus(ctx, run.ID, items[0].ID, lead.ID, store.RunItemStatusOK, ""); err != nil {
+		t.Fatal(err)
+	}
+
+	completedAt := "2026-10-03T15:30:00Z"
+	csvRows, err := st.ListRunExportRows(ctx, run.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i := range csvRows {
+		csvRows[i].RunDate = completedAt
+	}
+	csvData, err := runs.BuildRunCSV(csvRows)
+	if err != nil {
+		t.Fatal(err)
+	}
+	hash := runs.SHA256Hex(csvData)
+	if err = st.CompleteRunWithEvidence(ctx, run.ID, "done", hash, completedAt); err != nil {
+		t.Fatalf("CompleteRunWithEvidence(): %v", err)
+	}
+
+	afterRows, err := st.ListRunExportRows(ctx, run.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	afterCSV, err := runs.BuildRunCSV(afterRows)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := runs.SHA256Hex(afterCSV); got != hash {
+		t.Fatalf("post-complete CSV hash = %q, want sealed %q", got, hash)
 	}
 }

@@ -54,6 +54,21 @@ func (s *Service) PasswordLogin(ctx context.Context, email, password string) (*L
 		return nil, ErrInvalidCredentials
 	}
 
+	// Re-apply whitelist / bootstrap role on every login (same rules as GitHub).
+	role, roleErr := s.Store.ResolveLoginRoleStrict(ctx, email, s.Config.BootstrapAdminEmail, s.Config.LoginRequireWhitelist)
+	if roleErr != nil {
+		if errors.Is(roleErr, store.ErrEmailNotAllowed) {
+			return nil, ErrInvalidCredentials
+		}
+		return nil, fmt.Errorf("resolve login role: %w", roleErr)
+	}
+	if role != user.Role {
+		if setErr := s.Store.SetUserRole(ctx, user.ID, role); setErr != nil {
+			return nil, fmt.Errorf("sync login role: %w", setErr)
+		}
+		user.Role = role
+	}
+
 	return s.finishLocalLogin(ctx, user)
 }
 

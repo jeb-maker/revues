@@ -375,8 +375,16 @@ func (s *Store) SealRunEvidenceHash(ctx context.Context, id int64, csvSHA256 str
 // CompleteRunWithEvidence closes a run and seals the evidence hash atomically.
 // Re-checks required pending items inside the transaction to close the TOCTOU
 // window between ValidateComplete and the status write.
-func (s *Store) CompleteRunWithEvidence(ctx context.Context, id int64, closingNote, csvSHA256 string) error {
+//
+// completedAt must be the RFC3339 timestamp embedded in the CSV hash (export
+// uses COALESCE(completed_at,”) as RunDate). Pass the same value the handler
+// used when hashing so the sealed digest matches a post-complete re-export.
+func (s *Store) CompleteRunWithEvidence(ctx context.Context, id int64, closingNote, csvSHA256, completedAt string) error {
 	hash := strings.TrimSpace(csvSHA256)
+	completedAt = strings.TrimSpace(completedAt)
+	if completedAt == "" {
+		completedAt = time.Now().UTC().Format(time.RFC3339)
+	}
 	return withSQLiteBusyRetry(ctx, func() error {
 		tx, err := s.db.BeginTx(ctx, nil)
 		if err != nil {
@@ -386,7 +394,6 @@ func (s *Store) CompleteRunWithEvidence(ctx context.Context, id int64, closingNo
 			_ = tx.Rollback()
 		}()
 
-		now := time.Now().UTC().Format(time.RFC3339)
 		res, err := tx.ExecContext(ctx, `
 			UPDATE checklist_runs
 			SET status = ?, completed_at = ?, closing_note = ?,
@@ -396,7 +403,7 @@ func (s *Store) CompleteRunWithEvidence(ctx context.Context, id int64, closingNo
 				SELECT 1 FROM run_items
 				WHERE run_id = ? AND required = 1 AND status = ?
 			  )
-		`, RunStatusDone, now, closingNote, hash, hash, id, RunStatusInProgress, id, RunItemStatusPending)
+		`, RunStatusDone, completedAt, closingNote, hash, hash, id, RunStatusInProgress, id, RunItemStatusPending)
 		if err != nil {
 			return fmt.Errorf("complete run with evidence: %w", err)
 		}

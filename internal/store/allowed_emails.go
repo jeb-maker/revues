@@ -160,8 +160,9 @@ func (s *Store) ResolveLoginRole(ctx context.Context, email, bootstrapAdmin stri
 // entries never elevate to admin (legacy admin rows are capped to editor).
 //
 // When several orgs whitelist the same email, the highest capped role wins
-// (editor > reader). An existing user's capped role is never demoted by a
-// weaker whitelist row from another tenant.
+// (editor > reader). Whitelist rows in orgs the user already belongs to always
+// apply (including intentional demotion). Foreign-org whitelist alone cannot
+// demote an existing capped role.
 func (s *Store) ResolveLoginRoleStrict(ctx context.Context, email, bootstrapAdmin string, requireWhitelist bool) (string, error) {
 	email = strings.ToLower(strings.TrimSpace(email))
 	bootstrapAdmin = strings.ToLower(strings.TrimSpace(bootstrapAdmin))
@@ -171,16 +172,15 @@ func (s *Store) ResolveLoginRoleStrict(ctx context.Context, email, bootstrapAdmi
 		return auth.RoleAdmin, nil
 	}
 
-	wlRole, hasWL, err := s.allowedRoleAnyOrg(ctx, email)
-	if err != nil {
-		return "", err
-	}
-
 	var (
+		userID         int64
 		existingCapped string
 		hasOrgs        bool
+		hasUser        bool
 	)
 	if user, err := s.UserByEmail(ctx, email); err == nil {
+		hasUser = true
+		userID = user.ID
 		existingCapped = capWhitelistLoginRole(user.Role)
 		count, countErr := s.CountUserOrganizations(ctx, user.ID)
 		if countErr != nil {
@@ -191,10 +191,25 @@ func (s *Store) ResolveLoginRoleStrict(ctx context.Context, email, bootstrapAdmi
 		return "", err
 	}
 
+	if hasUser {
+		memberRole, hasMemberWL, err := s.allowedRoleInUserOrgs(ctx, email, userID)
+		if err != nil {
+			return "", err
+		}
+		if hasMemberWL {
+			return capWhitelistLoginRole(memberRole), nil
+		}
+	}
+
+	wlRole, hasWL, err := s.allowedRoleAnyOrg(ctx, email)
+	if err != nil {
+		return "", err
+	}
 	if hasWL {
 		role := capWhitelistLoginRole(wlRole)
+		// Foreign-only whitelist: allow first grant / upgrade, never demote.
 		if existingCapped != "" {
-			role = maxCappedLoginRole(role, existingCapped)
+			return maxCappedLoginRole(role, existingCapped), nil
 		}
 		return role, nil
 	}
@@ -267,6 +282,31 @@ func (s *Store) allowedRoleAnyOrg(ctx context.Context, email string) (string, bo
 	}
 	if err != nil {
 		return "", false, fmt.Errorf("allowed role any org: %w", err)
+	}
+	return role, true, nil
+}
+
+// allowedRoleInUserOrgs returns the highest whitelist role among organizations
+// the user already belongs to (so home-org demotion still applies on re-login).
+func (s *Store) allowedRoleInUserOrgs(ctx context.Context, email string, userID int64) (string, bool, error) {
+	var role string
+	err := s.db.QueryRowContext(ctx, `
+		SELECT ae.role
+		FROM allowed_emails ae
+		INNER JOIN organization_members om ON om.organization_id = ae.organization_id
+		WHERE ae.email = ? AND om.user_id = ?
+		ORDER BY CASE ae.role
+			WHEN 'editor' THEN 0
+			WHEN 'admin' THEN 1
+			ELSE 2
+		END
+		LIMIT 1
+	`, email, userID).Scan(&role)
+	if errors.Is(err, sql.ErrNoRows) {
+		return "", false, nil
+	}
+	if err != nil {
+		return "", false, fmt.Errorf("allowed role in user orgs: %w", err)
 	}
 	return role, true, nil
 }

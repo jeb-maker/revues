@@ -145,6 +145,31 @@ func TestResolveLoginRole(t *testing.T) {
 		}
 	})
 
+	t.Run("home-org whitelist demotion applies", func(t *testing.T) {
+		user, err := st.UpsertGitHubUser(ctx, 76, "homewl", "home-wl@example.com", "Home", "", auth.RoleEditor)
+		if err != nil {
+			t.Fatalf("UpsertGitHubUser(): %v", err)
+		}
+		defaultOrg, err := st.OrganizationBySlug(ctx, "default")
+		if err != nil {
+			t.Fatalf("OrganizationBySlug(): %v", err)
+		}
+		if err = st.AddOrganizationMember(ctx, defaultOrg.ID, user.ID, store.OrgRoleMember); err != nil {
+			t.Fatalf("AddOrganizationMember(): %v", err)
+		}
+		orgCtx := orgctx.WithOrganizationID(ctx, defaultOrg.ID)
+		if insertErr := st.InsertAllowedEmail(orgCtx, user.Email, auth.RoleReader); insertErr != nil {
+			t.Fatalf("InsertAllowedEmail(reader): %v", insertErr)
+		}
+		role, roleErr := st.ResolveLoginRole(ctx, user.Email, "")
+		if roleErr != nil {
+			t.Fatalf("ResolveLoginRole() error = %v", roleErr)
+		}
+		if role != auth.RoleReader {
+			t.Errorf("role = %q, want reader (home-org whitelist demotion)", role)
+		}
+	})
+
 	t.Run("cross-org reader whitelist does not demote editor", func(t *testing.T) {
 		alice, err := st.UpsertGitHubUser(ctx, 77, "alice", "alice-wl@example.com", "Alice", "", auth.RoleEditor)
 		if err != nil {
@@ -162,12 +187,12 @@ func TestResolveLoginRole(t *testing.T) {
 			t.Fatalf("CreateOrganization(): %v", err)
 		}
 		otherCtx := orgctx.WithOrganizationID(ctx, other.ID)
-		if err := st.InsertAllowedEmail(otherCtx, alice.Email, auth.RoleReader); err != nil {
-			t.Fatalf("InsertAllowedEmail(reader): %v", err)
+		if insertErr := st.InsertAllowedEmail(otherCtx, alice.Email, auth.RoleReader); insertErr != nil {
+			t.Fatalf("InsertAllowedEmail(reader): %v", insertErr)
 		}
-		role, err := st.ResolveLoginRole(ctx, alice.Email, "")
-		if err != nil {
-			t.Fatalf("ResolveLoginRole() error = %v", err)
+		role, roleErr := st.ResolveLoginRole(ctx, alice.Email, "")
+		if roleErr != nil {
+			t.Fatalf("ResolveLoginRole() error = %v", roleErr)
 		}
 		if role != auth.RoleEditor {
 			t.Errorf("role = %q, want editor (must not demote via other org whitelist)", role)
@@ -188,15 +213,15 @@ func TestResolveLoginRole(t *testing.T) {
 			t.Fatalf("CreateOrganization(B): %v", err)
 		}
 		email := "multi-wl@example.com"
-		if err := st.InsertAllowedEmail(orgctx.WithOrganizationID(ctx, orgA.ID), email, auth.RoleReader); err != nil {
-			t.Fatalf("InsertAllowedEmail(A reader): %v", err)
+		if insertErr := st.InsertAllowedEmail(orgctx.WithOrganizationID(ctx, orgA.ID), email, auth.RoleReader); insertErr != nil {
+			t.Fatalf("InsertAllowedEmail(A reader): %v", insertErr)
 		}
-		if err := st.InsertAllowedEmail(orgctx.WithOrganizationID(ctx, orgB.ID), email, auth.RoleEditor); err != nil {
-			t.Fatalf("InsertAllowedEmail(B editor): %v", err)
+		if insertErr := st.InsertAllowedEmail(orgctx.WithOrganizationID(ctx, orgB.ID), email, auth.RoleEditor); insertErr != nil {
+			t.Fatalf("InsertAllowedEmail(B editor): %v", insertErr)
 		}
-		role, err := st.ResolveLoginRole(ctx, email, "")
-		if err != nil {
-			t.Fatalf("ResolveLoginRole() error = %v", err)
+		role, roleErr := st.ResolveLoginRole(ctx, email, "")
+		if roleErr != nil {
+			t.Fatalf("ResolveLoginRole() error = %v", roleErr)
 		}
 		if role != auth.RoleEditor {
 			t.Errorf("role = %q, want editor (max across orgs)", role)

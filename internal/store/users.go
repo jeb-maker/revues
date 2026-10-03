@@ -107,6 +107,26 @@ func (s *Store) UserCredentialsByEmail(ctx context.Context, email string) (*User
 	return userFromCredentials(row), row.PasswordHash, nil
 }
 
+// SetUserRole updates users.role (login re-sync after whitelist changes).
+func (s *Store) SetUserRole(ctx context.Context, userID int64, role string) error {
+	role = strings.TrimSpace(role)
+	if role == "" {
+		return fmt.Errorf("set user role: empty role")
+	}
+	res, err := s.db.ExecContext(ctx, `UPDATE users SET role = ? WHERE id = ?`, role, userID)
+	if err != nil {
+		return fmt.Errorf("set user role: %w", err)
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("set user role rows: %w", err)
+	}
+	if n == 0 {
+		return ErrUserNotFound
+	}
+	return nil
+}
+
 // TouchLastLogin updates last_login_at for the user.
 func (s *Store) TouchLastLogin(ctx context.Context, userID int64) error {
 	now := time.Now().UTC().Format(time.RFC3339)
