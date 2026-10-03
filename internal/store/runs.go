@@ -24,6 +24,10 @@ var ErrRunNotFound = errors.New("run not found")
 // ErrInvalidRunStatus is returned when a status transition is not allowed.
 var ErrInvalidRunStatus = errors.New("invalid run status transition")
 
+// ErrPendingRequiredItems is returned when completing a run that still has
+// required items in pending status (checked inside the complete transaction).
+var ErrPendingRequiredItems = errors.New("pending required items")
+
 // ChecklistRun is a review execution instance.
 type ChecklistRun struct {
 	ID                int64
@@ -368,15 +372,80 @@ func (s *Store) SealRunEvidenceHash(ctx context.Context, id int64, csvSHA256 str
 	return nil
 }
 
-// CompleteRunWithEvidence closes a run then seals the evidence hash (CSV must match post-complete export).
-func (s *Store) CompleteRunWithEvidence(ctx context.Context, id int64, closingNote, csvSHA256 string) error {
-	if err := s.CompleteRun(ctx, id, closingNote); err != nil {
-		return err
+// CompleteRunWithEvidence closes a run and seals the evidence hash atomically.
+// Re-checks required pending items inside the transaction to close the TOCTOU
+// window between ValidateComplete and the status write.
+//
+// completedAt must be the RFC3339 timestamp embedded in the CSV hash (export
+// uses COALESCE(completed_at,”) as RunDate). Pass the same value the handler
+// used when hashing so the sealed digest matches a post-complete re-export.
+func (s *Store) CompleteRunWithEvidence(ctx context.Context, id int64, closingNote, csvSHA256, completedAt string) error {
+	hash := strings.TrimSpace(csvSHA256)
+	completedAt = strings.TrimSpace(completedAt)
+	if completedAt == "" {
+		completedAt = time.Now().UTC().Format(time.RFC3339)
 	}
-	if strings.TrimSpace(csvSHA256) == "" {
+	return withSQLiteBusyRetry(ctx, func() error {
+		tx, err := s.db.BeginTx(ctx, nil)
+		if err != nil {
+			return fmt.Errorf("begin complete run: %w", err)
+		}
+		defer func() {
+			_ = tx.Rollback()
+		}()
+
+		res, err := tx.ExecContext(ctx, `
+			UPDATE checklist_runs
+			SET status = ?, completed_at = ?, closing_note = ?,
+			    evidence_csv_sha256 = CASE WHEN ? != '' THEN ? ELSE evidence_csv_sha256 END
+			WHERE id = ? AND status = ?
+			  AND NOT EXISTS (
+				SELECT 1 FROM run_items
+				WHERE run_id = ? AND required = 1 AND status = ?
+			  )
+		`, RunStatusDone, completedAt, closingNote, hash, hash, id, RunStatusInProgress, id, RunItemStatusPending)
+		if err != nil {
+			return fmt.Errorf("complete run with evidence: %w", err)
+		}
+		n, err := res.RowsAffected()
+		if err != nil {
+			return fmt.Errorf("complete run with evidence rows: %w", err)
+		}
+		if n == 0 {
+			return diagnoseCompleteRunFailure(ctx, tx, id)
+		}
+		if commitErr := tx.Commit(); commitErr != nil {
+			return fmt.Errorf("commit complete run: %w", commitErr)
+		}
 		return nil
+	})
+}
+
+func diagnoseCompleteRunFailure(ctx context.Context, tx *sql.Tx, id int64) error {
+	var status string
+	err := tx.QueryRowContext(ctx, `
+		SELECT status FROM checklist_runs WHERE id = ?
+	`, id).Scan(&status)
+	if errors.Is(err, sql.ErrNoRows) {
+		return ErrRunNotFound
 	}
-	return s.SealRunEvidenceHash(ctx, id, csvSHA256)
+	if err != nil {
+		return fmt.Errorf("load run after complete failure: %w", err)
+	}
+	if status != RunStatusInProgress {
+		return ErrInvalidRunStatus
+	}
+	var pending int
+	if err := tx.QueryRowContext(ctx, `
+		SELECT COUNT(*) FROM run_items
+		WHERE run_id = ? AND required = 1 AND status = ?
+	`, id, RunItemStatusPending).Scan(&pending); err != nil {
+		return fmt.Errorf("count pending required after complete failure: %w", err)
+	}
+	if pending > 0 {
+		return ErrPendingRequiredItems
+	}
+	return ErrRunNotFound
 }
 
 // SetRunNotionURL stores the Notion page URL for an exported run.

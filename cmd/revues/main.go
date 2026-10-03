@@ -68,25 +68,38 @@ func main() {
 		IdleTimeout:       60 * time.Second,
 	}
 
+	serverErr := make(chan error, 1)
 	go func() {
 		slog.Info("revues listening", "addr", cfg.Addr)
-		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			slog.Error("server failed", "err", err)
-			os.Exit(1)
-		}
+		serverErr <- srv.ListenAndServe()
 	}()
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	<-quit
 
-	slog.Info("shutting down")
+	exitCode := 0
+	select {
+	case <-quit:
+		slog.Info("shutting down")
+	case serveErr := <-serverErr:
+		if serveErr != nil && !errors.Is(serveErr, http.ErrServerClosed) {
+			slog.Error("server failed", "err", serveErr)
+			exitCode = 1
+		}
+	}
+
+	schedulerCancel()
+
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	if err := srv.Shutdown(shutdownCtx); err != nil {
 		slog.Error("shutdown failed", "err", err)
-		os.Exit(1)
+		exitCode = 1
+	}
+
+	if exitCode != 0 {
+		os.Exit(exitCode)
 	}
 }
 

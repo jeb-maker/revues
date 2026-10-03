@@ -71,13 +71,13 @@ func (s *Server) PutAdminSMTPSettings(w http.ResponseWriter, r *http.Request) {
 		cfg.Password = submittedPassword
 	}
 
-	if err := s.Settings.SaveSMTP(r.Context(), cfg); err != nil {
-		if errors.Is(err, adminsettings.ErrEncryptionNotConfigured) {
-			writeAPIError(w, http.StatusBadRequest, "validation_failed",
-				"REVUES_ENCRYPTION_KEY est requis pour enregistrer la configuration SMTP.")
-			return
-		}
+	if err := adminsettings.ValidateSMTP(cfg); err != nil {
 		writeAPIError(w, http.StatusBadRequest, "validation_failed", err.Error())
+		return
+	}
+	if err := s.Settings.SaveSMTP(r.Context(), cfg); err != nil {
+		writeConfigSaveError(w, err, adminsettings.ErrEncryptionNotConfigured,
+			"REVUES_ENCRYPTION_KEY est requis pour enregistrer la configuration SMTP.")
 		return
 	}
 

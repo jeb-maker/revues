@@ -1,7 +1,6 @@
 package apiv1
 
 import (
-	"errors"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -70,13 +69,13 @@ func (s *Server) PutAdminNotionSettings(w http.ResponseWriter, r *http.Request) 
 		cfg.APIToken = submittedToken
 	}
 
-	if err := s.Notion.Save(r.Context(), cfg); err != nil {
-		if errors.Is(err, notion.ErrEncryptionNotConfigured) {
-			writeAPIError(w, http.StatusBadRequest, "validation_failed",
-				"REVUES_ENCRYPTION_KEY est requis pour enregistrer la configuration Notion.")
-			return
-		}
+	if err := notion.Validate(cfg); err != nil {
 		writeAPIError(w, http.StatusBadRequest, "validation_failed", err.Error())
+		return
+	}
+	if err := s.Notion.Save(r.Context(), cfg); err != nil {
+		writeConfigSaveError(w, err, notion.ErrEncryptionNotConfigured,
+			"REVUES_ENCRYPTION_KEY est requis pour enregistrer la configuration Notion.")
 		return
 	}
 

@@ -151,7 +151,7 @@ var ErrCommentRequired = errors.New("comment required for nok status")
 var ErrInvalidStatus = errors.New("invalid item status")
 
 // ErrPendingRequired is returned when closing a run that still has pending required items.
-var ErrPendingRequired = errors.New("pending required items")
+var ErrPendingRequired = store.ErrPendingRequiredItems
 
 // ValidateComplete checks whether a run may be closed.
 // nok items are allowed (warned in UI); required+pending items block closure.

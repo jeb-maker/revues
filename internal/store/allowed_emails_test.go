@@ -144,6 +144,89 @@ func TestResolveLoginRole(t *testing.T) {
 			t.Errorf("role = %q, want editor", role)
 		}
 	})
+
+	t.Run("home-org whitelist demotion applies", func(t *testing.T) {
+		user, err := st.UpsertGitHubUser(ctx, 76, "homewl", "home-wl@example.com", "Home", "", auth.RoleEditor)
+		if err != nil {
+			t.Fatalf("UpsertGitHubUser(): %v", err)
+		}
+		defaultOrg, err := st.OrganizationBySlug(ctx, "default")
+		if err != nil {
+			t.Fatalf("OrganizationBySlug(): %v", err)
+		}
+		if err = st.AddOrganizationMember(ctx, defaultOrg.ID, user.ID, store.OrgRoleMember); err != nil {
+			t.Fatalf("AddOrganizationMember(): %v", err)
+		}
+		orgCtx := orgctx.WithOrganizationID(ctx, defaultOrg.ID)
+		if insertErr := st.InsertAllowedEmail(orgCtx, user.Email, auth.RoleReader); insertErr != nil {
+			t.Fatalf("InsertAllowedEmail(reader): %v", insertErr)
+		}
+		role, roleErr := st.ResolveLoginRole(ctx, user.Email, "")
+		if roleErr != nil {
+			t.Fatalf("ResolveLoginRole() error = %v", roleErr)
+		}
+		if role != auth.RoleReader {
+			t.Errorf("role = %q, want reader (home-org whitelist demotion)", role)
+		}
+	})
+
+	t.Run("cross-org reader whitelist does not demote editor", func(t *testing.T) {
+		alice, err := st.UpsertGitHubUser(ctx, 77, "alice", "alice-wl@example.com", "Alice", "", auth.RoleEditor)
+		if err != nil {
+			t.Fatalf("UpsertGitHubUser(): %v", err)
+		}
+		defaultOrg, err := st.OrganizationBySlug(ctx, "default")
+		if err != nil {
+			t.Fatalf("OrganizationBySlug(): %v", err)
+		}
+		if err = st.AddOrganizationMember(ctx, defaultOrg.ID, alice.ID, store.OrgRoleMember); err != nil {
+			t.Fatalf("AddOrganizationMember(default): %v", err)
+		}
+		other, err := st.CreateOrganization(ctx, "Other", "other-wl", alice.ID)
+		if err != nil {
+			t.Fatalf("CreateOrganization(): %v", err)
+		}
+		otherCtx := orgctx.WithOrganizationID(ctx, other.ID)
+		if insertErr := st.InsertAllowedEmail(otherCtx, alice.Email, auth.RoleReader); insertErr != nil {
+			t.Fatalf("InsertAllowedEmail(reader): %v", insertErr)
+		}
+		role, roleErr := st.ResolveLoginRole(ctx, alice.Email, "")
+		if roleErr != nil {
+			t.Fatalf("ResolveLoginRole() error = %v", roleErr)
+		}
+		if role != auth.RoleEditor {
+			t.Errorf("role = %q, want editor (must not demote via other org whitelist)", role)
+		}
+	})
+
+	t.Run("multi-org whitelist prefers editor over reader", func(t *testing.T) {
+		owner, err := st.UpsertGitHubUser(ctx, 78, "wla", "wla@example.com", "WLA", "", auth.RoleEditor)
+		if err != nil {
+			t.Fatalf("UpsertGitHubUser(): %v", err)
+		}
+		orgA, err := st.CreateOrganization(ctx, "WL A", "wl-a", owner.ID)
+		if err != nil {
+			t.Fatalf("CreateOrganization(A): %v", err)
+		}
+		orgB, err := st.CreateOrganization(ctx, "WL B", "wl-b", owner.ID)
+		if err != nil {
+			t.Fatalf("CreateOrganization(B): %v", err)
+		}
+		email := "multi-wl@example.com"
+		if insertErr := st.InsertAllowedEmail(orgctx.WithOrganizationID(ctx, orgA.ID), email, auth.RoleReader); insertErr != nil {
+			t.Fatalf("InsertAllowedEmail(A reader): %v", insertErr)
+		}
+		if insertErr := st.InsertAllowedEmail(orgctx.WithOrganizationID(ctx, orgB.ID), email, auth.RoleEditor); insertErr != nil {
+			t.Fatalf("InsertAllowedEmail(B editor): %v", insertErr)
+		}
+		role, roleErr := st.ResolveLoginRole(ctx, email, "")
+		if roleErr != nil {
+			t.Fatalf("ResolveLoginRole() error = %v", roleErr)
+		}
+		if role != auth.RoleEditor {
+			t.Errorf("role = %q, want editor (max across orgs)", role)
+		}
+	})
 }
 
 func TestInsertAllowedEmailRejectsAdmin(t *testing.T) {

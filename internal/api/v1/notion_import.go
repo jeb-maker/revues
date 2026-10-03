@@ -86,7 +86,7 @@ func (s *Server) notionImportFetch(
 	}
 	dbID, err := notion.ParseDatabaseRef(ref)
 	if err != nil {
-		writeAPIError(w, http.StatusBadRequest, "validation_failed", err.Error())
+		writeAPIError(w, http.StatusBadRequest, "validation_failed", notion.UserMessage(err))
 		return
 	}
 	db, err := s.notionClient().GetDatabase(r.Context(), cfg, dbID)
@@ -119,7 +119,7 @@ func (s *Server) notionImportPreview(
 ) {
 	preview, db, err := s.loadNotionPreview(r, cfg, databaseRef, databaseID, templateName, mapping)
 	if err != nil {
-		writeAPIError(w, http.StatusBadRequest, "validation_failed", err.Error())
+		writeAPIError(w, http.StatusBadRequest, "validation_failed", notion.UserMessage(err))
 		return
 	}
 	writeJSON(w, http.StatusOK, notionImportPreviewResponse(db, mapping, preview))
@@ -136,7 +136,7 @@ func (s *Server) notionImportCreate(
 ) {
 	preview, db, err := s.loadNotionPreview(r, cfg, databaseRef, databaseID, templateName, mapping)
 	if err != nil {
-		writeAPIError(w, http.StatusBadRequest, "validation_failed", err.Error())
+		writeAPIError(w, http.StatusBadRequest, "validation_failed", notion.UserMessage(err))
 		return
 	}
 	domainList := []string{}

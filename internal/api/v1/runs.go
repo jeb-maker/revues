@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/jeb-maker/revues/internal/auth"
 	"github.com/jeb-maker/revues/internal/features/runs"
@@ -217,11 +218,17 @@ func (s *Server) CompleteRun(w http.ResponseWriter, r *http.Request, runID RunId
 		return
 	}
 
+	// Export CSV uses completed_at as RunDate. Hash with the timestamp we will
+	// write so the sealed digest matches a post-complete re-export.
+	completedAt := time.Now().UTC().Format(time.RFC3339)
 	csvRows, err := s.Store.ListRunExportRows(r.Context(), run.ID)
 	if err != nil {
 		slog.Error("export rows before complete", "err", err)
 		writeAPIError(w, http.StatusInternalServerError, "internal_error", "Erreur interne.")
 		return
+	}
+	for i := range csvRows {
+		csvRows[i].RunDate = completedAt
 	}
 	csvData, err := runs.BuildRunCSV(csvRows)
 	if err != nil {
@@ -231,7 +238,12 @@ func (s *Server) CompleteRun(w http.ResponseWriter, r *http.Request, runID RunId
 	}
 	hash := runs.SHA256Hex(csvData)
 
-	if err = s.Store.CompleteRunWithEvidence(r.Context(), run.ID, closingNote, hash); err != nil {
+	if err = s.Store.CompleteRunWithEvidence(r.Context(), run.ID, closingNote, hash, completedAt); err != nil {
+		if errors.Is(err, store.ErrPendingRequiredItems) {
+			writeAPIError(w, http.StatusBadRequest, "validation_failed",
+				"Des points obligatoires sont encore en attente.")
+			return
+		}
 		if errors.Is(err, store.ErrInvalidRunStatus) {
 			writeAPIError(w, http.StatusConflict, "conflict", "Cette revue n'est plus éditable.")
 			return
@@ -374,7 +386,8 @@ func (s *Server) UpdateRunItem(w http.ResponseWriter, r *http.Request, runID Run
 	unassign := req.Unassign != nil && *req.Unassign
 	if unassign || req.AssignedTo != nil {
 		if !runs.CanAssignAccess(user, access) {
-			writeAPIError(w, http.StatusForbidden, "forbidden", "Droits insuffisants pour assigner.")
+			// Deny → 404 (IDOR trade-off): do not reveal that the run exists for assign.
+			writeAPIError(w, http.StatusNotFound, "not_found", "Revue introuvable.")
 			return
 		}
 		var assignee *int64
