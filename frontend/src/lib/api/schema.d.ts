@@ -90,6 +90,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Recherche multi-entités
+         * @description Auth + org active. Agrège sujets, revues, modèles et tâches assignées
+         *     avec le même RBAC / filtres de visibilité que les listes correspondantes.
+         *     `template` omis si l'appelant n'a pas `show_modeles` (editor+).
+         *     `task` omis si `show_my_tasks` est faux (org à moins de 2 membres).
+         *     v1 : `LIKE` via `searchTerms` (pas de FTS5).
+         */
+        get: operations["getSearch"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/auth/login": {
         parameters: {
             query?: never;
@@ -1181,6 +1205,28 @@ export interface components {
             user: components["schemas"]["User"];
             csrf_token: string;
         };
+        /** @enum {string} */
+        SearchResultKind: "subject" | "run" | "template" | "task";
+        SearchResult: {
+            kind: components["schemas"]["SearchResultKind"];
+            /**
+             * Format: int64
+             * @description Identifiant de l'entité (item id pour kind=task)
+             */
+            id: number;
+            title: string;
+            /** @description Contexte court (sujet, domaines, section…) */
+            subtitle?: string;
+            /** @description Chemin SPA relatif (ex. /subjects/12) */
+            href: string;
+        };
+        SearchResponse: {
+            results: components["schemas"]["SearchResult"][];
+            /** @description Nombre de matches par kind avant plafond `limit` */
+            total_by_kind: {
+                [key: string]: number;
+            };
+        };
         LoginRequest: {
             /** Format: email */
             email: string;
@@ -1981,6 +2027,35 @@ export interface operations {
                     "application/json": components["schemas"]["MyTaskListResponse"];
                 };
             };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getSearch: {
+        parameters: {
+            query: {
+                /** @description Texte libre (trim ; whitespace seul → 400) */
+                q: string;
+                /** @description Plafond de résultats par kind (défaut 10, max 25) */
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Résultats groupables par kind */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SearchResponse"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             500: components["responses"]["InternalError"];

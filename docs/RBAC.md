@@ -202,6 +202,7 @@ Paths réels de `api/openapi/openapi.yaml` (préfixe `/api/v1`). Helpers : `ensu
 | `POST /subjects/{id}/runs` | `ensureSubjectAccess` + `CanLaunchAccess` |
 | `GET /runs` | Auth + org active ; filtrage par accès sujet côté store (`ListFilteredRunSummaries`) |
 | `GET /me/tasks` | Auth + org active ; points assignés à l'utilisateur courant uniquement |
+| `GET /search` | Auth + org active ; agrège listes (sujets / revues / modèles / tâches) avec le même filtrage RBAC ; `template` si editor+ ; `task` si org ≥ 2 membres |
 | `GET /runs/{id}` · `GET /runs/{id}/items/{itemId}` | `ensureRunAccess` (`CanViewAccess` sur le sujet de la revue) |
 | `PATCH /runs/{id}/items/{itemId}` | `ensureRunAccess` + `CanUpdateAccess` (statut / commentaire) ; `CanAssignAccess` si `assigned_to` |
 | `POST /runs/{id}/complete` | `ensureRunAccess` + `CanCompleteAccess` |

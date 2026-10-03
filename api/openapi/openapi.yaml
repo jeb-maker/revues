@@ -27,6 +27,8 @@ tags:
   description: Revues (lancement, points, clôture)
 - name: tasks
   description: Mes tâches — items de revue assignés à l'utilisateur courant
+- name: search
+  description: Recherche fulltext multi-entités (org active)
 - name: integrations
   description: Intégrations externes (Jira link/create depuis un point)
 paths:
@@ -130,6 +132,50 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/MyTaskListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /search:
+    get:
+      operationId: getSearch
+      tags:
+      - search
+      summary: Recherche multi-entités
+      description: |
+        Auth + org active. Agrège sujets, revues, modèles et tâches assignées
+        avec le même RBAC / filtres de visibilité que les listes correspondantes.
+        `template` omis si l'appelant n'a pas `show_modeles` (editor+).
+        `task` omis si `show_my_tasks` est faux (org à moins de 2 membres).
+        v1 : `LIKE` via `searchTerms` (pas de FTS5).
+      parameters:
+      - name: q
+        in: query
+        required: true
+        schema:
+          type: string
+          minLength: 1
+        description: Texte libre (trim ; whitespace seul → 400)
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 25
+          default: 10
+        description: Plafond de résultats par kind (défaut 10, max 25)
+      responses:
+        '200':
+          description: Résultats groupables par kind
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -2059,6 +2105,50 @@ components:
           $ref: '#/components/schemas/User'
         csrf_token:
           type: string
+    SearchResultKind:
+      type: string
+      enum:
+      - subject
+      - run
+      - template
+      - task
+    SearchResult:
+      type: object
+      required:
+      - kind
+      - id
+      - title
+      - href
+      properties:
+        kind:
+          $ref: '#/components/schemas/SearchResultKind'
+        id:
+          type: integer
+          format: int64
+          description: Identifiant de l'entité (item id pour kind=task)
+        title:
+          type: string
+        subtitle:
+          type: string
+          description: Contexte court (sujet, domaines, section…)
+        href:
+          type: string
+          description: Chemin SPA relatif (ex. /subjects/12)
+    SearchResponse:
+      type: object
+      required:
+      - results
+      - total_by_kind
+      properties:
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/SearchResult'
+        total_by_kind:
+          type: object
+          additionalProperties:
+            type: integer
+          description: Nombre de matches par kind avant plafond `limit`
     LoginRequest:
       type: object
       required:

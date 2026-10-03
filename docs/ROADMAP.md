@@ -18,6 +18,17 @@ Big bang : UI `html/template` + HTMX remplacée par **Go OpenAPI + SvelteKit + m
 
 Cœur métier, auth GitHub, RBAC, orgs/équipes, SMTP, Jira Cloud, webhooks, pièces jointes — comportement de référence pour les WP sur l’ancienne stack HTML/HTMX.
 
+## Recherche fulltext globale (shell)
+
+Plan : [search/PLAN.md](./search/PLAN.md) · WP : [search/WORK_PACKAGES.md](./search/WORK_PACKAGES.md) · mapping : [search/ISSUE_MAP.md](./search/ISSUE_MAP.md).
+
+| WP | Issue | Notes |
+|----|-------|-------|
+| SEARCH-001 | [#288](https://github.com/jeb-maker/revues/issues/288) | API `GET /api/v1/search` |
+| SEARCH-002 | [#289](https://github.com/jeb-maker/revues/issues/289) | Shell + page `/search` |
+| SEARCH-003 | [#290](https://github.com/jeb-maker/revues/issues/290) | Retrait `q` listes |
+| SEARCH-004 | [#291](https://github.com/jeb-maker/revues/issues/291) | FTS5 — **icebox** |
+
 ## Ouvert hors rewrite
 
 | Issue | Notes |
