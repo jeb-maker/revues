@@ -16,9 +16,9 @@ Audit **read-only** par défaut. N'implémenter que si **P0 UX** confirmé (voir
 
 1. `.cursor/rules/design.md` — charte
 2. [decisions.md](decisions.md) — décisions produit (ne pas re-signaler)
-3. Pages : `frontend/src/routes/**/*.svelte` (+ `+layout.svelte` racine, `admin/+layout.svelte`, `runs/+layout.svelte`)
-4. Lib front : `frontend/src/lib/**` — `components/` (`AdminNav.svelte`, `TemplateEditor.svelte`), `api/` (client OpenAPI généré + wrappers), `auth/messages.ts` (copy FR des erreurs login), `mb/` (`ensureMb()`, `elements.d.ts`)
-5. CSS : blocs `<style>` des pages Svelte ; vendor `mb-*` sous `web/static/vendor/jeb-maker-mb/` (tokens `tokens-core.css`, `mb-bridge.css`, `mb-boot.js`)
+3. Pages : `frontend/src/routes/**/*.svelte` (+ `+layout.svelte` / `+layout.ts` racine : header commun, session unique, garde d'auth)
+4. Lib front : `frontend/src/lib/**` — `components/` (`AdminNav.svelte`, `TemplateEditor.svelte`), `api/` (client OpenAPI généré + wrappers), `auth/session.ts` (session `page.data.boot`), `auth/messages.ts` (copy FR des erreurs login), `i18n/labels.ts` (libellés FR), `styles/app.css` (thème sur tokens), `mb/` (`ensureMb()`, `elements.d.ts`)
+5. CSS : `frontend/src/lib/styles/app.css` (classes hôte partagées) + blocs `<style>` résiduels des pages ; vendor `mb-*` sous `web/static/vendor/jeb-maker-mb/` (tokens `tokens-core.css`, `mb-bridge.css`, `mb-boot.js`)
 6. Contrat : `api/openapi/openapi.yaml` (capabilities `can_*` par ressource) ; règles métier et tests : `internal/features/**`, `internal/api/v1/*_test.go` — spec implicite souvent plus fiable que la charte seule
 
 ## Avant les passes
