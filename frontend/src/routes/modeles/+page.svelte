@@ -1,28 +1,22 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { goto } from '$app/navigation';
-	import { bootstrap } from '$lib/api/auth';
 	import { listTemplates, type TemplateSummary } from '$lib/api/templates';
+	import { session } from '$lib/auth/session';
+	import { inputValue } from '$lib/mb';
 
-	let csrf = $state('');
+	const boot = session();
+	const canManage = boot.can_edit;
+
 	let templates = $state<TemplateSummary[]>([]);
 	let q = $state('');
 	let error = $state('');
 	let loading = $state(true);
-	let canManage = $state(false);
 
 	async function load(query = q) {
 		loading = true;
 		error = '';
 		try {
-			const boot = await bootstrap();
-			if (!boot.authenticated) {
-				await goto('/login');
-				return;
-			}
-			csrf = boot.csrf_token;
-			canManage = boot.user?.role === 'admin' || boot.user?.role === 'editor';
-			templates = await listTemplates(csrf, query);
+			templates = await listTemplates(boot.csrf_token, query);
 		} catch (e) {
 			error = e instanceof Error ? e.message : 'Erreur de chargement';
 		} finally {
@@ -44,113 +38,53 @@
 	<title>Modèles — Revues</title>
 </svelte:head>
 
-<main class="page">
-	<header class="top">
-		<p class="brand"><a href="/">Revues</a></p>
+<div class="page">
+	<header class="page-header">
 		<h1>Modèles</h1>
 		<p class="lede">Catalogue des check-lists versionnées de l’organisation.</p>
+		{#if canManage}
+			<p class="actions">
+				<mb-button variant="primary" href="/modeles/new">Nouveau modèle</mb-button>
+				<mb-button variant="secondary" href="/modeles/notion-import">Importer depuis Notion</mb-button>
+			</p>
+		{/if}
 	</header>
 
 	{#if error}
-		<p class="err" role="alert">{error}</p>
+		<mb-alert variant="danger">{error}</mb-alert>
 	{/if}
 
-	<form class="toolbar" onsubmit={onSearch}>
-		<input type="search" bind:value={q} placeholder="Rechercher…" aria-label="Recherche" />
-		<button type="submit">Filtrer</button>
-		{#if canManage}
-			<a class="primary" href="/modeles/new">Nouveau modèle</a>
-			<a class="secondary" href="/modeles/notion-import">Import Notion</a>
-		{/if}
+	<form class="filters" onsubmit={onSearch}>
+		<mb-input
+			label="Rechercher"
+			hide-label
+			type="search"
+			placeholder="Rechercher…"
+			value={q}
+			oninput={(e) => (q = inputValue(e))}
+		></mb-input>
+		<mb-button type="submit" variant="secondary">Filtrer</mb-button>
 	</form>
 
 	{#if loading}
-		<p class="muted">Chargement…</p>
+		<p class="loading"><mb-spinner label="Chargement"></mb-spinner> Chargement…</p>
 	{:else if templates.length === 0}
-		<p class="muted">Aucun modèle. {#if canManage}<a href="/modeles/new">Créer le premier</a>{/if}</p>
+		<mb-empty-state heading="Aucun modèle">
+			{#if canManage}<a href="/modeles/new">Créer le premier modèle</a>.{:else}Aucun modèle publié.{/if}
+		</mb-empty-state>
 	{:else}
-		<ul class="list">
+		<ul class="card-list">
 			{#each templates as t (t.id)}
 				<li>
 					<a href={`/modeles/${t.id}`}>
 						<strong>{t.name}</strong>
-						<span class="meta">v{t.latest_version} · {t.item_count} points</span>
+						<span class="desc">v{t.latest_version} · {t.item_count} points</span>
 						{#if t.domains?.length}
-							<span class="domains">{t.domains.join(', ')}</span>
+							<span class="desc">{t.domains.join(', ')}</span>
 						{/if}
 					</a>
 				</li>
 			{/each}
 		</ul>
 	{/if}
-</main>
-
-<style>
-	h1 {
-		margin: 0 0 0.35rem;
-		font-size: 1.35rem;
-		font-weight: 600;
-	}
-	.toolbar {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 0.5rem;
-		margin-bottom: 1.25rem;
-	}
-	.toolbar input {
-		flex: 1;
-		min-width: 10rem;
-		padding: 0.45rem 0.6rem;
-		border-radius: 0.35rem;
-		border: 1px solid #334155;
-		background: #0b1220;
-		color: #f8fafc;
-		font: inherit;
-	}
-	.toolbar button,
-	.toolbar a {
-		padding: 0.45rem 0.75rem;
-		border-radius: 0.35rem;
-		border: 1px solid #334155;
-		background: transparent;
-		color: #5eead4;
-		text-decoration: none;
-		font: inherit;
-		cursor: pointer;
-	}
-	.toolbar a.primary {
-		background: #0f766e;
-		border-color: #0f766e;
-		color: #ecfdf5;
-		font-weight: 600;
-	}
-	.toolbar a.secondary {
-		border-color: #5eead4;
-	}
-	.list {
-		list-style: none;
-		margin: 0;
-		padding: 0;
-		display: flex;
-		flex-direction: column;
-		gap: 0.5rem;
-	}
-	.list a {
-		display: block;
-		padding: 0.75rem 0.9rem;
-		border-radius: 0.5rem;
-		border: 1px solid #334155;
-		color: inherit;
-		text-decoration: none;
-		background: rgba(15, 23, 42, 0.55);
-	}
-	.meta,
-	.domains {
-		display: block;
-		font-size: 0.85rem;
-		color: #94a3b8;
-	}
-	.muted a {
-		color: #5eead4;
-	}
-</style>
+</div>

@@ -1,14 +1,25 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { goto } from '$app/navigation';
-	import { bootstrap } from '$lib/api/auth';
 	import { listRuns, type RunSummary } from '$lib/api/runs';
+	import { session } from '$lib/auth/session';
+	import { formatRunStatus, runStatusVariant } from '$lib/i18n/labels';
+	import { inputValue } from '$lib/mb';
 
-	let csrf = $state('');
+	type RunFilter = '' | 'draft' | 'in_progress' | 'done' | 'overdue';
+	const STATUS_FILTERS: { value: RunFilter; label: string }[] = [
+		{ value: '', label: 'Tous les statuts' },
+		{ value: 'in_progress', label: 'En cours' },
+		{ value: 'done', label: 'Terminées' },
+		{ value: 'overdue', label: 'En retard' },
+		{ value: 'draft', label: 'Brouillons' }
+	];
+
+	const csrf = session().csrf_token;
+
 	let runs = $state<RunSummary[]>([]);
 	let total = $state(0);
 	let q = $state('');
-	let status = $state<'' | 'draft' | 'in_progress' | 'done' | 'overdue'>('');
+	let status = $state<RunFilter>('');
 	let error = $state('');
 	let loading = $state(true);
 
@@ -16,12 +27,6 @@
 		loading = true;
 		error = '';
 		try {
-			const boot = await bootstrap();
-			if (!boot.authenticated) {
-				await goto('/login');
-				return;
-			}
-			csrf = boot.csrf_token;
 			const res = await listRuns({
 				csrfToken: csrf,
 				q: q.trim() || undefined,
@@ -44,160 +49,83 @@
 		e.preventDefault();
 		await load();
 	}
-
-	function statusLabel(s: string): string {
-		switch (s) {
-			case 'in_progress':
-				return 'En cours';
-			case 'done':
-				return 'Terminée';
-			case 'draft':
-				return 'Brouillon';
-			default:
-				return s;
-		}
-	}
 </script>
 
 <svelte:head>
 	<title>Revues — Revues</title>
 </svelte:head>
 
-<main class="page">
-	<header class="top">
-		<p class="brand"><a href="/">Revues</a></p>
+<div class="page">
+	<header class="page-header">
 		<h1>Revues</h1>
 		<p class="lede">Exécutions en cours et historiques — progression par snapshot.</p>
 	</header>
 
 	{#if error}
-		<p class="err" role="alert">{error}</p>
+		<mb-alert variant="danger">{error}</mb-alert>
 	{/if}
 
-	<form class="toolbar" onsubmit={onFilter}>
-		<input type="search" bind:value={q} placeholder="Rechercher…" aria-label="Recherche" />
-		<select bind:value={status} aria-label="Statut">
-			<option value="">Tous</option>
-			<option value="in_progress">En cours</option>
-			<option value="done">Terminées</option>
-			<option value="overdue">En retard</option>
-			<option value="draft">Brouillons</option>
-		</select>
-		<button type="submit">Filtrer</button>
-		<a href="/subjects">Sujets</a>
+	<form class="filters" onsubmit={onFilter}>
+		<mb-input
+			label="Rechercher"
+			hide-label
+			type="search"
+			placeholder="Rechercher…"
+			value={q}
+			oninput={(e) => (q = inputValue(e))}
+		></mb-input>
+		<mb-select
+			label="Statut"
+			hide-label
+			value={status}
+			onmb-change={(e) => (status = e.detail.value as RunFilter)}
+		>
+			{#each STATUS_FILTERS as f (f.value)}
+				<option value={f.value}>{f.label}</option>
+			{/each}
+		</mb-select>
+		<mb-button type="submit" variant="secondary">Filtrer</mb-button>
 	</form>
 
 	{#if loading}
-		<p class="muted"><mb-spinner></mb-spinner> Chargement…</p>
+		<p class="loading"><mb-spinner label="Chargement"></mb-spinner> Chargement…</p>
 	{:else if runs.length === 0}
-		<p class="muted">Aucune revue. Lancez-en une depuis un <a href="/subjects">sujet</a>.</p>
+		<mb-empty-state heading="Aucune revue">
+			Lancez-en une depuis un <a href="/subjects">sujet</a>.
+		</mb-empty-state>
 	{:else}
-		<p class="meta">{total} revue{total > 1 ? 's' : ''}</p>
-		<ul class="list">
+		<p class="muted">{total} revue{total > 1 ? 's' : ''}</p>
+		<ul class="card-list">
 			{#each runs as run (run.id)}
 				<li>
 					<a href={`/runs/${run.id}`}>
 						<strong>{run.title}</strong>
 						<span class="row">
-							<span>{run.subject_name}</span>
-							<mb-badge variant={run.status === 'done' ? 'success' : 'neutral'}
-								>{statusLabel(run.status)}</mb-badge
-							>
-							<span class="pct">{run.progress.percent}%</span>
+							<span class="muted">{run.subject_name}</span>
+							<mb-badge variant={runStatusVariant(run.status)}>{formatRunStatus(run.status)}</mb-badge>
+							<span class="pct">{run.progress.percent} %</span>
 						</span>
-						<div class="bar" aria-hidden="true">
-							<span style={`width:${run.progress.percent}%`}></span>
-						</div>
+						<mb-progress
+							percent={run.progress.percent}
+							aria-label={`Progression ${run.progress.percent} %`}
+						></mb-progress>
 					</a>
 				</li>
 			{/each}
 		</ul>
 	{/if}
-</main>
+</div>
 
 <style>
-	
-	
-	
-	.toolbar {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 0.5rem;
-		margin-bottom: 1rem;
-		align-items: center;
-	}
-	.toolbar input,
-	.toolbar select {
-		flex: 1;
-		min-width: 8rem;
-		padding: 0.5rem 0.65rem;
-		border-radius: 0.4rem;
-		border: 1px solid #334155;
-		background: #0f172a;
-		color: inherit;
-	}
-	.toolbar button,
-	.toolbar a {
-		padding: 0.5rem 0.75rem;
-		border-radius: 0.4rem;
-		border: none;
-		background: #134e4a;
-		color: #ccfbf1;
-		font-weight: 600;
-		text-decoration: none;
-		cursor: pointer;
-		font: inherit;
-	}
-	.list {
-		list-style: none;
-		margin: 0;
-		padding: 0;
-		display: flex;
-		flex-direction: column;
-		gap: 0.65rem;
-	}
-	.list a {
-		display: block;
-		padding: 0.85rem 1rem;
-		border-radius: 0.5rem;
-		background: rgba(15, 23, 42, 0.55);
-		border: 1px solid #334155;
-		color: inherit;
-		text-decoration: none;
-	}
-	.list a:hover {
-		border-color: #2dd4bf;
-	}
 	.row {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 0.65rem;
-		align-items: center;
-		margin-top: 0.35rem;
-		font-size: 0.9rem;
-		color: #94a3b8;
+		margin-top: var(--mb-space-1);
+		font-size: var(--mb-font-size-sm);
 	}
 	.pct {
 		margin-left: auto;
 		font-variant-numeric: tabular-nums;
-		color: #5eead4;
 	}
-	.bar {
-		margin-top: 0.55rem;
-		height: 0.35rem;
-		border-radius: 999px;
-		background: #1e293b;
-		overflow: hidden;
-	}
-	.bar span {
-		display: block;
-		height: 100%;
-		background: linear-gradient(90deg, #0d9488, #5eead4);
-	}
-	
-	.meta {
-		margin: 0 0 0.75rem;
-		color: #94a3b8;
-		font-size: 0.9rem;
+	mb-progress {
+		margin: var(--mb-space-2) 0 0;
 	}
 </style>

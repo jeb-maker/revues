@@ -13,6 +13,9 @@ import (
 	"github.com/jeb-maker/revues/internal/store"
 )
 
+// runItemConflictMessage is returned with 409 `conflict` when the client's updated_at is stale.
+const runItemConflictMessage = "Ce point a été modifié entre-temps. Rechargez la page."
+
 // ListRuns serves GET /api/v1/runs.
 func (s *Server) ListRuns(w http.ResponseWriter, r *http.Request, params ListRunsParams) {
 	user, ok := requireUser(w, r)
@@ -137,7 +140,10 @@ func (s *Server) CreateRun(w http.ResponseWriter, r *http.Request, subjectID Sub
 		return
 	}
 
-	run, err := s.Store.CreateChecklistRun(r.Context(), subject.ID, req.TemplateId, user.ID)
+	run, err := s.Store.CreateChecklistRunWithDueDate(
+		r.Context(), subject.ID, req.TemplateId, user.ID,
+		sql.NullString{String: dueISO, Valid: dueISO != ""},
+	)
 	if err != nil {
 		if errors.Is(err, store.ErrChecklistTemplateNotFound) {
 			writeAPIError(w, http.StatusBadRequest, "validation_failed", "Modèle introuvable ou incompatible avec ce sujet.")
@@ -146,20 +152,6 @@ func (s *Server) CreateRun(w http.ResponseWriter, r *http.Request, subjectID Sub
 		slog.Error("create checklist run", "err", err)
 		writeAPIError(w, http.StatusInternalServerError, "internal_error", "Erreur interne.")
 		return
-	}
-
-	if dueISO != "" {
-		if err = s.Store.SetRunDueDate(r.Context(), run.ID, sql.NullString{String: dueISO, Valid: true}); err != nil {
-			slog.Error("set run due date", "err", err, "run_id", run.ID)
-			writeAPIError(w, http.StatusInternalServerError, "internal_error", "Erreur interne.")
-			return
-		}
-		run, err = s.Store.RunByID(r.Context(), run.ID)
-		if err != nil {
-			slog.Error("reload run after due date", "err", err)
-			writeAPIError(w, http.StatusInternalServerError, "internal_error", "Erreur interne.")
-			return
-		}
 	}
 
 	detail, ok := s.buildRunDetail(w, r, run, user)
@@ -252,6 +244,9 @@ func (s *Server) CompleteRun(w http.ResponseWriter, r *http.Request, runID RunId
 	if s.Webhooks != nil {
 		s.Webhooks.EmitReviewCompleted(r.Context(), run.ID)
 	}
+	if s.Notifier != nil {
+		s.Notifier.NotifyRunCompleted(r.Context(), run.ID)
+	}
 
 	run, err = s.Store.RunByID(r.Context(), run.ID)
 	if err != nil {
@@ -307,6 +302,12 @@ func (s *Server) UpdateRunItem(w http.ResponseWriter, r *http.Request, runID Run
 		return
 	}
 
+	// Optimistic lock: the client echoes the updated_at it displayed; empty = unconditional write.
+	expectedUpdatedAt := ""
+	if req.UpdatedAt != nil {
+		expectedUpdatedAt = strings.TrimSpace(*req.UpdatedAt)
+	}
+
 	statusChanged := false
 	newStatus := item.Status
 	newComment := item.Comment
@@ -335,7 +336,14 @@ func (s *Server) UpdateRunItem(w http.ResponseWriter, r *http.Request, runID Run
 			writeAPIError(w, http.StatusBadRequest, "validation_failed", "Mise à jour invalide.")
 			return
 		}
-		if err := s.Store.UpdateRunItemStatus(r.Context(), run.ID, itemID, user.ID, newStatus, newComment); err != nil {
+		err := s.Store.UpdateRunItemStatusChecked(
+			r.Context(), run.ID, itemID, user.ID, newStatus, newComment, expectedUpdatedAt,
+		)
+		if err != nil {
+			if errors.Is(err, store.ErrRunItemConflict) {
+				writeAPIError(w, http.StatusConflict, "conflict", runItemConflictMessage)
+				return
+			}
 			if errors.Is(err, store.ErrRunNotEditable) {
 				writeAPIError(w, http.StatusConflict, "conflict", "Cette revue n'est plus éditable.")
 				return
@@ -349,8 +357,20 @@ func (s *Server) UpdateRunItem(w http.ResponseWriter, r *http.Request, runID Run
 			return
 		}
 		statusChanged = item.Status != newStatus
+
+		if expectedUpdatedAt != "" {
+			// The status write bumped updated_at: chain the lock to the fresh value for the assign step.
+			fresh, err := s.Store.RunItemByID(r.Context(), run.ID, itemID)
+			if err != nil {
+				slog.Error("reload run item after status update", "err", err)
+				writeAPIError(w, http.StatusInternalServerError, "internal_error", "Erreur interne.")
+				return
+			}
+			expectedUpdatedAt = fresh.UpdatedAt
+		}
 	}
 
+	newlyAssigned := false
 	unassign := req.Unassign != nil && *req.Unassign
 	if unassign || req.AssignedTo != nil {
 		if !runs.CanAssignAccess(user, access) {
@@ -361,7 +381,11 @@ func (s *Server) UpdateRunItem(w http.ResponseWriter, r *http.Request, runID Run
 		if !unassign {
 			assignee = req.AssignedTo
 		}
-		if err := s.Store.AssignRunItem(r.Context(), run.ID, itemID, assignee); err != nil {
+		if err := s.Store.AssignRunItemChecked(r.Context(), run.ID, itemID, assignee, expectedUpdatedAt); err != nil {
+			if errors.Is(err, store.ErrRunItemConflict) {
+				writeAPIError(w, http.StatusConflict, "conflict", runItemConflictMessage)
+				return
+			}
 			if errors.Is(err, store.ErrInvalidAssignee) {
 				writeAPIError(w, http.StatusBadRequest, "validation_failed", "Assigné invalide (doit être membre du sujet).")
 				return
@@ -378,10 +402,16 @@ func (s *Server) UpdateRunItem(w http.ResponseWriter, r *http.Request, runID Run
 			writeAPIError(w, http.StatusInternalServerError, "internal_error", "Erreur interne.")
 			return
 		}
+		// Email only on an effective new assignee: the SPA re-sends assigned_to on every save,
+		// so re-saving the same assignee (or unassigning) must not re-notify.
+		newlyAssigned = assignee != nil && (!item.AssignedTo.Valid || item.AssignedTo.Int64 != *assignee)
 	}
 
 	if statusChanged && newStatus == runs.StatusNOK && s.Webhooks != nil {
 		s.Webhooks.EmitReviewItemNOK(r.Context(), run.ID, itemID)
+	}
+	if newlyAssigned && s.Notifier != nil {
+		s.Notifier.NotifyItemAssigned(r.Context(), run.ID, itemID)
 	}
 
 	detail, ok := s.buildRunItemDetail(w, r, run, itemID, user, access)

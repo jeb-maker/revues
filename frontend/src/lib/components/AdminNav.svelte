@@ -21,7 +21,7 @@
 </script>
 
 <nav class="admin-nav" aria-label="Administration">
-	{#each links as link}
+	{#each links as link (link.id)}
 		<a href={link.href} aria-current={section === link.id ? 'page' : undefined}>{link.label}</a>
 	{/each}
 </nav>
@@ -32,18 +32,21 @@
 	.admin-nav {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 0.65rem 1rem;
-		margin: 0 0 1.5rem;
-		padding-bottom: 0.85rem;
-		border-bottom: 1px solid rgba(148, 163, 184, 0.35);
+		gap: var(--mb-space-2) var(--mb-space-4);
+		margin: 0 0 var(--mb-space-5);
+		padding-bottom: var(--mb-space-3);
+		border-bottom: 1px solid var(--mb-color-border);
 	}
 	.admin-nav a {
-		color: #99f6e4;
+		color: var(--mb-color-muted);
 		text-decoration: none;
-		font-size: 0.92rem;
+		font-size: var(--mb-font-size-sm);
+	}
+	.admin-nav a:hover {
+		color: var(--mb-color-fg);
 	}
 	.admin-nav a[aria-current='page'] {
-		color: #f8fafc;
+		color: var(--mb-color-fg);
 		font-weight: 600;
 		text-decoration: underline;
 		text-underline-offset: 0.25em;

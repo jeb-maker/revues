@@ -18,6 +18,9 @@ frontend/                 # app SvelteKit
   src/routes/             # pages
   src/lib/api/            # schema.d.ts généré + wrappers (client.ts)
   src/lib/mb/             # ensureMb() — charge tokens + CE depuis /static/vendor
+  src/lib/auth/session.ts # session unique (bootstrap + org active), lue via page.data.boot
+  src/lib/styles/app.css  # thème app sur tokens --mb-* (importé une fois dans +layout.svelte)
+  src/lib/i18n/labels.ts  # libellés FR des codes API (statuts, rôles, visibilité)
   src/lib/components/     # composition mb + logique écran
 web/static/vendor/jeb-maker-mb/  # tokens + mb-boot.js (servi par Go)
 ```
@@ -93,7 +96,7 @@ Appliqués par `./scripts/check.sh` — détail [PLAN.md](./PLAN.md) :
 | Métrique | Seuil |
 |----------|-------|
 | JS app (`frontend/build/_app/**/*.js`) | ≤ 264 KiB brut / ≤ 112 KiB gzip-9 |
-| CSS app (`frontend/build/_app/**/*.css`) | ≤ 40 KiB brut / ≤ 17 KiB gzip-9 |
+| CSS app (`frontend/build/_app/**/*.css`) | ≤ 10 KiB brut / ≤ 3,5 KiB gzip-9 |
 | Vendor mb | mesuré, hors fail strict |
 
 ## Tests front

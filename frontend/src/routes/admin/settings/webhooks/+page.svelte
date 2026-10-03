@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { goto } from '$app/navigation';
-	import { bootstrap } from '$lib/api/auth';
+	import AdminNav from '$lib/components/AdminNav.svelte';
 	import {
 		deleteAdminWebhooks,
 		drainAdminWebhookDeliveries,
@@ -13,8 +12,12 @@
 		type WebhookDelivery,
 		type WebhookSettings
 	} from '$lib/api/admin';
+	import { session } from '$lib/auth/session';
+	import { formatDeliveryState } from '$lib/i18n/labels';
+	import { inputValue } from '$lib/mb';
 
-	let csrf = $state('');
+	const csrf = session().csrf_token;
+
 	let error = $state('');
 	let message = $state('');
 	let loading = $state(true);
@@ -43,12 +46,6 @@
 
 	onMount(async () => {
 		try {
-			const boot = await bootstrap();
-			if (!boot.authenticated) {
-				await goto('/login');
-				return;
-			}
-			csrf = boot.csrf_token;
 			apply(await getAdminWebhooks(csrf));
 			await refreshDeliveries();
 		} catch (e) {
@@ -94,14 +91,14 @@
 		try {
 			await postAdminWebhooksTest(csrf);
 			message = 'Événement webhook.test envoyé.';
-			await refreshDeliveries();
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Test impossible.';
-			await refreshDeliveries();
 		}
+		await refreshDeliveries().catch(() => undefined);
 	}
 
 	async function onClear() {
+		if (!confirm('Effacer la configuration des webhooks ?')) return;
 		error = '';
 		message = '';
 		try {
@@ -125,10 +122,10 @@
 		message = '';
 		try {
 			await drainAdminWebhookDeliveries(csrf);
-			message = 'Drain exécuté.';
+			message = 'File de livraisons traitée.';
 			await refreshDeliveries();
 		} catch (err) {
-			error = err instanceof Error ? err.message : 'Drain impossible.';
+			error = err instanceof Error ? err.message : 'Traitement impossible.';
 		}
 	}
 
@@ -138,11 +135,10 @@
 		try {
 			await retryAdminWebhookDelivery(id, csrf);
 			message = `Livraison #${id} relancée.`;
-			await refreshDeliveries();
 		} catch (err) {
-			error = err instanceof Error ? err.message : 'Retry impossible.';
-			await refreshDeliveries();
+			error = err instanceof Error ? err.message : 'Relance impossible.';
 		}
+		await refreshDeliveries().catch(() => undefined);
 	}
 </script>
 
@@ -150,141 +146,137 @@
 	<title>Webhooks — Revues</title>
 </svelte:head>
 
-<main class="admin-page">
-	<header>
-		<p class="brand"><a href="/">Revues</a></p>
+<div class="page">
+	<header class="page-header">
 		<p class="crumbs">
-			<a href="/">Accueil</a> · <a href="/admin/integrations">Intégrations</a> · Webhooks
+			<a href="/admin">Administration</a> · <a href="/admin/integrations">Intégrations</a> · Webhooks
 		</p>
 		<h1>Webhooks sortants</h1>
 		<p class="lede">
-			URLs + secret HMAC chiffré. Signature
-			<code>X-Revues-Signature: sha256=…</code>. Anti-SSRF à chaque tentative.
+			URLs et secret HMAC chiffré. Signature <code>X-Revues-Signature: sha256=…</code>. Protection
+			anti-SSRF à chaque tentative.
 		</p>
 	</header>
 
 	{#if error}
-		<p class="err" role="alert">{error}</p>
+		<mb-alert variant="danger">{error}</mb-alert>
 	{/if}
 	{#if message}
-		<p class="ok" role="status">{message}</p>
+		<mb-alert variant="success">{message}</mb-alert>
 	{/if}
 
-	{#if loading}
-		<p class="muted">Chargement…</p>
-	{:else}
-		<form class="form" onsubmit={onSave}>
-			<label>
-				URLs (une par ligne)
-				<textarea rows="4" bind:value={urlsText} required placeholder="https://hooks.example.com/revues"></textarea>
-			</label>
-			<label>
-				Secret HMAC
-				<input
+	<AdminNav section="integrations">
+		{#if loading}
+			<p class="loading">Chargement…</p>
+		{:else}
+			<form class="stack-form" onsubmit={onSave}>
+				<mb-textarea
+					label="URLs"
+					hint="Une URL par ligne."
+					rows="4"
+					required
+					placeholder="https://hooks.example.com/revues"
+					value={urlsText}
+					oninput={(e) => (urlsText = inputValue(e))}
+				></mb-textarea>
+				<mb-input
+					label="Secret HMAC"
 					type="password"
-					bind:value={secret}
-					placeholder={hasSecret ? '•••••••• (laisser vide pour conserver)' : ''}
 					autocomplete="new-password"
-				/>
-			</label>
-			<label class="check">
-				<input type="checkbox" bind:checked={reviewCompleted} />
-				Événement <code>review.completed</code>
-			</label>
-			<label class="check">
-				<input type="checkbox" bind:checked={reviewItemNok} />
-				Événement <code>review.item.nok</code>
-			</label>
-			<div class="actions">
-				<button type="submit" disabled={saving}>{saving ? 'Enregistrement…' : 'Enregistrer'}</button>
-				{#if configured}
-					<button type="button" class="ghost" onclick={onClear}>Effacer</button>
-					<button type="button" class="ghost" disabled={!configured} onclick={onTest}>Envoyer un test</button>
-				{/if}
-			</div>
-		</form>
+					hint={hasSecret ? 'Un secret est enregistré ; laissez vide pour le conserver.' : undefined}
+					value={secret}
+					oninput={(e) => (secret = inputValue(e))}
+				></mb-input>
+				<mb-checkbox
+					checked={reviewCompleted}
+					onmb-change={(e) => (reviewCompleted = !!e.detail.checked)}
+				>
+					Événement <code>review.completed</code>
+				</mb-checkbox>
+				<mb-checkbox
+					checked={reviewItemNok}
+					onmb-change={(e) => (reviewItemNok = !!e.detail.checked)}
+				>
+					Événement <code>review.item.nok</code>
+				</mb-checkbox>
+				<p class="actions">
+					<mb-button type="submit" variant="primary" disabled={saving}>
+						{saving ? 'Enregistrement…' : 'Enregistrer'}
+					</mb-button>
+					{#if configured}
+						<mb-button type="button" variant="secondary" onclick={onTest}>Envoyer un test</mb-button>
+						<mb-button type="button" variant="danger" onclick={onClear}>Effacer</mb-button>
+					{/if}
+				</p>
+			</form>
 
-		<section class="panel">
-			<div class="row">
-				<h2>File de livraisons</h2>
-				<button type="button" class="ghost" onclick={onDrain}>Drain maintenant</button>
-			</div>
-			{#if deliveries.length === 0}
-				<p class="muted">Aucune livraison pour cette organisation.</p>
-			{:else}
-				<table>
-					<thead>
-						<tr>
-							<th>ID</th>
-							<th>Événement</th>
-							<th>État</th>
-							<th>Tentatives</th>
-							<th>HTTP</th>
-							<th></th>
-						</tr>
-					</thead>
-					<tbody>
-						{#each deliveries as d (d.id)}
-							<tr>
-								<td>{d.id}</td>
-								<td>
-									<code>{d.event_type}</code>
-									<small>{d.url}</small>
-								</td>
-								<td>{d.state}</td>
-								<td>{d.attempts}</td>
-								<td>{d.status_code ?? '—'}</td>
-								<td>
-									{#if d.state === 'pending' || d.state === 'poison'}
-										<button type="button" class="ghost tight" onclick={() => onRetry(d.id)}>Retry</button>
-									{/if}
-								</td>
-							</tr>
-							{#if d.last_error}
-								<tr class="err-row">
-									<td colspan="6">{d.last_error}</td>
+			<section class="section">
+				<div class="actions">
+					<h2>File de livraisons</h2>
+					<mb-button type="button" variant="ghost" size="sm" onclick={onDrain}>
+						Traiter maintenant
+					</mb-button>
+				</div>
+				{#if deliveries.length === 0}
+					<p class="muted">Aucune livraison pour cette organisation.</p>
+				{:else}
+					<div class="table-scroll">
+						<table>
+							<thead>
+								<tr>
+									<th scope="col">ID</th>
+									<th scope="col">Événement</th>
+									<th scope="col">État</th>
+									<th scope="col">Tentatives</th>
+									<th scope="col">HTTP</th>
+									<th scope="col"><span class="sr-only">Actions</span></th>
 								</tr>
-							{/if}
-						{/each}
-					</tbody>
-				</table>
-			{/if}
-		</section>
-	{/if}
-</main>
+							</thead>
+							<tbody>
+								{#each deliveries as d (d.id)}
+									<tr>
+										<td>{d.id}</td>
+										<td>
+											<code>{d.event_type}</code>
+											<span class="desc url">{d.url}</span>
+										</td>
+										<td>{formatDeliveryState(d.state)}</td>
+										<td>{d.attempts}</td>
+										<td>{d.status_code ?? '—'}</td>
+										<td>
+											{#if d.state === 'pending' || d.state === 'poison'}
+												<mb-button
+													type="button"
+													variant="ghost"
+													size="sm"
+													onclick={() => onRetry(d.id)}
+												>
+													Relancer
+												</mb-button>
+											{/if}
+										</td>
+									</tr>
+									{#if d.last_error}
+										<tr>
+											<td colspan="6" class="field-error">{d.last_error}</td>
+										</tr>
+									{/if}
+								{/each}
+							</tbody>
+						</table>
+					</div>
+				{/if}
+			</section>
+		{/if}
+	</AdminNav>
+</div>
 
 <style>
-	.row {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: 1rem;
-		flex-wrap: wrap;
-	}
-	table {
-		width: 100%;
-		border-collapse: collapse;
-		font-size: 0.85rem;
-	}
-	th,
-	td {
-		text-align: left;
-		padding: 0.45rem 0.35rem;
-		border-bottom: 1px solid #1e293b;
-		vertical-align: top;
-	}
-	td small {
-		display: block;
-		color: #94a3b8;
+	.url {
 		word-break: break-all;
 	}
-	.err-row td {
-		color: #fca5a5;
-		font-size: 0.8rem;
-	}
-	button.tight {
-		padding: 0.2rem 0.45rem;
-		font-size: 0.85rem;
-		font-weight: 500;
+	.section .actions > h2 {
+		margin: 0;
+		flex: 1;
 	}
 </style>

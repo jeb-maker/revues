@@ -53,7 +53,7 @@
 </script>
 
 {#if error}
-	<p class="err" role="alert">{error}</p>
+	<p class="field-error" role="alert">{error}</p>
 {/if}
 
 <div class="editor" class:dragging={dragIndex !== null}>
@@ -121,42 +121,44 @@
 </div>
 
 <style>
+	/* Éditeur de modèle : grille + DnD natifs (exception actée, decisions.md) — tokens mb. */
 	.editor {
 		display: flex;
 		flex-direction: column;
-		gap: 0.35rem;
+		gap: var(--mb-space-1);
 	}
 	.head,
 	.row {
 		display: grid;
 		grid-template-columns: 2rem 1.4fr 1fr 1fr 2.5rem auto;
-		gap: 0.4rem;
+		gap: var(--mb-space-2);
 		align-items: center;
 	}
 	.head {
+		padding: 0 var(--mb-space-1);
 		font-size: 0.75rem;
-		text-transform: uppercase;
+		font-weight: 600;
 		letter-spacing: 0.04em;
-		opacity: 0.7;
-		padding: 0 0.15rem;
+		text-transform: uppercase;
+		color: var(--mb-color-muted);
 	}
 	.row {
-		padding: 0.35rem;
-		border-radius: 0.4rem;
-		background: color-mix(in srgb, var(--mb-color-canvas, #0f172a) 70%, transparent);
-		border: 1px solid color-mix(in srgb, #94a3b8 25%, transparent);
+		padding: var(--mb-space-1);
+		background: var(--mb-color-surface);
+		border: 1px solid var(--mb-color-border);
+		border-radius: var(--mb-radius-sm);
 	}
 	.row.is-dragging {
 		opacity: 0.55;
-		outline: 1px dashed #5eead4;
+		outline: 1px dashed var(--mb-color-accent);
 	}
 	.drag {
-		cursor: grab;
+		padding: var(--mb-space-1);
 		border: none;
 		background: transparent;
-		color: #94a3b8;
+		color: var(--mb-color-muted);
 		font-size: 0.9rem;
-		padding: 0.2rem;
+		cursor: grab;
 	}
 	.drag:disabled {
 		opacity: 0.3;
@@ -164,13 +166,15 @@
 	}
 	input[type='text'] {
 		width: 100%;
-		box-sizing: border-box;
-		padding: 0.4rem 0.5rem;
-		border-radius: 0.35rem;
-		border: 1px solid #334155;
-		background: #0b1220;
-		color: #f8fafc;
+		padding: var(--mb-space-2);
+		border: 1px solid var(--mb-color-border);
+		border-radius: var(--mb-radius-sm);
+		background: var(--mb-color-bg);
+		color: var(--mb-color-fg);
 		font: inherit;
+	}
+	input[type='checkbox'] {
+		accent-color: var(--mb-color-accent);
 	}
 	.req {
 		display: flex;
@@ -178,27 +182,23 @@
 	}
 	.actions {
 		display: flex;
-		gap: 0.15rem;
+		gap: var(--mb-space-1);
 	}
 	.actions button,
 	.add button {
+		padding: var(--mb-space-1) var(--mb-space-2);
 		border: none;
 		background: transparent;
-		color: #5eead4;
-		cursor: pointer;
+		color: var(--mb-color-accent);
 		font: inherit;
-		padding: 0.2rem 0.35rem;
+		cursor: pointer;
 	}
 	.actions button:disabled {
 		opacity: 0.35;
 		cursor: default;
 	}
 	.add {
-		margin: 0.5rem 0 0;
-	}
-	.err {
-		color: #fca5a5;
-		margin: 0 0 0.5rem;
+		margin: var(--mb-space-2) 0 0;
 	}
 	.visually-hidden {
 		position: absolute;

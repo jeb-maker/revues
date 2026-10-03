@@ -66,7 +66,7 @@ Le code généré est **commité** (pas de génération obligatoire en CI pour l
 | `GET /api/v1/runs` | Liste des revues visibles (filtre status/q) |
 | `POST /api/v1/subjects/{id}/runs` | Lancer une revue (snapshot transactionnel) |
 | `GET /api/v1/runs/{id}` | Détail + items + progression |
-| `PATCH /api/v1/runs/{id}/items/{itemId}` | Status / commentaire / assignation |
+| `PATCH /api/v1/runs/{id}/items/{itemId}` | Status / commentaire / assignation ; `updated_at` optionnel = verrou optimiste (périmé → 409 `conflict`) |
 | `POST /api/v1/runs/{id}/complete` | Clôturer (bloque si required pending) |
 | `GET /api/v1/me/tasks` | Mes tâches (items assignés, filtre status/q) |
 | `GET\|PUT\|DELETE /api/v1/admin/settings/smtp` | Config SMTP chiffrée (password masqué) |
@@ -115,7 +115,7 @@ Le code généré est **commité** (pas de génération obligatoire en CI pour l
 | 401 | Non authentifié |
 | 403 | Authentifié sans droit (rare ; préférer 404 si fuite d’existence) |
 | 404 | Absent **ou** non visible (IDOR) |
-| 409 | Conflit métier (ex. run non éditable) |
+| 409 | Conflit métier (ex. run non éditable, `updated_at` périmé sur un point) |
 | 500 | Erreur interne (pas de détail sensible) |
 
 ## OpenAPI — organisation

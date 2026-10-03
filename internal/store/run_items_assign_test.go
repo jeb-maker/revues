@@ -64,6 +64,49 @@ func TestAssignRunItem(t *testing.T) {
 	}
 }
 
+func TestAssignRunItemChecked_OptimisticLock(t *testing.T) {
+	const stale = "2000-01-01T00:00:00Z"
+	tests := []struct {
+		name         string
+		expected     func(current string) string
+		wantErr      error
+		wantAssigned bool
+	}{
+		{"matching updated_at applies", func(c string) string { return c }, nil, true},
+		{"stale updated_at conflicts", func(string) string { return stale }, store.ErrRunItemConflict, false},
+		{"empty updated_at skips the check", func(string) string { return "" }, nil, true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx, st, run, itemID := setupInProgressRun(t)
+			contrib, err := st.UpsertGitHubUser(ctx, 2, "contrib", "contrib@example.com", "Contrib", "", auth.RoleEditor)
+			if err != nil {
+				t.Fatalf("UpsertGitHubUser(contrib): %v", err)
+			}
+			if err = st.AddProjectMember(ctx, run.SubjectID, contrib.ID, subjects.LocalRoleContributor); err != nil {
+				t.Fatalf("AddProjectMember(): %v", err)
+			}
+			before, err := st.RunItemByID(ctx, run.ID, itemID)
+			if err != nil {
+				t.Fatalf("RunItemByID(): %v", err)
+			}
+
+			err = st.AssignRunItemChecked(ctx, run.ID, itemID, &contrib.ID, tt.expected(before.UpdatedAt))
+			if !errors.Is(err, tt.wantErr) {
+				t.Fatalf("AssignRunItemChecked() error = %v, want %v", err, tt.wantErr)
+			}
+
+			after, err := st.RunItemByID(ctx, run.ID, itemID)
+			if err != nil {
+				t.Fatalf("RunItemByID(after): %v", err)
+			}
+			if after.AssignedTo.Valid != tt.wantAssigned {
+				t.Fatalf("assigned_to = %+v, want assigned=%v", after.AssignedTo, tt.wantAssigned)
+			}
+		})
+	}
+}
+
 func TestAssignRunItemRejectsNonMember(t *testing.T) {
 	ctx, st, run, itemID := setupInProgressRun(t)
 

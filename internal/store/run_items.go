@@ -18,6 +18,10 @@ var ErrRunNotEditable = errors.New("run not editable")
 // ErrInvalidAssignee is returned when assignee is not a project member.
 var ErrInvalidAssignee = errors.New("invalid assignee")
 
+// ErrRunItemConflict is returned when the caller's expected updated_at no longer matches the row
+// (optimistic lock: the item was modified in between).
+var ErrRunItemConflict = errors.New("run item modified concurrently")
+
 const (
 	RunItemStatusPending = "pending"
 	RunItemStatusOK      = "ok"
@@ -67,8 +71,19 @@ func (s *Store) RunItemByID(ctx context.Context, runID, itemID int64) (*RunItem,
 	return &item, nil
 }
 
-// UpdateRunItemStatus changes status and comment on an in-progress run item.
+// UpdateRunItemStatus changes status and comment on an in-progress run item (no optimistic lock).
 func (s *Store) UpdateRunItemStatus(ctx context.Context, runID, itemID, userID int64, status, comment string) error {
+	return s.UpdateRunItemStatusChecked(ctx, runID, itemID, userID, status, comment, "")
+}
+
+// UpdateRunItemStatusChecked is UpdateRunItemStatus with an optimistic lock: when expectedUpdatedAt
+// is non-empty the UPDATE only applies if the row's updated_at still equals it, otherwise
+// ErrRunItemConflict is returned and nothing is written. Empty expectedUpdatedAt = unconditional.
+func (s *Store) UpdateRunItemStatusChecked(
+	ctx context.Context,
+	runID, itemID, userID int64,
+	status, comment, expectedUpdatedAt string,
+) error {
 	run, err := s.RunByID(ctx, runID)
 	if err != nil {
 		return err
@@ -81,11 +96,15 @@ func (s *Store) UpdateRunItemStatus(ctx context.Context, runID, itemID, userID i
 	comment = strings.TrimSpace(comment)
 
 	return withSQLiteBusyRetry(ctx, func() error {
-		return s.updateRunItemStatusOnce(ctx, runID, itemID, userID, status, comment, now)
+		return s.updateRunItemStatusOnce(ctx, runID, itemID, userID, status, comment, now, expectedUpdatedAt)
 	})
 }
 
-func (s *Store) updateRunItemStatusOnce(ctx context.Context, runID, itemID, userID int64, status, comment, now string) error {
+func (s *Store) updateRunItemStatusOnce(
+	ctx context.Context,
+	runID, itemID, userID int64,
+	status, comment, now, expectedUpdatedAt string,
+) error {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("begin tx: %w", err)
@@ -109,8 +128,8 @@ func (s *Store) updateRunItemStatusOnce(ctx context.Context, runID, itemID, user
 	res, err := tx.ExecContext(ctx, `
 		UPDATE run_items
 		SET status = ?, comment = ?, checked_by = ?, checked_at = ?, updated_at = ?
-		WHERE id = ? AND run_id = ?
-	`, status, comment, checkedBy, checkedAt, now, itemID, runID)
+		WHERE id = ? AND run_id = ? AND (? = '' OR updated_at = ?)
+	`, status, comment, checkedBy, checkedAt, now, itemID, runID, expectedUpdatedAt, expectedUpdatedAt)
 	if err != nil {
 		return fmt.Errorf("update run item: %w", err)
 	}
@@ -119,7 +138,7 @@ func (s *Store) updateRunItemStatusOnce(ctx context.Context, runID, itemID, user
 		return fmt.Errorf("update run item rows: %w", err)
 	}
 	if n == 0 {
-		return ErrRunItemNotFound
+		return runItemNoRowsError(ctx, tx, runID, itemID, expectedUpdatedAt)
 	}
 
 	if oldStatus != status {
@@ -134,8 +153,19 @@ func (s *Store) updateRunItemStatusOnce(ctx context.Context, runID, itemID, user
 	return nil
 }
 
-// AssignRunItem sets or clears assignee on an in-progress run item.
+// AssignRunItem sets or clears assignee on an in-progress run item (no optimistic lock).
 func (s *Store) AssignRunItem(ctx context.Context, runID, itemID int64, assigneeID *int64) error {
+	return s.AssignRunItemChecked(ctx, runID, itemID, assigneeID, "")
+}
+
+// AssignRunItemChecked is AssignRunItem with an optimistic lock on updated_at
+// (same contract as UpdateRunItemStatusChecked).
+func (s *Store) AssignRunItemChecked(
+	ctx context.Context,
+	runID, itemID int64,
+	assigneeID *int64,
+	expectedUpdatedAt string,
+) error {
 	run, err := s.RunByID(ctx, runID)
 	if err != nil {
 		return err
@@ -157,10 +187,29 @@ func (s *Store) AssignRunItem(ctx context.Context, runID, itemID int64, assignee
 	}
 
 	now := time.Now().UTC().Format(time.RFC3339)
-	res, err := s.db.ExecContext(ctx, `
+	return withSQLiteBusyRetry(ctx, func() error {
+		return s.assignRunItemOnce(ctx, runID, itemID, assignedTo, now, expectedUpdatedAt)
+	})
+}
+
+func (s *Store) assignRunItemOnce(
+	ctx context.Context,
+	runID, itemID int64,
+	assignedTo sql.NullInt64,
+	now, expectedUpdatedAt string,
+) error {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin tx: %w", err)
+	}
+	defer func() {
+		_ = tx.Rollback()
+	}()
+
+	res, err := tx.ExecContext(ctx, `
 		UPDATE run_items SET assigned_to = ?, updated_at = ?
-		WHERE id = ? AND run_id = ?
-	`, assignedTo, now, itemID, runID)
+		WHERE id = ? AND run_id = ? AND (? = '' OR updated_at = ?)
+	`, assignedTo, now, itemID, runID, expectedUpdatedAt, expectedUpdatedAt)
 	if err != nil {
 		return fmt.Errorf("assign run item: %w", err)
 	}
@@ -169,9 +218,32 @@ func (s *Store) AssignRunItem(ctx context.Context, runID, itemID int64, assignee
 		return fmt.Errorf("assign run item rows: %w", err)
 	}
 	if n == 0 {
-		return ErrRunItemNotFound
+		return runItemNoRowsError(ctx, tx, runID, itemID, expectedUpdatedAt)
+	}
+
+	if commitErr := tx.Commit(); commitErr != nil {
+		return fmt.Errorf("commit assign run item: %w", commitErr)
 	}
 	return nil
+}
+
+// runItemNoRowsError disambiguates a zero-row UPDATE: missing item vs stale expectedUpdatedAt.
+// Read in the same transaction as the UPDATE so the verdict matches what the guard saw.
+func runItemNoRowsError(ctx context.Context, tx *sql.Tx, runID, itemID int64, expectedUpdatedAt string) error {
+	if expectedUpdatedAt == "" {
+		return ErrRunItemNotFound
+	}
+	var current string
+	err := tx.QueryRowContext(ctx, `
+		SELECT updated_at FROM run_items WHERE id = ? AND run_id = ?
+	`, itemID, runID).Scan(&current)
+	if errors.Is(err, sql.ErrNoRows) {
+		return ErrRunItemNotFound
+	}
+	if err != nil {
+		return fmt.Errorf("load run item updated_at: %w", err)
+	}
+	return ErrRunItemConflict
 }
 
 // ListNokRunItems returns items marked nok for a run.
