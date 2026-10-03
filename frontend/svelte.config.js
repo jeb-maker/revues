@@ -26,11 +26,9 @@ const config = {
 		}),
 		prerender: {
 			handleUnseenRoutes: 'ignore',
-			// Les assets mb de app.html sont servis par Go (/static), pas par le prerender.
-			handleHttpError: ({ path, message }) => {
-				if (path.startsWith('/static/vendor/')) return;
-				throw new Error(message);
-			}
+			// SPA (ssr=false) : les coquilles prerendues n'ont aucun lien à suivre, et les
+			// assets mb référencés dans app.html sont servis par Go (/static), pas par le prerender.
+			crawl: false
 		}
 	}
 };
