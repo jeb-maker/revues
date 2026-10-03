@@ -66,24 +66,6 @@ func ValidWhitelistRole(role string) bool {
 	return role == auth.RoleEditor || role == auth.RoleReader
 }
 
-// CountAllowedEmails returns whitelist size for the active organization.
-func (s *Store) CountAllowedEmails(ctx context.Context) (int, error) {
-	orgID, err := organizationIDFromContext(ctx)
-	if err != nil {
-		return 0, err
-	}
-
-	var count int
-	err = s.db.QueryRowContext(ctx, `
-		SELECT COUNT(*) FROM allowed_emails WHERE organization_id = ?
-	`, orgID).Scan(&count)
-	if err != nil {
-		return 0, fmt.Errorf("count allowed emails: %w", err)
-	}
-
-	return count, nil
-}
-
 // ListAllowedEmails returns whitelist entries for the active organization.
 func (s *Store) ListAllowedEmails(ctx context.Context) ([]AllowedEmail, error) {
 	orgID, err := organizationIDFromContext(ctx)
