@@ -75,18 +75,36 @@
 			{#if canManage}<a href="/modeles/new">Créer le premier modèle</a>.{:else}Aucun modèle publié.{/if}
 		</mb-empty-state>
 	{:else}
-		<ul class="card-list">
+		<mb-table columns="2fr 0.7fr 0.7fr 1.4fr auto" sticky-header>
+			<mb-table-row slot="head">
+				<mb-table-cell>Nom</mb-table-cell>
+				<mb-table-cell>Version</mb-table-cell>
+				<mb-table-cell>Points</mb-table-cell>
+				<mb-table-cell>Domaines</mb-table-cell>
+				<mb-table-cell>Actions</mb-table-cell>
+			</mb-table-row>
 			{#each templates as t (t.id)}
-				<li>
-					<a href={`/modeles/${t.id}`}>
-						<strong>{t.name}</strong>
-						<span class="desc">v{t.latest_version} · {t.item_count} points</span>
+				<mb-table-row>
+					<mb-table-cell label="Nom" primary>
+						<a href={`/modeles/${t.id}`}>{t.name}</a>
+					</mb-table-cell>
+					<mb-table-cell label="Version">v{t.latest_version}</mb-table-cell>
+					<mb-table-cell label="Points">{t.item_count}</mb-table-cell>
+					<mb-table-cell label="Domaines">
 						{#if t.domains?.length}
-							<span class="desc">{t.domains.join(', ')}</span>
+							{t.domains.join(', ')}
+						{:else}
+							<span class="muted">—</span>
 						{/if}
-					</a>
-				</li>
+					</mb-table-cell>
+					<mb-table-cell actions>
+						<a href={`/modeles/${t.id}`}>Ouvrir</a>
+						{#if canManage}
+							<a href={`/modeles/${t.id}/edit`}>Éditer</a>
+						{/if}
+					</mb-table-cell>
+				</mb-table-row>
 			{/each}
-		</ul>
+		</mb-table>
 	{/if}
 </div>
