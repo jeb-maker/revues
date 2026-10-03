@@ -19,6 +19,7 @@ import (
 	"github.com/jeb-maker/revues/internal/auth"
 	"github.com/jeb-maker/revues/internal/config"
 	"github.com/jeb-maker/revues/internal/store"
+	"github.com/jeb-maker/revues/internal/testutil"
 )
 
 func TestAttachments_UploadDownloadSecurity(t *testing.T) {
@@ -27,7 +28,7 @@ func TestAttachments_UploadDownloadSecurity(t *testing.T) {
 	dir := t.TempDir()
 	cfg := config.Config{
 		SessionSecret:  "test-secret-at-least-thirty-two-bytes",
-		EncryptionKey:  config.TestEncryptionKey(),
+		EncryptionKey:  testutil.EncryptionKey(),
 		Env:            "development",
 		AttachmentsDir: dir,
 	}
@@ -132,7 +133,7 @@ func TestAttachments_IDOR_CrossUser(t *testing.T) {
 
 	cfg := config.Config{
 		SessionSecret:  "test-secret-at-least-thirty-two-bytes",
-		EncryptionKey:  config.TestEncryptionKey(),
+		EncryptionKey:  testutil.EncryptionKey(),
 		Env:            "development",
 		AttachmentsDir: t.TempDir(),
 	}

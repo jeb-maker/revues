@@ -59,7 +59,7 @@ Voir **[API.md](./API.md)**.
 - Métier : JSON `/api/v1/**` (OpenAPI)
 - Auth browser : `/auth/**` (redirects OAuth OK)
 - SPA : assets statiques SvelteKit servis par Go en prod
-- Admin org : routes sous tag/paths admin — `RequireOrgAdmin`
+- Admin org : routes sous tag/paths admin — helper `requireOrgAdmin` (`internal/api/v1/handler.go`, s'appuie sur `middleware.CanManageOrgUsers`)
 - IDs : valider existence **et** permission (IDOR → 404)
 
 ## Front
@@ -82,16 +82,25 @@ Voir [RBAC.md](./RBAC.md). Règle : **deny by default**.
 
 Préfixe `REVUES_` :
 
+Source : `internal/config/config.go` (`Load`). Le binaire lit `os.Getenv` — pas de chargement automatique de `.env`.
+
 | Variable | Description |
 |----------|-------------|
-| `REVUES_ADDR` | `:8080` |
-| `REVUES_DATABASE_PATH` | `data/revues.db` |
+| `REVUES_ADDR` | Adresse d'écoute HTTP (défaut `:8080`) |
+| `REVUES_BASE_URL` | URL publique, utilisée pour les callbacks OAuth et les cookies `Secure` si `https` (défaut `http://localhost:8080`) |
+| `REVUES_ENV` | `development` (défaut) ou `production` : en production, secrets par défaut refusés au démarrage et cookies `Secure` |
+| `REVUES_DATABASE_PATH` | Fichier SQLite (défaut `data/revues.db`) |
 | `REVUES_DB_MAX_OPEN_CONNS` | Taille du pool SQLite (défaut `10`) |
-| `REVUES_SESSION_SECRET` | 32+ octets aléatoires |
-| `REVUES_ENCRYPTION_KEY` | 32 octets base64 (AES-256-GCM) |
-| `REVUES_GITHUB_CLIENT_ID` | OAuth |
-| `REVUES_GITHUB_CLIENT_SECRET` | OAuth |
-| `REVUES_BASE_URL` | `https://revues.example.com` |
+| `REVUES_ATTACHMENTS_DIR` | Répertoire des pièces jointes (défaut `data/attachments`) |
+| `REVUES_SPA_DIR` | Répertoire du build SvelteKit servi par Go (lu dans `internal/web/router.go` ; défaut `frontend/build` s'il existe, sinon page stub) |
+| `REVUES_SESSION_SECRET` | Secret HMAC sessions/CSRF — 32+ caractères, obligatoire en production (défaut documenté refusé) |
+| `REVUES_ENCRYPTION_KEY` | 32 octets base64 (AES-256-GCM) pour les credentials d'intégrations |
+| `REVUES_GITHUB_CLIENT_ID` | OAuth GitHub (bouton masqué si absent) |
+| `REVUES_GITHUB_CLIENT_SECRET` | OAuth GitHub |
+| `REVUES_BOOTSTRAP_ADMIN_EMAIL` | Email qui reçoit le rôle `admin` global (et devient owner de l'org par défaut) à son premier login |
+| `REVUES_LOGIN_REQUIRE_WHITELIST` | `1`/`true` : refuse register et OAuth hors `allowed_emails` / org / invitation / bootstrap (message générique anti-énumération) |
+| `REVUES_DEV_AUTH` | `1`/`true` : auto-session admin locale (hors production, requêtes loopback uniquement) + `POST /auth/dev/login` |
+| `REVUES_DEV_AUTH_EMAIL` | Email de l'utilisateur DevAuth (défaut `admin@example.com`) |
 
 ## Chiffrement settings
 

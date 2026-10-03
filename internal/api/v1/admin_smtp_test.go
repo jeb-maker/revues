@@ -10,6 +10,7 @@ import (
 	"github.com/jeb-maker/revues/internal/auth"
 	"github.com/jeb-maker/revues/internal/config"
 	"github.com/jeb-maker/revues/internal/store"
+	"github.com/jeb-maker/revues/internal/testutil"
 )
 
 func TestAdminSMTP_MaskedPasswordAndOrgAdmin(t *testing.T) {
@@ -17,7 +18,7 @@ func TestAdminSMTP_MaskedPasswordAndOrgAdmin(t *testing.T) {
 
 	cfg := config.Config{
 		SessionSecret:  "test-secret-at-least-thirty-two-bytes",
-		EncryptionKey:  config.TestEncryptionKey(),
+		EncryptionKey:  testutil.EncryptionKey(),
 		Env:            "development",
 		AttachmentsDir: t.TempDir(),
 	}
@@ -139,7 +140,7 @@ func TestAdminIntegrations_RequiresOrgAdmin(t *testing.T) {
 
 	cfg := config.Config{
 		SessionSecret:  "test-secret-at-least-thirty-two-bytes",
-		EncryptionKey:  config.TestEncryptionKey(),
+		EncryptionKey:  testutil.EncryptionKey(),
 		Env:            "development",
 		AttachmentsDir: t.TempDir(),
 	}
@@ -157,7 +158,7 @@ func TestAdminSMTP_OrgOwnerAllowed(t *testing.T) {
 
 	cfg := config.Config{
 		SessionSecret:  "test-secret-at-least-thirty-two-bytes",
-		EncryptionKey:  config.TestEncryptionKey(),
+		EncryptionKey:  testutil.EncryptionKey(),
 		Env:            "development",
 		AttachmentsDir: t.TempDir(),
 	}

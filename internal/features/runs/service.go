@@ -14,11 +14,6 @@ import (
 
 // --- Access (formerly internal/runs/access.go) ---
 
-// CanView reports whether the user may view a run on a subject (v1 flag).
-func CanView(user *store.User, orgMember bool) bool {
-	return subjects.CanViewSubject(user, orgMember)
-}
-
 // CanViewAccess reports whether resolved access allows viewing a run.
 func CanViewAccess(access store.SubjectAccess) bool {
 	return subjects.CanViewAccess(access)
@@ -102,19 +97,9 @@ func BuildRunCSV(rows []store.RunExportRow) ([]byte, error) {
 
 // --- Item access (formerly internal/items/access.go) ---
 
-// CanUpdate reports whether the user may change run item statuses.
-func CanUpdate(user *store.User, orgMember bool) bool {
-	return subjects.CanLaunchRun(user, orgMember)
-}
-
 // CanUpdateAccess reports whether resolved access allows item edits.
 func CanUpdateAccess(user *store.User, access store.SubjectAccess) bool {
 	return subjects.CanContributeAccess(user, access)
-}
-
-// CanLinkJira reports whether the user may link Jira issues to run items.
-func CanLinkJira(user *store.User, orgMember bool) bool {
-	return CanUpdate(user, orgMember)
 }
 
 // CanLinkJiraAccess reports whether resolved access allows Jira linking.

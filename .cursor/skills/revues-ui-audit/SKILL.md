@@ -16,23 +16,23 @@ Audit **read-only** par défaut. N'implémenter que si **P0 UX** confirmé (voir
 
 1. `.cursor/rules/design.md` — charte
 2. [decisions.md](decisions.md) — décisions produit (ne pas re-signaler)
-3. `web/templates/**/*.html`
-4. CSS : `web/static/css/app.css` + `run.css` / `editor.css` à la demande ; vendor `mb-*` sous `web/static/vendor/jeb-maker-mb/`
-5. `internal/web/templates/` — `templates.go` (`FormatItemStatus`, `FormatRunStatus`, `FormatRole`, `FormatAccessSource`), `labels.go`, `breadcrumbs.go`
-6. Handlers / tests : `internal/features/**` et `internal/web/handlers/*_test.go` — spec implicite souvent plus fiable que la charte seule
+3. Pages : `frontend/src/routes/**/*.svelte` (+ `+layout.svelte` / `+layout.ts` racine : header commun, session unique, garde d'auth)
+4. Lib front : `frontend/src/lib/**` — `components/` (`AdminNav.svelte`, `TemplateEditor.svelte`), `api/` (client OpenAPI généré + wrappers), `auth/session.ts` (session `page.data.boot`), `auth/messages.ts` (copy FR des erreurs login), `i18n/labels.ts` (libellés FR), `styles/app.css` (thème sur tokens), `mb/` (`ensureMb()`, `elements.d.ts`)
+5. CSS : `frontend/src/lib/styles/app.css` (classes hôte partagées) + blocs `<style>` résiduels des pages ; vendor `mb-*` sous `web/static/vendor/jeb-maker-mb/` (tokens `tokens-core.css`, `mb-bridge.css`, `mb-boot.js`)
+6. Contrat : `api/openapi/openapi.yaml` (capabilities `can_*` par ressource) ; règles métier et tests : `internal/features/**`, `internal/api/v1/*_test.go` — spec implicite souvent plus fiable que la charte seule
 
 ## Avant les passes
 
-1. Lire `decisions.md` en entier (surtout progressive disclosure + Labels).
+1. Lire `decisions.md` en entier (surtout progressive disclosure + terminologie).
 2. **Diff decisions ↔ code** : pour chaque écart, classer **Doc drift** (mettre à jour decisions) vs **Bug produit** (constat audit). Ne pas traiter un onglet/feature acté en code mais absent de decisions comme bug UX sans vérifier.
 3. Si un audit récent existe (transcript / issue) : ne pas re-lister les points déjà actés dans decisions ; noter les régressions seulement.
 
 ## P0 UX (autorise un fix immédiat)
 
 - Parcours cassé (CTA mort, wizard bloqué, empty state sans issue)
-- Violation **systémique** de charte (ex. plusieurs primaires sur le même écran métier)
+- Violation **systémique** de charte (ex. plusieurs primaires sur le même écran métier, primaire mb sans fond)
 - A11y bloquante (pas de nom accessible sur action critique, tableau sans en-têtes)
-- Vocabulaire listUI/`Labels.*` **faux** sur un écran hub (nav ≠ page)
+- Vocabulaire **faux** sur un écran hub (nav ≠ page)
 
 Sinon : livrer l'audit, proposer des PR, **attendre validation**.
 
@@ -54,55 +54,56 @@ Critique adverse **intégrée** : une ligne « pourquoi ça tient / downgrade »
 
 Checklist :
 
-- [ ] Statuts / rôles via `FormatItemStatus` / `FormatRunStatus` / `FormatRole` (pas de codes bruts)
-- [ ] **`Labels.Run`** sur surface actée : nav, H1, breadcrumbs, empty states, CTA, confirms de clôture (marque produit « Revues » OK)
-- [ ] **`Labels.Subject`** dans copy / confirms (pas « sujet » hardcodé si preset ≠ sujet)
-- [ ] Vocabulaire **Listes / Modèles** piloté par **`!ShowSubjectColumn`** (`listUI`), **pas** seulement `SimpleUI` — piège P1 mono-sujet
+- [ ] Statuts / rôles affichés via des helpers de libellés front (pas de codes bruts `pending`, `nok`, `owner`…)
+- [ ] Vocabulaire **Revues / Sujets / Modèles** cohérent nav, H1, empty states, CTA, confirms de clôture (marque produit « Revues » OK)
+- [ ] Presets org `ui_run_label` / `ui_subject_label` (schéma `Organization`) : vérifier s'ils sont consommés par l'écran audité avant de signaler un écart
 - [ ] UI 100 % FR (pas leads / Issue / direct non traduit)
-- [ ] Info essentielle en `hint` / `.field-hint`, pas placeholder seul
+- [ ] Info essentielle en texte d'aide visible, pas placeholder seul
 - [ ] Domaines ≠ Étiquettes (terminologie decisions)
 
 ### Passe 2 — Composants
 
 Checklist :
 
-- [ ] Préférer `mb-*` (button, card, alert, badge, toolbar, breadcrumbs…)
-- [ ] **Un seul** primaire (`mb-button` sans `variant`, ou variant primary) **par écran** — empty states onboarding peuvent justifier plusieurs CTA
-- [ ] Destructif : `variant="danger"` + `confirm()` / `hx-confirm` (sauf exception actée row-action)
-- [ ] Clôture revue : primaire + `hx-confirm`, **pas** danger
+- [ ] Préférer `mb-*` (button, alert, badge, input, textarea, tag, empty-state, table…) aux `<button>` / `<input>` / `<select>` natifs restylés
+- [ ] **Un seul** primaire (`mb-button variant="primary"`) **par écran** — empty states onboarding peuvent justifier plusieurs CTA
+- [ ] Destructif : `variant="danger"` + `confirm()` (sauf exception actée row-action)
+- [ ] Clôture revue : primaire + `confirm()`, **pas** danger
 - [ ] Cohérence listes ↔ détails (badges, overdue, colonnes)
-- [ ] Messages succès/erreur : `mb-alert` / flash partials
+- [ ] Messages succès/erreur : `mb-alert` (`role="status"` / `role="alert"`)
+- [ ] Tokens : couleurs via `var(--mb-*)` existants dans `tokens/*.css`, pas de hex en dur ni de token fantôme
 
 ### Passe 3 — Parcours
 
 Checklist :
 
-- [ ] Flags P0–P3 : `SimpleUI`, `ShowAssign`, `ShowMyTasks`, `ShowCollab`, `ShowSubjectColumn`, `HasJira` / `HasNotion` / `HasWebhooks` / `HasEvidence`
-- [ ] Nav + hub org solo (lien header Organisation si pas d'onglet)
-- [ ] Breadcrumbs = ancêtres seulement ; H1 = courant ; absents sur pages racine
+- [ ] Capabilities serveur (`can_launch`, `can_update_items`, `can_complete`, `can_assign`, `can_manage*`, `can_link`, `can_export_notion`) : CTA masqué **ou** message explicite — jamais une erreur opaque
+- [ ] Nav + hub org (`/org/select`, `/org/new`, `/admin`)
+- [ ] Fil d'Ariane = ancêtres seulement ; H1 = courant ; absents sur pages racine
 - [ ] CTA listes en toolbar ; formulaires : primaire en bas (danger-zone archiver = exception courante)
-- [ ] Wizard `/revues/nouvelle` : 2 étapes, pas de stepper ; clic modèle = lancer
+- [ ] Lancement revue `/subjects/{id}/launch` : choix du modèle, pas de stepper ; clic modèle = lancer
 - [ ] Empty states onboarding vs « aucun résultat filtre »
-- [ ] Matrice P3 : CTA masqué **ou** message « non configuré » — pas d'erreur opaque
+- [ ] Intégrations (Jira / Notion / webhooks) : CTA masqué **ou** message « non configuré » — pas d'erreur opaque
+- [ ] Garde d'auth : redirection `/login` cohérente, pas de flash de contenu non autorisé
 
 ### Passe 4 — Accessibilité & budgets
 
 Checklist :
 
-- [ ] `lang="fr"`, skip-link, `scope="col"`, `aria-current` sur actif
+- [ ] `lang="fr"` (`app.html`), `aria-current` sur actif, `scope="col"` sur `<table>` natif
 - [ ] `role="status"` / `alert` (souvent via `mb-alert`)
-- [ ] `colspan` aligné sur colonnes conditionnelles
+- [ ] `mb-input` / `mb-textarea` : nom accessible (`label=` ou `aria-label`) — le `<label>` hôte ne traverse pas le shadow DOM
 - [ ] Boutons icône : `aria-label` ; colonnes actions : libellé `visually-hidden` si `<th>` vide
-- [ ] Budgets éco (signaler dépassement flagrant) : CSS core ≤ 24 Ko / total ≤ 40 Ko ; HTML ≤ 50 Ko/page ; JS app ≤ 15 Ko
+- [ ] Budgets éco : seuils JS/CSS app de `scripts/check.sh` (voir `docs/PLAN.md`) ; signaler une marge < 10 % ou un relèvement de seuil dans la PR auditée
 
 ### Vérif live (optionnelle)
 
-Si DevAuth / seed dispo : smoke P0 (particulier) et P1 (duo) sur `/revues`, wizard, fiche run. Sinon templates + tests suffisent — le noter dans la synthèse.
+Si `REVUES_DEV_AUTH=1` / seed dispo : smoke sur `/runs`, `/subjects/{id}/launch`, fiche revue `/runs/{id}`. Sinon sources Svelte + tests API suffisent — le noter dans la synthèse.
 
 ## Hors scope (sauf demande explicite)
 
 - Refactor architecture, RBAC, sécurité, perf
-- Cosmétique pure sans impact compréhension / action (ex. espacement ±2px) — **a11y et Labels ne sont pas cosmétique**
+- Cosmétique pure sans impact compréhension / action (ex. espacement ±2px) — **a11y et libellés ne sont pas cosmétique**
 - Implémentation large sans validation utilisateur
 
 ## Livrable
@@ -132,7 +133,7 @@ Si DevAuth / seed dispo : smoke P0 (particulier) et P1 (duo) sur `/revues`, wiza
 
 ## Rappels projet
 
-- Stack : Go + chi + `html/template` + HTMX — pas de SPA
+- Stack : SvelteKit SPA (`frontend/`) + Web Components `@jeb-maker/mb` ; API Go JSON `/api/v1` (pas de `html/template` ni HTMX)
 - Composants : `@jeb-maker/mb` (voir decisions — version vendorée)
 - Si code modifié : `./scripts/check.sh` avant push
 

@@ -449,16 +449,6 @@ func (s *Store) ListSubjectNokItems(ctx context.Context, subjectID int64) ([]Sub
 	return items, nil
 }
 
-type ProjectNokItemSummary = SubjectNokItemSummary // deprecated alias for tests
-
-func (s *Store) ListRunsWithProgressByProject(ctx context.Context, subjectID int64) ([]RunWithProgress, error) {
-	return s.ListRunsWithProgressBySubject(ctx, subjectID)
-}
-
-func (s *Store) ListProjectNokItems(ctx context.Context, subjectID int64) ([]ProjectNokItemSummary, error) {
-	return s.ListSubjectNokItems(ctx, subjectID)
-}
-
 // ListTemplateIndex returns all active templates for the global catalog.
 func (s *Store) ListTemplateIndex(ctx context.Context, userID int64, admin bool, query string) ([]TemplateIndexRow, error) {
 	_ = userID

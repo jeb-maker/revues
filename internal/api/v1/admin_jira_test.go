@@ -10,6 +10,7 @@ import (
 
 	"github.com/jeb-maker/revues/internal/auth"
 	"github.com/jeb-maker/revues/internal/config"
+	"github.com/jeb-maker/revues/internal/testutil"
 )
 
 func TestAdminJira_MaskedTokenTestAndRBAC(t *testing.T) {
@@ -32,7 +33,7 @@ func TestAdminJira_MaskedTokenTestAndRBAC(t *testing.T) {
 
 	cfg := config.Config{
 		SessionSecret:  "test-secret-at-least-thirty-two-bytes",
-		EncryptionKey:  config.TestEncryptionKey(),
+		EncryptionKey:  testutil.EncryptionKey(),
 		Env:            "development",
 		AttachmentsDir: t.TempDir(),
 		BaseURL:        "http://localhost:8080",
@@ -158,7 +159,7 @@ func TestAdminJira_RejectsPrivateURL(t *testing.T) {
 
 	cfg := config.Config{
 		SessionSecret:  "test-secret-at-least-thirty-two-bytes",
-		EncryptionKey:  config.TestEncryptionKey(),
+		EncryptionKey:  testutil.EncryptionKey(),
 		Env:            "development",
 		AttachmentsDir: t.TempDir(),
 	}
@@ -203,7 +204,7 @@ func TestRunItemJira_LinkAndCreate(t *testing.T) {
 
 	cfg := config.Config{
 		SessionSecret:  "test-secret-at-least-thirty-two-bytes",
-		EncryptionKey:  config.TestEncryptionKey(),
+		EncryptionKey:  testutil.EncryptionKey(),
 		Env:            "development",
 		AttachmentsDir: t.TempDir(),
 		BaseURL:        "http://localhost:8080",

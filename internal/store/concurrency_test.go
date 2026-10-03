@@ -33,11 +33,11 @@ func TestConcurrentReadsNoLock(t *testing.T) {
 		go func() {
 			defer wg.Done()
 			for range loadIterations {
-				if _, err := st.ListProjects(ctx, user.ID, true, ""); err != nil {
+				if _, err := st.ListSubjects(ctx, user.ID, true, ""); err != nil {
 					if isSQLiteLockErr(err) {
 						lockErrors.Add(1)
 					}
-					t.Errorf("ListProjects(): %v", err)
+					t.Errorf("ListSubjects(): %v", err)
 					return
 				}
 				if _, err := st.ListActiveRunSummaries(ctx, user.ID, true); err != nil {
@@ -259,8 +259,8 @@ func seedLoadFixture(t *testing.T) (context.Context, *store.Store, *store.User) 
 	if err = st.AddOrganizationMember(ctx, defaultOrg.ID, user.ID, store.OrgRoleOwner); err != nil {
 		t.Fatalf("AddOrganizationMember(): %v", err)
 	}
-	if _, err = st.CreateProject(ctx, "Load", "desc", user.ID, nil); err != nil {
-		t.Fatalf("CreateProject(): %v", err)
+	if _, err = st.CreateSubject(ctx, "Load", "desc", user.ID, nil); err != nil {
+		t.Fatalf("CreateSubject(): %v", err)
 	}
 	return ctx, st, user
 }
@@ -282,9 +282,9 @@ func seedInProgressRunFileDB(t *testing.T) (context.Context, *store.Store, *stor
 	if err = st.AddOrganizationMember(ctx, defaultOrg.ID, lead.ID, store.OrgRoleOwner); err != nil {
 		t.Fatalf("AddOrganizationMember(): %v", err)
 	}
-	project, err := st.CreateProject(ctx, "P", "", lead.ID, nil)
+	project, err := st.CreateSubject(ctx, "P", "", lead.ID, nil)
 	if err != nil {
-		t.Fatalf("CreateProject(): %v", err)
+		t.Fatalf("CreateSubject(): %v", err)
 	}
 	template, _, err := st.CreateChecklistTemplate(ctx, "Modèle", lead.ID, nil, []store.TemplateItemInput{
 		{Section: "S", Label: "Point 1", Required: true},

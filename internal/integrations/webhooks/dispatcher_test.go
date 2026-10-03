@@ -29,11 +29,11 @@ func TestWebhook_HMAC(t *testing.T) {
 	if !strings.HasPrefix(sig, "sha256=") {
 		t.Fatalf("signature = %q", sig)
 	}
-	if !webhooks.VerifySignature(secret, body, sig) {
-		t.Fatal("valid signature rejected")
+	if sig != webhooks.SignBody(secret, body) {
+		t.Fatal("signature must be deterministic for the same secret and body")
 	}
-	if webhooks.VerifySignature(secret, body, "sha256=deadbeef") {
-		t.Fatal("invalid signature accepted")
+	if sig == webhooks.SignBody("other-secret", body) {
+		t.Fatal("signature must depend on the secret")
 	}
 }
 
@@ -89,7 +89,7 @@ func TestDispatcher_SendTest(t *testing.T) {
 	if err := d.SendTest(testOrgCtx()); err != nil {
 		t.Fatal(err)
 	}
-	if !webhooks.VerifySignature(cfg.Secret, gotBody, gotSig) {
+	if gotSig != webhooks.SignBody(cfg.Secret, gotBody) {
 		t.Fatal("bad signature")
 	}
 	var env webhooks.Envelope
@@ -310,7 +310,7 @@ func TestDispatcher_Drain_UsesOrgScopedSecret(t *testing.T) {
 	if err := d.Drain(context.Background()); err != nil {
 		t.Fatal(err)
 	}
-	if !webhooks.VerifySignature(secretA, gotBody, gotSig) {
+	if gotSig != webhooks.SignBody(secretA, gotBody) {
 		t.Fatalf("drain signed with wrong org secret: sig=%q body=%s", gotSig, gotBody)
 	}
 	if mem.byID[1].State != store.WebhookDeliveryDone {

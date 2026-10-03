@@ -21,9 +21,9 @@ func TestListRunsDueOn(t *testing.T) {
 	if err != nil {
 		t.Fatalf("UpsertGitHubUser(): %v", err)
 	}
-	project, err := st.CreateProject(ctx, "P", "", lead.ID, nil)
+	project, err := st.CreateSubject(ctx, "P", "", lead.ID, nil)
 	if err != nil {
-		t.Fatalf("CreateProject(): %v", err)
+		t.Fatalf("CreateSubject(): %v", err)
 	}
 	template, _, err := st.CreateChecklistTemplate(ctx, "Modèle", lead.ID, nil, nil)
 	if err != nil {

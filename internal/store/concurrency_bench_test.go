@@ -11,23 +11,23 @@ import (
 
 // Compare pool sizes:
 //
-//	go test ./internal/store/ -bench=BenchmarkConcurrentListProjects -benchmem -count=3
-func BenchmarkConcurrentListProjects_Pool1(b *testing.B) {
-	benchmarkConcurrentListProjects(b, 1)
+//	go test ./internal/store/ -bench=BenchmarkConcurrentListSubjects -benchmem -count=3
+func BenchmarkConcurrentListSubjects_Pool1(b *testing.B) {
+	benchmarkConcurrentListSubjects(b, 1)
 }
 
-func BenchmarkConcurrentListProjects_Pool10(b *testing.B) {
-	benchmarkConcurrentListProjects(b, store.DefaultMaxOpenConns)
+func BenchmarkConcurrentListSubjects_Pool10(b *testing.B) {
+	benchmarkConcurrentListSubjects(b, store.DefaultMaxOpenConns)
 }
 
-func benchmarkConcurrentListProjects(b *testing.B, maxOpen int) {
+func benchmarkConcurrentListSubjects(b *testing.B, maxOpen int) {
 	ctx, st, user := seedLoadFixturePool(b, maxOpen)
 
 	b.ReportAllocs()
 	b.ResetTimer()
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			if _, err := st.ListProjects(ctx, user.ID, true, ""); err != nil {
+			if _, err := st.ListSubjects(ctx, user.ID, true, ""); err != nil {
 				b.Fatal(err)
 			}
 			if _, err := st.ListActiveRunSummaries(ctx, user.ID, true); err != nil {
@@ -53,8 +53,8 @@ func seedLoadFixturePool(b *testing.B, maxOpen int) (context.Context, *store.Sto
 	if err = st.AddOrganizationMember(ctx, defaultOrg.ID, user.ID, store.OrgRoleOwner); err != nil {
 		b.Fatalf("AddOrganizationMember(): %v", err)
 	}
-	if _, err = st.CreateProject(ctx, "Bench", "", user.ID, nil); err != nil {
-		b.Fatalf("CreateProject(): %v", err)
+	if _, err = st.CreateSubject(ctx, "Bench", "", user.ID, nil); err != nil {
+		b.Fatalf("CreateSubject(): %v", err)
 	}
 	return ctx, st, user
 }

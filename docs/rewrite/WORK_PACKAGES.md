@@ -1,5 +1,7 @@
 # Work packages — rewrite Go API + SvelteKit
 
+> **Historique** — tous les WP ci-dessous sont mergés (octobre 2026, clôture WP-030 #274). Les cases à cocher ne sont pas tenues à jour : le suivi fait foi sur GitHub (issues / PR listées dans [ISSUE_MAP.md](./ISSUE_MAP.md)). Ce document reste la référence des périmètres et critères d'origine.
+
 Chaque `## WP-xxx` = une issue GitHub. Labels : première ligne `Labels:` · dépendances `Bloqué par:`.
 
 ---

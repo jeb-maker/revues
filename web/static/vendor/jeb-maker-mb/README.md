@@ -2,7 +2,7 @@
 
 - **Version used by Revues: `0.4.1`** (Git tag `v0.4.1`)
 - **Source**: https://github.com/jeb-maker/miniature-broccoli
-- **Lit**: peer `^3.2.0` (build used `lit@3.3.x`) is **bundled into `mb-boot.js`** so the browser needs no import map. Not counted in the 15 KiB app JS budget (`scripts/check.sh` excludes `web/static/vendor/`).
+- **Lit**: peer `^3.2.0` (build used `lit@3.3.x`) is **bundled into `mb-boot.js`** so the browser needs no import map. Vendor files are measured but excluded from the SPA app budgets (`scripts/check.sh` only fails on `frontend/build/_app/**`).
 
 ## Layout
 
@@ -11,16 +11,21 @@
 | `mb-boot.js` | Host ESM loader — registers custom elements (Lit inlined) |
 | `tokens/tokens-core.css` | **Preferred host entry** — variables + anti-FOUC, no `html`/`body` reset |
 | `tokens/reference.css`, `semantic.css` | Imported by `tokens-core.css` |
-| `mb-bridge.css` | Host coexistence (accent/font remap, spacing) |
+| `mb-bridge.css` | Host-level layout for inline custom elements only (never redeclares `--mb-*` tokens) |
 
-## Host load order (see `base.html`)
+## Host load order (SvelteKit SPA)
 
-1. `app.css` (Revues shell)
-2. `tokens/tokens-core.css`
-3. `mb-bridge.css`
-4. `mb-boot.js` (`type="module"`)
+Assets are embedded by Go (`web/fs.go`) and served under `/static/vendor/jeb-maker-mb/`. In Vite dev, `frontend/vite.config.ts` proxies `/static` to the Go API on `:8080`.
 
-Docs upstream: [`docs/go-htmx.md`](https://github.com/jeb-maker/miniature-broccoli/blob/v0.4.1/docs/go-htmx.md).
+`frontend/src/lib/mb/index.ts` exposes `ensureMb()`, called once from the root layout (`frontend/src/routes/+layout.svelte`, `onMount`). It injects, in order:
+
+1. `tokens/tokens-core.css` (`<link rel="stylesheet">`)
+2. `mb-bridge.css` (`<link rel="stylesheet">`)
+3. `mb-boot.js` (`<script type="module" data-mb-boot>`)
+
+Page styles live in Svelte `<style>` blocks (bundled by Vite) and cascade after the vendor stylesheets. `ensureMb()` is idempotent (guards on existing `<link>`/`<script>`).
+
+TypeScript typings for the custom elements used in templates: `frontend/src/lib/mb/elements.d.ts`.
 
 ## `mb-boot.js` registers
 
@@ -43,38 +48,25 @@ cp dist/tokens/tokens-core.css dist/tokens/reference.css dist/tokens/semantic.cs
   /path/to/revues/web/static/vendor/jeb-maker-mb/tokens/
 ```
 
+`internal/web/staticassets_test.go` (`TestVendoredMBBundlePresent`) vérifie la présence des fichiers et l'enregistrement des CE dans `mb-boot.js`.
+
 ### Imports atomiques (cible future)
 
-Upstream recommande d’importer **seulement** les CE utilisées par page (pas de barrel). Exemple shell auth :
-
-```html
-<script type="module">
-  import '/static/vendor/jeb-maker-mb/button.js';
-  import '/static/vendor/jeb-maker-mb/nav.js';
-  import '/static/vendor/jeb-maker-mb/nav-toggle.js';
-  import '/static/vendor/jeb-maker-mb/avatar.js';
-  import '/static/vendor/jeb-maker-mb/toast.js';
-  import '/static/vendor/jeb-maker-mb/select.js';
-  import '/static/vendor/jeb-maker-mb/badge.js';
-  import '/static/vendor/jeb-maker-mb/alert.js';
-</script>
-```
-
-Pour y arriver sans bundler Vite côté Revues :
+Upstream recommande d’importer **seulement** les CE utilisées par page (pas de barrel). Pour y arriver côté Revues :
 
 1. Rebuild chaque `dist/components/<name>.js` (+ chunk Lit partagé) vers `web/static/vendor/jeb-maker-mb/`
-2. Remplacer `mb-boot.js` dans `base.html` par des imports conditionnels / `ExtraJS` par page
+2. Remplacer le `mb-boot.js` monolithe de `ensureMb()` par des imports par route (ou passer `@jeb-maker/mb` en dépendance npm du `frontend/` et laisser Vite tree-shaker)
 3. Garder `mb-table*` hors pages login
 
-Aujourd’hui Revues ship **`mb-boot.js` monolithe** (simple, une requête) ; le gain reports lazy est déjà en place dans `base.html`.
+Aujourd’hui Revues ship **`mb-boot.js` monolithe** (simple, une requête).
+
 ## 0.4.1 (vs 0.3.1)
 
 - `mb-table` / `mb-table-row` / `mb-table-cell` — responsive lists, sections, sort, reorder
 - Section `meta` / `count: false` / `hide-count`; `sticky-header`; `reorder-label` / `sort-label`; cell `hide-label` / `actions`
-- Docs: HTMX `outerHTML` row-swap + sections contract
 
 ## Consumed in Revues
 
-Shell, forms, lists (`mb-table`), run items (sections + HTMX row swap).
+Pages SvelteKit (`frontend/src/routes/**`) : `mb-button`, `mb-alert`, `mb-input`, `mb-textarea`, `mb-badge`, `mb-tag`, `mb-spinner`, `mb-empty-state`, `mb-table` / `mb-table-row` / `mb-table-cell`.
 
-**Still host-owned**: template-editor table (DnD + indices), `hx-confirm`, noscript bug-report form.
+**Still host-owned**: template-editor table (`frontend/src/lib/components/TemplateEditor.svelte`, DnD + indices), native `confirm()` for destructive actions.

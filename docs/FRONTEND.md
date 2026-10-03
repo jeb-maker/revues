@@ -46,7 +46,7 @@ Configurée dans [`frontend/vite.config.ts`](../frontend/vite.config.ts) :
 | `/api` | `http://127.0.0.1:8080` |
 | `/auth` | idem (OAuth) |
 | `/healthz` | idem |
-| `/static` | idem (vendor **mb** + reports) |
+| `/static` | idem (vendor **mb**) |
 
 En production, SPA et API sont same-origin : pas de proxy.
 

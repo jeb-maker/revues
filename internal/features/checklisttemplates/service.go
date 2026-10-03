@@ -32,11 +32,6 @@ type Detail struct {
 	Domains  []string
 }
 
-// CanView reports whether the user may view checklist templates on a subject.
-func CanView(user *store.User, orgMember bool) bool {
-	return subjects.CanViewSubject(user, orgMember)
-}
-
 // CanManageGlobal reports whether the user may create, edit or archive global
 // checklist templates (org admin or editor).
 func CanManageGlobal(user *store.User) bool {
@@ -259,15 +254,6 @@ func (s *Service) Archive(ctx context.Context, user *store.User, templateID int6
 		return fmt.Errorf("archive template: %w", err)
 	}
 	return nil
-}
-
-// MutatePublishedItems always fails: published versions are immutable.
-func (s *Service) MutatePublishedItems(ctx context.Context, versionID int64, items []store.TemplateItemInput) error {
-	err := s.Store.ReplaceTemplateItems(ctx, versionID, items)
-	if errors.Is(err, store.ErrPublishedVersionImmutable) {
-		return fmt.Errorf("%w: %w", ErrImmutable, err)
-	}
-	return err
 }
 
 func normalizeWrite(name string, items []store.TemplateItemInput) (string, []store.TemplateItemInput, error) {

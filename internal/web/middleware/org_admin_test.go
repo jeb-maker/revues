@@ -3,8 +3,6 @@ package middleware
 import (
 	"context"
 	"database/sql"
-	"net/http"
-	"net/http/httptest"
 	"testing"
 
 	_ "modernc.org/sqlite"
@@ -15,7 +13,7 @@ import (
 	"github.com/jeb-maker/revues/internal/testutil"
 )
 
-func TestRequireOrgAdmin(t *testing.T) {
+func TestCanManageOrgUsers(t *testing.T) {
 	ctx := context.Background()
 	db := openOrgAdminTestDB(t)
 	st := store.New(db)
@@ -37,33 +35,36 @@ func TestRequireOrgAdmin(t *testing.T) {
 	if err != nil {
 		t.Fatalf("UpsertGitHubUser(): %v", err)
 	}
-	if err := st.AddOrganizationMember(ctx, defaultOrg.ID, member.ID, store.OrgRoleMember); err != nil {
+	if err = st.AddOrganizationMember(ctx, defaultOrg.ID, member.ID, store.OrgRoleMember); err != nil {
 		t.Fatalf("AddOrganizationMember(): %v", err)
 	}
 
-	handler := RequireOrgAdmin(st)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	}))
+	globalAdmin, err := st.UpsertGitHubUser(ctx, 12, "globaladmin", "globaladmin@example.com", "Global", "", auth.RoleAdmin)
+	if err != nil {
+		t.Fatalf("UpsertGitHubUser(): %v", err)
+	}
 
 	tests := []struct {
-		name       string
-		user       *store.User
-		wantStatus int
+		name    string
+		user    *store.User
+		withOrg bool
+		want    bool
 	}{
-		{"org admin allowed", orgAdmin, http.StatusOK},
-		{"org member denied", member, http.StatusForbidden},
+		{"org admin allowed", orgAdmin, true, true},
+		{"org member denied", member, true, false},
+		{"global admin bypasses org role", globalAdmin, true, true},
+		{"org admin without active org denied", orgAdmin, false, false},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			reqCtx := orgctx.WithOrganizationID(context.WithValue(ctx, userContextKey, tt.user), defaultOrg.ID)
-			org := defaultOrg
-			reqCtx = context.WithValue(reqCtx, orgContextKey, org)
-			req := httptest.NewRequest(http.MethodGet, "/admin/users", nil).WithContext(reqCtx)
-			rec := httptest.NewRecorder()
-			handler.ServeHTTP(rec, req)
-			if rec.Code != tt.wantStatus {
-				t.Errorf("status = %d, want %d", rec.Code, tt.wantStatus)
+			if tt.withOrg {
+				org := defaultOrg
+				reqCtx = context.WithValue(reqCtx, orgContextKey, org)
+			}
+			if got := CanManageOrgUsers(reqCtx, st, tt.user); got != tt.want {
+				t.Errorf("CanManageOrgUsers() = %v, want %v", got, tt.want)
 			}
 		})
 	}

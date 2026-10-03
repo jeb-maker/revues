@@ -1,7 +1,6 @@
 package config
 
 import (
-	"encoding/base64"
 	"fmt"
 	"os"
 	"strconv"
@@ -127,13 +126,4 @@ func envBool(key string) bool {
 	default:
 		return false
 	}
-}
-
-// TestEncryptionKey returns a valid base64 key for tests.
-func TestEncryptionKey() string {
-	key := make([]byte, crypto.KeySize)
-	for i := range key {
-		key[i] = byte(i + 1)
-	}
-	return base64.StdEncoding.EncodeToString(key)
 }

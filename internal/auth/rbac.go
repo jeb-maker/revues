@@ -24,9 +24,3 @@ func HasMinRole(userRole, minRole string) bool {
 	}
 	return userRank >= minRank
 }
-
-// ValidRole reports whether role is a known global role.
-func ValidRole(role string) bool {
-	_, ok := roleRank[role]
-	return ok
-}

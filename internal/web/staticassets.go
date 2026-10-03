@@ -1,45 +1,8 @@
 package web
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
-	"fmt"
-	"io/fs"
 	"net/http"
-	"sort"
 )
-
-// StaticAssetVersion returns a short content hash for cache busting embedded assets.
-func StaticAssetVersion(staticFS fs.FS) (string, error) {
-	entries, err := fs.Glob(staticFS, "**/*")
-	if err != nil {
-		return "", fmt.Errorf("glob static assets: %w", err)
-	}
-	sort.Strings(entries)
-
-	h := sha256.New()
-	for _, path := range entries {
-		info, statErr := fs.Stat(staticFS, path)
-		if statErr != nil {
-			return "", fmt.Errorf("stat static asset %q: %w", path, statErr)
-		}
-		if info.IsDir() {
-			continue
-		}
-		data, readErr := fs.ReadFile(staticFS, path)
-		if readErr != nil {
-			return "", fmt.Errorf("read static asset %q: %w", path, readErr)
-		}
-		_, _ = h.Write([]byte(path))
-		_, _ = h.Write(data)
-	}
-
-	sum := hex.EncodeToString(h.Sum(nil))
-	if len(sum) < 12 {
-		return sum, nil
-	}
-	return sum[:12], nil
-}
 
 // DevNoCache disables caching in development (HTML and API responses).
 func DevNoCache(env string) func(http.Handler) http.Handler {

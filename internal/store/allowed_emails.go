@@ -28,27 +28,6 @@ type AllowedEmail struct {
 	CreatedAt string
 }
 
-// AllowedRole returns the role for email if whitelisted in the active organization.
-func (s *Store) AllowedRole(ctx context.Context, email string) (string, bool, error) {
-	orgID, err := organizationIDFromContext(ctx)
-	if err != nil {
-		return "", false, err
-	}
-
-	var role string
-	err = s.db.QueryRowContext(ctx, `
-		SELECT role FROM allowed_emails WHERE organization_id = ? AND email = ?
-	`, orgID, strings.ToLower(strings.TrimSpace(email))).Scan(&role)
-	if errors.Is(err, sql.ErrNoRows) {
-		return "", false, nil
-	}
-	if err != nil {
-		return "", false, fmt.Errorf("allowed role lookup: %w", err)
-	}
-
-	return role, true, nil
-}
-
 // InsertAllowedEmail adds an email to the whitelist for the active organization.
 // Role must be editor or reader — never admin (prevents org-scoped whitelist from
 // minting a global admin on the next login).
@@ -85,24 +64,6 @@ func (s *Store) InsertAllowedEmail(ctx context.Context, email, role string) erro
 // ValidWhitelistRole reports whether role may be stored on allowed_emails.
 func ValidWhitelistRole(role string) bool {
 	return role == auth.RoleEditor || role == auth.RoleReader
-}
-
-// CountAllowedEmails returns whitelist size for the active organization.
-func (s *Store) CountAllowedEmails(ctx context.Context) (int, error) {
-	orgID, err := organizationIDFromContext(ctx)
-	if err != nil {
-		return 0, err
-	}
-
-	var count int
-	err = s.db.QueryRowContext(ctx, `
-		SELECT COUNT(*) FROM allowed_emails WHERE organization_id = ?
-	`, orgID).Scan(&count)
-	if err != nil {
-		return 0, fmt.Errorf("count allowed emails: %w", err)
-	}
-
-	return count, nil
 }
 
 // ListAllowedEmails returns whitelist entries for the active organization.

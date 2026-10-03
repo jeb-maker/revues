@@ -2,7 +2,6 @@ package store_test
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"testing"
 
@@ -147,24 +146,6 @@ func TestOrganizationMemberships(t *testing.T) {
 		t.Fatalf("ListUserOrganizations() = %+v", memberships)
 	}
 
-	if err = st.CreateSession(ctx, member.ID, org.ID, "org-member-session"); err != nil {
-		t.Fatalf("CreateSession(): %v", err)
-	}
-
-	if err = st.RemoveOrganizationMember(ctx, org.ID, member.ID); err != nil {
-		t.Fatalf("RemoveOrganizationMember(): %v", err)
-	}
-	if _, sessErr := st.UserIDByTokenHash(ctx, "org-member-session"); !errors.Is(sessErr, store.ErrSessionNotFound) {
-		t.Fatalf("session after org remove = %v, want ErrSessionNotFound", sessErr)
-	}
-	if err = st.RemoveOrganizationMember(ctx, org.ID, member.ID); !errors.Is(err, sql.ErrNoRows) {
-		t.Fatalf("RemoveOrganizationMember() missing error = %v", err)
-	}
-
-	count, err = st.CountUserOrganizations(ctx, member.ID)
-	if err != nil || count != 0 {
-		t.Fatalf("CountUserOrganizations() after remove = %d, %v", count, err)
-	}
 }
 
 func TestDefaultOrganizationExistsAfterMigrate(t *testing.T) {
@@ -227,39 +208,6 @@ func TestUpdateOrganizationLeadPolicies(t *testing.T) {
 
 	if err = st.UpdateOrganizationLeadPolicies(ctx, 99999, store.DefaultOrgLeadPolicies()); !errors.Is(err, store.ErrOrganizationNotFound) {
 		t.Fatalf("missing org error = %v, want %v", err, store.ErrOrganizationNotFound)
-	}
-}
-
-func TestUpdateOrganizationUISubjectLabel(t *testing.T) {
-	ctx := context.Background()
-	db := openMemoryDB(t)
-	st := store.New(db)
-
-	creator, err := st.UpsertGitHubUser(ctx, 1, "owner", "owner@example.com", "Owner", "", auth.RoleAdmin)
-	if err != nil {
-		t.Fatalf("UpsertGitHubUser(): %v", err)
-	}
-	org, err := st.CreateOrganization(ctx, "Acme", "acme", creator.ID)
-	if err != nil {
-		t.Fatalf("CreateOrganization(): %v", err)
-	}
-	if org.UISubjectLabel != store.UISubjectLabelSujet {
-		t.Fatalf("UISubjectLabel = %q, want %q", org.UISubjectLabel, store.UISubjectLabelSujet)
-	}
-
-	if err = st.UpdateOrganizationUISubjectLabel(ctx, org.ID, store.UISubjectLabelCible); err != nil {
-		t.Fatalf("UpdateOrganizationUISubjectLabel(): %v", err)
-	}
-	got, err := st.OrganizationByID(ctx, org.ID)
-	if err != nil {
-		t.Fatalf("OrganizationByID(): %v", err)
-	}
-	if got.UISubjectLabel != store.UISubjectLabelCible {
-		t.Fatalf("UISubjectLabel = %q, want %q", got.UISubjectLabel, store.UISubjectLabelCible)
-	}
-
-	if err = st.UpdateOrganizationUISubjectLabel(ctx, org.ID, "inconnu"); !errors.Is(err, store.ErrInvalidUISubjectLabel) {
-		t.Fatalf("invalid label error = %v, want %v", err, store.ErrInvalidUISubjectLabel)
 	}
 }
 

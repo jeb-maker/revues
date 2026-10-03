@@ -2,30 +2,10 @@ package middleware
 
 import (
 	"context"
-	"net/http"
 
 	"github.com/jeb-maker/revues/internal/auth"
 	"github.com/jeb-maker/revues/internal/store"
 )
-
-// RequireOrgAdmin ensures the user is owner or admin of the active organization.
-// Global admins bypass the org role check but still require a valid active organization.
-func RequireOrgAdmin(st *store.Store) func(http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			user, ok := UserFromContext(r.Context())
-			if !ok {
-				http.Redirect(w, r, "/login", http.StatusFound)
-				return
-			}
-			if !CanManageOrgUsers(r.Context(), st, user) {
-				http.Error(w, "Forbidden", http.StatusForbidden)
-				return
-			}
-			next.ServeHTTP(w, r)
-		})
-	}
-}
 
 // OrgRoleLookup looks up a user's role in an organization.
 type OrgRoleLookup interface {

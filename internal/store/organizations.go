@@ -33,10 +33,9 @@ const (
 	OrgRoleAdmin  = "admin"
 	OrgRoleMember = "member"
 
-	UISubjectLabelSujet  = "sujet"
-	UISubjectLabelCible  = "cible"
-	UISubjectLabelEntite = "entite"
-	UISubjectLabelAsset  = "asset"
+	// UISubjectLabelSujet is the schema default for organizations.ui_subject_label
+	// (presets sujet/cible/entite/asset are enforced by the SQL CHECK constraint).
+	UISubjectLabelSujet = "sujet"
 
 	UIRunLabelRevues        = "revues"
 	UIRunLabelListesEnCours = "listes_en_cours"
@@ -44,21 +43,12 @@ const (
 	UIRunLabelChecklists    = "checklists"
 )
 
-// ErrInvalidUISubjectLabel is returned when a subject label preset is unknown.
-var ErrInvalidUISubjectLabel = errors.New("invalid ui subject label")
-
 // ErrInvalidUIRunLabel is returned when a run label preset is unknown.
 var ErrInvalidUIRunLabel = errors.New("invalid ui run label")
 
 var (
 	organizationSlugPattern = regexp.MustCompile(`^[a-z0-9]+(?:-[a-z0-9]+)*$`)
-	validUISubjectLabels    = map[string]struct{}{
-		UISubjectLabelSujet:  {},
-		UISubjectLabelCible:  {},
-		UISubjectLabelEntite: {},
-		UISubjectLabelAsset:  {},
-	}
-	validUIRunLabels = map[string]struct{}{
+	validUIRunLabels        = map[string]struct{}{
 		UIRunLabelRevues:        {},
 		UIRunLabelListesEnCours: {},
 		UIRunLabelAudits:        {},
@@ -106,18 +96,6 @@ func (o *Organization) LeadPolicies() OrgLeadPolicies {
 		LeadsMayInviteMembers:   o.LeadsMayInviteMembers,
 		LeadsMayInviteExternals: o.LeadsMayInviteExternals,
 	}
-}
-
-// NormalizeUISubjectLabel validates and returns a known subject label preset.
-func NormalizeUISubjectLabel(label string) (string, error) {
-	label = strings.TrimSpace(strings.ToLower(label))
-	if label == "" {
-		return UISubjectLabelSujet, nil
-	}
-	if _, ok := validUISubjectLabels[label]; !ok {
-		return "", ErrInvalidUISubjectLabel
-	}
-	return label, nil
 }
 
 // NormalizeUIRunLabel validates and returns a known run label preset.
@@ -278,28 +256,6 @@ func (s *Store) OrganizationByID(ctx context.Context, id int64) (*Organization, 
 	return &org, nil
 }
 
-// UpdateOrganizationUISubjectLabel sets the org-wide subject UI label preset.
-func (s *Store) UpdateOrganizationUISubjectLabel(ctx context.Context, organizationID int64, label string) error {
-	normalized, err := NormalizeUISubjectLabel(label)
-	if err != nil {
-		return err
-	}
-	res, err := s.db.ExecContext(ctx, `
-		UPDATE organizations SET ui_subject_label = ? WHERE id = ?
-	`, normalized, organizationID)
-	if err != nil {
-		return fmt.Errorf("update organization ui subject label: %w", err)
-	}
-	n, err := res.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("update organization ui subject label rows: %w", err)
-	}
-	if n == 0 {
-		return ErrOrganizationNotFound
-	}
-	return nil
-}
-
 // UpdateOrganizationUIRunLabel sets the org-wide run UI label preset.
 func (s *Store) UpdateOrganizationUIRunLabel(ctx context.Context, organizationID int64, label string) error {
 	normalized, err := NormalizeUIRunLabel(label)
@@ -361,30 +317,6 @@ func (s *Store) AddOrganizationMember(ctx context.Context, organizationID, userI
 	`, organizationID, userID, role, now)
 	if err != nil {
 		return fmt.Errorf("add organization member: %w", err)
-	}
-
-	return nil
-}
-
-// RemoveOrganizationMember removes a user from an organization.
-func (s *Store) RemoveOrganizationMember(ctx context.Context, organizationID, userID int64) error {
-	res, err := s.db.ExecContext(ctx, `
-		DELETE FROM organization_members WHERE organization_id = ? AND user_id = ?
-	`, organizationID, userID)
-	if err != nil {
-		return fmt.Errorf("remove organization member: %w", err)
-	}
-	n, err := res.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("remove organization member rows: %w", err)
-	}
-	if n == 0 {
-		return sql.ErrNoRows
-	}
-
-	// Drop sessions so removed members cannot keep acting until natural expiry.
-	if err := s.DeleteUserSessions(ctx, userID); err != nil {
-		return fmt.Errorf("revoke sessions after org member remove: %w", err)
 	}
 
 	return nil
@@ -460,18 +392,6 @@ func (s *Store) CountUserOrganizations(ctx context.Context, userID int64) (int, 
 		return 0, fmt.Errorf("count user organizations: %w", err)
 	}
 
-	return count, nil
-}
-
-// CountOrganizationMembers returns how many users belong to an organization.
-func (s *Store) CountOrganizationMembers(ctx context.Context, organizationID int64) (int, error) {
-	var count int
-	err := s.db.QueryRowContext(ctx, `
-		SELECT COUNT(*) FROM organization_members WHERE organization_id = ?
-	`, organizationID).Scan(&count)
-	if err != nil {
-		return 0, fmt.Errorf("count organization members: %w", err)
-	}
 	return count, nil
 }
 
