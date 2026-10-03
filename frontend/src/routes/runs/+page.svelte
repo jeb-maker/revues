@@ -3,6 +3,7 @@
 	import { listRuns, type RunSummary } from '$lib/api/runs';
 	import { session } from '$lib/auth/session';
 	import { formatRunStatus, runStatusVariant } from '$lib/i18n/labels';
+	import { runLabels } from '$lib/i18n/uiLabels';
 	import { inputValue } from '$lib/mb';
 
 	type RunFilter = '' | 'draft' | 'in_progress' | 'done' | 'overdue';
@@ -14,7 +15,9 @@
 		{ value: 'draft', label: 'Brouillons' }
 	];
 
-	const csrf = session().csrf_token;
+	const boot = session();
+	const csrf = boot.csrf_token;
+	const run = $derived(runLabels(boot.organization?.ui_run_label));
 
 	let runs = $state<RunSummary[]>([]);
 	let total = $state(0);
@@ -52,12 +55,12 @@
 </script>
 
 <svelte:head>
-	<title>Revues — Revues</title>
+	<title>{run.nav} — Revues</title>
 </svelte:head>
 
 <div class="page">
 	<header class="page-header">
-		<h1>Revues</h1>
+		<h1>{run.nav}</h1>
 		<p class="lede">Exécutions en cours et historiques — progression par snapshot.</p>
 	</header>
 

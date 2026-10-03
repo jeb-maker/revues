@@ -1,13 +1,33 @@
 <script lang="ts">
 	import { session } from '$lib/auth/session';
+	import { launchRunCTA, runLabels, subjectLabels, templateNavLabel } from '$lib/i18n/uiLabels';
 
 	const boot = session();
+	const run = $derived(runLabels(boot.organization?.ui_run_label));
+	const subject = $derived(subjectLabels(boot.organization?.ui_subject_label));
+	const templatesLabel = $derived(templateNavLabel(boot.organization?.ui_run_label));
 
 	const tiles = $derived([
-		{ href: '/runs', title: 'Revues', desc: 'Exécutions en cours et historiques, progression par snapshot.' },
-		{ href: '/subjects', title: 'Sujets', desc: 'Conteneurs de revues : domaines, étiquettes, membres.' },
-		{ href: '/modeles', title: 'Modèles', desc: 'Check-lists versionnées de l’organisation.' },
-		{ href: '/mes-taches', title: 'Mes tâches', desc: 'Points de revue qui vous sont assignés.' },
+		{
+			href: '/runs',
+			title: run.nav,
+			desc: `Exécutions en cours et historiques — ${launchRunCTA(run).toLowerCase()} depuis un ${subject.singular.toLowerCase()}.`
+		},
+		{
+			href: '/subjects',
+			title: subject.plural,
+			desc: `Conteneurs de ${run.plural} : domaines, étiquettes, membres.`
+		},
+		{
+			href: '/modeles',
+			title: templatesLabel,
+			desc: 'Check-lists versionnées de l’organisation.'
+		},
+		{
+			href: '/mes-taches',
+			title: 'Mes tâches',
+			desc: `Points de ${run.singular} qui vous sont assignés.`
+		},
 		...(boot.can_admin
 			? [{ href: '/admin', title: 'Administration', desc: 'Accès, équipes, politiques, intégrations.' }]
 			: [])
@@ -25,7 +45,8 @@
 			{#if boot.organization}
 				Organisation active : <strong>{boot.organization.name}</strong>.
 			{/if}
-			Lancez une revue depuis un sujet, suivez vos points, publiez de nouvelles versions de modèles.
+			{launchRunCTA(run)} depuis un {subject.singular.toLowerCase()}, suivez vos points, publiez de
+			nouvelles versions de {templatesLabel.toLowerCase()}.
 		</p>
 	</header>
 

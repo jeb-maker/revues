@@ -2,10 +2,13 @@
 	import { onMount } from 'svelte';
 	import { listTemplates, type TemplateSummary } from '$lib/api/templates';
 	import { session } from '$lib/auth/session';
+	import { templateNavLabel } from '$lib/i18n/uiLabels';
 	import { inputValue } from '$lib/mb';
 
 	const boot = session();
 	const canManage = boot.can_edit;
+	const templatesLabel = $derived(templateNavLabel(boot.organization?.ui_run_label));
+	const newTemplateCTA = $derived(templatesLabel === 'Listes' ? 'Nouvelle liste' : 'Nouveau modèle');
 
 	let templates = $state<TemplateSummary[]>([]);
 	let q = $state('');
@@ -35,16 +38,16 @@
 </script>
 
 <svelte:head>
-	<title>Modèles — Revues</title>
+	<title>{templatesLabel} — Revues</title>
 </svelte:head>
 
 <div class="page">
 	<header class="page-header">
-		<h1>Modèles</h1>
+		<h1>{templatesLabel}</h1>
 		<p class="lede">Catalogue des check-lists versionnées de l’organisation.</p>
 		{#if canManage}
 			<p class="actions">
-				<mb-button variant="primary" href="/modeles/new">Nouveau modèle</mb-button>
+				<mb-button variant="primary" href="/modeles/new">{newTemplateCTA}</mb-button>
 				<mb-button variant="secondary" href="/modeles/notion-import">Importer depuis Notion</mb-button>
 			</p>
 		{/if}

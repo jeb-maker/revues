@@ -26,6 +26,8 @@ Cœur métier, auth GitHub, RBAC, orgs/équipes, SMTP, Jira Cloud, webhooks, Not
 
 ## Icebox (pas d’issue tant que signal d’usage)
 
-Séries/campagnes, fusion sujets, rapport org, Slack/Teams, Google OAuth, gouvernance avancée, audit admin, concurrency items, antivirus uploads, PostgreSQL, CSP stricte, rotation clés.
+Séries/campagnes, fusion sujets, rapport org, Slack/Teams, Google OAuth, gouvernance avancée, audit admin, progressive disclosure SPA (SimpleUI / ShowSubject*), écran admin libellés UI, antivirus uploads, PostgreSQL, CSP stricte, rotation clés.
+
+Livré hors icebox : verrou optimiste `run_items.updated_at` (#281).
 
 Voir aussi [REVIEW_ADVERSE.md](./REVIEW_ADVERSE.md) § CAN DEFER.

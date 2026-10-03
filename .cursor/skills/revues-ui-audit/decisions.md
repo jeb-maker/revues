@@ -65,6 +65,8 @@ Flags d'origine (legacy `middleware.resolveUICaps` → `PageData`, **supprimés*
 
 **À trancher** : la SPA n'implémente pas ces paliers (aucun flag `SimpleUI` / `ShowAssign` / `ShowSubjectColumn` exposé par l'API ; seules des `capabilities.can_*` par ressource existent dans `openapi.yaml`). Réimplémenter la progressive disclosure côté front ou acter son abandon.
 
+**Partiel livré** : les presets `ui_run_label` / `ui_subject_label` de l'org active sont consommés par la nav, le hub `/` et les H1 `/runs` · `/subjects` · `/modeles` (`frontend/src/lib/i18n/uiLabels.ts`). Vocabulaire « Listes » pour les modèles si `ui_run_label=listes_en_cours` (heuristique particulier, en attendant `ShowSubjectColumn`). Pas encore d'écran admin pour changer les presets.
+
 ### Matrice capability P3
 
 P3 n’est **pas** un unlock structurel : dans le legacy, les flags org (`HasJira` / `HasNotion` / `HasWebhooks`) étaient résolus via la config chiffrée et `HasEvidence` posé par la fiche revue (hash scellé). Dans la SPA, l'équivalent est porté par les capabilities par ressource (`can_link`, `can_export_notion`) et les écrans `/admin/integrations/*`.

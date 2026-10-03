@@ -5,6 +5,7 @@
 	import { page } from '$app/state';
 	import { logout } from '$lib/api/auth';
 	import { resetSession } from '$lib/auth/session';
+	import { runLabels, subjectLabels, templateNavLabel } from '$lib/i18n/uiLabels';
 	import type { LayoutData } from './$types';
 
 	let { data, children }: { data: LayoutData; children: Snippet } = $props();
@@ -13,12 +14,16 @@
 	let logoutError = $state('');
 	let loggingOut = $state(false);
 
-	const links = [
-		{ href: '/runs', label: 'Revues' },
-		{ href: '/subjects', label: 'Sujets' },
-		{ href: '/modeles', label: 'Modèles' },
-		{ href: '/mes-taches', label: 'Mes tâches' }
-	] as const;
+	const links = $derived.by(() => {
+		const run = runLabels(boot.organization?.ui_run_label);
+		const subject = subjectLabels(boot.organization?.ui_subject_label);
+		return [
+			{ href: '/runs', label: run.nav },
+			{ href: '/subjects', label: subject.plural },
+			{ href: '/modeles', label: templateNavLabel(boot.organization?.ui_run_label) },
+			{ href: '/mes-taches', label: 'Mes tâches' }
+		] as const;
+	});
 
 	function current(href: string): 'page' | undefined {
 		const path = page.url.pathname;

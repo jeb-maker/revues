@@ -1,8 +1,14 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { listSubjects, type SubjectSummary } from '$lib/api/subjects';
+	import { session } from '$lib/auth/session';
 	import { formatVisibility } from '$lib/i18n/labels';
+	import { runLabels, subjectLabels } from '$lib/i18n/uiLabels';
 	import { inputValue } from '$lib/mb';
+
+	const boot = session();
+	const subject = $derived(subjectLabels(boot.organization?.ui_subject_label));
+	const run = $derived(runLabels(boot.organization?.ui_run_label));
 
 	let subjects = $state<SubjectSummary[]>([]);
 	let canCreate = $state(false);
@@ -18,7 +24,7 @@
 			subjects = res.subjects ?? [];
 			canCreate = res.can_create;
 		} catch (e) {
-			error = e instanceof Error ? e.message : 'Impossible de charger les sujets.';
+			error = e instanceof Error ? e.message : `Impossible de charger les ${subject.plural.toLowerCase()}.`;
 			subjects = [];
 		} finally {
 			loading = false;
@@ -36,16 +42,16 @@
 </script>
 
 <svelte:head>
-	<title>Sujets — Revues</title>
+	<title>{subject.plural} — Revues</title>
 </svelte:head>
 
 <div class="page">
 	<header class="page-header">
-		<h1>Sujets</h1>
-		<p class="lede">Conteneurs de revues — domaines, étiquettes et membres.</p>
+		<h1>{subject.plural}</h1>
+		<p class="lede">Conteneurs de {run.plural} — domaines, étiquettes et membres.</p>
 		{#if canCreate}
 			<p class="actions">
-				<mb-button variant="primary" href="/subjects/new">Nouveau sujet</mb-button>
+				<mb-button variant="primary" href="/subjects/new">Nouveau {subject.singular.toLowerCase()}</mb-button>
 			</p>
 		{/if}
 	</header>

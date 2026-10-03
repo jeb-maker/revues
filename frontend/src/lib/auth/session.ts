@@ -11,7 +11,15 @@ import { page } from '$app/state';
 import { bootstrap, type BootstrapResponse } from '$lib/api/auth';
 import { listOrganizations } from '$lib/api/orgs';
 
-export type ActiveOrganization = { id: number; name: string; role: string };
+export type ActiveOrganization = {
+	id: number;
+	name: string;
+	role: string;
+	/** Preset org `organizations.ui_run_label` (revues, listes_en_cours…). */
+	ui_run_label?: string;
+	/** Preset org `organizations.ui_subject_label` (sujet, cible…). */
+	ui_subject_label?: string;
+};
 
 export type Session = BootstrapResponse & {
 	/** Organisation active sur la session (null si aucune ou non authentifié). */
@@ -77,7 +85,15 @@ async function fetchSession(): Promise<Session> {
 			const orgs = await listOrganizations();
 			organizationCount = orgs.organizations.length;
 			const active = orgs.organizations.find((o) => o.id === orgs.active_organization_id);
-			if (active) organization = { id: active.id, name: active.name, role: active.role };
+			if (active) {
+				organization = {
+					id: active.id,
+					name: active.name,
+					role: active.role,
+					ui_run_label: active.ui_run_label,
+					ui_subject_label: active.ui_subject_label
+				};
+			}
 		} catch {
 			/* en-tête dégradé : pas de nom d'organisation */
 		}
