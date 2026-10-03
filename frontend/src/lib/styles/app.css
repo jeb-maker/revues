@@ -116,6 +116,20 @@ code {
 	flex: 1 1 auto;
 }
 
+.app-header__search {
+	display: flex;
+	flex: 1 1 12rem;
+	align-items: center;
+	gap: var(--mb-space-2);
+	min-width: 10rem;
+	max-width: 18rem;
+}
+
+.app-header__search > mb-input {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
 .app-header__account {
 	display: flex;
 	flex-wrap: wrap;
@@ -140,6 +154,12 @@ code {
 	.app-header mb-nav {
 		order: 3;
 		flex-basis: 100%;
+	}
+
+	.app-header__search {
+		order: 4;
+		flex-basis: 100%;
+		max-width: none;
 	}
 
 	.app-header__account {

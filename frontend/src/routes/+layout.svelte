@@ -6,6 +6,7 @@
 	import { logout } from '$lib/api/auth';
 	import { resetSession } from '$lib/auth/session';
 	import { runLabels, subjectLabels, templateNavLabel } from '$lib/i18n/uiLabels';
+	import { inputValue } from '$lib/mb';
 	import type { LayoutData } from './$types';
 
 	let { data, children }: { data: LayoutData; children: Snippet } = $props();
@@ -13,6 +14,20 @@
 	const boot = $derived(data.boot);
 	let logoutError = $state('');
 	let loggingOut = $state(false);
+	let headerQuery = $state('');
+
+	$effect(() => {
+		if (page.url.pathname === '/search') {
+			headerQuery = page.url.searchParams.get('q') ?? '';
+		}
+	});
+
+	async function onHeaderSearch(e: Event) {
+		e.preventDefault();
+		const q = headerQuery.trim();
+		const href = q ? `/search?q=${encodeURIComponent(q)}` : '/search';
+		await goto(href, { keepFocus: true });
+	}
 
 	const links = $derived.by(() => {
 		const run = runLabels(boot.organization?.ui_run_label);
@@ -66,6 +81,18 @@
 					<a href="/admin" aria-current={current('/admin')}>Admin</a>
 				{/if}
 			</mb-nav>
+			<form class="app-header__search" role="search" onsubmit={onHeaderSearch}>
+				<mb-input
+					label="Recherche"
+					hide-label
+					type="search"
+					name="q"
+					placeholder="Rechercher…"
+					value={headerQuery}
+					oninput={(e) => (headerQuery = inputValue(e))}
+				></mb-input>
+				<mb-button type="submit" variant="secondary" size="sm">OK</mb-button>
+			</form>
 			<div class="app-header__account">
 				{#if boot.organization}
 					<span>
