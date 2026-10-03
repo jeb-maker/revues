@@ -1,6 +1,7 @@
 package apiv1
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"log/slog"
@@ -22,6 +23,13 @@ import (
 	appmiddleware "github.com/jeb-maker/revues/internal/web/middleware"
 )
 
+// RunNotifier emits business emails for run lifecycle events (consumer-side interface,
+// satisfied by *notifications.Service). Implementations must be fire-and-forget safe.
+type RunNotifier interface {
+	NotifyRunCompleted(ctx context.Context, runID int64)
+	NotifyItemAssigned(ctx context.Context, runID, itemID int64)
+}
+
 // Server implements the OpenAPI ServerInterface for /api/v1.
 type Server struct {
 	Auth         *authfeature.Service
@@ -31,6 +39,7 @@ type Server struct {
 	Config       config.Config
 	Sessions     *auth.SessionManager
 	Webhooks     *webhooks.Dispatcher
+	Notifier     RunNotifier // nil = no business emails; never store a typed nil pointer here
 	Settings     *adminsettings.SettingsService
 	Integrations *adminintegrations.IntegrationsService
 	Attachments  *attachments.Service
@@ -48,6 +57,7 @@ func NewServer(
 	cfg config.Config,
 	sessions *auth.SessionManager,
 	hooks *webhooks.Dispatcher,
+	notifier RunNotifier,
 	settingsSvc *adminsettings.SettingsService,
 	integrationsSvc *adminintegrations.IntegrationsService,
 	attachmentsSvc *attachments.Service,
@@ -62,6 +72,7 @@ func NewServer(
 		Config:       cfg,
 		Sessions:     sessions,
 		Webhooks:     hooks,
+		Notifier:     notifier,
 		Settings:     settingsSvc,
 		Integrations: integrationsSvc,
 		Attachments:  attachmentsSvc,

@@ -35,7 +35,8 @@ import (
 type Deps struct {
 	Config       config.Config
 	DB           *sql.DB
-	NotionClient *notion.Client // optional HTTP override (tests)
+	NotionClient *notion.Client    // optional HTTP override (tests)
+	Notifier     apiv1.RunNotifier // optional override (tests); default = notifications.Service
 }
 
 // NewRouter builds the HTTP handler tree for the application.
@@ -101,8 +102,15 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, *webhooks.Dispa
 		DevMode:  deps.Config.Env == "development",
 	}
 
+	// notificationsSvc is always a non-nil pointer here, so the interface is never a typed nil
+	// (which would defeat `s.Notifier != nil` in handlers).
+	var runNotifier apiv1.RunNotifier = notificationsSvc
+	if deps.Notifier != nil {
+		runNotifier = deps.Notifier
+	}
+
 	apiServer := apiv1.NewServer(
-		authSvc, orgSvc, templatesSvc, st, deps.Config, sessions, webhookDispatcher,
+		authSvc, orgSvc, templatesSvc, st, deps.Config, sessions, webhookDispatcher, runNotifier,
 		settingsSvc, integrationsSvc, attachmentsSvc, notionSvc, deps.NotionClient,
 	)
 
