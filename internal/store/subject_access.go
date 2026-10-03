@@ -219,6 +219,33 @@ func subjectVisibleToOrgMemberSQL(subjectAlias string) string {
 		)`
 }
 
+// subjectVisibleToListedMemberSQL is like subjectVisibleToOrgMemberSQL but uses
+// om.user_id / subject.organization_id from the row (no extra bind args).
+// Used when listing candidate members for a single subject.
+func subjectVisibleToListedMemberSQL(subjectAlias string) string {
+	return `
+		AND (
+			om.role IN ('` + OrgRoleOwner + `', '` + OrgRoleAdmin + `')
+			OR (
+				` + subjectAlias + `.visibility = '` + SubjectVisibilityNormal + `'
+				AND NOT EXISTS (SELECT 1 FROM subject_members sm0 WHERE sm0.subject_id = ` + subjectAlias + `.id)
+				AND NOT EXISTS (SELECT 1 FROM team_subject_roles tsr0 WHERE tsr0.subject_id = ` + subjectAlias + `.id)
+			)
+			OR EXISTS (
+				SELECT 1 FROM subject_members sm
+				WHERE sm.subject_id = ` + subjectAlias + `.id AND sm.user_id = om.user_id
+			)
+			OR EXISTS (
+				SELECT 1 FROM team_subject_roles tsr
+				INNER JOIN team_members tm ON tm.team_id = tsr.team_id
+				INNER JOIN organization_teams ot ON ot.id = tsr.team_id
+				WHERE tsr.subject_id = ` + subjectAlias + `.id
+				  AND tm.user_id = om.user_id
+				  AND ot.organization_id = ` + subjectAlias + `.organization_id
+			)
+		)`
+}
+
 func subjectRoleRank(role string) int {
 	switch role {
 	case SubjectRoleLead:

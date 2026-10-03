@@ -3,6 +3,7 @@ package store_test
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"testing"
 
 	"github.com/jeb-maker/revues/internal/testutil"
@@ -198,5 +199,94 @@ func TestCompleteRun_SealsEvidenceHash(t *testing.T) {
 	}
 	if got.EvidenceCSVSHA256 != hash {
 		t.Fatalf("EvidenceCSVSHA256 = %q, want sealed hash", got.EvidenceCSVSHA256)
+	}
+}
+
+func TestCompleteRunWithEvidence_RejectsPendingRequired(t *testing.T) {
+	ctx := context.Background()
+	db := openMemoryDB(t)
+	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
+
+	lead, err := st.UpsertGitHubUser(ctx, 1, "lead", "lead@example.com", "Lead", "", auth.RoleEditor)
+	if err != nil {
+		t.Fatal(err)
+	}
+	subject, err := st.CreateSubject(ctx, "P", "", lead.ID, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	template, _, err := st.CreateChecklistTemplate(ctx, "Modèle", lead.ID, nil, []store.TemplateItemInput{
+		{Label: "Point", Required: true},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	run, err := st.CreateChecklistRun(ctx, subject.ID, template.ID, lead.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = st.StartRun(ctx, run.ID); err != nil {
+		t.Fatal(err)
+	}
+
+	err = st.CompleteRunWithEvidence(ctx, run.ID, "note", "abc")
+	if !errors.Is(err, store.ErrPendingRequiredItems) {
+		t.Fatalf("CompleteRunWithEvidence() = %v, want ErrPendingRequiredItems", err)
+	}
+	got, err := st.RunByID(ctx, run.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Status != store.RunStatusInProgress {
+		t.Fatalf("status = %q, want in_progress after rejected complete", got.Status)
+	}
+}
+
+func TestCompleteRunWithEvidence_AtomicSeal(t *testing.T) {
+	ctx := context.Background()
+	db := openMemoryDB(t)
+	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
+
+	lead, err := st.UpsertGitHubUser(ctx, 1, "lead", "lead@example.com", "Lead", "", auth.RoleEditor)
+	if err != nil {
+		t.Fatal(err)
+	}
+	subject, err := st.CreateSubject(ctx, "P", "", lead.ID, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	template, _, err := st.CreateChecklistTemplate(ctx, "Modèle", lead.ID, nil, []store.TemplateItemInput{
+		{Label: "Point", Required: true},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	run, err := st.CreateChecklistRun(ctx, subject.ID, template.ID, lead.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = st.StartRun(ctx, run.ID); err != nil {
+		t.Fatal(err)
+	}
+	items, err := st.ListRunItems(ctx, run.ID)
+	if err != nil || len(items) == 0 {
+		t.Fatalf("ListRunItems: %v %v", items, err)
+	}
+	if err = st.UpdateRunItemStatus(ctx, run.ID, items[0].ID, lead.ID, store.RunItemStatusOK, ""); err != nil {
+		t.Fatalf("UpdateRunItemStatus: %v", err)
+	}
+
+	hash := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+	if err = st.CompleteRunWithEvidence(ctx, run.ID, "done", hash); err != nil {
+		t.Fatalf("CompleteRunWithEvidence(): %v", err)
+	}
+	got, err := st.RunByID(ctx, run.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Status != store.RunStatusDone || got.EvidenceCSVSHA256 != hash {
+		t.Fatalf("got status=%q hash=%q", got.Status, got.EvidenceCSVSHA256)
 	}
 }

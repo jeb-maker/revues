@@ -3,6 +3,7 @@ package middleware
 import (
 	"net"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 )
@@ -39,6 +40,29 @@ func RateLimit(cfg RateLimitConfig) func(http.Handler) http.Handler {
 			if !lim.allow(key, time.Now()) {
 				w.Header().Set("Retry-After", "60")
 				http.Error(w, "Trop de requêtes. Réessayez dans une minute.", http.StatusTooManyRequests)
+				return
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+// RateLimitPaths applies RateLimit only when r.URL.Path equals one of paths
+// (exact match). Other requests pass through untouched.
+func RateLimitPaths(cfg RateLimitConfig, paths ...string) func(http.Handler) http.Handler {
+	limited := RateLimit(cfg)
+	allowed := make(map[string]struct{}, len(paths))
+	for _, p := range paths {
+		p = strings.TrimSpace(p)
+		if p != "" {
+			allowed[p] = struct{}{}
+		}
+	}
+	return func(next http.Handler) http.Handler {
+		guarded := limited(next)
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if _, ok := allowed[r.URL.Path]; ok {
+				guarded.ServeHTTP(w, r)
 				return
 			}
 			next.ServeHTTP(w, r)

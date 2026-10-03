@@ -264,9 +264,6 @@ func jiraLinkMessage(err error) string {
 	case errors.Is(err, jira.ErrConnectionFailed):
 		return "Impossible de contacter Jira. Réessayez plus tard."
 	default:
-		if msg := err.Error(); msg != "" {
-			return msg
-		}
 		return "Impossible de lier l'issue Jira."
 	}
 }
@@ -288,9 +285,6 @@ func jiraCreateError(err error) (status int, code, message string) {
 	case errors.Is(err, store.ErrRunItemNotFound):
 		return http.StatusNotFound, "not_found", "Point introuvable."
 	default:
-		if msg := err.Error(); msg != "" {
-			return http.StatusBadRequest, "validation_failed", msg
-		}
 		return http.StatusBadRequest, "validation_failed", "Impossible de créer le ticket Jira."
 	}
 }

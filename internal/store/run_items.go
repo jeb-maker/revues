@@ -15,7 +15,7 @@ var ErrRunItemNotFound = errors.New("run item not found")
 // ErrRunNotEditable is returned when a run cannot accept item updates.
 var ErrRunNotEditable = errors.New("run not editable")
 
-// ErrInvalidAssignee is returned when assignee is not a project member.
+// ErrInvalidAssignee is returned when assignee cannot see the subject (RBAC visibility).
 var ErrInvalidAssignee = errors.New("invalid assignee")
 
 // ErrRunItemConflict is returned when the caller's expected updated_at no longer matches the row
@@ -176,11 +176,18 @@ func (s *Store) AssignRunItemChecked(
 
 	var assignedTo sql.NullInt64
 	if assigneeID != nil {
-		_, isMember, memberErr := s.MemberRole(ctx, run.SubjectID, *assigneeID)
-		if memberErr != nil {
-			return fmt.Errorf("member role for assignee: %w", memberErr)
+		assignee, userErr := s.UserByID(ctx, *assigneeID)
+		if errors.Is(userErr, ErrUserNotFound) {
+			return ErrInvalidAssignee
 		}
-		if !isMember {
+		if userErr != nil {
+			return fmt.Errorf("load assignee: %w", userErr)
+		}
+		access, accessErr := s.ResolveSubjectAccess(ctx, *assigneeID, run.SubjectID, assignee.Role)
+		if accessErr != nil {
+			return fmt.Errorf("resolve assignee access: %w", accessErr)
+		}
+		if !access.Visible {
 			return ErrInvalidAssignee
 		}
 		assignedTo = sql.NullInt64{Int64: *assigneeID, Valid: true}
@@ -278,12 +285,19 @@ func (s *Store) ListNokRunItems(ctx context.Context, runID int64) ([]RunItem, er
 
 // ListAssignedRunItems returns tasks assigned to a user with optional filters.
 // Scoped to the active organization (orgctx) and non-archived subjects/runs.
-// IDOR: only rows where assigned_to = userID.
+// IDOR: only rows where assigned_to = userID. Private/gated subjects are hidden
+// unless the assignee still has ResolveSubjectAccess visibility (or is global admin).
 func (s *Store) ListAssignedRunItems(ctx context.Context, userID int64, status, query string) ([]AssignedRunItemSummary, error) {
 	orgID, err := organizationIDFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
+	user, err := s.UserByID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	globalAdmin := user.Role == "admin"
+
 	sqlQuery := `
 		SELECT ri.id, ri.run_id, ri.source_item_id, ri.section, ri.position, ri.label, ri.help_text, ri.required,
 		       ri.status, ri.comment, ri.assigned_to, u.login, ri.updated_at,
@@ -294,9 +308,22 @@ func (s *Store) ListAssignedRunItems(ctx context.Context, userID int64, status, 
 		INNER JOIN template_versions tv ON tv.id = cr.template_version_id
 		INNER JOIN checklist_templates t ON t.id = tv.template_id
 		LEFT JOIN users u ON u.id = ri.assigned_to
+	`
+	args := []any{}
+	if !globalAdmin {
+		sqlQuery += `
+		INNER JOIN organization_members om ON om.organization_id = p.organization_id AND om.user_id = ?
+		`
+		args = append(args, userID)
+	}
+	sqlQuery += `
 		WHERE ri.assigned_to = ? AND cr.status != ? AND p.organization_id = ? AND p.archived_at IS NULL
 	`
-	args := []any{userID, RunStatusArchived, orgID}
+	args = append(args, userID, RunStatusArchived, orgID)
+	if !globalAdmin {
+		sqlQuery += subjectVisibleToOrgMemberSQL("p")
+		args = append(args, userID, userID, orgID)
+	}
 
 	if status != "" {
 		sqlQuery += " AND ri.status = ?"

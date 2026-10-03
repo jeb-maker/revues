@@ -1,12 +1,14 @@
 package store_test
 
 import (
+	"context"
 	"errors"
 	"testing"
 
 	"github.com/jeb-maker/revues/internal/auth"
 	runs "github.com/jeb-maker/revues/internal/features/runs"
 	"github.com/jeb-maker/revues/internal/store"
+	"github.com/jeb-maker/revues/internal/testutil"
 )
 
 func TestAssignRunItem(t *testing.T) {
@@ -118,5 +120,127 @@ func TestAssignRunItemRejectsNonMember(t *testing.T) {
 	err = st.AssignRunItem(ctx, run.ID, itemID, &outsider.ID)
 	if !errors.Is(err, store.ErrInvalidAssignee) {
 		t.Fatalf("AssignRunItem() error = %v, want ErrInvalidAssignee", err)
+	}
+}
+
+func TestAssignRunItemRejectsPrivateSubjectWithoutGrant(t *testing.T) {
+	ctx := context.Background()
+	db := openMemoryDB(t)
+	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
+
+	lead, err := st.UpsertGitHubUser(ctx, 1, "lead", "lead@example.com", "Lead", "", auth.RoleEditor)
+	if err != nil {
+		t.Fatalf("UpsertGitHubUser(lead): %v", err)
+	}
+	member, err := st.UpsertGitHubUser(ctx, 2, "member", "member@example.com", "Member", "", auth.RoleEditor)
+	if err != nil {
+		t.Fatalf("UpsertGitHubUser(member): %v", err)
+	}
+	defaultOrg, err := st.OrganizationBySlug(ctx, "default")
+	if err != nil {
+		t.Fatalf("OrganizationBySlug(): %v", err)
+	}
+	if err = st.AddOrganizationMember(ctx, defaultOrg.ID, member.ID, store.OrgRoleMember); err != nil {
+		t.Fatalf("AddOrganizationMember(): %v", err)
+	}
+
+	subject, err := st.CreateSubjectWithVisibility(ctx, "Private", "", lead.ID, nil, store.SubjectVisibilityPrivate)
+	if err != nil {
+		t.Fatalf("CreateSubjectWithVisibility(): %v", err)
+	}
+	template, _, err := st.CreateChecklistTemplate(ctx, "Modèle", lead.ID, nil, []store.TemplateItemInput{
+		{Section: "S", Label: "Point", Required: true},
+	})
+	if err != nil {
+		t.Fatalf("CreateChecklistTemplate(): %v", err)
+	}
+	run, err := st.CreateChecklistRun(ctx, subject.ID, template.ID, lead.ID)
+	if err != nil {
+		t.Fatalf("CreateChecklistRun(): %v", err)
+	}
+	if err = st.StartRun(ctx, run.ID); err != nil {
+		t.Fatalf("StartRun(): %v", err)
+	}
+	items, err := st.ListRunItems(ctx, run.ID)
+	if err != nil || len(items) == 0 {
+		t.Fatalf("ListRunItems() = %v, %v", items, err)
+	}
+
+	if err = st.AssignRunItem(ctx, run.ID, items[0].ID, &member.ID); !errors.Is(err, store.ErrInvalidAssignee) {
+		t.Fatalf("AssignRunItem(no grant) = %v, want ErrInvalidAssignee", err)
+	}
+
+	if err = st.UpsertDirectSubjectMember(ctx, subject.ID, member.ID, store.SubjectRoleContributor); err != nil {
+		t.Fatalf("UpsertDirectSubjectMember(): %v", err)
+	}
+	if err = st.AssignRunItem(ctx, run.ID, items[0].ID, &member.ID); err != nil {
+		t.Fatalf("AssignRunItem(with grant): %v", err)
+	}
+}
+
+func TestListAssignedRunItemsHidesPrivateWithoutAccess(t *testing.T) {
+	ctx := context.Background()
+	db := openMemoryDB(t)
+	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
+
+	lead, err := st.UpsertGitHubUser(ctx, 1, "lead", "lead@example.com", "Lead", "", auth.RoleEditor)
+	if err != nil {
+		t.Fatalf("UpsertGitHubUser(lead): %v", err)
+	}
+	member, err := st.UpsertGitHubUser(ctx, 2, "member", "member@example.com", "Member", "", auth.RoleEditor)
+	if err != nil {
+		t.Fatalf("UpsertGitHubUser(member): %v", err)
+	}
+	defaultOrg, err := st.OrganizationBySlug(ctx, "default")
+	if err != nil {
+		t.Fatalf("OrganizationBySlug(): %v", err)
+	}
+	if err = st.AddOrganizationMember(ctx, defaultOrg.ID, member.ID, store.OrgRoleMember); err != nil {
+		t.Fatalf("AddOrganizationMember(): %v", err)
+	}
+
+	subject, err := st.CreateSubjectWithVisibility(ctx, "Private", "", lead.ID, nil, store.SubjectVisibilityPrivate)
+	if err != nil {
+		t.Fatalf("CreateSubjectWithVisibility(): %v", err)
+	}
+	template, _, err := st.CreateChecklistTemplate(ctx, "Modèle", lead.ID, nil, []store.TemplateItemInput{
+		{Section: "S", Label: "Secret point", Required: true},
+	})
+	if err != nil {
+		t.Fatalf("CreateChecklistTemplate(): %v", err)
+	}
+	run, err := st.CreateChecklistRun(ctx, subject.ID, template.ID, lead.ID)
+	if err != nil {
+		t.Fatalf("CreateChecklistRun(): %v", err)
+	}
+	if err = st.StartRun(ctx, run.ID); err != nil {
+		t.Fatalf("StartRun(): %v", err)
+	}
+	items, err := st.ListRunItems(ctx, run.ID)
+	if err != nil || len(items) == 0 {
+		t.Fatalf("ListRunItems() = %v, %v", items, err)
+	}
+
+	// Bypass AssignRunItem to simulate a legacy/wrong assignment on a private subject.
+	if _, err = db.ExecContext(ctx, `UPDATE run_items SET assigned_to = ? WHERE id = ?`, member.ID, items[0].ID); err != nil {
+		t.Fatalf("force assign: %v", err)
+	}
+
+	tasks, err := st.ListAssignedRunItems(ctx, member.ID, "", "")
+	if err != nil {
+		t.Fatalf("ListAssignedRunItems(): %v", err)
+	}
+	if len(tasks) != 0 {
+		t.Fatalf("ListAssignedRunItems() leaked %d private tasks", len(tasks))
+	}
+
+	if err = st.UpsertDirectSubjectMember(ctx, subject.ID, member.ID, store.SubjectRoleContributor); err != nil {
+		t.Fatalf("UpsertDirectSubjectMember(): %v", err)
+	}
+	tasks, err = st.ListAssignedRunItems(ctx, member.ID, "", "")
+	if err != nil || len(tasks) != 1 {
+		t.Fatalf("ListAssignedRunItems(after grant) = %v, %v", tasks, err)
 	}
 }

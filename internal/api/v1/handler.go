@@ -100,6 +100,21 @@ func writeAPIError(w http.ResponseWriter, status int, code, message string) {
 	})
 }
 
+// writeConfigSaveError maps encryption-missing to 400 and every other save failure
+// to 500. Callers must run Validate* first so user-facing messages never go through
+// err.Error() from crypto/SQL layers.
+func writeConfigSaveError(w http.ResponseWriter, err error, encryptionSentinel error, encryptionMsg string) {
+	if err == nil {
+		return
+	}
+	if encryptionSentinel != nil && errors.Is(err, encryptionSentinel) {
+		writeAPIError(w, http.StatusBadRequest, "validation_failed", encryptionMsg)
+		return
+	}
+	slog.Error("save config", "err", err)
+	writeAPIError(w, http.StatusInternalServerError, "internal_error", "Erreur interne.")
+}
+
 // ensureSubjectAccess loads a subject and checks visibility. Returns false after writing the response.
 func (s *Server) ensureSubjectAccess(w http.ResponseWriter, r *http.Request, subjectID int64) (*store.Subject, *store.User, store.SubjectAccess, bool) {
 	user, ok := requireUser(w, r)

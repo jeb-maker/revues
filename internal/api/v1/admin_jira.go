@@ -1,7 +1,6 @@
 package apiv1
 
 import (
-	"errors"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -72,13 +71,13 @@ func (s *Server) PutAdminJiraSettings(w http.ResponseWriter, r *http.Request) {
 		cfg.APIToken = submittedToken
 	}
 
-	if err := svc.Save(r.Context(), cfg); err != nil {
-		if errors.Is(err, jira.ErrEncryptionNotConfigured) {
-			writeAPIError(w, http.StatusBadRequest, "validation_failed",
-				"REVUES_ENCRYPTION_KEY est requis pour enregistrer la configuration Jira.")
-			return
-		}
+	if err := jira.Validate(cfg); err != nil {
 		writeAPIError(w, http.StatusBadRequest, "validation_failed", err.Error())
+		return
+	}
+	if err := svc.Save(r.Context(), cfg); err != nil {
+		writeConfigSaveError(w, err, jira.ErrEncryptionNotConfigured,
+			"REVUES_ENCRYPTION_KEY est requis pour enregistrer la configuration Jira.")
 		return
 	}
 

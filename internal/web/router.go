@@ -137,6 +137,13 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, *webhooks.Dispa
 	r.With(authLimit).Post("/auth/dev/login", oauthHandlers.DevLogin)
 
 	r.Route("/api/v1", func(r chi.Router) {
+		// Password login/register share the OAuth bucket size (credential stuffing).
+		// chi keeps the full URL.Path inside Route middleware (verified).
+		r.Use(appmiddleware.RateLimitPaths(
+			appmiddleware.RateLimitConfig{Max: 30, Window: time.Minute},
+			"/api/v1/auth/login",
+			"/api/v1/auth/register",
+		))
 		apiv1.HandlerFromMux(apiServer, r)
 	})
 

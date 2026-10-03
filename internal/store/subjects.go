@@ -363,7 +363,9 @@ func (s *Store) MemberRole(ctx context.Context, subjectID, userID int64) (string
 	}
 }
 
-// ListSubjectMembers returns organization members for the subject's organization (v1).
+// ListSubjectMembers returns organization members who can see the subject
+// (assignee picker, completion emails). Private/gated subjects exclude members
+// without a grant; org owner/admin always appear.
 func (s *Store) ListSubjectMembers(ctx context.Context, subjectID int64) ([]SubjectMember, error) {
 	orgID, err := organizationIDFromContext(ctx)
 	if err != nil {
@@ -378,6 +380,7 @@ func (s *Store) ListSubjectMembers(ctx context.Context, subjectID int64) ([]Subj
 		INNER JOIN users u ON u.id = om.user_id
 		INNER JOIN subjects s ON s.id = ? AND s.organization_id = om.organization_id
 		WHERE s.organization_id = ?
+		`+subjectVisibleToListedMemberSQL("s")+`
 		ORDER BY u.login
 	`, subjectID, orgID)
 	if err != nil {

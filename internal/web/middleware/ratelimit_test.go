@@ -7,6 +7,40 @@ import (
 	"time"
 )
 
+func TestRateLimitPaths_OnlyMatched(t *testing.T) {
+	t.Parallel()
+	lim := RateLimitPaths(RateLimitConfig{Max: 1, Window: time.Minute}, "/api/v1/auth/login")
+	h := lim(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	}))
+
+	// Unmatched path is never limited.
+	for i := 0; i < 3; i++ {
+		rec := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/me", nil)
+		req.RemoteAddr = "203.0.113.9:1"
+		h.ServeHTTP(rec, req)
+		if rec.Code != http.StatusNoContent {
+			t.Fatalf("unmatched request %d: status = %d", i+1, rec.Code)
+		}
+	}
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/login", nil)
+	req.RemoteAddr = "203.0.113.9:1"
+	h.ServeHTTP(rec, req)
+	if rec.Code != http.StatusNoContent {
+		t.Fatalf("1st login status = %d", rec.Code)
+	}
+	rec = httptest.NewRecorder()
+	req = httptest.NewRequest(http.MethodPost, "/api/v1/auth/login", nil)
+	req.RemoteAddr = "203.0.113.9:1"
+	h.ServeHTTP(rec, req)
+	if rec.Code != http.StatusTooManyRequests {
+		t.Fatalf("2nd login status = %d, want 429", rec.Code)
+	}
+}
+
 func TestRateLimit_AllowsThenBlocks(t *testing.T) {
 	t.Parallel()
 	lim := RateLimit(RateLimitConfig{Max: 2, Window: time.Minute})

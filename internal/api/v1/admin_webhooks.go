@@ -77,13 +77,13 @@ func (s *Server) PutAdminWebhooks(w http.ResponseWriter, r *http.Request) {
 		cfg.Secret = submittedSecret
 	}
 
-	if err := s.Settings.SaveWebhooks(r.Context(), cfg); err != nil {
-		if errors.Is(err, adminsettings.ErrEncryptionNotConfigured) {
-			writeAPIError(w, http.StatusBadRequest, "validation_failed",
-				"REVUES_ENCRYPTION_KEY est requis pour enregistrer la configuration webhooks.")
-			return
-		}
+	if err := adminsettings.ValidateWebhooks(cfg); err != nil {
 		writeAPIError(w, http.StatusBadRequest, "validation_failed", err.Error())
+		return
+	}
+	if err := s.Settings.SaveWebhooks(r.Context(), cfg); err != nil {
+		writeConfigSaveError(w, err, adminsettings.ErrEncryptionNotConfigured,
+			"REVUES_ENCRYPTION_KEY est requis pour enregistrer la configuration webhooks.")
 		return
 	}
 
