@@ -184,7 +184,7 @@ func TestOrgsAPI_TableDriven(t *testing.T) {
 				if err != nil {
 					t.Fatalf("OrganizationBySlug: %v", err)
 				}
-				if err = st.CreateOrganizationInvitation(ctx, "invitee@example.com", org.ID); err != nil {
+				if err = st.CreateOrganizationInvitation(ctx, "invitee@example.com", org.ID, store.OrgRoleMember); err != nil {
 					t.Fatalf("CreateOrganizationInvitation: %v", err)
 				}
 				invites, err := st.ListPendingInvitationsByEmail(ctx, "invitee@example.com")
@@ -225,7 +225,7 @@ func TestOrgsAPI_TableDriven(t *testing.T) {
 				if err != nil {
 					t.Fatalf("OrganizationBySlug: %v", err)
 				}
-				if err = st.CreateOrganizationInvitation(ctx, "real-invitee@example.com", org.ID); err != nil {
+				if err = st.CreateOrganizationInvitation(ctx, "real-invitee@example.com", org.ID, store.OrgRoleMember); err != nil {
 					t.Fatalf("CreateOrganizationInvitation: %v", err)
 				}
 				invites, err := st.ListPendingInvitationsByEmail(ctx, "real-invitee@example.com")

@@ -22,15 +22,40 @@ type OrganizationInvitation struct {
 	CreatedAt        string
 }
 
+// ErrAlreadyOrganizationMember is returned when inviting an email that is already a member.
+var ErrAlreadyOrganizationMember = errors.New("already organization member")
+
 // CreateOrganizationInvitation records a pending invite for an email address.
+// orgRole defaults to member when empty. Re-invite refreshes the row (idempotent).
 func (s *Store) CreateOrganizationInvitation(
 	ctx context.Context,
 	email string,
 	organizationID int64,
+	orgRole string,
 ) error {
 	email = strings.ToLower(strings.TrimSpace(email))
 	if email == "" {
 		return fmt.Errorf("invitation email: empty")
+	}
+	if orgRole == "" {
+		orgRole = OrgRoleMember
+	}
+	switch orgRole {
+	case OrgRoleOwner, OrgRoleAdmin, OrgRoleMember:
+	default:
+		return fmt.Errorf("invitation org_role: invalid %q", orgRole)
+	}
+
+	if user, userErr := s.UserByEmail(ctx, email); userErr == nil && user != nil {
+		_, isMember, memErr := s.OrganizationMemberRole(ctx, organizationID, user.ID)
+		if memErr != nil {
+			return fmt.Errorf("check organization member: %w", memErr)
+		}
+		if isMember {
+			return ErrAlreadyOrganizationMember
+		}
+	} else if userErr != nil && !errors.Is(userErr, ErrUserNotFound) {
+		return fmt.Errorf("lookup invitee: %w", userErr)
 	}
 
 	now := time.Now().UTC().Format(time.RFC3339)
@@ -46,12 +71,47 @@ func (s *Store) CreateOrganizationInvitation(
 	_, err = s.db.ExecContext(ctx, `
 		INSERT INTO organization_invitations (email, organization_id, org_role, created_at)
 		VALUES (?, ?, ?, ?)
-	`, email, organizationID, OrgRoleMember, now)
+	`, email, organizationID, orgRole, now)
 	if err != nil {
 		return fmt.Errorf("insert organization invitation: %w", err)
 	}
 
 	return nil
+}
+
+// ListPendingInvitationsByOrganization returns open invitations for an organization.
+func (s *Store) ListPendingInvitationsByOrganization(ctx context.Context, organizationID int64) ([]OrganizationInvitation, error) {
+	rows, err := s.db.QueryContext(ctx, `
+		SELECT i.id, i.email, i.organization_id, o.name, i.org_role, i.created_at
+		FROM organization_invitations i
+		INNER JOIN organizations o ON o.id = i.organization_id
+		WHERE i.organization_id = ?
+		ORDER BY i.created_at DESC, i.id DESC
+	`, organizationID)
+	if err != nil {
+		return nil, fmt.Errorf("list organization invitations: %w", err)
+	}
+	defer rows.Close()
+
+	var invites []OrganizationInvitation
+	for rows.Next() {
+		var inv OrganizationInvitation
+		if err := rows.Scan(
+			&inv.ID,
+			&inv.Email,
+			&inv.OrganizationID,
+			&inv.OrganizationName,
+			&inv.OrgRole,
+			&inv.CreatedAt,
+		); err != nil {
+			return nil, fmt.Errorf("scan organization invitation: %w", err)
+		}
+		invites = append(invites, inv)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate organization invitations: %w", err)
+	}
+	return invites, nil
 }
 
 // ListPendingInvitationsByEmail returns open invitations for an email address.

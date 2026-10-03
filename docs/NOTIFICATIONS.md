@@ -1,6 +1,6 @@
 # Notifications email — Revues
 
-Emails métier : revue terminée, point assigné, échéance J-1.
+Emails métier : revue terminée, point assigné, échéance J-1, **invitation à rejoindre une organisation** (`POST /admin/invitations` enqueue une ligne `email_deliveries` ; sans SMTP l’invitation reste créée — l’invité se connecte avec l’email et accepte via `/org/select`).
 
 Config SMTP : admin org (`/admin/settings/smtp`), credentials AES-GCM.
 

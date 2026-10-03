@@ -32,7 +32,7 @@ func TestOrganizationInvitations(t *testing.T) {
 	}
 
 	email := "invitee@example.com"
-	if err = st.CreateOrganizationInvitation(ctx, email, org.ID); err != nil {
+	if err = st.CreateOrganizationInvitation(ctx, email, org.ID, store.OrgRoleMember); err != nil {
 		t.Fatalf("CreateOrganizationInvitation(): %v", err)
 	}
 

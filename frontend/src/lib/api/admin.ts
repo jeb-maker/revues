@@ -64,6 +64,37 @@ export async function listOrganizationMembers(): Promise<OrganizationMemberListR
 	throw new Error(errorMessage(error, `Membres: ${response.status}`));
 }
 
+export type AdminInvitationListResponse =
+	paths['/admin/invitations']['get']['responses']['200']['content']['application/json'];
+export type AdminInvitationCreateRequest =
+	paths['/admin/invitations']['post']['requestBody']['content']['application/json'];
+
+export async function listAdminInvitations(): Promise<AdminInvitationListResponse> {
+	const client = createApiClient();
+	const { data, error, response } = await client.GET('/admin/invitations');
+	if (data) return data;
+	throw new Error(errorMessage(error, `Invitations: ${response.status}`));
+}
+
+export async function createAdminInvitation(
+	body: AdminInvitationCreateRequest,
+	csrf: string
+): Promise<AdminInvitationListResponse['invitations'][number]> {
+	const client = createApiClient({ csrfToken: csrf });
+	const { data, error, response } = await client.POST('/admin/invitations', { body });
+	if (data) return data;
+	throw new Error(errorMessage(error, `Invitation: ${response.status}`));
+}
+
+export async function deleteAdminInvitation(invitationId: number, csrf: string): Promise<void> {
+	const client = createApiClient({ csrfToken: csrf });
+	const { error, response } = await client.DELETE('/admin/invitations/{invitationId}', {
+		params: { path: { invitationId } }
+	});
+	if (response.status === 204) return;
+	throw new Error(errorMessage(error, `Révocation: ${response.status}`));
+}
+
 export async function updateOrganizationMemberRole(
 	userId: number,
 	body: UpdateOrganizationMemberRoleRequest,
