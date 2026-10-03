@@ -32,6 +32,7 @@
 		message = '';
 		loading = true;
 		try {
+			// Conserver leads_may_assign_teams tel que chargé (UI masquée, icebox équipes).
 			policies = await updateLeadPolicies(policies, csrf);
 			message = 'Politiques mises à jour.';
 		} catch (err) {
@@ -68,23 +69,19 @@
 		{:else}
 			<form class="stack-form" onsubmit={onSave}>
 				<mb-checkbox
-					label="Les référents peuvent affecter des équipes à leur sujet"
-					checked={policies.leads_may_assign_teams}
-					onmb-change={(e) => (policies.leads_may_assign_teams = !!e.detail.checked)}
-				></mb-checkbox>
-				<mb-checkbox
-					label="Les référents peuvent inviter des membres de l’organisation"
+					label="Les référents peuvent affecter des personnes membres de l’organisation"
 					checked={policies.leads_may_invite_members}
 					onmb-change={(e) => (policies.leads_may_invite_members = !!e.detail.checked)}
 				></mb-checkbox>
 				<mb-checkbox
-					label="Les référents peuvent inviter des personnes hors organisation"
+					label="Les référents peuvent affecter des personnes hors organisation (compte existant)"
 					checked={policies.leads_may_invite_externals}
 					onmb-change={(e) => (policies.leads_may_invite_externals = !!e.detail.checked)}
 				></mb-checkbox>
 				<p class="field-hint">
 					Les administrateurs de l’organisation et l’administrateur global ne sont jamais limités
-					par ces options.
+					par ces options. Les équipes org sont en icebox : la politique
+					<code>leads_may_assign_teams</code> n’est plus exposée ici (valeur API conservée).
 				</p>
 				<mb-button type="submit" variant="primary" disabled={loading}>
 					{loading ? 'Enregistrement…' : 'Enregistrer'}

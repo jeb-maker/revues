@@ -61,3 +61,13 @@ export async function acceptOrganizationInvitation(
 	if (data) return data;
 	throw new Error(errorMessage(error, `Acceptation invitation: ${response.status}`));
 }
+
+export type OrgDirectoryResponse =
+	paths['/orgs/members']['get']['responses']['200']['content']['application/json'];
+
+export async function listOrgDirectory(): Promise<OrgDirectoryResponse> {
+	const client = createApiClient();
+	const { data, error, response } = await client.GET('/orgs/members');
+	if (data) return data;
+	throw new Error(errorMessage(error, `Annuaire org: ${response.status}`));
+}

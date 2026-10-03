@@ -9,7 +9,6 @@
 			| 'hub'
 			| 'users'
 			| 'members'
-			| 'teams'
 			| 'policies'
 			| 'integrations'
 			| 'webhooks'
@@ -17,11 +16,11 @@
 		children: Snippet;
 	} = $props();
 
+	// Équipes : icebox produit — API/schéma conservés, hors nav nominale (#295).
 	const links = [
 		{ href: '/admin', id: 'hub', label: 'Organisation' },
 		{ href: '/admin/users', id: 'users', label: 'Emails autorisés' },
 		{ href: '/admin/members', id: 'members', label: 'Membres' },
-		{ href: '/admin/teams', id: 'teams', label: 'Équipes' },
 		{ href: '/admin/settings/policies', id: 'policies', label: 'Politiques' },
 		{ href: '/admin/integrations', id: 'integrations', label: 'Intégrations' },
 		{ href: '/admin/settings/webhooks', id: 'webhooks', label: 'Webhooks' },

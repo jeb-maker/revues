@@ -357,6 +357,29 @@ paths:
           $ref: '#/components/responses/NotFound'
         '500':
           $ref: '#/components/responses/InternalError'
+  /orgs/members:
+    get:
+      operationId: listOrgDirectory
+      tags:
+      - orgs
+      summary: Annuaire membres de l'org active
+      description: |
+        Auth + org active. Liste minimale (id, email, display_name) des membres
+        de l'organisation courante — destinée au sélecteur d'affectation projet
+        (leads inclus, pas besoin d'être org admin).
+      responses:
+        '200':
+          description: Membres
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrgDirectoryResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
   /orgs/invitations/{invitationID}/accept:
     post:
       operationId: acceptOrganizationInvitation
@@ -2369,6 +2392,30 @@ components:
           type: string
           enum: [owner, admin, member]
           default: member
+    OrgDirectoryEntry:
+      type: object
+      required:
+      - user_id
+      - email
+      - display_name
+      properties:
+        user_id:
+          type: integer
+          format: int64
+        email:
+          type: string
+          format: email
+        display_name:
+          type: string
+    OrgDirectoryResponse:
+      type: object
+      required:
+      - members
+      properties:
+        members:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrgDirectoryEntry'
     OrganizationListResponse:
       type: object
       required:

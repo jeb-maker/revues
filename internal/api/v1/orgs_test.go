@@ -16,6 +16,33 @@ import (
 	"github.com/jeb-maker/revues/internal/store"
 )
 
+func TestOrgDirectoryAPI(t *testing.T) {
+	t.Parallel()
+
+	cfg := config.Config{
+		SessionSecret: "test-secret-at-least-thirty-two-bytes",
+		Env:           "development",
+	}
+	handler, st := newTestRouterWithStore(t, cfg)
+
+	_, _, _ = seedSessionUser(t, st, cfg, "dir-alice@example.com", "Alice", auth.RoleEditor, true)
+	_, bobSession, _ := seedSessionUser(t, st, cfg, "dir-bob@example.com", "Bob", auth.RoleEditor, true)
+
+	rec := doJSON(t, handler, http.MethodGet, "/api/v1/orgs/members", nil, bobSession, "")
+	if rec.Code != http.StatusOK {
+		t.Fatalf("directory status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	body := rec.Body.String()
+	if !strings.Contains(body, "dir-alice@example.com") || !strings.Contains(body, "dir-bob@example.com") {
+		t.Fatalf("directory missing members: %s", body)
+	}
+
+	unauth := doJSON(t, handler, http.MethodGet, "/api/v1/orgs/members", nil, nil, "")
+	if unauth.Code != http.StatusUnauthorized {
+		t.Fatalf("unauth status=%d", unauth.Code)
+	}
+}
+
 func TestOrgsAPI_TableDriven(t *testing.T) {
 	t.Parallel()
 

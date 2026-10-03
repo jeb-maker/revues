@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"strings"
 
+	openapi_types "github.com/oapi-codegen/runtime/types"
+
 	"github.com/jeb-maker/revues/internal/auth"
 	"github.com/jeb-maker/revues/internal/features/organizations"
 	"github.com/jeb-maker/revues/internal/store"
@@ -107,6 +109,31 @@ func (s *Server) SelectActiveOrganization(w http.ResponseWriter, r *http.Request
 		Organization: mapOrganization(r.Context(), s.Store, user, result.Organization, result.Role, true),
 		Redirect:     result.Redirect,
 	})
+}
+
+// ListOrgDirectory serves GET /api/v1/orgs/members.
+func (s *Server) ListOrgDirectory(w http.ResponseWriter, r *http.Request) {
+	if _, ok := requireUser(w, r); !ok {
+		return
+	}
+	if !requireOrg(w, r) {
+		return
+	}
+	members, err := s.Store.ListOrganizationMembers(r.Context())
+	if err != nil {
+		slog.Error("list org directory", "err", err)
+		writeAPIError(w, http.StatusInternalServerError, "internal_error", "Erreur interne.")
+		return
+	}
+	out := make([]OrgDirectoryEntry, 0, len(members))
+	for _, m := range members {
+		out = append(out, OrgDirectoryEntry{
+			UserId:      m.UserID,
+			Email:       openapi_types.Email(m.Email),
+			DisplayName: m.DisplayName,
+		})
+	}
+	writeJSON(w, http.StatusOK, OrgDirectoryResponse{Members: out})
 }
 
 // AcceptOrganizationInvitation serves POST /api/v1/orgs/invitations/{invitationID}/accept.

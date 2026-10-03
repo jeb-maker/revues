@@ -480,6 +480,18 @@ type MyTaskListResponse struct {
 	Tasks []MyTask `json:"tasks"`
 }
 
+// OrgDirectoryEntry defines model for OrgDirectoryEntry.
+type OrgDirectoryEntry struct {
+	DisplayName string              `json:"display_name"`
+	Email       openapi_types.Email `json:"email"`
+	UserId      int64               `json:"user_id"`
+}
+
+// OrgDirectoryResponse defines model for OrgDirectoryResponse.
+type OrgDirectoryResponse struct {
+	Members []OrgDirectoryEntry `json:"members"`
+}
+
 // Organization defines model for Organization.
 type Organization struct {
 	Id int64 `json:"id"`
@@ -1352,6 +1364,9 @@ type ServerInterface interface {
 	// Accepter une invitation d'organisation
 	// (POST /orgs/invitations/{invitationID}/accept)
 	AcceptOrganizationInvitation(w http.ResponseWriter, r *http.Request, invitationID int64)
+	// Annuaire membres de l'org active
+	// (GET /orgs/members)
+	ListOrgDirectory(w http.ResponseWriter, r *http.Request)
 	// Liste des revues visibles
 	// (GET /runs)
 	ListRuns(w http.ResponseWriter, r *http.Request, params ListRunsParams)
@@ -1700,6 +1715,12 @@ func (_ Unimplemented) SelectActiveOrganization(w http.ResponseWriter, r *http.R
 // Accepter une invitation d'organisation
 // (POST /orgs/invitations/{invitationID}/accept)
 func (_ Unimplemented) AcceptOrganizationInvitation(w http.ResponseWriter, r *http.Request, invitationID int64) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Annuaire membres de l'org active
+// (GET /orgs/members)
+func (_ Unimplemented) ListOrgDirectory(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -2608,6 +2629,20 @@ func (siw *ServerInterfaceWrapper) AcceptOrganizationInvitation(w http.ResponseW
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.AcceptOrganizationInvitation(w, r, invitationID)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListOrgDirectory operation middleware
+func (siw *ServerInterfaceWrapper) ListOrgDirectory(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListOrgDirectory(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -3754,6 +3789,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/orgs/invitations/{invitationID}/accept", wrapper.AcceptOrganizationInvitation)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/orgs/members", wrapper.ListOrgDirectory)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/runs", wrapper.ListRuns)

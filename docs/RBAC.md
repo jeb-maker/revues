@@ -40,9 +40,11 @@ Modèle actuel après migration `subjects`.
 
 ---
 
-## Modèle équipes
+## Modèle équipes (icebox)
 
-Les sections ci-dessous décrivent le modèle équipes / grants sur `subjects`.  
+Parcours produit nominal : **affectation personne → projet** (`subject_members`). Les équipes org /
+`team_subject_roles` restent en base et dans `ResolveSubjectAccess`, mais **hors UI nominale**
+(masquées admin, #295). Les sections ci-dessous décrivent encore le modèle pour l’implémentation.  
 **Accès org-only (SimpleUI / mono-membre)** : section « Sujets v1 » ci-dessus.
 
 ## Rôles
@@ -86,7 +88,7 @@ Un utilisateur accède à un sujet par **exactement l'un** des mécanismes suiva
 | **Global admin** | `users.role = admin` | Bypass org et sujet |
 | **Org admin** | `organization_members.role ∈ {owner, admin}` dans l'org du sujet | Supervision : voit tout dans l'org |
 | **Membre direct** | Ligne `subject_members` | Exception : invité, prestataire, renfort |
-| **Équipe** | ∃ équipe T : user ∈ `team_members` ∧ (T, sujet) ∈ `team_subject_roles` | Cas nominal collectif |
+| **Équipe** | ∃ équipe T : user ∈ `team_members` ∧ (T, sujet) ∈ `team_subject_roles` | **Icebox / legacy** — pas le parcours nominal (préférer membre direct) |
 
 ### Hors périmètre accès
 
@@ -195,6 +197,7 @@ Paths réels de `api/openapi/openapi.yaml` (préfixe `/api/v1`). Helpers : `ensu
 |-------|----------|
 | `GET /bootstrap` · `GET /me` · `POST /auth/login\|register\|logout` | Session cookie ; CSRF sur les POST ; whitelist (`REVUES_LOGIN_REQUIRE_WHITELIST`) sur register |
 | `GET\|POST /orgs` · `POST /orgs/active` · `POST /orgs/invitations/{id}/accept` | Auth ; appartenance org vérifiée côté service (`features/organizations`) |
+| `GET /orgs/members` | Auth + org active ; annuaire minimal (tous les membres org) pour affectation projet |
 | `GET /subjects` · `POST /subjects` | Auth + org active ; `CanCreateSubject` pour POST |
 | `GET /subjects/{id}` · `GET /subjects/{id}/run-templates` · `GET /subjects/{id}/runs` · `GET /subjects/{id}/members` | Auth + `CanViewAccess` (404 sinon) |
 | `PATCH /subjects/{id}` · `POST /subjects/{id}/archive` | `ensureSubjectAccess` + `CanManageAccess` ; visibilité via `CanSetSubjectVisibility` |
