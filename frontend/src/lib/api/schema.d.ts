@@ -652,7 +652,7 @@ export interface paths {
         head?: never;
         /**
          * Mettre a jour status/comment/assign
-         * @description Auth + CanUpdateAccess; assign exige CanAssignAccess. Comment obligatoire si nok. Run done -> 409. Emit review.item.nok. CSRF.
+         * @description Auth + CanUpdateAccess; assign exige CanAssignAccess. Comment obligatoire si nok. Run done -> 409. Verrou optimiste : `updated_at` fourni et périmé -> 409 `conflict` (recharger le point). Emit review.item.nok. Email « point assigné » si nouvel assigné. CSRF.
          */
         patch: operations["updateRunItem"];
         trace?: never;
@@ -1654,6 +1654,8 @@ export interface components {
             assigned_to?: number;
             /** @description true to clear assignee (takes precedence over assigned_to) */
             unassign?: boolean;
+            /** @description Verrou optimiste : valeur `updated_at` lue par le client (RunItem.updated_at). Si fournie et différente de la valeur courante → 409 `conflict`, rien n'est écrit. Absente → mise à jour inconditionnelle. */
+            updated_at?: string;
         };
         RunDetail: {
             /**

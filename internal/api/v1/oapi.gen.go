@@ -1022,6 +1022,9 @@ type UpdateRunItemRequest struct {
 
 	// Unassign true to clear assignee (takes precedence over assigned_to)
 	Unassign *bool `json:"unassign,omitempty"`
+
+	// UpdatedAt Verrou optimiste : valeur `updated_at` lue par le client (RunItem.updated_at). Si fournie et différente de la valeur courante → 409 `conflict`, rien n'est écrit. Absente → mise à jour inconditionnelle.
+	UpdatedAt *string `json:"updated_at,omitempty"`
 }
 
 // UpdateRunItemRequestStatus defines model for UpdateRunItemRequest.Status.
