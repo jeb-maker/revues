@@ -25,18 +25,18 @@ Modèle actuel après migration `subjects`.
 
 - Pas de `project_members` / `subject_members` en v1.
 - IDOR : sujet hors org active → **404**.
-- Libellé UI injecté via `{{.Labels.Subject.*}}` (preset défaut : `sujet`).
+- Libellé UI : preset org `ui_subject_label` (champ `Organization`, défaut `sujet`).
 
-### Routes sujets v1
+### Routes sujets v1 (`/api/v1`, voir `api/openapi/openapi.yaml`)
 
 | Route | Contrôle |
 |-------|----------|
-| `GET /subjects` | Auth ; liste sujets org active |
-| `GET /subjects/{id}` | Auth + `CanViewSubject` |
-| `POST /subjects` | Auth + `CanCreateSubject` |
-| `POST /subjects/{id}` | Auth + `CanManageSubject` |
-| `GET /subjects/{id}/modeles?for_run=1` | Auth + `CanLaunchRun` |
-| `POST /subjects/{id}/revues` | Auth + `CanLaunchRun` |
+| `GET /subjects` | Auth + org active ; liste sujets selon `ResolveSubjectAccess` |
+| `GET /subjects/{id}` | Auth + org active + `CanViewAccess` (sinon 404) |
+| `POST /subjects` | Auth + org active + `CanCreateSubject` |
+| `PATCH /subjects/{id}` · `POST /subjects/{id}/archive` | Auth + `CanViewAccess` + `CanManageAccess` (sinon 404) |
+| `GET /subjects/{id}/run-templates` | Auth + `CanViewAccess` |
+| `POST /subjects/{id}/runs` | Auth + `CanViewAccess` + `CanLaunchAccess` |
 
 ---
 
@@ -189,39 +189,51 @@ Seuls org `owner` / `admin` modifient ces politiques.
 
 ## Routes — contrôles requis
 
+Paths réels de `api/openapi/openapi.yaml` (préfixe `/api/v1`). Helpers : `ensureSubjectAccess` / `ensureRunAccess` (`internal/api/v1`) chargent la ressource dans l'org active, appellent `ResolveSubjectAccess` et renvoient **404** si non visible ; `requireOrgAdmin` = org owner/admin ou admin global + org active (403 sinon). Toute mutation passe par le middleware CSRF (`X-CSRF-Token`) ; `requireUser` → 401, `requireOrg` → 403 `org_required`.
+
 | Route | Contrôle |
 |-------|----------|
-| `GET /subjects` | Auth ; liste selon `ResolveSubjectAccess` ; org admin → tous sujets org |
-| `GET /subjects/{id}` | Auth + `Visible` |
-| `POST /subjects/{id}/teams` | Auth + lead ou org admin ; politique `leads_may_assign_teams` |
-| `POST /subjects/{id}/members` | Auth + lead ou org admin ; politique `leads_may_invite_members` |
-| `GET /admin/teams` | Auth + org owner/admin |
-| `POST /subjects/{id}/revues` | Auth + contributor+ effectif ou admin |
-| `GET /runs/{id}` | Auth + `Visible` sur sujet de la revue |
-| `POST /runs/{id}/items/{itemId}` | Auth + contributor+ effectif ou admin |
-| `GET /attachments/{id}` | Auth + membre sujet de la revue liée |
-| `GET\|POST /admin/integrations*` · `/admin/settings/smtp` · `/admin/settings/webhooks` | Auth + org owner/admin (ou admin global) |
-| `POST /admin/*` (autres) | Auth + admin global ou org admin selon route |
+| `GET /bootstrap` · `GET /me` · `POST /auth/login\|register\|logout` | Session cookie ; CSRF sur les POST ; whitelist (`REVUES_LOGIN_REQUIRE_WHITELIST`) sur register |
+| `GET\|POST /orgs` · `POST /orgs/active` · `POST /orgs/invitations/{id}/accept` | Auth ; appartenance org vérifiée côté service (`features/organizations`) |
+| `GET /subjects` · `POST /subjects` | Auth + org active ; `CanCreateSubject` pour POST |
+| `GET /subjects/{id}` · `GET /subjects/{id}/run-templates` · `GET /subjects/{id}/runs` · `GET /subjects/{id}/members` | Auth + `CanViewAccess` (404 sinon) |
+| `PATCH /subjects/{id}` · `POST /subjects/{id}/archive` | `ensureSubjectAccess` + `CanManageAccess` ; visibilité via `CanSetSubjectVisibility` |
+| `POST /subjects/{id}/members` · `DELETE /subjects/{id}/members/{userId}` | `ensureSubjectAccess` + `CanManageSubjectMembers` (org admin, ou lead selon politiques `leads_may_invite_*`) ; invitation d'un externe : `CanInviteSubjectMember` |
+| `POST /subjects/{id}/runs` | `ensureSubjectAccess` + `CanLaunchAccess` |
+| `GET /runs` | Auth + org active ; filtrage par accès sujet côté store (`ListFilteredRunSummaries`) |
+| `GET /me/tasks` | Auth + org active ; points assignés à l'utilisateur courant uniquement |
+| `GET /runs/{id}` · `GET /runs/{id}/items/{itemId}` | `ensureRunAccess` (`CanViewAccess` sur le sujet de la revue) |
+| `PATCH /runs/{id}/items/{itemId}` | `ensureRunAccess` + `CanUpdateAccess` (statut / commentaire) ; `CanAssignAccess` si `assigned_to` |
+| `POST /runs/{id}/complete` · `POST /runs/{id}/notion-export` | `ensureRunAccess` + `CanCompleteAccess` |
+| `GET\|PUT\|POST /runs/{id}/items/{itemId}/jira` | `ensureRunAccess` + `CanLinkJiraAccess` |
+| `GET\|POST /runs/{id}/items/{itemId}/attachments` · `GET /runs/{id}/items/{itemId}/attachments/{attachmentId}` | `ensureRunAccess` ; upload : `CanUpdateAccess` + validation magic bytes / taille |
+| `GET /templates*` | Auth + org active |
+| `POST\|PUT\|DELETE /templates*` · `POST /templates/notion-import` | Auth + `CanManageGlobal` (editor+ / org admin) ; versions publiées immuables |
+| `/admin/allowed-emails*` · `/admin/members*` · `/admin/teams*` · `/admin/settings/policies` | `requireOrgAdmin` |
+| `/admin/settings/smtp*` · `/admin/integrations*` · `/admin/webhooks*` (config, test, deliveries, drain, retry) | `requireOrgAdmin` ; URLs sortantes validées anti-SSRF |
 
-Toutes les routes sensibles appellent `ResolveSubjectAccess` (ou helper dérivé) — pas de rôle sujet seul.
+Toutes les routes sensibles appellent `ResolveSubjectAccess` (ou helper dérivé) — pas de rôle sujet seul. Les routes `/subjects/{id}/teams` (grant équipe ↔ sujet) n'existent pas dans l'API v1 : `GrantTeamSubjectRole` n'est accessible que par le store.
 
 ---
 
 ## Tests obligatoires
 
-Chaque PR `area:auth` ou `area:core` ajoute ou maintient :
+Chaque PR `area:auth` ou `area:core` maintient (ou étend) les tests existants :
 
-```go
-TestRBAC_Matrix          // table-driven : rôle global × org × équipe × direct × route → status
-TestIDOR_CrossSubject    // user A n'accède pas ressources sujet B
-TestIDOR_CrossOrg        // user org A n'accède pas sujet org B
-TestIDOR_TeamAccess      // accès via équipe ; retrait équipe → 404
-TestIDOR_OrgAdmin        // org admin voit sans membership ; member non
-TestIDOR_PrivateSubject  // private invisible sauf accès explicite ou org admin
-TestCSRF_MissingToken    // POST sans CSRF → 403
-```
+| Exigence | Tests existants |
+|----------|-----------------|
+| Composition d'accès (global / org admin / direct / équipe, max des rôles, retrait équipe → invisible) | `TestResolveSubjectAccess`, `TestResolveSubjectAccess_PrivateNoLegacy`, `TestListSubjects_PrivateFilter` — `internal/store/subject_access_test.go` |
+| Règles pures (org admin reader, lead sans bypass, politiques invitations, visibilité) | `TestCanManageOrgUsers`, `TestCanContributeAccess_OrgAdmin`, `TestCanLeadAccess_NoOrgAdminBypass`, `TestCanManageAccess_OrgAdminReaderDenied`, `TestCanSetSubjectVisibility`, `TestCanInviteSubjectMember` — `internal/features/subjects/service_test.go` ; `TestCanManageOrgUsers` — `internal/web/middleware/org_admin_test.go` |
+| IDOR sujet / org / privé | `TestIDOR_CrossSubject` (`internal/features/subjects/idor_test.go`), `TestSubjectsAPI_IDOR_CrossOrg`, `TestSubjectsAPI_IDOR_PrivateSubject`, `TestSubjectsAPI_ReaderCannotCreate` — `internal/api/v1/subjects_test.go` |
+| IDOR revue / point + CSRF | `TestRunsAPI_IDORAndCSRF`, `TestRunsAPI_RequiresAuth`, `TestRunsAPI_LaunchSnapshotUpdateCompleteAndGuards` — `internal/api/v1/runs_test.go` |
+| Pièces jointes (IDOR, type, taille) | `TestAttachments_IDOR_CrossUser`, `TestAttachments_UploadDownloadSecurity` — `internal/api/v1/attachments_test.go` ; `TestProcessUpload_Rejects*` — `internal/attachments/process_test.go` |
+| CSRF / session / whitelist auth | `TestAuthAPI_BootstrapGuestCSRF`, `TestAuthAPI_LoginRequiresCSRF`, `TestAuthAPI_LogoutRequiresCSRF`, `TestAuthAPI_MeRequiresSession`, `TestAuthAPI_RegisterWhitelistReject` — `internal/api/v1/auth_test.go` ; `TestTemplatesAPI_RequiresAuthAndCSRF` |
+| Admin org (owner/admin vs member) | `TestAdminAPI_RBACAndParity`, `TestAdminIntegrations_RequiresOrgAdmin`, `TestAdminSMTP_OrgOwnerAllowed`, `TestAdminSMTP_MaskedPasswordAndOrgAdmin`, `TestAdminJira_MaskedTokenTestAndRBAC`, `TestAdminNotion_MaskedTokenAndOrgAdmin`, `TestAdminWebhooks_ConfigHMACAndSSRF` — `internal/api/v1/admin*_test.go` |
+| Anti-SSRF webhooks / Jira | `TestWebhook_SSRF_Block`, `TestWebhook_SSRF_BlockPrivateDial`, `TestDispatcher_Drain_ReChecksSSRF` — `internal/integrations/webhooks/dispatcher_test.go` ; `TestAdminJira_RejectsPrivateURL` |
 
-Fichiers cibles : `internal/web/rbac_test.go`, `internal/store/subject_access_test.go`.
+Manque connu (à ajouter dans une PR `area:auth` dédiée) : une matrice table-driven globale **rôle global × rôle org × accès sujet × route → status** couvrant toutes les lignes de la section « Matrice des actions ».
+
+Toute nouvelle route documente sa ligne dans le tableau « Routes — contrôles requis » et ajoute un test IDOR/CSRF dans `internal/api/v1/<domaine>_test.go`.
 
 ---
 
