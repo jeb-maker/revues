@@ -24,19 +24,18 @@ func TestAdminInvitationsAPI(t *testing.T) {
 	}
 	handler, st := newTestRouterWithStore(t, cfg)
 
-	owner, ownerSession, ownerCSRF := seedSessionUser(t, st, cfg, "inv-owner@example.com", "Owner", auth.RoleEditor, true)
+	owner, _, _ := seedSessionUser(t, st, cfg, "inv-owner@example.com", "Owner", auth.RoleEditor, true)
 	orgID := mustDefaultOrgID(t, st)
 	ctx := context.Background()
 	if err := st.AddOrganizationMember(ctx, orgID, owner.ID, store.OrgRoleOwner); err != nil {
 		t.Fatalf("promote owner: %v", err)
 	}
 	sessions := &auth.SessionManager{Store: st, SessionSecret: cfg.SessionSecret}
-	token, csrf, err := sessions.CreateLoginSession(ctx, owner.ID, orgID)
+	token, ownerCSRF, err := sessions.CreateLoginSession(ctx, owner.ID, orgID)
 	if err != nil {
 		t.Fatalf("relogin: %v", err)
 	}
-	ownerSession = &http.Cookie{Name: "revues_session", Value: token}
-	ownerCSRF = csrf
+	ownerSession := &http.Cookie{Name: "revues_session", Value: token}
 
 	member, memberSession, memberCSRF := seedSessionUser(t, st, cfg, "inv-member@example.com", "Member", auth.RoleEditor, true)
 	_ = member

@@ -101,17 +101,15 @@
 		<mb-empty-state heading="Aucun résultat">Aucun élément ne correspond à « {q} ».</mb-empty-state>
 	{:else}
 		{#each groups as group (group.kind)}
-			<section class="search-group" aria-labelledby={`search-${group.kind}`}>
+			<section class="section" aria-labelledby={`search-${group.kind}`}>
 				<h2 id={`search-${group.kind}`}>{group.label}</h2>
-				<ul class="search-results">
+				<ul class="row-list">
 					{#each group.items as item (item.kind + '-' + item.id)}
 						<li>
-							<a href={item.href}>
-								<span class="search-results__title">{item.title}</span>
-								{#if item.subtitle}
-									<span class="muted">{item.subtitle}</span>
-								{/if}
-							</a>
+							<a href={item.href}><strong>{item.title}</strong></a>
+							{#if item.subtitle}
+								<span class="muted">{item.subtitle}</span>
+							{/if}
 						</li>
 					{/each}
 				</ul>
@@ -119,40 +117,3 @@
 		{/each}
 	{/if}
 </div>
-
-<style>
-	.search-group {
-		margin-bottom: var(--mb-space-5);
-	}
-
-	.search-group h2 {
-		margin-bottom: var(--mb-space-3);
-	}
-
-	.search-results {
-		list-style: none;
-		padding: 0;
-		margin: 0;
-	}
-
-	.search-results li + li {
-		margin-top: var(--mb-space-2);
-	}
-
-	.search-results a {
-		display: flex;
-		flex-direction: column;
-		gap: 0.15rem;
-		text-decoration: none;
-		color: inherit;
-	}
-
-	.search-results a:hover .search-results__title {
-		color: var(--mb-color-accent);
-	}
-
-	.search-results__title {
-		font-weight: 600;
-		color: var(--mb-color-accent);
-	}
-</style>

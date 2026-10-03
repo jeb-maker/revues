@@ -73,12 +73,12 @@ func (s *Server) CreateAdminInvitation(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if err := s.Store.CreateOrganizationInvitation(r.Context(), email, org.ID, orgRole); err != nil {
-		if errors.Is(err, store.ErrAlreadyOrganizationMember) {
+	if createErr := s.Store.CreateOrganizationInvitation(r.Context(), email, org.ID, orgRole); createErr != nil {
+		if errors.Is(createErr, store.ErrAlreadyOrganizationMember) {
 			writeAPIError(w, http.StatusConflict, "conflict", "Cette personne est déjà membre de l'organisation.")
 			return
 		}
-		slog.Error("create organization invitation", "err", err)
+		slog.Error("create organization invitation", "err", createErr)
 		writeAPIError(w, http.StatusInternalServerError, "internal_error", "Erreur interne.")
 		return
 	}
@@ -106,6 +106,8 @@ func (s *Server) CreateAdminInvitation(w http.ResponseWriter, r *http.Request) {
 }
 
 // DeleteAdminInvitation serves DELETE /api/v1/admin/invitations/{invitationId}.
+//
+//nolint:staticcheck // SA1003: invitationId matches OpenAPI path param / oapi-codegen ServerInterface
 func (s *Server) DeleteAdminInvitation(w http.ResponseWriter, r *http.Request, invitationId int64) {
 	_, org, ok := s.requireOrgAdmin(w, r)
 	if !ok {
