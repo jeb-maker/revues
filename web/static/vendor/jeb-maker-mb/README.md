@@ -11,7 +11,7 @@
 | `mb-boot.js` | Host ESM loader — registers custom elements (Lit inlined) |
 | `tokens/tokens-core.css` | **Preferred host entry** — variables + anti-FOUC, no `html`/`body` reset |
 | `tokens/reference.css`, `semantic.css` | Imported by `tokens-core.css` |
-| `mb-bridge.css` | Host coexistence (accent/font remap, spacing) |
+| `mb-bridge.css` | Host-level layout for inline custom elements only (never redeclares `--mb-*` tokens) |
 
 ## Host load order (SvelteKit SPA)
 
