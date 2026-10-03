@@ -28,10 +28,9 @@ Stack SPA — seuils appliqués par `./scripts/check.sh` (WP-005). Vendor mb mes
 
 | Métrique | Seuil (`check.sh`) |
 |----------|--------------------|
-| JS **app** `frontend/build/_app/**/*.js` (hors vendor mb / reports) | ≤ **264 KiB** brut · ≤ **112 KiB** gzip-9 |
+| JS **app** `frontend/build/_app/**/*.js` (hors vendor mb) | ≤ **264 KiB** brut · ≤ **112 KiB** gzip-9 |
 | CSS **app** `frontend/build/_app/**/*.css` (hors tokens mb) | ≤ **40 KiB** brut · ≤ **17 KiB** gzip-9 |
 | Vendor mb `web/static/vendor/jeb-maker-mb/` | mesuré (log) ; **pas de fail** pour l’instant |
-| Vendor reports | mesuré ; reports **lazy** |
 | Requêtes API par navigation écran | viser ≤ 8 |
 | RAM serveur | < 128 Mo en charge normale |
 

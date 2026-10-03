@@ -1,4 +1,4 @@
-/** Thin fetch helpers for auth until OpenAPI TS client (WP-005). */
+/** Thin fetch helpers for auth endpoints (bootstrap/login/register/logout). */
 
 export type User = {
 	id: number;
