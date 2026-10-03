@@ -77,8 +77,8 @@ func TestSPAStubWhenBuildMissing(t *testing.T) {
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 
-	if rec.Code != http.StatusOK {
-		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+	if rec.Code != http.StatusServiceUnavailable {
+		t.Fatalf("status = %d, want %d (stub must not look healthy)", rec.Code, http.StatusServiceUnavailable)
 	}
 	body := rec.Body.String()
 	for _, part := range []string{"SPA SvelteKit", "npm run build", "/healthz"} {
