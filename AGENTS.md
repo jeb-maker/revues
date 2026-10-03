@@ -126,7 +126,7 @@ Branche cursor/issue-N-<slug>-f21b. PR avec Closes #N.
 Contexte durable pour les agents Cloud (l'update script a déjà installé les dépendances).
 
 - **Stack/run** : API Go 1.22 (pas de CGO — driver `modernc.org/sqlite` pur Go) + front SvelteKit. Lancer l'API : `go run ./cmd/revues` (écoute `:8080`, migrations goose au démarrage). Front dev : voir [docs/FRONTEND.md](docs/FRONTEND.md) (proxy vers l'API). Variables : `.env.example` (le binaire lit `os.Getenv`, **pas de chargement automatique de `.env`**).
-- **Gatekeeper** : `./scripts/check.sh` — Go (gofmt, vet, test -race, build, `go mod tidy` strict, golangci-lint) + front (`npm` check/build). `golangci-lint` v1.62 sur le `PATH` (`$(go env GOPATH)/bin`).
+- **Gatekeeper** : `./scripts/check.sh` — Go (gofmt, vet, test -race, build, `go mod tidy` strict, golangci-lint) + front (`npm` check/build). `golangci-lint` **v2.12** (format `.golangci.yml` v2, identique à la CI) sur le `PATH` (`$(go env GOPATH)/bin`) — `check.sh` refuse une v1.
 - **Auth / démo locale** :
   - Endpoints JSON : `GET /api/v1/bootstrap` (user + `csrf_token`, pose cookie guest si anonymes), `GET /api/v1/me`, `POST /api/v1/auth/login|register|logout`. OAuth browser : `GET /auth/github/start` + `/auth/github/callback` → redirect SPA `/login` ou `/`.
   - Pages Svelte : `/login`, `/register` (proxy Vite `/api` `/auth` `/static` → `:8080`).

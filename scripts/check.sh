@@ -81,8 +81,14 @@ if [[ -f go.mod ]]; then
   fi
 
   step "golangci-lint"
+  # Même résolution qu'avant (GOPATH/bin d'abord), mais .golangci.yml est au format v2 :
+  # une v1 ignore les exclusions et échoue à tort (misspell FR dans cmd/seed, etc.).
   export PATH="$(go env GOPATH)/bin:${PATH}"
   if command -v golangci-lint >/dev/null 2>&1; then
+    lint_version="$(golangci-lint --version 2>/dev/null | grep -oE 'version v?[0-9]+' | grep -oE '[0-9]+' || echo 0)"
+    if [[ "${lint_version}" -lt 2 ]]; then
+      fail "golangci-lint v${lint_version}.x détecté — v2.x requis (config .golangci.yml v2, CI v2.12). Installer : https://golangci-lint.run/docs/welcome/install/"
+    fi
     golangci-lint run ./...
   else
     echo "golangci-lint absent localement — CI l'exécutera"
