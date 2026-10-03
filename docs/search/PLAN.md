@@ -21,6 +21,7 @@ L’utilisateur doit savoir *où* chercher. Les filtres métier (statut, échéa
 2. Soumission → page **`/search?q=`** avec résultats groupés par type (sujets, revues, modèles, tâches).
 3. Clic → fiche / détail existant (`/subjects/{id}`, `/runs/{id}`, …).
 4. Retrait des inputs texte des listes ; **conserver** les filtres non-texte (`status`, etc.).
+   Les `?q=` legacy sur les listes SPA redirigent en soft vers `/search?q=` (`listQueryRedirect`).
 5. Pas de typeahead / debounce chatty en v1 (budget API : 1 requête par soumission).
 
 ## Cible technique
