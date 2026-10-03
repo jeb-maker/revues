@@ -59,7 +59,7 @@ Voir **[API.md](./API.md)**.
 - Métier : JSON `/api/v1/**` (OpenAPI)
 - Auth browser : `/auth/**` (redirects OAuth OK)
 - SPA : assets statiques SvelteKit servis par Go en prod
-- Admin org : routes sous tag/paths admin — `RequireOrgAdmin`
+- Admin org : routes sous tag/paths admin — helper `requireOrgAdmin` (`internal/api/v1/handler.go`, s'appuie sur `middleware.CanManageOrgUsers`)
 - IDs : valider existence **et** permission (IDOR → 404)
 
 ## Front

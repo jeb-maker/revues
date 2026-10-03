@@ -111,8 +111,19 @@ return tx.Commit()
 ## HTTP (chi)
 
 ```go
-r.With(middleware.RequireAuth, middleware.RequireRole("editor")).
-    Post("/projects/{id}/runs", h.CreateRun)
+// Handler généré (oapi-codegen) : auth, org active et IDOR via les helpers
+// internal/api/v1 — 401 / 403 / 404 déjà écrits quand ok == false.
+func (s *Server) CreateRun(w http.ResponseWriter, r *http.Request, subjectID SubjectId) {
+    subject, user, access, ok := s.ensureSubjectAccess(w, r, subjectID)
+    if !ok {
+        return
+    }
+    if !runs.CanLaunchAccess(user, access) {
+        writeAPIError(w, http.StatusNotFound, "not_found", "Sujet introuvable.")
+        return
+    }
+    // ...
+}
 ```
 
 | Règle | Détail |
