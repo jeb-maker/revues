@@ -106,7 +106,7 @@
 		<mb-alert variant="success">{message}</mb-alert>
 	{/if}
 
-	<AdminNav section="teams">
+	<AdminNav section="hub">
 		{#if !ready}
 			<p class="loading">Chargement…</p>
 		{:else if detail}

@@ -10,6 +10,7 @@
 		updateSubject,
 		type SubjectDetail
 	} from '$lib/api/subjects';
+	import { listOrgDirectory, type OrgDirectoryResponse } from '$lib/api/orgs';
 	import { listSubjectRuns, type RunSummary } from '$lib/api/runs';
 	import { session } from '$lib/auth/session';
 	import { formatRole, formatRunStatus, formatVisibility, roleOptions, runStatusVariant } from '$lib/i18n/labels';
@@ -26,6 +27,7 @@
 
 	let subject = $state<SubjectDetail | null>(null);
 	let runs = $state<RunSummary[]>([]);
+	let orgPeople = $state<OrgDirectoryResponse['members']>([]);
 	let error = $state('');
 	let loading = $state(true);
 	let editing = $state(false);
@@ -37,8 +39,15 @@
 	let tags = $state('');
 	let visibility = $state<'normal' | 'private'>('normal');
 
+	let memberPick = $state('');
 	let memberEmail = $state('');
-	let memberRole = $state<SubjectRole>('viewer');
+	let memberRole = $state<SubjectRole>('contributor');
+	let showEmailFallback = $state(false);
+
+	const candidatePeople = $derived.by(() => {
+		const taken = new Set((subject?.members ?? []).map((m) => m.user_id));
+		return orgPeople.filter((p) => !taken.has(p.user_id));
+	});
 
 	function subjectId(): number {
 		return Number(page.params.id);
@@ -77,6 +86,12 @@
 	onMount(async () => {
 		try {
 			await refresh();
+			try {
+				const dir = await listOrgDirectory();
+				orgPeople = dir.members ?? [];
+			} catch {
+				orgPeople = [];
+			}
 		} catch (e) {
 			error = e instanceof Error ? e.message : `${subjectLbl.singular} introuvable.`;
 		} finally {
@@ -123,12 +138,21 @@
 		e.preventDefault();
 		if (!subject) return;
 		error = '';
+		const email =
+			memberPick.trim() ||
+			(showEmailFallback ? memberEmail.trim() : '');
+		if (!email) {
+			error = 'Choisissez une personne ou saisissez un email.';
+			return;
+		}
 		try {
-			await addSubjectMember(subject.id, { email: memberEmail.trim(), role: memberRole }, csrf);
+			await addSubjectMember(subject.id, { email, role: memberRole }, csrf);
+			memberPick = '';
 			memberEmail = '';
+			showEmailFallback = false;
 			await refresh();
 		} catch (err) {
-			error = err instanceof Error ? err.message : 'Ajout membre impossible.';
+			error = err instanceof Error ? err.message : 'Affectation impossible.';
 		}
 	}
 
@@ -267,10 +291,17 @@
 			</section>
 		{/if}
 
-		<section class="section" aria-labelledby="membres">
-			<h2 id="membres">Membres directs</h2>
+		<section class="section" aria-labelledby="personnes">
+			<h2 id="personnes">Personnes</h2>
+			<p class="muted">
+				Personnes affectées à ce {subjectLbl.singular.toLowerCase()} — parcours nominal
+				(pas d’équipes).
+			</p>
 			{#if subject.members.length === 0}
-				<p class="muted">Aucun membre direct (accès via organisation / équipes).</p>
+				<p class="muted">
+					Aucune personne affectée. Affectez un membre de l’organisation{#if boot.can_admin},
+						ou invitez-le d’abord dans l’org (<a href="/admin/members">Admin · Membres</a>){/if}.
+				</p>
 			{:else}
 				<ul class="row-list">
 					{#each subject.members as m (m.user_id)}
@@ -290,15 +321,27 @@
 
 			{#if subject.capabilities.can_manage_members}
 				<form class="stack-form" onsubmit={onAddMember}>
-					<mb-input
-						label="Email du membre"
-						type="email"
-						required
-						value={memberEmail}
-						oninput={(e) => (memberEmail = inputValue(e))}
-					></mb-input>
+					{#if candidatePeople.length > 0}
+						<mb-select
+							label="Personne (membres de l’organisation)"
+							value={memberPick}
+							onmb-change={(e) => {
+								memberPick = e.detail.value;
+								if (memberPick) showEmailFallback = false;
+							}}
+						>
+							<option value="">Choisir…</option>
+							{#each candidatePeople as p (p.user_id)}
+								<option value={p.email}>{p.display_name || p.email} · {p.email}</option>
+							{/each}
+						</mb-select>
+					{:else}
+						<p class="field-hint">
+							Tous les membres org sont déjà affectés, ou l’annuaire est vide.
+						</p>
+					{/if}
 					<mb-select
-						label="Rôle"
+						label="Rôle sur le {subjectLbl.singular.toLowerCase()}"
 						required
 						value={memberRole}
 						onmb-change={(e) => (memberRole = e.detail.value as SubjectRole)}
@@ -307,7 +350,29 @@
 							<option value={r.value}>{r.label}</option>
 						{/each}
 					</mb-select>
-					<mb-button type="submit" variant="secondary">Ajouter</mb-button>
+					{#if showEmailFallback}
+						<mb-input
+							label="Email (compte existant hors liste)"
+							type="email"
+							value={memberEmail}
+							oninput={(e) => (memberEmail = inputValue(e))}
+						></mb-input>
+					{:else}
+						<p class="actions">
+							<mb-button
+								type="button"
+								variant="ghost"
+								size="sm"
+								onclick={() => {
+									showEmailFallback = true;
+									memberPick = '';
+								}}
+							>
+								Ajouter par email
+							</mb-button>
+						</p>
+					{/if}
+					<mb-button type="submit" variant="secondary">Affecter</mb-button>
 				</form>
 			{/if}
 		</section>

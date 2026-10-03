@@ -62,7 +62,7 @@
 		<mb-alert variant="danger">{error}</mb-alert>
 	{/if}
 
-	<AdminNav section="teams">
+	<AdminNav section="hub">
 		<form class="stack-form" onsubmit={onCreate}>
 			<h2>Créer une équipe</h2>
 			<mb-input

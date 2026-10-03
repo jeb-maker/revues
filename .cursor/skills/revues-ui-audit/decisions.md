@@ -8,6 +8,7 @@ Stack (octobre 2026) : SvelteKit SPA + `@jeb-maker/mb`, API JSON `/api/v1`. Rout
 
 | Sujet | Décision |
 |-------|----------|
+| Accès projet | **Personnes → projets** (`subject_members`) — pas d’équipes dans le parcours nominal ; admin Équipes masqué (icebox), API/schéma conservés (#295). |
 | Page d'accueil connectée | **`/` → `/runs`** — revues = hub principal. La SPA redirige `/` authentifié (org active) vers `/runs`. |
 | Post-login (1 org) | **`/runs`** — `bootstrap.redirect` / `PostLoginRoute` = `/runs` (plus `/`). |
 | CTA « Lancer une revue » sur `/runs` | **Oui** — toolbar + empty states ; lien vers `/subjects` (choix projet) puis `/subjects/{id}/launch`. |
