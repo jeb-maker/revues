@@ -77,13 +77,13 @@ Checklist :
 
 Checklist :
 
-- [ ] Capabilities serveur (`can_launch`, `can_update_items`, `can_complete`, `can_assign`, `can_manage*`, `can_link`, `can_export_notion`) : CTA masqué **ou** message explicite — jamais une erreur opaque
+- [ ] Capabilities serveur (`can_launch`, `can_update_items`, `can_complete`, `can_assign`, `can_manage*`, `can_link`) : CTA masqué **ou** message explicite — jamais une erreur opaque
 - [ ] Nav + hub org (`/org/select`, `/org/new`, `/admin`)
 - [ ] Fil d'Ariane = ancêtres seulement ; H1 = courant ; absents sur pages racine
 - [ ] CTA listes en toolbar ; formulaires : primaire en bas (danger-zone archiver = exception courante)
 - [ ] Lancement revue `/subjects/{id}/launch` : choix du modèle, pas de stepper ; clic modèle = lancer
 - [ ] Empty states onboarding vs « aucun résultat filtre »
-- [ ] Intégrations (Jira / Notion / webhooks) : CTA masqué **ou** message « non configuré » — pas d'erreur opaque
+- [ ] Intégrations (Jira / webhooks ; **pas** Notion) : CTA masqué **ou** message « non configuré » — pas d'erreur opaque
 - [ ] Garde d'auth : redirection `/login` cohérente, pas de flash de contenu non autorisé
 
 ### Passe 4 — Accessibilité & budgets
