@@ -6,6 +6,7 @@
 	import {
 		getRunItem,
 		updateRunItem,
+		UpdateRunItemError,
 		type RunItemDetail,
 		type UpdateRunItemRequest
 	} from '$lib/api/runs';
@@ -95,7 +96,8 @@
 		saving = true;
 		error = '';
 		try {
-			const body: UpdateRunItemRequest = {};
+			// Verrou optimiste : on renvoie l'updated_at affiché ; périmé → 409.
+			const body: UpdateRunItemRequest = { updated_at: detail.item.updated_at };
 			if (detail.capabilities.can_update_items) {
 				body.status = status;
 				body.comment = comment;
@@ -111,6 +113,14 @@
 			await refreshJira();
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Enregistrement impossible.';
+			if (err instanceof UpdateRunItemError && err.status === 409) {
+				// Conflit : recharger le point pour afficher l'état courant (le message reste visible).
+				try {
+					await refresh();
+				} catch {
+					/* le message de conflit reste affiché */
+				}
+			}
 		} finally {
 			saving = false;
 		}

@@ -79,20 +79,33 @@ func TestCreateChecklistRunWithDueDate(t *testing.T) {
 		t.Fatalf("CreateChecklistTemplate(): %v", err)
 	}
 
-	dueDate := sql.NullString{String: "2026-07-15T00:00:00Z", Valid: true}
-	run, err := st.CreateChecklistRun(ctx, project.ID, template.ID, lead.ID)
-	if err != nil {
-		t.Fatalf("CreateChecklistRun(): %v", err)
+	tests := []struct {
+		name    string
+		dueDate sql.NullString
+	}{
+		{"with due date", sql.NullString{String: "2026-07-15T00:00:00Z", Valid: true}},
+		{"without due date", sql.NullString{}},
 	}
-	if err = st.SetRunDueDate(ctx, run.ID, dueDate); err != nil {
-		t.Fatalf("SetRunDueDate(): %v", err)
-	}
-	run, err = st.RunByID(ctx, run.ID)
-	if err != nil {
-		t.Fatalf("RunByID(): %v", err)
-	}
-	if !run.DueDate.Valid || run.DueDate.String != dueDate.String {
-		t.Fatalf("due_date = %+v, want %q", run.DueDate, dueDate.String)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			run, err := st.CreateChecklistRunWithDueDate(ctx, project.ID, template.ID, lead.ID, tt.dueDate)
+			if err != nil {
+				t.Fatalf("CreateChecklistRunWithDueDate(): %v", err)
+			}
+			if run.Status != store.RunStatusInProgress {
+				t.Fatalf("status = %q, want in_progress", run.Status)
+			}
+			if run.DueDate != tt.dueDate {
+				t.Fatalf("due_date = %+v, want %+v", run.DueDate, tt.dueDate)
+			}
+			reloaded, err := st.RunByID(ctx, run.ID)
+			if err != nil {
+				t.Fatalf("RunByID(): %v", err)
+			}
+			if reloaded.DueDate != tt.dueDate {
+				t.Fatalf("reloaded due_date = %+v, want %+v", reloaded.DueDate, tt.dueDate)
+			}
+		})
 	}
 }
 

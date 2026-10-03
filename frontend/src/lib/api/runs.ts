@@ -114,6 +114,20 @@ export async function getRunItem(
 	throw new Error(errorMessage(error, `Point: HTTP ${response.status}`));
 }
 
+/** Thrown by `updateRunItem`; `status` lets callers react to 409 (verrou optimiste `updated_at`). */
+export class UpdateRunItemError extends Error {
+	status: number;
+	constructor(message: string, status: number) {
+		super(message);
+		this.name = 'UpdateRunItemError';
+		this.status = status;
+	}
+}
+
+/**
+ * PATCH a run item. Pass `body.updated_at` (the `RunItem.updated_at` the user saw) to get a
+ * 409 instead of silently overwriting a concurrent change.
+ */
 export async function updateRunItem(
 	runId: number,
 	itemId: number,
@@ -126,5 +140,8 @@ export async function updateRunItem(
 		body
 	});
 	if (data) return data;
-	throw new Error(errorMessage(error, `Mise à jour: HTTP ${response.status}`));
+	throw new UpdateRunItemError(
+		errorMessage(error, `Mise à jour: HTTP ${response.status}`),
+		response.status
+	);
 }
