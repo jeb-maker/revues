@@ -9,8 +9,7 @@ import (
 )
 
 const (
-	IntegrationTypeJira   = "jira"
-	IntegrationTypeNotion = "notion"
+	IntegrationTypeJira = "jira"
 )
 
 // ErrIntegrationNotFound is returned when an integration type is missing.

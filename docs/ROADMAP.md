@@ -23,7 +23,8 @@ Cœur métier, auth GitHub, RBAC, orgs/équipes, SMTP, Jira Cloud, webhooks, pi�
 | Issue | Notes |
 |-------|-------|
 | [#65](https://github.com/jeb-maker/revues/issues/65) | Jira Server/DC — **icebox** (pas sans demande produit) |
-| (à créer) | **Retrait Notion** — hors périmètre produit (décisions UI) ; PR `area:integrations` : SPA + OpenAPI + `internal/integrations/notion` + docs |
+
+Livré hors rewrite : **retrait Notion** (SPA + OpenAPI + package `internal/integrations/notion`) — hors périmètre produit ; colonnes legacy en base seulement, voir [NOTION.md](./NOTION.md).
 
 ## Icebox (pas d’issue tant que signal d’usage)
 

@@ -59,7 +59,7 @@ Les sections ci-dessous décrivent le modèle équipes / grants sur `subjects`.
 
 | Rôle | Description |
 |------|-------------|
-| `owner` | Gouvernance org : équipes, whitelist, politiques, **intégrations de l'org** (SMTP, Jira, Notion, webhooks) ; **voit tous** les sujets/revues de l'org |
+| `owner` | Gouvernance org : équipes, whitelist, politiques, **intégrations de l'org** (SMTP, Jira, webhooks) ; **voit tous** les sujets/revues de l'org |
 | `admin` | Idem `owner` sauf actions réservées owner si ajoutées ultérieurement |
 | `member` | Membre org ; accès sujet via équipe, membership direct, ou invitation |
 
@@ -228,7 +228,7 @@ Chaque PR `area:auth` ou `area:core` maintient (ou étend) les tests existants :
 | IDOR revue / point + CSRF | `TestRunsAPI_IDORAndCSRF`, `TestRunsAPI_RequiresAuth`, `TestRunsAPI_LaunchSnapshotUpdateCompleteAndGuards` — `internal/api/v1/runs_test.go` |
 | Pièces jointes (IDOR, type, taille) | `TestAttachments_IDOR_CrossUser`, `TestAttachments_UploadDownloadSecurity` — `internal/api/v1/attachments_test.go` ; `TestProcessUpload_Rejects*` — `internal/attachments/process_test.go` |
 | CSRF / session / whitelist auth | `TestAuthAPI_BootstrapGuestCSRF`, `TestAuthAPI_LoginRequiresCSRF`, `TestAuthAPI_LogoutRequiresCSRF`, `TestAuthAPI_MeRequiresSession`, `TestAuthAPI_RegisterWhitelistReject` — `internal/api/v1/auth_test.go` ; `TestTemplatesAPI_RequiresAuthAndCSRF` |
-| Admin org (owner/admin vs member) | `TestAdminAPI_RBACAndParity`, `TestAdminIntegrations_RequiresOrgAdmin`, `TestAdminSMTP_OrgOwnerAllowed`, `TestAdminSMTP_MaskedPasswordAndOrgAdmin`, `TestAdminJira_MaskedTokenTestAndRBAC`, `TestAdminNotion_MaskedTokenAndOrgAdmin`, `TestAdminWebhooks_ConfigHMACAndSSRF` — `internal/api/v1/admin*_test.go` |
+| Admin org (owner/admin vs member) | `TestAdminAPI_RBACAndParity`, `TestAdminIntegrations_RequiresOrgAdmin`, `TestAdminSMTP_OrgOwnerAllowed`, `TestAdminSMTP_MaskedPasswordAndOrgAdmin`, `TestAdminJira_MaskedTokenTestAndRBAC`, `TestAdminWebhooks_ConfigHMACAndSSRF` — `internal/api/v1/admin*_test.go` |
 | Anti-SSRF webhooks / Jira | `TestWebhook_SSRF_Block`, `TestWebhook_SSRF_BlockPrivateDial`, `TestDispatcher_Drain_ReChecksSSRF` — `internal/integrations/webhooks/dispatcher_test.go` ; `TestAdminJira_RejectsPrivateURL` |
 
 Manque connu (à ajouter dans une PR `area:auth` dédiée) : une matrice table-driven globale **rôle global × rôle org × accès sujet × route → status** couvrant toutes les lignes de la section « Matrice des actions ».

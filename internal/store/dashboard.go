@@ -359,7 +359,7 @@ func scanCompletedRunSummaries(rows interface {
 func (s *Store) ListRunsWithProgressBySubject(ctx context.Context, subjectID int64) ([]RunWithProgress, error) {
 	rows, err := s.db.QueryContext(ctx, `
 		SELECT r.id, r.subject_id, r.template_version_id, r.status, r.due_date, r.closing_note,
-		       r.created_by, r.started_at, r.completed_at, r.notion_url, r.created_at,
+		       r.created_by, r.started_at, r.completed_at, r.created_at,
 		       t.name,
 		       COUNT(ri.id) AS total,
 		       SUM(CASE WHEN ri.status IN ('ok', 'na') THEN 1 ELSE 0 END) AS done
@@ -370,7 +370,7 @@ func (s *Store) ListRunsWithProgressBySubject(ctx context.Context, subjectID int
 		LEFT JOIN run_items ri ON ri.run_id = r.id
 		WHERE r.subject_id = ? AND r.status != ?
 		GROUP BY r.id, r.subject_id, r.template_version_id, r.status, r.due_date, r.closing_note,
-		         r.created_by, r.started_at, r.completed_at, r.notion_url, r.created_at, t.name
+		         r.created_by, r.started_at, r.completed_at, r.created_at, t.name
 		ORDER BY r.created_at DESC
 	`, subjectID, RunStatusArchived)
 	if err != nil {
@@ -384,7 +384,7 @@ func (s *Store) ListRunsWithProgressBySubject(ctx context.Context, subjectID int
 		var templateName string
 		if err := rows.Scan(
 			&run.ID, &run.SubjectID, &run.TemplateVersionID, &run.Status, &run.DueDate, &run.ClosingNote,
-			&run.CreatedBy, &run.StartedAt, &run.CompletedAt, &run.NotionURL, &run.CreatedAt,
+			&run.CreatedBy, &run.StartedAt, &run.CompletedAt, &run.CreatedAt,
 			&templateName,
 			&run.Total, &run.Done,
 		); err != nil {
