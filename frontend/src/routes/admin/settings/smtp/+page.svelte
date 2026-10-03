@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { goto } from '$app/navigation';
-	import { bootstrap } from '$lib/api/auth';
+	import AdminNav from '$lib/components/AdminNav.svelte';
 	import {
 		deleteAdminSMTPSettings,
 		getAdminSMTPSettings,
@@ -9,8 +8,12 @@
 		putAdminSMTPSettings,
 		type SMTPSettings
 	} from '$lib/api/admin';
+	import { session } from '$lib/auth/session';
+	import { inputValue } from '$lib/mb';
 
-	let csrf = $state('');
+	const boot = session();
+	const csrf = boot.csrf_token;
+
 	let error = $state('');
 	let message = $state('');
 	let loading = $state(true);
@@ -24,7 +27,7 @@
 	let from = $state('');
 	let hasPassword = $state(false);
 	let configured = $state(false);
-	let testRecipient = $state('');
+	let testRecipient = $state(boot.user?.email ?? '');
 
 	function apply(s: SMTPSettings) {
 		host = s.host ?? '';
@@ -39,16 +42,9 @@
 
 	onMount(async () => {
 		try {
-			const boot = await bootstrap();
-			if (!boot.authenticated) {
-				await goto('/login');
-				return;
-			}
-			csrf = boot.csrf_token;
-			testRecipient = boot.user?.email ?? '';
 			apply(await getAdminSMTPSettings(csrf));
 		} catch (e) {
-			error = e instanceof Error ? e.message : 'SMTP indisponible.';
+			error = e instanceof Error ? e.message : 'Configuration SMTP indisponible.';
 		} finally {
 			loading = false;
 		}
@@ -93,6 +89,7 @@
 	}
 
 	async function onClear() {
+		if (!confirm('Effacer la configuration SMTP ?')) return;
 		error = '';
 		message = '';
 		try {
@@ -118,72 +115,93 @@
 	<title>SMTP — Revues</title>
 </svelte:head>
 
-<main class="admin-page">
-	<header>
-		<p class="brand"><a href="/">Revues</a></p>
-		<p class="crumbs">
-			<a href="/">Accueil</a> · <a href="/admin/integrations">Intégrations</a> · SMTP
-		</p>
+<div class="page">
+	<header class="page-header">
+		<p class="crumbs"><a href="/admin">Administration</a> · SMTP</p>
 		<h1>Relais SMTP</h1>
-		<p class="lede">Configuration chiffrée — le mot de passe n'est jamais renvoyé par l'API.</p>
+		<p class="lede">Configuration chiffrée — le mot de passe n’est jamais renvoyé par l’API.</p>
 	</header>
 
 	{#if error}
-		<p class="err" role="alert">{error}</p>
+		<mb-alert variant="danger">{error}</mb-alert>
 	{/if}
 	{#if message}
-		<p class="ok" role="status">{message}</p>
+		<mb-alert variant="success">{message}</mb-alert>
 	{/if}
 
-	{#if loading}
-		<p class="muted">Chargement…</p>
-	{:else}
-		<form class="form" onsubmit={onSave}>
-			<label>
-				Hôte
-				<input bind:value={host} required autocomplete="off" />
-			</label>
-			<label>
-				Port
-				<input type="number" min="1" max="65535" bind:value={port} required />
-			</label>
-			<label class="check">
-				<input type="checkbox" bind:checked={tls} />
-				TLS
-			</label>
-			<label>
-				Identifiant
-				<input bind:value={username} autocomplete="username" />
-			</label>
-			<label>
-				Mot de passe
-				<input
+	<AdminNav section="smtp">
+		{#if loading}
+			<p class="loading">Chargement…</p>
+		{:else}
+			<form class="stack-form" onsubmit={onSave}>
+				<mb-input
+					label="Hôte"
+					type="text"
+					required
+					autocomplete="off"
+					value={host}
+					oninput={(e) => (host = inputValue(e))}
+				></mb-input>
+				<mb-input
+					label="Port"
+					type="number"
+					min="1"
+					max="65535"
+					required
+					value={String(port)}
+					oninput={(e) => (port = Number(inputValue(e)) || 0)}
+				></mb-input>
+				<mb-checkbox
+					label="Connexion TLS"
+					checked={tls}
+					onmb-change={(e) => (tls = !!e.detail.checked)}
+				></mb-checkbox>
+				<mb-input
+					label="Identifiant"
+					type="text"
+					autocomplete="username"
+					value={username}
+					oninput={(e) => (username = inputValue(e))}
+				></mb-input>
+				<mb-input
+					label="Mot de passe"
 					type="password"
-					bind:value={password}
-					placeholder={hasPassword ? '•••••••• (laisser vide pour conserver)' : ''}
 					autocomplete="new-password"
-				/>
-			</label>
-			<label>
-				Expéditeur
-				<input type="email" bind:value={from} required />
-			</label>
-			<div class="actions">
-				<button type="submit" disabled={saving}>{saving ? 'Enregistrement…' : 'Enregistrer'}</button>
-				{#if configured}
-					<button type="button" class="ghost" onclick={onClear}>Effacer</button>
-				{/if}
-			</div>
-		</form>
+					hint={hasPassword ? 'Un mot de passe est enregistré ; laissez vide pour le conserver.' : undefined}
+					value={password}
+					oninput={(e) => (password = inputValue(e))}
+				></mb-input>
+				<mb-input
+					label="Expéditeur"
+					type="email"
+					required
+					value={from}
+					oninput={(e) => (from = inputValue(e))}
+				></mb-input>
+				<p class="actions">
+					<mb-button type="submit" variant="primary" disabled={saving}>
+						{saving ? 'Enregistrement…' : 'Enregistrer'}
+					</mb-button>
+					{#if configured}
+						<mb-button type="button" variant="danger" onclick={onClear}>Effacer</mb-button>
+					{/if}
+				</p>
+			</form>
 
-		<section class="test">
-			<h2>Email de test</h2>
-			<label>
-				Destinataire
-				<input type="email" bind:value={testRecipient} />
-			</label>
-			<button type="button" disabled={!configured} onclick={onTest}>Envoyer un test</button>
-		</section>
-	{/if}
-</main>
-
+			<section class="section">
+				<h2>Email de test</h2>
+				<div class="stack-form">
+					<mb-input
+						label="Destinataire"
+						type="email"
+						value={testRecipient}
+						oninput={(e) => (testRecipient = inputValue(e))}
+					></mb-input>
+					<mb-button type="button" variant="secondary" disabled={!configured} onclick={onTest}>
+						Envoyer un test
+					</mb-button>
+				</div>
+			</section>
+		{/if}
+	</AdminNav>
+</div>

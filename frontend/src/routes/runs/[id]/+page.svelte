@@ -1,12 +1,14 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { goto } from '$app/navigation';
-	import { page } from '$app/stores';
-	import { bootstrap } from '$lib/api/auth';
+	import { page } from '$app/state';
 	import { completeRun, getRun, type RunDetail, type RunItem } from '$lib/api/runs';
 	import { postRunNotionExport } from '$lib/api/notion';
+	import { session } from '$lib/auth/session';
+	import { formatItemStatus, formatRunStatus, itemStatusVariant } from '$lib/i18n/labels';
+	import { inputValue } from '$lib/mb';
 
-	let csrf = $state('');
+	const csrf = session().csrf_token;
+
 	let run = $state<RunDetail | null>(null);
 	let error = $state('');
 	let message = $state('');
@@ -16,23 +18,13 @@
 	let closingNote = $state('');
 
 	function runId(): number {
-		return Number($page.params.id);
-	}
-
-	async function refresh() {
-		run = await getRun(runId(), csrf);
-		closingNote = run.closing_note ?? '';
+		return Number(page.params.id);
 	}
 
 	onMount(async () => {
 		try {
-			const boot = await bootstrap();
-			if (!boot.authenticated) {
-				await goto('/login');
-				return;
-			}
-			csrf = boot.csrf_token;
-			await refresh();
+			run = await getRun(runId(), csrf);
+			closingNote = run.closing_note ?? '';
 		} catch (e) {
 			error = e instanceof Error ? e.message : 'Revue introuvable.';
 		} finally {
@@ -70,19 +62,6 @@
 		}
 	}
 
-	function statusVariant(s: string): string {
-		switch (s) {
-			case 'ok':
-				return 'success';
-			case 'nok':
-				return 'danger';
-			case 'na':
-				return 'neutral';
-			default:
-				return 'warning';
-		}
-	}
-
 	function groupBySection(items: RunItem[]): { section: string; items: RunItem[] }[] {
 		const order: string[] = [];
 		const map = new Map<string, RunItem[]>();
@@ -102,67 +81,61 @@
 	<title>{run?.title ?? 'Revue'} — Revues</title>
 </svelte:head>
 
-<main class="page">
-	<header class="top">
-		<p class="brand"><a href="/">Revues</a></p>
+<div class="page">
+	<header class="page-header">
 		<p class="crumbs">
 			<a href="/runs">Revues</a>
 			{#if run}
 				· <a href={`/subjects/${run.subject_id}`}>{run.subject_name}</a>
 			{/if}
 		</p>
+		<h1>{run?.title ?? 'Revue'}</h1>
 		{#if run}
-			<h1>{run.title}</h1>
 			<p class="lede">
 				{run.template_name} · v{run.template_version} ·
-				{#if run.status === 'done'}
-					terminée
-				{:else if run.status === 'in_progress'}
-					en cours
-				{:else}
-					{run.status}
-				{/if}
+				<mb-badge variant={run.status === 'done' ? 'success' : 'info'}>{formatRunStatus(run.status)}</mb-badge>
 			</p>
-		{:else}
-			<h1>Revue</h1>
 		{/if}
 	</header>
 
 	{#if error}
-		<p class="err" role="alert">{error}</p>
+		<mb-alert variant="danger">{error}</mb-alert>
 	{/if}
 	{#if message}
-		<p class="ok" role="status">{message}</p>
+		<mb-alert variant="success">{message}</mb-alert>
 	{/if}
 
 	{#if loading}
-		<p class="muted">Chargement…</p>
+		<p class="loading"><mb-spinner label="Chargement"></mb-spinner> Chargement…</p>
 	{:else if run}
 		<section class="progress" aria-label="Progression">
-			<div class="pct">
-				<strong>{run.progress.percent}%</strong>
-				<span>{run.progress.done}/{run.progress.total} traités</span>
-			</div>
-			<div class="bar"><span style={`width:${run.progress.percent}%`}></span></div>
+			<p class="row">
+				<strong>{run.progress.percent} %</strong>
+				<span class="muted">{run.progress.done}/{run.progress.total} traités</span>
+			</p>
+			<mb-progress
+				percent={run.progress.percent}
+				aria-label={`Progression ${run.progress.percent} %`}
+			></mb-progress>
 			{#if (run.pending_required_count ?? 0) > 0}
-				<p class="warn">{run.pending_required_count} point(s) obligatoire(s) en attente</p>
+				<p class="field-error">{run.pending_required_count} point(s) obligatoire(s) en attente</p>
 			{/if}
 		</section>
 
-		{#each groupBySection(run.items) as group}
-			<section class="section">
+		{#each groupBySection(run.items) as group (group.section)}
+			<section class="items">
 				<h2>{group.section}</h2>
-				<ul>
+				<ul class="card-list">
 					{#each group.items as item (item.id)}
 						<li>
-							<a href={`/runs/${run.id}/items/${item.id}`}>
+							<a href={`/runs/${run.id}/items/${item.id}`} class="row">
 								<span class="label">
 									{item.label}
-									{#if item.required}<em>*</em>{/if}
+									{#if item.required}<abbr title="Obligatoire">*</abbr>{/if}
 								</span>
-								<mb-badge variant={statusVariant(item.status)}>{item.status}</mb-badge>
+								<mb-badge variant={itemStatusVariant(item.status)}>{formatItemStatus(item.status)}</mb-badge>
 								{#if item.assigned_login}
-									<span class="assignee">@{item.assigned_login}</span>
+									<span class="muted">@{item.assigned_login}</span>
 								{/if}
 							</a>
 						</li>
@@ -172,169 +145,64 @@
 		{/each}
 
 		{#if run.capabilities.can_complete}
-			<form class="complete" onsubmit={onComplete}>
-				<label>
-					Note de clôture
-					<textarea bind:value={closingNote} rows="3"></textarea>
-				</label>
-				<button type="submit" disabled={closing}>
+			<form class="stack-form section" onsubmit={onComplete}>
+				<h2>Clôture</h2>
+				<mb-textarea
+					label="Note de clôture"
+					rows="3"
+					value={closingNote}
+					oninput={(e) => (closingNote = inputValue(e))}
+				></mb-textarea>
+				<mb-button type="submit" variant="primary" disabled={closing}>
 					{closing ? 'Clôture…' : 'Clôturer la revue'}
-				</button>
+				</mb-button>
 			</form>
 		{:else if run.status === 'done' && run.closing_note}
-			<p class="note">Note : {run.closing_note}</p>
+			<p class="callout">Note de clôture : {run.closing_note}</p>
 		{/if}
 
 		{#if run.status === 'done'}
-			<section class="notion">
+			<section class="section" aria-labelledby="notion">
+				<h2 id="notion">Notion</h2>
 				{#if run.notion_url}
-					<p>
-						<a href={run.notion_url} target="_blank" rel="noopener noreferrer"
-							>Voir sur Notion</a
-						>
-					</p>
+					<p><a href={run.notion_url} target="_blank" rel="noopener noreferrer">Voir sur Notion</a></p>
 				{:else if run.capabilities.can_export_notion}
-					<button type="button" disabled={exporting} onclick={onExportNotion}>
+					<mb-button variant="primary" disabled={exporting} onclick={onExportNotion}>
 						{exporting ? 'Export…' : 'Exporter vers Notion'}
-					</button>
+					</mb-button>
+				{:else}
+					<p class="muted">Aucun export Notion.</p>
 				{/if}
 			</section>
 		{/if}
 	{/if}
-</main>
+</div>
 
 <style>
-	h1 {
-		margin: 0 0 0.35rem;
-		font-size: 1.35rem;
-		font-weight: 600;
-	}
 	.progress {
-		margin-bottom: 1.5rem;
-		padding: 1rem;
-		border-radius: 0.5rem;
-		background: rgba(15, 23, 42, 0.55);
-		border: 1px solid #334155;
+		margin-bottom: var(--mb-space-5);
 	}
-	.pct {
+	.progress .row {
 		display: flex;
 		justify-content: space-between;
 		align-items: baseline;
-		margin-bottom: 0.5rem;
+		margin: 0 0 var(--mb-space-2);
 	}
-	.pct strong {
-		font-size: 1.5rem;
-		color: #5eead4;
+	.progress strong {
+		font-size: var(--mb-font-size-lg);
 	}
-	.bar {
-		height: 0.45rem;
-		border-radius: 999px;
-		background: #1e293b;
-		overflow: hidden;
+	.items {
+		margin-bottom: var(--mb-space-5);
 	}
-	.bar span {
-		display: block;
-		height: 100%;
-		background: linear-gradient(90deg, #0d9488, #5eead4);
-	}
-	.warn {
-		margin: 0.65rem 0 0;
-		color: #fcd34d;
-		font-size: 0.9rem;
-	}
-	.section {
-		margin-bottom: 1.25rem;
-	}
-	.section h2 {
-		margin: 0 0 0.5rem;
-		font-size: 0.95rem;
-		color: #99f6e4;
-		font-weight: 600;
-	}
-	.section ul {
-		list-style: none;
-		margin: 0;
-		padding: 0;
-		display: flex;
-		flex-direction: column;
-		gap: 0.4rem;
-	}
-	.section a {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 0.5rem;
-		align-items: center;
-		padding: 0.65rem 0.85rem;
-		border-radius: 0.45rem;
-		background: rgba(15, 23, 42, 0.45);
-		border: 1px solid #334155;
-		color: inherit;
-		text-decoration: none;
-	}
-	.section a:hover {
-		border-color: #2dd4bf;
+	.items h2 {
+		font-size: var(--mb-font-size-md);
 	}
 	.label {
 		flex: 1;
 		min-width: 10rem;
 	}
-	.label em {
-		color: #fcd34d;
-		font-style: normal;
-	}
-	.assignee {
-		font-size: 0.85rem;
-		color: #94a3b8;
-	}
-	.complete {
-		margin-top: 1.5rem;
-		display: flex;
-		flex-direction: column;
-		gap: 0.75rem;
-	}
-	.complete label {
-		display: flex;
-		flex-direction: column;
-		gap: 0.35rem;
-		font-size: 0.9rem;
-		color: #cbd5e1;
-	}
-	.complete textarea {
-		padding: 0.6rem;
-		border-radius: 0.4rem;
-		border: 1px solid #334155;
-		background: #0f172a;
-		color: inherit;
-		font: inherit;
-	}
-	.complete button,
-	.notion button {
-		align-self: flex-start;
-		padding: 0.6rem 1rem;
-		border: none;
-		border-radius: 0.4rem;
-		background: #0f766e;
-		color: #ecfdf5;
-		font-weight: 600;
-		cursor: pointer;
-		font: inherit;
-	}
-	.complete button:disabled,
-	.notion button:disabled {
-		opacity: 0.6;
-		cursor: wait;
-	}
-	.note {
-		margin-top: 1rem;
-		color: #cbd5e1;
-	}
-	.notion {
-		margin-top: 1.25rem;
-		padding-top: 1rem;
-		border-top: 1px solid #334155;
-	}
-	.notion a {
-		color: #5eead4;
-		font-weight: 600;
+	abbr {
+		color: var(--mb-color-danger);
+		text-decoration: none;
 	}
 </style>
