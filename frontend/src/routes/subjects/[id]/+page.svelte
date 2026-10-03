@@ -1,8 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
-	import { page } from '$app/stores';
-	import { bootstrap } from '$lib/api/auth';
+	import { page } from '$app/state';
 	import {
 		addSubjectMember,
 		archiveSubject,
@@ -11,8 +10,15 @@
 		updateSubject,
 		type SubjectDetail
 	} from '$lib/api/subjects';
+	import { session } from '$lib/auth/session';
+	import { formatRole, formatVisibility, roleOptions } from '$lib/i18n/labels';
+	import { inputValue } from '$lib/mb';
 
-	let csrf = $state('');
+	type SubjectRole = 'lead' | 'contributor' | 'viewer';
+	const SUBJECT_ROLES = roleOptions<SubjectRole>(['viewer', 'contributor', 'lead']);
+
+	const csrf = session().csrf_token;
+
 	let subject = $state<SubjectDetail | null>(null);
 	let error = $state('');
 	let loading = $state(true);
@@ -26,10 +32,10 @@
 	let visibility = $state<'normal' | 'private'>('normal');
 
 	let memberEmail = $state('');
-	let memberRole = $state<'lead' | 'contributor' | 'viewer'>('viewer');
+	let memberRole = $state<SubjectRole>('viewer');
 
 	function subjectId(): number {
-		return Number($page.params.id);
+		return Number(page.params.id);
 	}
 
 	function joinCSV(items: string[] | undefined): string {
@@ -53,18 +59,11 @@
 	}
 
 	async function refresh() {
-		const s = await getSubject(subjectId(), csrf);
-		applySubject(s);
+		applySubject(await getSubject(subjectId(), csrf));
 	}
 
 	onMount(async () => {
 		try {
-			const boot = await bootstrap();
-			if (!boot.authenticated) {
-				await goto('/login');
-				return;
-			}
-			csrf = boot.csrf_token;
 			await refresh();
 		} catch (e) {
 			error = e instanceof Error ? e.message : 'Sujet introuvable.';
@@ -88,8 +87,7 @@
 			if (subject.capabilities.can_set_visibility) {
 				body.visibility = visibility;
 			}
-			const updated = await updateSubject(subject.id, body, csrf);
-			applySubject(updated);
+			applySubject(await updateSubject(subject.id, body, csrf));
 			editing = false;
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Enregistrement impossible.';
@@ -114,11 +112,7 @@
 		if (!subject) return;
 		error = '';
 		try {
-			await addSubjectMember(
-				subject.id,
-				{ email: memberEmail.trim(), role: memberRole },
-				csrf
-			);
+			await addSubjectMember(subject.id, { email: memberEmail.trim(), role: memberRole }, csrf);
 			memberEmail = '';
 			await refresh();
 		} catch (err) {
@@ -142,127 +136,100 @@
 	<title>{subject?.name ?? 'Sujet'} — Revues</title>
 </svelte:head>
 
-<main class="page">
-	<header class="top">
-		<p class="brand"><a href="/">Revues</a></p>
-		<nav><a href="/subjects">← Sujets</a></nav>
-	</header>
-
+<div class="page">
 	{#if loading}
-		<p class="muted"><mb-spinner></mb-spinner> Chargement…</p>
+		<p class="loading"><mb-spinner label="Chargement"></mb-spinner> Chargement…</p>
 	{:else if !subject}
-		<mb-alert variant="danger" role="alert">{error || 'Sujet introuvable.'}</mb-alert>
+		<mb-alert variant="danger">{error || 'Sujet introuvable.'}</mb-alert>
 	{:else}
-		{#if error}
-			<mb-alert variant="danger" role="alert">{error}</mb-alert>
-		{/if}
-
-		<section class="hero">
+		<header class="page-header">
+			<p class="crumbs"><a href="/subjects">Sujets</a> · {subject.name}</p>
 			<h1>{subject.name}</h1>
 			{#if subject.description}
 				<p class="lede">{subject.description}</p>
 			{/if}
-			<p class="meta">
-				{#if subject.visibility === 'private'}
-					<mb-badge variant="warning">privé</mb-badge>
-				{:else}
-					<mb-badge>normal</mb-badge>
-				{/if}
+			<p class="actions">
+				<mb-badge variant={subject.visibility === 'private' ? 'warning' : 'neutral'}>
+					{formatVisibility(subject.visibility)}
+				</mb-badge>
 				{#if subject.access.role}
-					<span class="role">rôle {subject.access.role}</span>
+					<span class="muted">Votre rôle : {formatRole(subject.access.role)}</span>
 				{/if}
 			</p>
 			<p class="actions">
 				{#if subject.capabilities.can_launch}
-					<a class="launch" href={`/subjects/${subject.id}/launch`}>Lancer une revue</a>
+					<mb-button variant="primary" href={`/subjects/${subject.id}/launch`}>Lancer une revue</mb-button>
 				{/if}
-				<a class="launch secondary" href="/runs">Voir les revues</a>
+				<mb-button variant="secondary" href="/runs">Voir les revues</mb-button>
 				{#if subject.capabilities.can_manage}
-					<mb-button
-						variant="secondary"
-						onclick={() => {
-							editing = !editing;
-						}}
-					>
+					<mb-button variant="ghost" onclick={() => (editing = !editing)}>
 						{editing ? 'Annuler' : 'Modifier'}
 					</mb-button>
 					<mb-button variant="danger" onclick={onArchive}>Archiver</mb-button>
 				{/if}
 			</p>
-		</section>
+		</header>
+
+		{#if error}
+			<mb-alert variant="danger">{error}</mb-alert>
+		{/if}
 
 		{#if editing}
-			<form class="form" onsubmit={onSave}>
-				<label class="field">
-					<span>Nom</span>
-					<mb-input
-						required
-						value={name}
-						oninput={(e: Event) => {
-							name = (e.target as HTMLInputElement).value;
-						}}
-					></mb-input>
-				</label>
-				<label class="field">
-					<span>Description</span>
-					<mb-textarea
-						value={description}
-						oninput={(e: Event) => {
-							description = (e.target as HTMLTextAreaElement).value;
-						}}
-					></mb-textarea>
-				</label>
-				<label class="field">
-					<span>Domaines</span>
-					<mb-input
-						value={domains}
-						oninput={(e: Event) => {
-							domains = (e.target as HTMLInputElement).value;
-						}}
-					></mb-input>
-				</label>
-				<label class="field">
-					<span>Étiquettes</span>
-					<mb-input
-						value={tags}
-						oninput={(e: Event) => {
-							tags = (e.target as HTMLInputElement).value;
-						}}
-					></mb-input>
-				</label>
+			<form class="stack-form" onsubmit={onSave}>
+				<mb-input label="Nom" required value={name} oninput={(e) => (name = inputValue(e))}
+				></mb-input>
+				<mb-textarea
+					label="Description"
+					value={description}
+					oninput={(e) => (description = inputValue(e))}
+				></mb-textarea>
+				<mb-input
+					label="Domaines"
+					hint="Séparés par des virgules."
+					value={domains}
+					oninput={(e) => (domains = inputValue(e))}
+				></mb-input>
+				<mb-input
+					label="Étiquettes"
+					hint="Séparées par des virgules."
+					value={tags}
+					oninput={(e) => (tags = inputValue(e))}
+				></mb-input>
 				{#if subject.capabilities.can_set_visibility}
-					<label class="field">
-						<span>Visibilité</span>
-						<select bind:value={visibility}>
-							<option value="normal">Normal</option>
-							<option value="private">Privé</option>
-						</select>
-					</label>
+					<mb-select
+						label="Visibilité"
+						required
+						value={visibility}
+						onmb-change={(e) => (visibility = e.detail.value as 'normal' | 'private')}
+					>
+						<option value="normal">{formatVisibility('normal')}</option>
+						<option value="private">{formatVisibility('private')}</option>
+					</mb-select>
 				{/if}
-				<mb-button type="submit" variant="primary" disabled={saving}>
+				<mb-button type="submit" variant="secondary" disabled={saving}>
 					{saving ? 'Enregistrement…' : 'Enregistrer'}
 				</mb-button>
 			</form>
 		{:else}
-			<section class="block">
-				<h2>Domaines</h2>
+			<section class="section" aria-labelledby="domaines">
+				<h2 id="domaines">Domaines</h2>
 				{#if subject.domains.length === 0}
 					<p class="muted">Aucun domaine.</p>
 				{:else}
 					<p class="tags">
-						{#each subject.domains as d}
+						{#each subject.domains as d (d)}
 							<mb-tag>{d}</mb-tag>
 						{/each}
 					</p>
 				{/if}
 			</section>
-			<section class="block">
-				<h2>Étiquettes</h2>
+			<section class="section" aria-labelledby="etiquettes">
+				<h2 id="etiquettes">Étiquettes</h2>
 				{#if subject.tags.length === 0}
 					<p class="muted">Aucune étiquette.</p>
 				{:else}
 					<p class="tags">
-						{#each subject.tags as t}
+						{#each subject.tags as t (t)}
 							<mb-tag>{t}</mb-tag>
 						{/each}
 					</p>
@@ -270,23 +237,21 @@
 			</section>
 		{/if}
 
-		<section class="block">
-			<h2>Membres directs</h2>
+		<section class="section" aria-labelledby="membres">
+			<h2 id="membres">Membres directs</h2>
 			{#if subject.members.length === 0}
-				<p class="muted">Aucun membre direct (accès via org / équipes).</p>
+				<p class="muted">Aucun membre direct (accès via organisation / équipes).</p>
 			{:else}
-				<ul class="members">
+				<ul class="row-list">
 					{#each subject.members as m (m.user_id)}
 						<li>
-							<span class="mn">{m.display_name}</span>
-							<span class="me">{m.email}</span>
-							<mb-badge>{m.role}</mb-badge>
+							<strong>{m.display_name}</strong>
+							<span class="muted">{m.email}</span>
+							<mb-badge>{formatRole(m.role)}</mb-badge>
 							{#if subject.capabilities.can_manage_members}
-								<button
-									type="button"
-									class="linkish"
-									onclick={() => onRemoveMember(m.user_id)}>Retirer</button
-								>
+								<mb-button variant="ghost" size="sm" onclick={() => onRemoveMember(m.user_id)}>
+									Retirer
+								</mb-button>
 							{/if}
 						</li>
 					{/each}
@@ -294,185 +259,27 @@
 			{/if}
 
 			{#if subject.capabilities.can_manage_members}
-				<form class="member-form" onsubmit={onAddMember}>
-					<label class="field">
-						<span>Email</span>
-						<mb-input
-							type="email"
-							required
-							value={memberEmail}
-							oninput={(e: Event) => {
-								memberEmail = (e.target as HTMLInputElement).value;
-							}}
-						></mb-input>
-					</label>
-					<label class="field">
-						<span>Rôle</span>
-						<select bind:value={memberRole}>
-							<option value="viewer">Lecteur</option>
-							<option value="contributor">Contributeur</option>
-							<option value="lead">Responsable</option>
-						</select>
-					</label>
-					<mb-button type="submit" variant="primary">Ajouter</mb-button>
+				<form class="stack-form" onsubmit={onAddMember}>
+					<mb-input
+						label="Email du membre"
+						type="email"
+						required
+						value={memberEmail}
+						oninput={(e) => (memberEmail = inputValue(e))}
+					></mb-input>
+					<mb-select
+						label="Rôle"
+						required
+						value={memberRole}
+						onmb-change={(e) => (memberRole = e.detail.value as SubjectRole)}
+					>
+						{#each SUBJECT_ROLES as r (r.value)}
+							<option value={r.value}>{r.label}</option>
+						{/each}
+					</mb-select>
+					<mb-button type="submit" variant="secondary">Ajouter</mb-button>
 				</form>
 			{/if}
 		</section>
 	{/if}
-</main>
-
-<style>
-	:global(body) {
-		margin: 0;
-		min-height: 100vh;
-		font-family: 'Segoe UI', system-ui, sans-serif;
-		background:
-			radial-gradient(ellipse 60% 40% at 0% 0%, rgba(15, 118, 110, 0.3), transparent 55%),
-			linear-gradient(165deg, #0f172a 0%, #1e293b 55%, #134e4a 100%);
-		color: #f8fafc;
-	}
-	.page {
-		max-width: 40rem;
-		margin: 0 auto;
-		padding: 1.25rem 1.25rem 3rem;
-	}
-	.top {
-		display: flex;
-		justify-content: space-between;
-		margin-bottom: 1.5rem;
-	}
-	.brand {
-		margin: 0;
-		font-size: 1.35rem;
-		font-weight: 700;
-	}
-	.brand a,
-	nav a {
-		color: #5eead4;
-		text-decoration: none;
-		font-weight: 600;
-	}
-	.hero h1 {
-		margin: 0 0 0.35rem;
-		font-size: clamp(1.6rem, 4vw, 2rem);
-		letter-spacing: -0.03em;
-	}
-	.lede {
-		margin: 0 0 0.75rem;
-		color: #cbd5e1;
-	}
-	.meta {
-		display: flex;
-		gap: 0.75rem;
-		align-items: center;
-		margin: 0 0 1rem;
-	}
-	.role {
-		color: #94a3b8;
-		font-size: 0.9rem;
-	}
-	.actions {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 0.5rem;
-		align-items: center;
-		margin: 0.75rem 0 1.5rem;
-	}
-	.launch {
-		display: inline-flex;
-		align-items: center;
-		padding: 0.45rem 0.85rem;
-		border-radius: 0.4rem;
-		background: #0f766e;
-		color: #ecfdf5;
-		font-weight: 600;
-		text-decoration: none;
-		font-size: 0.9rem;
-	}
-	.launch.secondary {
-		background: transparent;
-		border: 1px solid #334155;
-		color: #99f6e4;
-	}
-	.block {
-		margin: 1.5rem 0;
-	}
-	.block h2 {
-		margin: 0 0 0.5rem;
-		font-size: 1rem;
-		color: #99f6e4;
-		font-weight: 600;
-	}
-	.tags {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 0.35rem;
-		margin: 0;
-	}
-	.form,
-	.member-form {
-		display: flex;
-		flex-direction: column;
-		gap: 0.85rem;
-		margin: 1rem 0;
-	}
-	.member-form {
-		margin-top: 1rem;
-		padding-top: 1rem;
-		border-top: 1px solid #334155;
-	}
-	.field {
-		display: flex;
-		flex-direction: column;
-		gap: 0.3rem;
-		font-size: 0.875rem;
-		color: #e2e8f0;
-	}
-	select {
-		padding: 0.5rem;
-		border-radius: 0.35rem;
-		border: 1px solid #334155;
-		background: #0f172a;
-		color: #f8fafc;
-		font: inherit;
-	}
-	.members {
-		list-style: none;
-		margin: 0;
-		padding: 0;
-		display: flex;
-		flex-direction: column;
-		gap: 0.65rem;
-	}
-	.members li {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 0.5rem;
-		align-items: center;
-	}
-	.mn {
-		font-weight: 600;
-	}
-	.me {
-		color: #94a3b8;
-		font-size: 0.85rem;
-	}
-	.linkish {
-		background: none;
-		border: none;
-		color: #fca5a5;
-		cursor: pointer;
-		font: inherit;
-		padding: 0;
-	}
-	.muted {
-		color: #94a3b8;
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-	}
-	mb-alert {
-		display: block;
-		margin-bottom: 1rem;
-	}
-</style>
+</div>
