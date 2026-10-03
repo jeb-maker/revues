@@ -77,6 +77,17 @@ type AssignedRunItemSummary struct {
 
 // CreateChecklistRun inserts a run (already in progress) and snapshots template items in one transaction.
 func (s *Store) CreateChecklistRun(ctx context.Context, subjectID, templateID int64, createdBy int64) (*ChecklistRun, error) {
+	return s.CreateChecklistRunWithDueDate(ctx, subjectID, templateID, createdBy, sql.NullString{})
+}
+
+// CreateChecklistRunWithDueDate is CreateChecklistRun with an optional due_date written in the
+// same transaction as the run and its item snapshot (no separate SetRunDueDate step).
+func (s *Store) CreateChecklistRunWithDueDate(
+	ctx context.Context,
+	subjectID, templateID int64,
+	createdBy int64,
+	dueDate sql.NullString,
+) (*ChecklistRun, error) {
 	template, err := s.ChecklistTemplateByID(ctx, templateID)
 	if err != nil {
 		return nil, err
@@ -109,9 +120,9 @@ func (s *Store) CreateChecklistRun(ctx context.Context, subjectID, templateID in
 
 	res, err := tx.ExecContext(ctx, `
 		INSERT INTO checklist_runs (
-			subject_id, template_version_id, status, created_by, started_at, created_at
-		) VALUES (?, ?, ?, ?, ?, ?)
-	`, subjectID, version.ID, RunStatusInProgress, createdBy, now, now)
+			subject_id, template_version_id, status, due_date, created_by, started_at, created_at
+		) VALUES (?, ?, ?, ?, ?, ?, ?)
+	`, subjectID, version.ID, RunStatusInProgress, dueDate, createdBy, now, now)
 	if err != nil {
 		return nil, fmt.Errorf("insert checklist run: %w", err)
 	}
