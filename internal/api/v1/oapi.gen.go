@@ -19,6 +19,20 @@ const (
 	AddSubjectMemberRequestRoleViewer      AddSubjectMemberRequestRole = "viewer"
 )
 
+// Defines values for AdminInvitationOrgRole.
+const (
+	AdminInvitationOrgRoleAdmin  AdminInvitationOrgRole = "admin"
+	AdminInvitationOrgRoleMember AdminInvitationOrgRole = "member"
+	AdminInvitationOrgRoleOwner  AdminInvitationOrgRole = "owner"
+)
+
+// Defines values for AdminInvitationCreateRequestOrgRole.
+const (
+	AdminInvitationCreateRequestOrgRoleAdmin  AdminInvitationCreateRequestOrgRole = "admin"
+	AdminInvitationCreateRequestOrgRoleMember AdminInvitationCreateRequestOrgRole = "member"
+	AdminInvitationCreateRequestOrgRoleOwner  AdminInvitationCreateRequestOrgRole = "owner"
+)
+
 // Defines values for AllowedEmailRole.
 const (
 	AllowedEmailRoleEditor AllowedEmailRole = "editor"
@@ -161,6 +175,34 @@ type AddSubjectMemberRequest struct {
 
 // AddSubjectMemberRequestRole defines model for AddSubjectMemberRequest.Role.
 type AddSubjectMemberRequestRole string
+
+// AdminInvitation defines model for AdminInvitation.
+type AdminInvitation struct {
+	CreatedAt string              `json:"created_at"`
+	Email     openapi_types.Email `json:"email"`
+
+	// EmailQueued true si une ligne email_deliveries a été enqueued
+	EmailQueued bool                   `json:"email_queued"`
+	Id          int64                  `json:"id"`
+	OrgRole     AdminInvitationOrgRole `json:"org_role"`
+}
+
+// AdminInvitationOrgRole defines model for AdminInvitation.OrgRole.
+type AdminInvitationOrgRole string
+
+// AdminInvitationCreateRequest defines model for AdminInvitationCreateRequest.
+type AdminInvitationCreateRequest struct {
+	Email   openapi_types.Email                  `json:"email"`
+	OrgRole *AdminInvitationCreateRequestOrgRole `json:"org_role,omitempty"`
+}
+
+// AdminInvitationCreateRequestOrgRole defines model for AdminInvitationCreateRequest.OrgRole.
+type AdminInvitationCreateRequestOrgRole string
+
+// AdminInvitationListResponse defines model for AdminInvitationListResponse.
+type AdminInvitationListResponse struct {
+	Invitations []AdminInvitation `json:"invitations"`
+}
 
 // AdminTeam defines model for AdminTeam.
 type AdminTeam struct {
@@ -1110,6 +1152,9 @@ type CreateAllowedEmailJSONRequestBody = AllowedEmailWriteRequest
 // PutAdminJiraSettingsJSONRequestBody defines body for PutAdminJiraSettings for application/json ContentType.
 type PutAdminJiraSettingsJSONRequestBody = JiraSettingsUpdate
 
+// CreateAdminInvitationJSONRequestBody defines body for CreateAdminInvitation for application/json ContentType.
+type CreateAdminInvitationJSONRequestBody = AdminInvitationCreateRequest
+
 // UpdateOrganizationMemberRoleJSONRequestBody defines body for UpdateOrganizationMemberRole for application/json ContentType.
 type UpdateOrganizationMemberRoleJSONRequestBody = UpdateOrganizationMemberRoleRequest
 
@@ -1205,6 +1250,15 @@ type ServerInterface interface {
 	// Tester la connexion Jira Cloud
 	// (POST /admin/integrations/jira/test)
 	PostAdminJiraTest(w http.ResponseWriter, r *http.Request)
+	// Invitations org en attente
+	// (GET /admin/invitations)
+	ListAdminInvitations(w http.ResponseWriter, r *http.Request)
+	// Inviter par email
+	// (POST /admin/invitations)
+	CreateAdminInvitation(w http.ResponseWriter, r *http.Request)
+	// Révoquer une invitation
+	// (DELETE /admin/invitations/{invitationId})
+	DeleteAdminInvitation(w http.ResponseWriter, r *http.Request, invitationId int64)
 	// Membres de l'organisation active
 	// (GET /admin/members)
 	ListOrganizationMembers(w http.ResponseWriter, r *http.Request)
@@ -1442,6 +1496,24 @@ func (_ Unimplemented) PutAdminJiraSettings(w http.ResponseWriter, r *http.Reque
 // Tester la connexion Jira Cloud
 // (POST /admin/integrations/jira/test)
 func (_ Unimplemented) PostAdminJiraTest(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Invitations org en attente
+// (GET /admin/invitations)
+func (_ Unimplemented) ListAdminInvitations(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Inviter par email
+// (POST /admin/invitations)
+func (_ Unimplemented) CreateAdminInvitation(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Révoquer une invitation
+// (DELETE /admin/invitations/{invitationId})
+func (_ Unimplemented) DeleteAdminInvitation(w http.ResponseWriter, r *http.Request, invitationId int64) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -1940,6 +2012,59 @@ func (siw *ServerInterfaceWrapper) PostAdminJiraTest(w http.ResponseWriter, r *h
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.PostAdminJiraTest(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListAdminInvitations operation middleware
+func (siw *ServerInterfaceWrapper) ListAdminInvitations(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListAdminInvitations(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateAdminInvitation operation middleware
+func (siw *ServerInterfaceWrapper) CreateAdminInvitation(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateAdminInvitation(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteAdminInvitation operation middleware
+func (siw *ServerInterfaceWrapper) DeleteAdminInvitation(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "invitationId" -------------
+	var invitationId int64
+
+	err = runtime.BindStyledParameterWithOptions("simple", "invitationId", chi.URLParam(r, "invitationId"), &invitationId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "invitationId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteAdminInvitation(w, r, invitationId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -3527,6 +3652,15 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/admin/integrations/jira/test", wrapper.PostAdminJiraTest)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/admin/invitations", wrapper.ListAdminInvitations)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/admin/invitations", wrapper.CreateAdminInvitation)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/admin/invitations/{invitationId}", wrapper.DeleteAdminInvitation)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/admin/members", wrapper.ListOrganizationMembers)

@@ -1180,6 +1180,87 @@ paths:
         "500":
           $ref: "#/components/responses/InternalError"
 
+  /admin/invitations:
+    get:
+      operationId: listAdminInvitations
+      tags: [admin]
+      summary: Invitations org en attente
+      description: |
+        Liste les invitations pending de l'organisation active.
+        RequireOrgAdmin + org active.
+      responses:
+        "200":
+          description: Invitations
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminInvitationListResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/InternalError"
+    post:
+      operationId: createAdminInvitation
+      tags: [admin]
+      summary: Inviter par email
+      description: |
+        Crée (ou rafraîchit) une invitation `organization_invitations`.
+        CSRF + RequireOrgAdmin. Email normalisé (trim + lower).
+        Déjà membre → 409. Rôle défaut `member` ; `admin` autorisé ;
+        `owner` seulement si l'appelant est owner (ou admin global).
+        Enqueue un email si possible ; l'invitation est créée même sans SMTP.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminInvitationCreateRequest"
+      responses:
+        "201":
+          description: Invitation créée
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminInvitation"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /admin/invitations/{invitationId}:
+    delete:
+      operationId: deleteAdminInvitation
+      tags: [admin]
+      summary: Révoquer une invitation
+      description: CSRF + RequireOrgAdmin. 404 si autre org ou inexistante.
+      parameters:
+        - name: invitationId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+      responses:
+        "204":
+          description: Invitation révoquée
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
   /admin/members/{userId}:
     patch:
       operationId: updateOrganizationMemberRole
@@ -2244,6 +2325,50 @@ components:
           type: string
         created_at:
           type: string
+    AdminInvitation:
+      type: object
+      required:
+      - id
+      - email
+      - org_role
+      - created_at
+      - email_queued
+      properties:
+        id:
+          type: integer
+          format: int64
+        email:
+          type: string
+          format: email
+        org_role:
+          type: string
+          enum: [owner, admin, member]
+        created_at:
+          type: string
+        email_queued:
+          type: boolean
+          description: true si une ligne email_deliveries a été enqueued
+    AdminInvitationListResponse:
+      type: object
+      required:
+      - invitations
+      properties:
+        invitations:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdminInvitation'
+    AdminInvitationCreateRequest:
+      type: object
+      required:
+      - email
+      properties:
+        email:
+          type: string
+          format: email
+        org_role:
+          type: string
+          enum: [owner, admin, member]
+          default: member
     OrganizationListResponse:
       type: object
       required:

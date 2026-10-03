@@ -210,7 +210,7 @@ Paths réels de `api/openapi/openapi.yaml` (préfixe `/api/v1`). Helpers : `ensu
 | `GET\|POST /runs/{id}/items/{itemId}/attachments` · `GET /runs/{id}/items/{itemId}/attachments/{attachmentId}` | `ensureRunAccess` ; upload : `CanUpdateAccess` + validation magic bytes / taille |
 | `GET /templates*` | Auth + org active |
 | `POST\|PUT\|DELETE /templates*` | Auth + `CanManageGlobal` (editor+ / org admin) ; versions publiées immuables |
-| `/admin/allowed-emails*` · `/admin/members*` · `/admin/teams*` · `/admin/settings/policies` | `requireOrgAdmin` |
+| `/admin/allowed-emails*` · `/admin/members*` · `/admin/invitations*` · `/admin/teams*` · `/admin/settings/policies` | `requireOrgAdmin` ; invitations : rôle `owner` réservé aux owners (ou admin global) |
 | `/admin/settings/smtp*` · `/admin/integrations*` · `/admin/webhooks*` (config, test, deliveries, drain, retry) | `requireOrgAdmin` ; URLs sortantes validées anti-SSRF |
 
 Toutes les routes sensibles appellent `ResolveSubjectAccess` (ou helper dérivé) — pas de rôle sujet seul. Les routes `/subjects/{id}/teams` (grant équipe ↔ sujet) n'existent pas dans l'API v1 : `GrantTeamSubjectRole` n'est accessible que par le store.

@@ -694,6 +694,55 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/invitations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Invitations org en attente
+         * @description Liste les invitations pending de l'organisation active.
+         *     RequireOrgAdmin + org active.
+         */
+        get: operations["listAdminInvitations"];
+        put?: never;
+        /**
+         * Inviter par email
+         * @description Crée (ou rafraîchit) une invitation `organization_invitations`.
+         *     CSRF + RequireOrgAdmin. Email normalisé (trim + lower).
+         *     Déjà membre → 409. Rôle défaut `member` ; `admin` autorisé ;
+         *     `owner` seulement si l'appelant est owner (ou admin global).
+         *     Enqueue un email si possible ; l'invitation est créée même sans SMTP.
+         */
+        post: operations["createAdminInvitation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/invitations/{invitationId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Révoquer une invitation
+         * @description CSRF + RequireOrgAdmin. 404 si autre org ou inexistante.
+         */
+        delete: operations["deleteAdminInvitation"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/members/{userId}": {
         parameters: {
             query?: never;
@@ -1270,6 +1319,29 @@ export interface components {
             organization_name: string;
             org_role: string;
             created_at: string;
+        };
+        AdminInvitation: {
+            /** Format: int64 */
+            id: number;
+            /** Format: email */
+            email: string;
+            /** @enum {string} */
+            org_role: "owner" | "admin" | "member";
+            created_at: string;
+            /** @description true si une ligne email_deliveries a été enqueued */
+            email_queued: boolean;
+        };
+        AdminInvitationListResponse: {
+            invitations: components["schemas"]["AdminInvitation"][];
+        };
+        AdminInvitationCreateRequest: {
+            /** Format: email */
+            email: string;
+            /**
+             * @default member
+             * @enum {string}
+             */
+            org_role: "owner" | "admin" | "member";
         };
         OrganizationListResponse: {
             organizations: components["schemas"]["Organization"][];
@@ -3018,6 +3090,82 @@ export interface operations {
             };
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    listAdminInvitations: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Invitations */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminInvitationListResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    createAdminInvitation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminInvitationCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Invitation créée */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminInvitation"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    deleteAdminInvitation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                invitationId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Invitation révoquée */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
             500: components["responses"]["InternalError"];
         };
     };
