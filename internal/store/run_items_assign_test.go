@@ -83,8 +83,8 @@ func TestAssignRunItemChecked_OptimisticLock(t *testing.T) {
 			if err != nil {
 				t.Fatalf("UpsertGitHubUser(contrib): %v", err)
 			}
-			if err = st.AddProjectMember(ctx, run.SubjectID, contrib.ID, subjects.LocalRoleContributor); err != nil {
-				t.Fatalf("AddProjectMember(): %v", err)
+			if err = st.AddSubjectMember(ctx, run.SubjectID, contrib.ID, store.SubjectRoleContributor); err != nil {
+				t.Fatalf("AddSubjectMember(): %v", err)
 			}
 			before, err := st.RunItemByID(ctx, run.ID, itemID)
 			if err != nil {
