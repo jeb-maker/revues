@@ -112,11 +112,6 @@ func CanUpdateAccess(user *store.User, access store.SubjectAccess) bool {
 	return subjects.CanContributeAccess(user, access)
 }
 
-// CanLinkJira reports whether the user may link Jira issues to run items.
-func CanLinkJira(user *store.User, orgMember bool) bool {
-	return CanUpdate(user, orgMember)
-}
-
 // CanLinkJiraAccess reports whether resolved access allows Jira linking.
 func CanLinkJiraAccess(user *store.User, access store.SubjectAccess) bool {
 	return CanUpdateAccess(user, access)

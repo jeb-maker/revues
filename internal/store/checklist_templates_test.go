@@ -28,9 +28,9 @@ func TestCreateChecklistTemplateCreatesVersionOne(t *testing.T) {
 	if err != nil {
 		t.Fatalf("UpsertGitHubUser(): %v", err)
 	}
-	project, err := st.CreateProject(ctx, "P", "", lead.ID, nil)
+	project, err := st.CreateSubject(ctx, "P", "", lead.ID, nil)
 	if err != nil {
-		t.Fatalf("CreateProject(): %v", err)
+		t.Fatalf("CreateSubject(): %v", err)
 	}
 
 	template, version, err := st.CreateChecklistTemplate(ctx, "Modèle A", lead.ID, nil, sampleItems())
@@ -74,9 +74,9 @@ func TestCreateTemplateVersionIncrements(t *testing.T) {
 	if err != nil {
 		t.Fatalf("UpsertGitHubUser(): %v", err)
 	}
-	_, err = st.CreateProject(ctx, "P", "", lead.ID, nil)
+	_, err = st.CreateSubject(ctx, "P", "", lead.ID, nil)
 	if err != nil {
-		t.Fatalf("CreateProject(): %v", err)
+		t.Fatalf("CreateSubject(): %v", err)
 	}
 
 	template, v1, err := st.CreateChecklistTemplate(ctx, "Modèle A", lead.ID, nil, sampleItems())

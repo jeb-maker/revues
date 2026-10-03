@@ -28,27 +28,6 @@ type AllowedEmail struct {
 	CreatedAt string
 }
 
-// AllowedRole returns the role for email if whitelisted in the active organization.
-func (s *Store) AllowedRole(ctx context.Context, email string) (string, bool, error) {
-	orgID, err := organizationIDFromContext(ctx)
-	if err != nil {
-		return "", false, err
-	}
-
-	var role string
-	err = s.db.QueryRowContext(ctx, `
-		SELECT role FROM allowed_emails WHERE organization_id = ? AND email = ?
-	`, orgID, strings.ToLower(strings.TrimSpace(email))).Scan(&role)
-	if errors.Is(err, sql.ErrNoRows) {
-		return "", false, nil
-	}
-	if err != nil {
-		return "", false, fmt.Errorf("allowed role lookup: %w", err)
-	}
-
-	return role, true, nil
-}
-
 // InsertAllowedEmail adds an email to the whitelist for the active organization.
 // Role must be editor or reader — never admin (prevents org-scoped whitelist from
 // minting a global admin on the next login).

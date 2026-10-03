@@ -111,13 +111,6 @@ func TestTeamsStore(t *testing.T) {
 		if len(orgMembers) < 3 {
 			t.Fatalf("ListOrganizationMembers len = %d, want >= 3", len(orgMembers))
 		}
-		userTeams, listUserErr := st.ListUserTeams(ctx, alice.ID)
-		if listUserErr != nil {
-			t.Fatalf("ListUserTeams(): %v", listUserErr)
-		}
-		if len(userTeams) != 1 || userTeams[0].ID != team.ID {
-			t.Fatalf("ListUserTeams() = %+v", userTeams)
-		}
 		if removeErr := st.RemoveTeamMember(ctx, team.ID, bob.ID); removeErr != nil {
 			t.Fatalf("RemoveTeamMember(bob): %v", removeErr)
 		}
@@ -162,13 +155,6 @@ func TestTeamsStore(t *testing.T) {
 		}
 		if len(subjectTeams) != 1 || subjectTeams[0].Role != store.SubjectRoleContributor {
 			t.Fatalf("ListSubjectTeams() = %+v", subjectTeams)
-		}
-		teamSubjects, listTeamErr := st.ListTeamSubjects(ctx, team.ID)
-		if listTeamErr != nil {
-			t.Fatalf("ListTeamSubjects(): %v", listTeamErr)
-		}
-		if len(teamSubjects) != 1 || teamSubjects[0].SubjectID != subject.ID {
-			t.Fatalf("ListTeamSubjects() = %+v", teamSubjects)
 		}
 		if revokeErr := st.RevokeTeamSubjectRole(ctx, team.ID, subject.ID); revokeErr != nil {
 			t.Fatalf("RevokeTeamSubjectRole(): %v", revokeErr)

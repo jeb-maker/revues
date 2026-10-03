@@ -41,20 +41,20 @@ func TestDashboard_ActiveRunsAndNokItems(t *testing.T) {
 		t.Fatalf("percent = %d, want 50", summaries[0].Percent)
 	}
 
-	nokItems, err := st.ListProjectNokItems(ctx, run.SubjectID)
+	nokItems, err := st.ListSubjectNokItems(ctx, run.SubjectID)
 	if err != nil {
-		t.Fatalf("ListProjectNokItems(): %v", err)
+		t.Fatalf("ListSubjectNokItems(): %v", err)
 	}
 	if len(nokItems) != 1 || nokItems[0].Comment != "bloquant" {
-		t.Fatalf("ListProjectNokItems() = %+v", nokItems)
+		t.Fatalf("ListSubjectNokItems() = %+v", nokItems)
 	}
 
-	runs, err := st.ListRunsWithProgressByProject(ctx, run.SubjectID)
+	runs, err := st.ListRunsWithProgressBySubject(ctx, run.SubjectID)
 	if err != nil {
-		t.Fatalf("ListRunsWithProgressByProject(): %v", err)
+		t.Fatalf("ListRunsWithProgressBySubject(): %v", err)
 	}
 	if len(runs) != 1 || runs[0].Percent != 50 {
-		t.Fatalf("ListRunsWithProgressByProject() = %+v", runs)
+		t.Fatalf("ListRunsWithProgressBySubject() = %+v", runs)
 	}
 }
 
@@ -153,9 +153,9 @@ func TestListFilteredRunSummaries_Pagination(t *testing.T) {
 	if err != nil {
 		t.Fatalf("UpsertGitHubUser(): %v", err)
 	}
-	subject, err := st.CreateProject(ctx, "Paged", "", user.ID, nil)
+	subject, err := st.CreateSubject(ctx, "Paged", "", user.ID, nil)
 	if err != nil {
-		t.Fatalf("CreateProject(): %v", err)
+		t.Fatalf("CreateSubject(): %v", err)
 	}
 	tmpl, _, err := st.CreateChecklistTemplate(ctx, "Modèle page", user.ID, nil, []store.TemplateItemInput{
 		{Label: "A", Required: true},
@@ -203,13 +203,13 @@ func TestDashboard_TemplateIndexListsAllTemplates(t *testing.T) {
 		t.Fatalf("UpsertGitHubUser(bob): %v", err)
 	}
 
-	_, err = st.CreateProject(ctx, "Alpha", "", alice.ID, nil)
+	_, err = st.CreateSubject(ctx, "Alpha", "", alice.ID, nil)
 	if err != nil {
-		t.Fatalf("CreateProject(): %v", err)
+		t.Fatalf("CreateSubject(): %v", err)
 	}
-	_, err = st.CreateProject(ctx, "Beta", "", bob.ID, nil)
+	_, err = st.CreateSubject(ctx, "Beta", "", bob.ID, nil)
 	if err != nil {
-		t.Fatalf("CreateProject(bob): %v", err)
+		t.Fatalf("CreateSubject(bob): %v", err)
 	}
 	if _, _, err = st.CreateChecklistTemplate(ctx, "Modèle A", alice.ID, []string{"infra"}, nil); err != nil {
 		t.Fatalf("CreateChecklistTemplate(A): %v", err)

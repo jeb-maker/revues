@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"net/mail"
 	"net/url"
-	"strconv"
 	"strings"
 
 	"github.com/jeb-maker/revues/internal/crypto"
@@ -227,15 +226,6 @@ func ValidateSMTP(cfg SMTPConfig) error {
 		return errors.New("expéditeur invalide")
 	}
 	return nil
-}
-
-// ParsePort converts a port string to int.
-func ParsePort(raw string) (int, error) {
-	port, err := strconv.Atoi(strings.TrimSpace(raw))
-	if err != nil || port <= 0 || port > 65535 {
-		return 0, errors.New("port SMTP invalide")
-	}
-	return port, nil
 }
 
 // MergePassword keeps the existing password when the form leaves it blank.

@@ -23,9 +23,9 @@ func setupInProgressRun(t *testing.T) (context.Context, *store.Store, *store.Che
 	if err != nil {
 		t.Fatalf("UpsertGitHubUser(): %v", err)
 	}
-	project, err := st.CreateProject(ctx, "P", "", lead.ID, nil)
+	project, err := st.CreateSubject(ctx, "P", "", lead.ID, nil)
 	if err != nil {
-		t.Fatalf("CreateProject(): %v", err)
+		t.Fatalf("CreateSubject(): %v", err)
 	}
 	template, _, err := st.CreateChecklistTemplate(ctx, "Modèle", lead.ID, nil, []store.TemplateItemInput{
 		{Section: "S", Label: "Point 1", Required: true},

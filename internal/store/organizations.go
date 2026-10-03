@@ -278,28 +278,6 @@ func (s *Store) OrganizationByID(ctx context.Context, id int64) (*Organization, 
 	return &org, nil
 }
 
-// UpdateOrganizationUISubjectLabel sets the org-wide subject UI label preset.
-func (s *Store) UpdateOrganizationUISubjectLabel(ctx context.Context, organizationID int64, label string) error {
-	normalized, err := NormalizeUISubjectLabel(label)
-	if err != nil {
-		return err
-	}
-	res, err := s.db.ExecContext(ctx, `
-		UPDATE organizations SET ui_subject_label = ? WHERE id = ?
-	`, normalized, organizationID)
-	if err != nil {
-		return fmt.Errorf("update organization ui subject label: %w", err)
-	}
-	n, err := res.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("update organization ui subject label rows: %w", err)
-	}
-	if n == 0 {
-		return ErrOrganizationNotFound
-	}
-	return nil
-}
-
 // UpdateOrganizationUIRunLabel sets the org-wide run UI label preset.
 func (s *Store) UpdateOrganizationUIRunLabel(ctx context.Context, organizationID int64, label string) error {
 	normalized, err := NormalizeUIRunLabel(label)
@@ -361,30 +339,6 @@ func (s *Store) AddOrganizationMember(ctx context.Context, organizationID, userI
 	`, organizationID, userID, role, now)
 	if err != nil {
 		return fmt.Errorf("add organization member: %w", err)
-	}
-
-	return nil
-}
-
-// RemoveOrganizationMember removes a user from an organization.
-func (s *Store) RemoveOrganizationMember(ctx context.Context, organizationID, userID int64) error {
-	res, err := s.db.ExecContext(ctx, `
-		DELETE FROM organization_members WHERE organization_id = ? AND user_id = ?
-	`, organizationID, userID)
-	if err != nil {
-		return fmt.Errorf("remove organization member: %w", err)
-	}
-	n, err := res.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("remove organization member rows: %w", err)
-	}
-	if n == 0 {
-		return sql.ErrNoRows
-	}
-
-	// Drop sessions so removed members cannot keep acting until natural expiry.
-	if err := s.DeleteUserSessions(ctx, userID); err != nil {
-		return fmt.Errorf("revoke sessions after org member remove: %w", err)
 	}
 
 	return nil

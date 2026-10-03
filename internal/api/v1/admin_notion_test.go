@@ -22,7 +22,7 @@ func TestAdminNotion_MaskedTokenAndOrgAdmin(t *testing.T) {
 
 	cfg := config.Config{
 		SessionSecret:  "test-secret-at-least-thirty-two-bytes",
-		EncryptionKey:  config.TestEncryptionKey(),
+		EncryptionKey:  testutil.EncryptionKey(),
 		Env:            "development",
 		AttachmentsDir: t.TempDir(),
 	}
@@ -107,7 +107,7 @@ func TestAdminNotion_TestConnectionMock(t *testing.T) {
 
 	cfg := config.Config{
 		SessionSecret:  "test-secret-at-least-thirty-two-bytes",
-		EncryptionKey:  config.TestEncryptionKey(),
+		EncryptionKey:  testutil.EncryptionKey(),
 		Env:            "development",
 		AttachmentsDir: t.TempDir(),
 	}
@@ -173,7 +173,7 @@ func TestNotionImport_MockWizard(t *testing.T) {
 
 	cfg := config.Config{
 		SessionSecret:  "test-secret-at-least-thirty-two-bytes",
-		EncryptionKey:  config.TestEncryptionKey(),
+		EncryptionKey:  testutil.EncryptionKey(),
 		Env:            "development",
 		AttachmentsDir: t.TempDir(),
 	}
@@ -244,7 +244,7 @@ func TestNotionExport_Mock(t *testing.T) {
 
 	cfg := config.Config{
 		SessionSecret:  "test-secret-at-least-thirty-two-bytes",
-		EncryptionKey:  config.TestEncryptionKey(),
+		EncryptionKey:  testutil.EncryptionKey(),
 		Env:            "development",
 		BaseURL:        "http://example.com",
 		AttachmentsDir: t.TempDir(),

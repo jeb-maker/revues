@@ -13,7 +13,6 @@ import (
 	"github.com/jeb-maker/revues/internal/auth"
 	"github.com/jeb-maker/revues/internal/crypto"
 	adminsettings "github.com/jeb-maker/revues/internal/features/admin/settings"
-	"github.com/jeb-maker/revues/internal/features/subjects"
 	"github.com/jeb-maker/revues/internal/notifications"
 	"github.com/jeb-maker/revues/internal/store"
 )
@@ -25,9 +24,9 @@ func TestServiceSkipsWhenSMTPNotConfigured(t *testing.T) {
 	if err != nil {
 		t.Fatalf("UpsertGitHubUser(): %v", err)
 	}
-	project, err := st.CreateProject(ctx, "P", "", lead.ID, nil)
+	project, err := st.CreateSubject(ctx, "P", "", lead.ID, nil)
 	if err != nil {
-		t.Fatalf("CreateProject(): %v", err)
+		t.Fatalf("CreateSubject(): %v", err)
 	}
 	template, _, err := st.CreateChecklistTemplate(ctx, "Modèle", lead.ID, nil, nil)
 	if err != nil {
@@ -60,12 +59,12 @@ func TestServiceNotifyRunCompleted(t *testing.T) {
 	if err != nil {
 		t.Fatalf("UpsertGitHubUser(member): %v", err)
 	}
-	project, err := st.CreateProject(ctx, "P", "", lead.ID, nil)
+	project, err := st.CreateSubject(ctx, "P", "", lead.ID, nil)
 	if err != nil {
-		t.Fatalf("CreateProject(): %v", err)
+		t.Fatalf("CreateSubject(): %v", err)
 	}
-	if err = st.AddProjectMember(ctx, project.ID, member.ID, subjects.LocalRoleContributor); err != nil {
-		t.Fatalf("AddProjectMember(): %v", err)
+	if err = st.AddSubjectMember(ctx, project.ID, member.ID, store.SubjectRoleContributor); err != nil {
+		t.Fatalf("AddSubjectMember(): %v", err)
 	}
 	template, _, err := st.CreateChecklistTemplate(ctx, "Modèle", lead.ID, nil, nil)
 	if err != nil {
@@ -99,12 +98,12 @@ func TestServiceNotifyItemAssigned(t *testing.T) {
 	if err != nil {
 		t.Fatalf("UpsertGitHubUser(assignee): %v", err)
 	}
-	project, err := st.CreateProject(ctx, "P", "", lead.ID, nil)
+	project, err := st.CreateSubject(ctx, "P", "", lead.ID, nil)
 	if err != nil {
-		t.Fatalf("CreateProject(): %v", err)
+		t.Fatalf("CreateSubject(): %v", err)
 	}
-	if err = st.AddProjectMember(ctx, project.ID, assignee.ID, subjects.LocalRoleContributor); err != nil {
-		t.Fatalf("AddProjectMember(): %v", err)
+	if err = st.AddSubjectMember(ctx, project.ID, assignee.ID, store.SubjectRoleContributor); err != nil {
+		t.Fatalf("AddSubjectMember(): %v", err)
 	}
 	template, _, err := st.CreateChecklistTemplate(ctx, "Modèle", lead.ID, nil, []store.TemplateItemInput{
 		{Label: "Point A", Required: true},
@@ -146,9 +145,9 @@ func TestServiceSendDueReminders(t *testing.T) {
 	if err != nil {
 		t.Fatalf("UpsertGitHubUser(): %v", err)
 	}
-	project, err := st.CreateProject(ctx, "P", "", lead.ID, nil)
+	project, err := st.CreateSubject(ctx, "P", "", lead.ID, nil)
 	if err != nil {
-		t.Fatalf("CreateProject(): %v", err)
+		t.Fatalf("CreateSubject(): %v", err)
 	}
 	template, _, err := st.CreateChecklistTemplate(ctx, "Modèle", lead.ID, nil, nil)
 	if err != nil {

@@ -120,50 +120,6 @@ func TestCanSetSubjectVisibility(t *testing.T) {
 	}
 }
 
-func TestCanAssignSubjectTeams(t *testing.T) {
-	admin := &User{Role: auth.RoleAdmin}
-	editor := &User{Role: auth.RoleEditor}
-	reader := &User{Role: auth.RoleReader}
-
-	allow := store.OrgLeadPolicies{LeadsMayAssignTeams: true, LeadsMayInviteMembers: true}
-	deny := store.OrgLeadPolicies{LeadsMayAssignTeams: false, LeadsMayInviteMembers: true}
-
-	orgAdminOnly := store.SubjectAccess{Visible: true, Sources: []string{store.AccessSourceOrgAdmin}}
-	leadDirect := store.SubjectAccess{
-		Visible: true,
-		Role:    store.SubjectRoleLead,
-		Sources: []string{store.AccessSourceDirect},
-	}
-	contributor := store.SubjectAccess{
-		Visible: true,
-		Role:    store.SubjectRoleContributor,
-		Sources: []string{store.AccessSourceDirect},
-	}
-	hidden := store.SubjectAccess{}
-
-	if !CanAssignSubjectTeams(admin, orgAdminOnly, deny) {
-		t.Fatal("global admin may assign teams even when policy denies leads")
-	}
-	if !CanAssignSubjectTeams(editor, orgAdminOnly, deny) {
-		t.Fatal("org admin may assign teams without subject lead")
-	}
-	if !CanAssignSubjectTeams(reader, orgAdminOnly, deny) {
-		t.Fatal("org admin reader may assign teams (supervision, not métier write)")
-	}
-	if !CanAssignSubjectTeams(editor, leadDirect, allow) {
-		t.Fatal("subject lead may assign teams when policy allows")
-	}
-	if CanAssignSubjectTeams(editor, leadDirect, deny) {
-		t.Fatal("subject lead must not assign teams when policy denies")
-	}
-	if CanAssignSubjectTeams(editor, contributor, allow) {
-		t.Fatal("contributor must not assign teams")
-	}
-	if CanAssignSubjectTeams(editor, hidden, allow) {
-		t.Fatal("invisible subject: no team assign")
-	}
-}
-
 func TestCanInviteSubjectMember(t *testing.T) {
 	admin := &User{Role: auth.RoleAdmin}
 	editor := &User{Role: auth.RoleEditor}

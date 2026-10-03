@@ -16,6 +16,7 @@ import (
 	"github.com/jeb-maker/revues/internal/integrations/webhooks"
 	"github.com/jeb-maker/revues/internal/orgctx"
 	"github.com/jeb-maker/revues/internal/store"
+	"github.com/jeb-maker/revues/internal/testutil"
 )
 
 func TestAdminWebhooks_ConfigHMACAndSSRF(t *testing.T) {
@@ -23,7 +24,7 @@ func TestAdminWebhooks_ConfigHMACAndSSRF(t *testing.T) {
 
 	cfg := config.Config{
 		SessionSecret:  "test-secret-at-least-thirty-two-bytes",
-		EncryptionKey:  config.TestEncryptionKey(),
+		EncryptionKey:  testutil.EncryptionKey(),
 		Env:            "development",
 		AttachmentsDir: t.TempDir(),
 	}
@@ -103,7 +104,7 @@ func TestAdminWebhooks_ConfigHMACAndSSRF(t *testing.T) {
 	if test.Code != http.StatusNoContent {
 		t.Fatalf("test status = %d body=%s", test.Code, test.Body.String())
 	}
-	if !webhooks.VerifySignature(secret, gotBody, gotSig) {
+	if gotSig != webhooks.SignBody(secret, gotBody) {
 		t.Fatalf("HMAC mismatch sig=%q body=%s", gotSig, gotBody)
 	}
 	var env webhooks.Envelope
@@ -174,7 +175,7 @@ func TestAdminWebhooks_DrainAndRetry(t *testing.T) {
 
 	cfg := config.Config{
 		SessionSecret:  "test-secret-at-least-thirty-two-bytes",
-		EncryptionKey:  config.TestEncryptionKey(),
+		EncryptionKey:  testutil.EncryptionKey(),
 		Env:            "development",
 		AttachmentsDir: t.TempDir(),
 	}

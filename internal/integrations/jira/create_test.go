@@ -152,9 +152,9 @@ func TestCreateServiceRunItem(t *testing.T) {
 	if err != nil {
 		t.Fatalf("UpsertGitHubUser(): %v", err)
 	}
-	project, err := st.CreateProject(ctx, "Alpha", "", lead.ID, nil)
+	project, err := st.CreateSubject(ctx, "Alpha", "", lead.ID, nil)
 	if err != nil {
-		t.Fatalf("CreateProject(): %v", err)
+		t.Fatalf("CreateSubject(): %v", err)
 	}
 	template, _, err := st.CreateChecklistTemplate(ctx, "Modèle", lead.ID, nil, []store.TemplateItemInput{
 		{Label: "Point nok", Required: true},

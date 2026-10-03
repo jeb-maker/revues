@@ -241,38 +241,6 @@ func (s *Store) ListTeamMembers(ctx context.Context, teamID int64) ([]TeamMember
 	return members, nil
 }
 
-// ListUserTeams lists teams of the active org that include userID.
-func (s *Store) ListUserTeams(ctx context.Context, userID int64) ([]OrganizationTeam, error) {
-	orgID, err := organizationIDFromContext(ctx)
-	if err != nil {
-		return nil, err
-	}
-	rows, err := s.db.QueryContext(ctx, `
-		SELECT t.id, t.organization_id, t.name, t.slug, t.description, t.created_at
-		FROM organization_teams t
-		INNER JOIN team_members m ON m.team_id = t.id
-		WHERE t.organization_id = ? AND m.user_id = ?
-		ORDER BY t.name COLLATE NOCASE, t.id
-	`, orgID, userID)
-	if err != nil {
-		return nil, fmt.Errorf("list user teams: %w", err)
-	}
-	defer rows.Close()
-
-	var teams []OrganizationTeam
-	for rows.Next() {
-		var team OrganizationTeam
-		if scanErr := rows.Scan(&team.ID, &team.OrganizationID, &team.Name, &team.Slug, &team.Description, &team.CreatedAt); scanErr != nil {
-			return nil, fmt.Errorf("scan user team: %w", scanErr)
-		}
-		teams = append(teams, team)
-	}
-	if err = rows.Err(); err != nil {
-		return nil, fmt.Errorf("list user teams rows: %w", err)
-	}
-	return teams, nil
-}
-
 // UpsertDirectSubjectMember upserts a row in subject_members (active org).
 func (s *Store) UpsertDirectSubjectMember(ctx context.Context, subjectID, userID int64, role string) error {
 	role, err := normalizeSubjectRole(role)
@@ -398,42 +366,6 @@ func (s *Store) RevokeTeamSubjectRole(ctx context.Context, teamID, subjectID int
 		return ErrTeamSubjectRoleNotFound
 	}
 	return nil
-}
-
-// ListTeamSubjects lists subjects a team can access in the active org.
-func (s *Store) ListTeamSubjects(ctx context.Context, teamID int64) ([]TeamSubjectRole, error) {
-	if _, err := s.TeamByID(ctx, teamID); err != nil {
-		return nil, err
-	}
-	orgID, err := organizationIDFromContext(ctx)
-	if err != nil {
-		return nil, err
-	}
-	rows, err := s.db.QueryContext(ctx, `
-		SELECT r.team_id, t.name, r.subject_id, r.role, r.granted_by, r.created_at
-		FROM team_subject_roles r
-		INNER JOIN organization_teams t ON t.id = r.team_id
-		INNER JOIN subjects s ON s.id = r.subject_id
-		WHERE r.team_id = ? AND s.organization_id = ?
-		ORDER BY r.subject_id
-	`, teamID, orgID)
-	if err != nil {
-		return nil, fmt.Errorf("list team subjects: %w", err)
-	}
-	defer rows.Close()
-
-	var roles []TeamSubjectRole
-	for rows.Next() {
-		var r TeamSubjectRole
-		if scanErr := rows.Scan(&r.TeamID, &r.TeamName, &r.SubjectID, &r.Role, &r.GrantedBy, &r.CreatedAt); scanErr != nil {
-			return nil, fmt.Errorf("scan team subject role: %w", scanErr)
-		}
-		roles = append(roles, r)
-	}
-	if err = rows.Err(); err != nil {
-		return nil, fmt.Errorf("list team subjects rows: %w", err)
-	}
-	return roles, nil
 }
 
 // ListSubjectTeams lists teams assigned to a subject in the active org.

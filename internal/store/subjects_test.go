@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/jeb-maker/revues/internal/auth"
-	"github.com/jeb-maker/revues/internal/features/subjects"
 	"github.com/jeb-maker/revues/internal/orgctx"
 	"github.com/jeb-maker/revues/internal/store"
 	"github.com/jeb-maker/revues/internal/testutil"
@@ -29,7 +28,7 @@ func TestCreateSubjectAddsOrgMember(t *testing.T) {
 	}
 
 	role, ok, err := st.MemberRole(ctx, subject.ID, creator.ID)
-	if err != nil || !ok || role != subjects.LocalRoleLead {
+	if err != nil || !ok || role != store.SubjectRoleLead {
 		t.Fatalf("MemberRole() = %q, %v, %v", role, ok, err)
 	}
 

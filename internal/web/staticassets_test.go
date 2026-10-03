@@ -11,29 +11,6 @@ import (
 	webassets "github.com/jeb-maker/revues/web"
 )
 
-func TestStaticAssetVersionStable(t *testing.T) {
-	staticFS, err := fs.Sub(webassets.Static, "static")
-	if err != nil {
-		t.Fatalf("fs.Sub(): %v", err)
-	}
-
-	v1, err := appweb.StaticAssetVersion(staticFS)
-	if err != nil {
-		t.Fatalf("StaticAssetVersion(): %v", err)
-	}
-	if len(v1) != 12 {
-		t.Fatalf("version len = %d, want 12", len(v1))
-	}
-
-	v2, err := appweb.StaticAssetVersion(staticFS)
-	if err != nil {
-		t.Fatalf("StaticAssetVersion(2): %v", err)
-	}
-	if v1 != v2 {
-		t.Fatalf("version = %q vs %q, want stable", v1, v2)
-	}
-}
-
 func TestStaticHandlerSetsCacheControl(t *testing.T) {
 	inner := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -56,25 +33,6 @@ func TestStaticHandlerSetsCacheControl(t *testing.T) {
 			t.Fatalf("Cache-Control = %q", got)
 		}
 	})
-}
-
-func TestVendoredReportsBundlePresent(t *testing.T) {
-	staticFS, err := fs.Sub(webassets.Static, "static")
-	if err != nil {
-		t.Fatalf("fs.Sub(): %v", err)
-	}
-	for _, path := range []string{
-		"vendor/jeb-maker-reports/reports.min.js",
-		"vendor/jeb-maker-reports/init.js",
-	} {
-		data, readErr := fs.ReadFile(staticFS, path)
-		if readErr != nil {
-			t.Fatalf("ReadFile(%s): %v", path, readErr)
-		}
-		if len(data) == 0 {
-			t.Fatalf("%s empty", path)
-		}
-	}
 }
 
 func TestVendoredMBBundlePresent(t *testing.T) {

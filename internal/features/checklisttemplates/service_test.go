@@ -121,17 +121,12 @@ func TestService_PublishedVersionImmutable(t *testing.T) {
 		t.Fatalf("Create: %v", err)
 	}
 
-	err = svc.MutatePublishedItems(ctx, created.Version.ID, []store.TemplateItemInput{
-		{Label: "Hacked"},
-	})
-	if !errors.Is(err, checklisttemplates.ErrImmutable) {
-		t.Fatalf("MutatePublishedItems err = %v, want ErrImmutable", err)
-	}
-
-	// Direct store guard
 	err = svc.Store.ReplaceTemplateItems(ctx, created.Version.ID, []store.TemplateItemInput{{Label: "X"}})
 	if !errors.Is(err, store.ErrPublishedVersionImmutable) {
 		t.Fatalf("ReplaceTemplateItems err = %v", err)
+	}
+	if !errors.Is(err, checklisttemplates.ErrImmutable) {
+		t.Fatalf("ReplaceTemplateItems err = %v, want ErrImmutable alias", err)
 	}
 }
 

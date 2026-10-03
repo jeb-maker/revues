@@ -254,24 +254,6 @@ func (s *Store) ListSubjects(ctx context.Context, userID int64, admin bool, quer
 	return subjects, nil
 }
 
-// CountOrganizationSubjects returns the number of non-archived subjects in the
-// active organization. Org-scoped via context.
-func (s *Store) CountOrganizationSubjects(ctx context.Context) (int, error) {
-	orgID, err := organizationIDFromContext(ctx)
-	if err != nil {
-		return 0, err
-	}
-	var count int
-	err = s.db.QueryRowContext(ctx, `
-		SELECT COUNT(*) FROM subjects
-		WHERE organization_id = ? AND archived_at IS NULL
-	`, orgID).Scan(&count)
-	if err != nil {
-		return 0, fmt.Errorf("count organization subjects: %w", err)
-	}
-	return count, nil
-}
-
 // ListVisibleSubjectIDs returns up to limit subject ids visible to the user (name order).
 // Used for simple-UI detection without loading full subject rows.
 func (s *Store) ListVisibleSubjectIDs(ctx context.Context, userID int64, admin bool, limit int) ([]int64, error) {
@@ -521,44 +503,4 @@ func (s *Store) RemoveSubjectMember(ctx context.Context, subjectID, userID int64
 		return err
 	}
 	return nil
-}
-
-// CountSubjectLeads returns org owner/admin count for the subject's organization (v1).
-func (s *Store) CountSubjectLeads(ctx context.Context, subjectID int64) (int, error) {
-	orgID, err := organizationIDFromContext(ctx)
-	if err != nil {
-		return 0, err
-	}
-
-	var count int
-	err = s.db.QueryRowContext(ctx, `
-		SELECT COUNT(*)
-		FROM organization_members om
-		INNER JOIN subjects s ON s.id = ? AND s.organization_id = om.organization_id
-		WHERE om.organization_id = ? AND om.role IN ('owner', 'admin')
-	`, subjectID, orgID).Scan(&count)
-	if err != nil {
-		return 0, fmt.Errorf("count subject leads: %w", err)
-	}
-	return count, nil
-}
-
-// Deprecated project aliases — kept for store tests; use Subject* APIs in new code.
-
-type Project = Subject
-
-func (s *Store) CreateProject(ctx context.Context, name, description string, creatorID int64, domains []string) (*Project, error) {
-	return s.CreateSubject(ctx, name, description, creatorID, domains)
-}
-
-func (s *Store) ProjectByID(ctx context.Context, id int64) (*Project, error) {
-	return s.SubjectByID(ctx, id)
-}
-
-func (s *Store) ListProjects(ctx context.Context, userID int64, admin bool, query string) ([]Project, error) {
-	return s.ListSubjects(ctx, userID, admin, query)
-}
-
-func (s *Store) AddProjectMember(ctx context.Context, subjectID, userID int64, role string) error {
-	return s.AddSubjectMember(ctx, subjectID, userID, role)
 }

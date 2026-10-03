@@ -134,25 +134,6 @@ func PoliciesFromOrganization(org *store.Organization) store.OrgLeadPolicies {
 	return org.LeadPolicies()
 }
 
-// CanAssignSubjectTeams reports whether the user may add/remove teams on a subject.
-// Org owner/admin and global admin always may; subject leads require policies.LeadsMayAssignTeams.
-// Org admin visibility alone is enough (no subject lead required — unlike CanLeadAccess).
-func CanAssignSubjectTeams(user *User, access store.SubjectAccess, policies store.OrgLeadPolicies) bool {
-	if !access.Visible {
-		return false
-	}
-	if auth.HasMinRole(user.Role, auth.RoleAdmin) {
-		return true
-	}
-	if access.HasSource(store.AccessSourceOrgAdmin) {
-		return true
-	}
-	if !policies.LeadsMayAssignTeams {
-		return false
-	}
-	return CanLeadAccess(user, access)
-}
-
 // CanInviteSubjectMember reports whether the user may add a direct subject member.
 // inviteeIsOrgMember selects leads_may_invite_members vs leads_may_invite_externals.
 // Org owner/admin and global admin always may.
@@ -191,22 +172,4 @@ func CanManageSubjectMembers(user *User, access store.SubjectAccess, policies st
 		return false
 	}
 	return policies.LeadsMayInviteMembers || policies.LeadsMayInviteExternals
-}
-
-const (
-	LocalRoleLead        = "lead"
-	LocalRoleContributor = "contributor"
-	LocalRoleViewer      = "viewer"
-)
-
-// DisplayRole returns a UI role label from resolved access.
-// Supervisors without a subject role are not shown as lead.
-func DisplayRole(access store.SubjectAccess) string {
-	if access.Role != "" {
-		return access.Role
-	}
-	if access.HasSource(store.AccessSourceOrgMemberLegacy) {
-		return LocalRoleContributor
-	}
-	return ""
 }

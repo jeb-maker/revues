@@ -230,36 +230,3 @@ func (s *Store) ResetWebhookDeliveryForRetry(ctx context.Context, id int64, next
 	}
 	return nil
 }
-
-// InsertWebhookDelivery records a one-shot delivery log row (legacy / immediate success path).
-// Prefer EnqueueWebhookDelivery + UpdateWebhookDeliveryAttempt for durable retries.
-func (s *Store) InsertWebhookDelivery(ctx context.Context, eventID, eventType, url string, statusCode int, success bool) error {
-	orgID, err := organizationIDFromContext(ctx)
-	if err != nil {
-		return err
-	}
-
-	now := time.Now().UTC().Format(time.RFC3339)
-	var code any
-	if statusCode > 0 {
-		code = statusCode
-	}
-	successInt := 0
-	if success {
-		successInt = 1
-	}
-	state := WebhookDeliveryDone
-	if !success {
-		state = WebhookDeliveryPoison
-	}
-	_, err = s.db.ExecContext(ctx, `
-		INSERT INTO webhook_deliveries (
-			organization_id, event_id, event_type, url, status_code, success, created_at,
-			payload, attempts, next_attempt_at, expires_at, state, last_error
-		) VALUES (?, ?, ?, ?, ?, ?, ?, NULL, 1, NULL, NULL, ?, NULL)
-	`, orgID, eventID, eventType, url, code, successInt, now, state)
-	if err != nil {
-		return fmt.Errorf("insert webhook delivery: %w", err)
-	}
-	return nil
-}

@@ -261,15 +261,6 @@ func (s *Service) Archive(ctx context.Context, user *store.User, templateID int6
 	return nil
 }
 
-// MutatePublishedItems always fails: published versions are immutable.
-func (s *Service) MutatePublishedItems(ctx context.Context, versionID int64, items []store.TemplateItemInput) error {
-	err := s.Store.ReplaceTemplateItems(ctx, versionID, items)
-	if errors.Is(err, store.ErrPublishedVersionImmutable) {
-		return fmt.Errorf("%w: %w", ErrImmutable, err)
-	}
-	return err
-}
-
 func normalizeWrite(name string, items []store.TemplateItemInput) (string, []store.TemplateItemInput, error) {
 	name = strings.TrimSpace(name)
 	if name == "" {

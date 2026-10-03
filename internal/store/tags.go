@@ -27,20 +27,6 @@ func NormalizeTags(tags []string) []string {
 	return out
 }
 
-// ParseTagsCSV splits a comma-separated tag field.
-func ParseTagsCSV(raw string) []string {
-	if strings.TrimSpace(raw) == "" {
-		return nil
-	}
-	parts := strings.Split(raw, ",")
-	return NormalizeTags(parts)
-}
-
-// FormatTagsCSV joins tags for form display.
-func FormatTagsCSV(tags []string) string {
-	return strings.Join(tags, ", ")
-}
-
 func normalizeTag(raw string) string {
 	tag := strings.ToLower(strings.TrimSpace(raw))
 	if len(tag) > maxTagLen {
@@ -124,35 +110,6 @@ func (s *Store) ListSubjectDomains(ctx context.Context, subjectID int64) ([]stri
 		return nil, fmt.Errorf("iterate subject domains: %w", err)
 	}
 	return domains, nil
-}
-
-// SetSubjectDomains replaces all matching domains on a subject.
-func (s *Store) SetSubjectDomains(ctx context.Context, subjectID int64, domains []string) error {
-	tags := NormalizeTags(domains)
-
-	tx, err := s.db.BeginTx(ctx, nil)
-	if err != nil {
-		return fmt.Errorf("begin tx: %w", err)
-	}
-	defer func() {
-		_ = tx.Rollback()
-	}()
-
-	if _, err := tx.ExecContext(ctx, `DELETE FROM subject_domains WHERE subject_id = ?`, subjectID); err != nil {
-		return fmt.Errorf("delete subject domains: %w", err)
-	}
-	for _, tag := range tags {
-		if _, err := tx.ExecContext(ctx, `
-			INSERT INTO subject_domains (subject_id, tag) VALUES (?, ?)
-		`, subjectID, tag); err != nil {
-			return fmt.Errorf("insert subject domain: %w", err)
-		}
-	}
-
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("commit subject domains: %w", err)
-	}
-	return nil
 }
 
 // ListTemplateDomains returns matching domains for a template ordered alphabetically.

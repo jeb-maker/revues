@@ -405,10 +405,6 @@ func SignBody(secret string, body []byte) string {
 	return "sha256=" + hex.EncodeToString(mac.Sum(nil))
 }
 
-func VerifySignature(secret string, body []byte, signature string) bool {
-	return hmac.Equal([]byte(SignBody(secret, body)), []byte(strings.TrimSpace(signature)))
-}
-
 func ValidateTargetURL(raw string, devMode bool) error {
 	if err := safehttp.ValidateURL(raw, devMode); err != nil {
 		if strings.Contains(err.Error(), "scheme") {
