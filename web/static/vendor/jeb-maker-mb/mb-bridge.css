@@ -1,79 +1,25 @@
 /*
-  Revues ↔ @jeb-maker/mb coexistence (tokens-core.css loaded separately).
+  Revues ↔ @jeb-maker/mb host bridge (tokens-core.css loaded first by ensureMb()).
 
-  Tradeoffs:
-  - Prefer tokens-core over tokens.css so Revues keeps html/body fonts & background.
-  - Remap mb accent/fonts to Revues shell tokens during dual-CSS wave (moss→blue).
-  - Skip typography.css / woff2 — components use --mb-font-* stacks (aliased below).
-  - mb dark scheme follows prefers-color-scheme; bridge does not force data-mb-color-scheme.
+  Rules:
+  - Never redeclare --mb-* tokens here: the former remap to the legacy shell
+    variables (--accent, --font-sans, --s-3…) left every token invalid once
+    app.css was removed, so mb-button/mb-badge rendered without colours.
+  - Only host-level layout for mb custom elements that are inline by default.
   - This file lives under vendor/ and is excluded from app CSS budgets in check.sh.
 */
 
-:root {
-  --mb-color-accent: var(--accent);
-  --mb-color-on-accent: #ffffff;
-  --mb-color-accent-soft: var(--accent-soft);
-  --mb-color-danger: var(--danger);
-  --mb-color-danger-soft: var(--danger-soft);
-  --mb-color-success: var(--success);
-  --mb-color-success-soft: var(--success-soft);
-  --mb-color-warning: var(--warning);
-  --mb-color-warning-soft: var(--warning-soft);
-  --mb-font-display: var(--font-sans);
-  --mb-font-body: var(--font-sans);
-}
-
-/* Pilot spacing — align with former .success/.error/.empty-state margins */
-.page-body > mb-alert,
-.page-body > mb-empty-state {
-  margin-inline: var(--content-padding-x);
-}
-
 mb-alert,
 mb-empty-state {
-  margin-block: var(--s-3);
   display: block;
+  margin-block: var(--mb-space-3);
 }
 
 mb-pagination {
-  margin-block-start: var(--s-3);
-}
-
-/* Keep progress host wrapper for HTMX OOB id targeting */
-.run-progress mb-progress {
   display: block;
+  margin-block-start: var(--mb-space-3);
 }
 
-/* Full-migration wave — host layout for mb form fields in stack forms */
-.stack-form mb-input,
-.stack-form mb-select,
-.stack-form mb-textarea,
-.stack-form mb-radio-group {
-  max-width: 26rem;
-  margin-block-end: 0.85rem;
-}
-.stack-form mb-checkbox {
-  margin-block-end: 0.5rem;
-}
-.stack-form details mb-input {
-  margin-block-start: 0.35rem;
-}
-fieldset mb-input {
-  margin-block-end: 0.85rem;
-}
-mb-input.list-toolbar__search {
-  flex: 1 1 12rem;
-  min-width: min(100%, 10rem);
-  max-width: 22rem;
-}
-.inline-form mb-button,
-.header-account mb-button,
-.org-switcher mb-button {
-  vertical-align: middle;
-}
-mb-badge.role-badge {
-  flex-shrink: 0;
-}
-.filter-bar mb-select {
-  min-inline-size: 8rem;
+mb-progress {
+  display: block;
 }
