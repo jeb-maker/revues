@@ -5,18 +5,21 @@ alwaysApply: true
 
 # Design Revues
 
+Stack UI : SvelteKit (SPA) + Web Components `@jeb-maker/mb` (voir `docs/FRONTEND.md`). Pages dans `frontend/src/routes/**/*.svelte`, styles dans les blocs `<style>` Svelte.
+
 ## Invariants
 
 - Esprit **Basecamp** : lisible, accessible, hiérarchie typographique, chrome minimal.
-- Composants UI : préférer `mb-*` (card, button, alert, badge, toolbar, breadcrumbs, input/select/textarea, **table**) ; CSS hôte pour layout (`.stack-form`, `.field-hint`/`.field-error`, `.table-scroll`, `.page-header`) ; `.data-table` réservé à l'éditeur de modèle.
-- Un seul bouton primaire plein par écran ; destructif = variante danger + `confirm()` ; pas d'info essentielle en `placeholder` (utiliser `.field-hint`).
-- Budgets éco : CSS core ≤ 24 Ko / 8 Ko gzip ; CSS total ≤ 40 Ko / 12 Ko gzip cumulé ; JS ≤ 15 Ko ; HTML ≤ 50 Ko/page — feuilles `run.css` / `editor.css` à la demande ; pas d'animation décorative, emoji, webfont ni image décorative.
-- UI **100 % en français** ; libellés via `formatItemStatus`, `formatRunStatus`, `formatRole` et `{{.Labels.*}}`.
+- Composants UI : préférer `mb-*` (button, alert, badge, input/textarea, tag, empty-state, spinner, **table**) avant du HTML natif restylé ; CSS hôte pour le layout seulement. Classes hôte en usage dans la SPA : `.page`, `.brand`, `.lede`, `.muted`, `.actions`, `.form`, `.field`, `.err`, `.crumbs`, `.admin-page`. Un `<table>` natif n'est admis que pour l'éditeur de modèle (`TemplateEditor.svelte`, DnD).
+- Un seul bouton primaire plein par écran ; destructif = `variant="danger"` + `confirm()` ; pas d'info essentielle en `placeholder` (utiliser un `hint` / texte d'aide visible).
+- Budgets éco : seuils JS/CSS **app** appliqués par `./scripts/check.sh` (détail dans `docs/PLAN.md`) ; vendor mb mesuré hors fail ; pas d'animation décorative, emoji, webfont ni image décorative.
+- UI **100 % en français** ; statuts, rôles et libellés métier passent par des helpers de libellés côté front (`frontend/src/lib/**`), jamais de code brut (`pending`, `nok`, `owner`…) affiché à l'utilisateur.
 
 ## Accessibilité
 
 - `aria-current` sur l'élément actif
 - `aria-live` sur les mises à jour dynamiques non critiques
-- `scope="col"` sur les en-têtes de tableau
+- `scope="col"` sur les en-têtes de tableau natif
 - `aria-label` sur les boutons symboles sans texte visible
-- `role="status"` / `role="alert"` sur les messages de retour
+- `role="status"` / `role="alert"` sur les messages de retour (ou `mb-alert`)
+- Les `mb-input` n'héritent pas du `<label>` hôte (shadow DOM) : fournir `label=` ou `aria-label`

@@ -1,5 +1,7 @@
 # Mapping WP → issues GitHub
 
+> **Historique** — tous les WP sont mergés (octobre 2026). Ce tableau n'est pas tenu à jour avec un statut : le suivi fait foi sur GitHub (issues fermées / PR mergées).
+
 Généré par `scripts/create-rewrite-issues.sh`.
 
 | WP | Issue | Titre |

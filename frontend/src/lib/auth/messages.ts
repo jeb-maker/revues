@@ -1,4 +1,4 @@
-/** Maps OAuth /login?error= codes to French copy (parity with internal/auth.LoginErrorMessage). */
+/** Maps OAuth /login?error= codes (emitted by /auth/github/callback) to French copy. */
 export function loginErrorMessage(code: string): string {
 	const trimmed = code.trim();
 	switch (trimmed) {
