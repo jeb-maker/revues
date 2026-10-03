@@ -91,6 +91,9 @@
 	const pageEnd = $derived(Math.min(offset + PAGE_SIZE, total));
 	const hasPrev = $derived(offset > 0);
 	const hasNext = $derived(offset + PAGE_SIZE < total);
+	const tableColumns = $derived(
+		boot.show_subject_column ? '2fr 1.2fr 1fr 0.7fr auto' : '2fr 1fr 0.7fr auto'
+	);
 </script>
 
 <svelte:head>
@@ -145,26 +148,36 @@
 				· {offset + 1}–{pageEnd}
 			{/if}
 		</p>
-		<ul class="card-list">
+		<mb-table columns={tableColumns} sticky-header>
+			<mb-table-row slot="head">
+				<mb-table-cell>Titre</mb-table-cell>
+				{#if boot.show_subject_column}
+					<mb-table-cell>{subject.singular}</mb-table-cell>
+				{/if}
+				<mb-table-cell>Statut</mb-table-cell>
+				<mb-table-cell>Progression</mb-table-cell>
+				<mb-table-cell>Actions</mb-table-cell>
+			</mb-table-row>
 			{#each runs as item (item.id)}
-				<li>
-					<a href={`/runs/${item.id}`}>
-						<strong>{item.title}</strong>
-						<span class="row">
-							{#if boot.show_subject_column}
-								<span class="muted">{item.subject_name}</span>
-							{/if}
-							<mb-badge variant={runStatusVariant(item.status)}>{formatRunStatus(item.status)}</mb-badge>
-							<span class="pct">{item.progress.percent} %</span>
-						</span>
-						<mb-progress
-							percent={item.progress.percent}
-							aria-label={`Progression ${item.progress.percent} %`}
-						></mb-progress>
-					</a>
-				</li>
+				<mb-table-row>
+					<mb-table-cell label="Titre" primary>
+						<a href={`/runs/${item.id}`}>{item.title}</a>
+					</mb-table-cell>
+					{#if boot.show_subject_column}
+						<mb-table-cell label={subject.singular}>{item.subject_name}</mb-table-cell>
+					{/if}
+					<mb-table-cell label="Statut">
+						<mb-badge variant={runStatusVariant(item.status)}>{formatRunStatus(item.status)}</mb-badge>
+					</mb-table-cell>
+					<mb-table-cell label="Progression">
+						<span class="pct">{item.progress.percent} %</span>
+					</mb-table-cell>
+					<mb-table-cell actions>
+						<a href={`/runs/${item.id}`}>Ouvrir</a>
+					</mb-table-cell>
+				</mb-table-row>
 			{/each}
-		</ul>
+		</mb-table>
 		{#if hasPrev || hasNext}
 			<p class="actions">
 				<mb-button variant="secondary" disabled={!hasPrev} onclick={() => goPage(offset - PAGE_SIZE)}>
@@ -182,19 +195,7 @@
 	.toolbar {
 		margin-top: var(--mb-space-3);
 	}
-	.row {
-		display: flex;
-		flex-wrap: wrap;
-		gap: var(--mb-space-2);
-		align-items: center;
-		margin-top: var(--mb-space-1);
-		font-size: var(--mb-font-size-sm);
-	}
 	.pct {
-		margin-left: auto;
 		font-variant-numeric: tabular-nums;
-	}
-	mb-progress {
-		margin: var(--mb-space-2) 0 0;
 	}
 </style>
