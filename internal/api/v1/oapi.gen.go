@@ -82,6 +82,14 @@ const (
 	RunSummaryStatusInProgress RunSummaryStatus = "in_progress"
 )
 
+// Defines values for SearchResultKind.
+const (
+	Run      SearchResultKind = "run"
+	Subject  SearchResultKind = "subject"
+	Task     SearchResultKind = "task"
+	Template SearchResultKind = "template"
+)
+
 // Defines values for SubjectDetailVisibility.
 const (
 	SubjectDetailVisibilityNormal  SubjectDetailVisibility = "normal"
@@ -702,6 +710,31 @@ type SMTPTestRequest struct {
 	Recipient *openapi_types.Email `json:"recipient,omitempty"`
 }
 
+// SearchResponse defines model for SearchResponse.
+type SearchResponse struct {
+	Results []SearchResult `json:"results"`
+
+	// TotalByKind Nombre de matches par kind avant plafond `limit`
+	TotalByKind map[string]int `json:"total_by_kind"`
+}
+
+// SearchResult defines model for SearchResult.
+type SearchResult struct {
+	// Href Chemin SPA relatif (ex. /subjects/12)
+	Href string `json:"href"`
+
+	// Id Identifiant de l'entité (item id pour kind=task)
+	Id   int64            `json:"id"`
+	Kind SearchResultKind `json:"kind"`
+
+	// Subtitle Contexte court (sujet, domaines, section…)
+	Subtitle *string `json:"subtitle,omitempty"`
+	Title    string  `json:"title"`
+}
+
+// SearchResultKind defines model for SearchResultKind.
+type SearchResultKind string
+
 // SelectOrganizationRequest defines model for SelectOrganizationRequest.
 type SelectOrganizationRequest struct {
 	OrganizationId int64 `json:"organization_id"`
@@ -1050,6 +1083,15 @@ type UploadRunItemAttachmentMultipartBody struct {
 	File openapi_types.File `json:"file"`
 }
 
+// GetSearchParams defines parameters for GetSearch.
+type GetSearchParams struct {
+	// Q Texte libre (trim ; whitespace seul → 400)
+	Q string `form:"q" json:"q"`
+
+	// Limit Plafond de résultats par kind (défaut 10, max 25)
+	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
 // ListSubjectsParams defines parameters for ListSubjects.
 type ListSubjectsParams struct {
 	// Q Filtre texte (nom / description)
@@ -1289,6 +1331,9 @@ type ServerInterface interface {
 	// Lier une issue Jira existante au point
 	// (PUT /runs/{runId}/items/{itemId}/jira)
 	PutRunItemJiraLink(w http.ResponseWriter, r *http.Request, runId RunId, itemId RunItemId)
+	// Recherche multi-entités
+	// (GET /search)
+	GetSearch(w http.ResponseWriter, r *http.Request, params GetSearchParams)
 	// Liste des sujets de l'org active
 	// (GET /subjects)
 	ListSubjects(w http.ResponseWriter, r *http.Request, params ListSubjectsParams)
@@ -1649,6 +1694,12 @@ func (_ Unimplemented) PostRunItemJiraCreate(w http.ResponseWriter, r *http.Requ
 // Lier une issue Jira existante au point
 // (PUT /runs/{runId}/items/{itemId}/jira)
 func (_ Unimplemented) PutRunItemJiraLink(w http.ResponseWriter, r *http.Request, runId RunId, itemId RunItemId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Recherche multi-entités
+// (GET /search)
+func (_ Unimplemented) GetSearch(w http.ResponseWriter, r *http.Request, params GetSearchParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -2823,6 +2874,48 @@ func (siw *ServerInterfaceWrapper) PutRunItemJiraLink(w http.ResponseWriter, r *
 	handler.ServeHTTP(w, r)
 }
 
+// GetSearch operation middleware
+func (siw *ServerInterfaceWrapper) GetSearch(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetSearchParams
+
+	// ------------- Required query parameter "q" -------------
+
+	if paramValue := r.URL.Query().Get("q"); paramValue != "" {
+
+	} else {
+		siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "q"})
+		return
+	}
+
+	err = runtime.BindQueryParameter("form", true, true, "q", r.URL.Query(), &params.Q)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "q", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "limit", r.URL.Query(), &params.Limit)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetSearch(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // ListSubjects operation middleware
 func (siw *ServerInterfaceWrapper) ListSubjects(w http.ResponseWriter, r *http.Request) {
 
@@ -3560,6 +3653,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Put(options.BaseURL+"/runs/{runId}/items/{itemId}/jira", wrapper.PutRunItemJiraLink)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/search", wrapper.GetSearch)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/subjects", wrapper.ListSubjects)
