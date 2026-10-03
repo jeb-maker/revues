@@ -1,10 +1,11 @@
 /**
  * Presets org `ui_run_label` / `ui_subject_label` (colonnes organizations).
- * Marque produit « Revues » inchangée — seuls les libellés d'instances / sujets changent.
+ * Marque produit « Revues » inchangée — seuls les libellés d'instances / conteneurs changent.
+ * Défaut produit conteneur = projet (code API : subjects).
  */
 
 export type RunLabelPreset = 'revues' | 'listes_en_cours' | 'audits' | 'checklists';
-export type SubjectLabelPreset = 'sujet' | 'cible' | 'entite' | 'asset';
+export type SubjectLabelPreset = 'projet' | 'sujet' | 'cible' | 'entite' | 'asset';
 
 export type RunUILabels = {
 	preset: RunLabelPreset;
@@ -60,6 +61,7 @@ const RUN_PRESETS: Record<RunLabelPreset, Omit<RunUILabels, 'preset'>> = {
 };
 
 const SUBJECT_PRESETS: Record<SubjectLabelPreset, Omit<SubjectUILabels, 'preset'>> = {
+	projet: { singular: 'Projet', plural: 'Projets' },
 	sujet: { singular: 'Sujet', plural: 'Sujets' },
 	cible: { singular: 'Cible', plural: 'Cibles' },
 	entite: { singular: 'Entité', plural: 'Entités' },
@@ -75,7 +77,7 @@ function asRunPreset(raw: string | null | undefined): RunLabelPreset {
 function asSubjectPreset(raw: string | null | undefined): SubjectLabelPreset {
 	const v = (raw ?? '').trim().toLowerCase();
 	if (v in SUBJECT_PRESETS) return v as SubjectLabelPreset;
-	return 'sujet';
+	return 'projet';
 }
 
 export function runLabels(preset?: string | null): RunUILabels {

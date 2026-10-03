@@ -6,19 +6,16 @@ import (
 
 	"github.com/jeb-maker/revues/internal/features/admin/settings"
 	"github.com/jeb-maker/revues/internal/integrations/jira"
-	"github.com/jeb-maker/revues/internal/integrations/notion"
 )
 
 const (
 	IntegrationKeySMTP     = "smtp"
 	IntegrationKeyJira     = "jira"
-	IntegrationKeyNotion   = "notion"
 	IntegrationKeyWebhooks = "webhooks"
 
 	integrationPathSMTP     = "/admin/settings/smtp"
 	integrationPathWebhooks = "/admin/settings/webhooks"
 	integrationPathJira     = "/admin/integrations/jira"
-	integrationPathNotion   = "/admin/integrations/notion"
 )
 
 // IntegrationSummary describes one integration row on the admin overview.
@@ -39,7 +36,6 @@ type IntegrationsOverview struct {
 type IntegrationsService struct {
 	Settings *settings.SettingsService
 	Jira     *jira.Service
-	Notion   *notion.Service
 }
 
 // Overview returns the configured status of every integration.
@@ -49,9 +45,6 @@ func (s *IntegrationsService) Overview(ctx context.Context) (IntegrationsOvervie
 	}
 	if s.Jira == nil {
 		return IntegrationsOverview{}, fmt.Errorf("jira service required")
-	}
-	if s.Notion == nil {
-		return IntegrationsOverview{}, fmt.Errorf("notion service required")
 	}
 	smtpEnabled, err := s.smtpEnabled(ctx)
 	if err != nil {
@@ -65,15 +58,10 @@ func (s *IntegrationsService) Overview(ctx context.Context) (IntegrationsOvervie
 	if err != nil {
 		return IntegrationsOverview{}, err
 	}
-	notionEnabled, err := s.notionEnabled(ctx)
-	if err != nil {
-		return IntegrationsOverview{}, err
-	}
 	return IntegrationsOverview{
 		Items: []IntegrationSummary{
 			{Key: IntegrationKeySMTP, Name: "SMTP", Description: "Relais email pour les notifications.", Enabled: smtpEnabled, ConfigPath: integrationPathSMTP},
 			{Key: IntegrationKeyJira, Name: "Jira", Description: "Lier et créer des tickets depuis les revues.", Enabled: jiraEnabled, ConfigPath: integrationPathJira},
-			{Key: IntegrationKeyNotion, Name: "Notion", Description: "Archiver et importer des contenus depuis Notion.", Enabled: notionEnabled, ConfigPath: integrationPathNotion},
 			{Key: IntegrationKeyWebhooks, Name: "Webhooks", Description: "Notifications JSON signées vers des URLs externes.", Enabled: webhooksEnabled, ConfigPath: integrationPathWebhooks},
 		},
 	}, nil
@@ -105,17 +93,6 @@ func (s *IntegrationsService) jiraEnabled(ctx context.Context) (bool, error) {
 	cfg, ok, err := s.Jira.Load(ctx)
 	if err != nil {
 		return false, fmt.Errorf("load jira: %w", err)
-	}
-	if !ok {
-		return false, nil
-	}
-	return cfg.Configured(), nil
-}
-
-func (s *IntegrationsService) notionEnabled(ctx context.Context) (bool, error) {
-	cfg, ok, err := s.Notion.Load(ctx)
-	if err != nil {
-		return false, fmt.Errorf("load notion: %w", err)
 	}
 	if !ok {
 		return false, nil

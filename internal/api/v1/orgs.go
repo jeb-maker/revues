@@ -1,11 +1,13 @@
 package apiv1
 
 import (
+	"context"
 	"errors"
 	"log/slog"
 	"net/http"
 	"strings"
 
+	"github.com/jeb-maker/revues/internal/auth"
 	"github.com/jeb-maker/revues/internal/features/organizations"
 	"github.com/jeb-maker/revues/internal/store"
 	appmiddleware "github.com/jeb-maker/revues/internal/web/middleware"
@@ -32,7 +34,7 @@ func (s *Server) ListOrganizations(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resp := OrganizationListResponse{
-		Organizations: mapMemberships(result.Memberships),
+		Organizations: mapMemberships(r.Context(), s.Store, user, result.Memberships, result.ActiveOrganizationID),
 		Invitations:   mapInvitations(result.Invitations),
 		CanCreate:     result.CanCreate,
 		Redirect:      &result.Redirect,
@@ -75,7 +77,7 @@ func (s *Server) CreateOrganization(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusCreated, OrganizationActionResponse{
-		Organization: mapOrganization(result.Organization, result.Role),
+		Organization: mapOrganization(r.Context(), s.Store, user, result.Organization, result.Role, true),
 		Redirect:     result.Redirect,
 	})
 }
@@ -102,7 +104,7 @@ func (s *Server) SelectActiveOrganization(w http.ResponseWriter, r *http.Request
 	}
 
 	writeJSON(w, http.StatusOK, OrganizationActionResponse{
-		Organization: mapOrganization(result.Organization, result.Role),
+		Organization: mapOrganization(r.Context(), s.Store, user, result.Organization, result.Role, true),
 		Redirect:     result.Redirect,
 	})
 }
@@ -123,7 +125,7 @@ func (s *Server) AcceptOrganizationInvitation(w http.ResponseWriter, r *http.Req
 	}
 
 	writeJSON(w, http.StatusOK, OrganizationActionResponse{
-		Organization: mapOrganization(result.Organization, result.Role),
+		Organization: mapOrganization(r.Context(), s.Store, user, result.Organization, result.Role, true),
 		Redirect:     result.Redirect,
 	})
 }
@@ -163,10 +165,10 @@ func orgValidationMessage(err error) string {
 	}
 }
 
-func mapMemberships(ms []store.OrganizationMembership) []Organization {
+func mapMemberships(ctx context.Context, st *store.Store, user *store.User, ms []store.OrganizationMembership, activeOrgID int64) []Organization {
 	out := make([]Organization, 0, len(ms))
 	for _, m := range ms {
-		out = append(out, mapOrganization(&m.Organization, m.Role))
+		out = append(out, mapOrganization(ctx, st, user, &m.Organization, m.Role, m.Organization.ID == activeOrgID))
 	}
 	return out
 }
@@ -185,12 +187,13 @@ func mapInvitations(invites []store.OrganizationInvitation) []OrganizationInvita
 	return out
 }
 
-func mapOrganization(org *store.Organization, role string) Organization {
+func mapOrganization(ctx context.Context, st *store.Store, user *store.User, org *store.Organization, role string, includeSubjectCount bool) Organization {
 	o := Organization{
-		Id:   org.ID,
-		Name: org.Name,
-		Slug: org.Slug,
-		Role: role,
+		Id:          org.ID,
+		Name:        org.Name,
+		Slug:        org.Slug,
+		Role:        role,
+		MemberCount: 0,
 	}
 	if org.UISubjectLabel != "" {
 		label := org.UISubjectLabel
@@ -199,6 +202,18 @@ func mapOrganization(org *store.Organization, role string) Organization {
 	if org.UIRunLabel != "" {
 		label := org.UIRunLabel
 		o.UiRunLabel = &label
+	}
+	if st != nil {
+		if n, err := st.CountOrganizationMembers(ctx, org.ID); err == nil {
+			o.MemberCount = n
+		}
+		if includeSubjectCount && user != nil {
+			admin := user.Role == auth.RoleAdmin
+			if subjects, err := st.ListSubjects(ctx, user.ID, admin, ""); err == nil {
+				n := len(subjects)
+				o.VisibleSubjectCount = &n
+			}
+		}
 	}
 	return o
 }

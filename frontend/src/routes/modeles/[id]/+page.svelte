@@ -61,12 +61,15 @@
 					· domaines : {detail.domains.join(', ')}
 				{/if}
 			</p>
-			{#if detail.can_manage}
-				<p class="actions">
-					<mb-button href={`/modeles/${detail.id}/edit`} variant="primary">Modifier</mb-button>
+			<p class="actions">
+				<mb-button href={`/subjects?template_id=${detail.id}`} variant="primary">
+					Lancer avec ce modèle
+				</mb-button>
+				{#if detail.can_manage}
+					<mb-button href={`/modeles/${detail.id}/edit`} variant="secondary">Modifier</mb-button>
 					<mb-button variant="danger" onclick={onArchive}>Archiver</mb-button>
-				</p>
-			{/if}
+				{/if}
+			</p>
 		</header>
 
 		<section class="section">

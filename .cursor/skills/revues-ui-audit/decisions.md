@@ -8,19 +8,19 @@ Stack (octobre 2026) : SvelteKit SPA + `@jeb-maker/mb`, API JSON `/api/v1`. Rout
 
 | Sujet | Décision |
 |-------|----------|
-| Page d'accueil connectée | **`/` → `/runs`** — revues = hub principal. **À trancher** : la SPA sert sur `/` une page hub (liens Sujets · Modèles · Revues · Mes tâches · Administration) au lieu de rediriger vers `/runs` |
-| Post-login (1 org) | **`/runs`** — plus `/subjects`. **À trancher** : `bootstrap.redirect` renvoie `/` quand une org est active |
-| CTA « Lancer une revue » sur `/runs` | **Oui** — toolbar + empty states ; lancement via `/subjects/{id}/launch` (choix du modèle). **À trancher** : la page SPA `/runs` n'a pas encore ce CTA (seule la fiche sujet le porte) |
+| Page d'accueil connectée | **`/` → `/runs`** — revues = hub principal. La SPA redirige `/` authentifié (org active) vers `/runs`. |
+| Post-login (1 org) | **`/runs`** — `bootstrap.redirect` / `PostLoginRoute` = `/runs` (plus `/`). |
+| CTA « Lancer une revue » sur `/runs` | **Oui** — toolbar + empty states ; lien vers `/subjects` (choix projet) puis `/subjects/{id}/launch`. |
 | CTA fiche sujet | **Conservé** — lancement depuis un sujet connu reste possible |
-| CTA fiche modèle `/modeles/{id}` | **Oui** — « Lancer avec ce modèle » → choix du sujet puis `/subjects/{id}/launch` avec modèle présélectionné ; pas de lancement sans sujet (matching domaines). **À trancher** : absent de la fiche modèle SPA |
+| CTA fiche modèle `/modeles/{id}` | **Oui** — « Lancer avec ce modèle » → `/subjects` avec `?template_id=` puis launch avec modèle présélectionné (`?template_id=` sur `/subjects/{id}/launch`). |
 | Stepper wizard | **Supprimé** — fil d'Ariane ; **2 étapes** (sujet → modèle via `/subjects/{id}/launch`, clic = lancer) |
 | Titre de page (H1) | **Visible** — `.page-title` = dernier crumb |
 | Fil d'Ariane | **Ancêtres seulement** (≥ 2 niveaux) ; **absent** sur pages racine (1 crumb) — le courant = H1 |
 | Saisie points (revue en cours) | **Sans confirm** sur changement de statut ; confirm **uniquement** à la clôture |
 | Clôturer | `mb-button` **primary** + `confirm()` ; pas `variant="danger"` |
-| Fiche point | **Satellite** PJ / Jira / historique — saisie statut/commentaire dans la grille ; lien **Détails** discret |
+| Fiche point | **Satellite** PJ / Jira / historique / assign — saisie **statut** aussi en grille sur la fiche revue ; lien **Détails** pour le reste |
 | Statut revue à la création | **Directement `in_progress`** — pas d'étape brouillon ni CTA « Démarrer » (legacy `draft` encore démarable) |
-| Liste `/runs` | **Pagination** — 25 par page, total affiché. **À trancher** : la page SPA `/runs` filtre par statut (`?status=`) sans pagination visible |
+| Liste `/runs` | **Pagination** — 25 par page, total affiché ; filtres `?status=` / `?q=` / `?offset=` dans l’URL |
 | Post-CRUD sujet | **Créer** (`/subjects/new`) → redirect fiche `/subjects/{id}` (hub métier) ; **modifier / archiver** inline sur la fiche `/subjects/{id}` (capabilities `can_manage`) — plus de routes `/admin/subjects*` |
 | Colonne « Auteur » sur `/runs` | **Non** — placeholder sans « auteur » ; recherche SQL par login conservée |
 | Titre de revue (UI) | **Supprimé** — pas de champ titre à la création ni en liste (issue parallèle) |
@@ -33,10 +33,15 @@ Stack (octobre 2026) : SvelteKit SPA + `@jeb-maker/mb`, API JSON `/api/v1`. Rout
 | Colonne Sujet `/runs` | ≥2 sujets visibles (P2) |
 | Nav « Mes tâches » | **`ShowMyTasks`** — ≥2 membres org (P1) |
 | Fiche sujet Équipes/Membres | **`ShowCollab`** — ≥2 membres ; sinon layout « revues d’abord » |
-| Placement CTA | **Listes** : primaire dans la toolbar de la carte (pas sous le H1). **Formulaires** : primaire en bas **dans** la dernière carte (carte Archiver / danger-zone = exception). **Un seul** `mb-button` primary par écran ; secondaires en `variant="secondary"` / `ghost`. Export CSV revue terminée = secondary. |
+| Placement CTA | **Listes** : primaire dans la toolbar de la carte (pas sous le H1). **Formulaires** : primaire en bas **dans** la dernière carte (carte Archiver / danger-zone = exception). **Un seul** `mb-button` primary par écran ; secondaires en `variant="secondary"` / `ghost`. Si export CSV un jour : secondary (pas preuve). |
 | Statut vs progression (cartes revue) | **Option 1+5** : badge omis si `in_progress` (la progression suffit) ; colonne Statut **absente en SimpleUI**. Badge conservé pour brouillon / terminée / archivée hors SimpleUI. |
 | Libellé runs (instances) | Preset org `ui_run_label` : `revues` (défaut) · `listes_en_cours` · `audits` · `checklists`. Surface : nav, H1, breadcrumbs, empty states, CTA. Particulier (seed) = `listes_en_cours` ; mobile nav short = « En cours ». Marque produit « Revues » inchangée. |
 | Accès revues terminées / filtres | Liste `/runs` : filtre **Tous · En cours · Terminées · En retard** (`?status=` ; `overdue` = en retard). Clôture : `POST /runs/{id}/complete` puis rechargement de la fiche côté SPA. |
+| Preuve ZIP / hash CSV (produit) | **Abandonnée** — le pack « preuve » (SHA256 scellé + ZIP) est du théâtre conformité ; la traçabilité métier (`run_item_events`, snapshot, `completed_at`, `closing_note`, auteur) suffit. Ne pas re-exposer de CTA « Télécharger la preuve » ni traiter `HasEvidence` comme surface P3. Colonne `evidence_csv_sha256` : interne / legacy, pas un argument produit. |
+| Attestation de clôture | **Oui (cible)** — sur fiche revue `done` : encart « Clôturée par X le … » + note de clôture ; optionnellement confirmation explicite à la clôture. Responsabilité humaine visible, pas crypto. |
+| Export CSV | **Utilitaire** éventuel (tableur / archive) en `secondary` — **sans** le vendre comme preuve. Pas prioritaire tant que l’attestation (et plus tard Confluence) couvrent l’archive lisible. |
+| Notion (intégration) | **Retirée du périmètre produit** — pas de demande claire, non validée E2E. Ne plus exposer admin / import modèles / export revue / `can_export_notion` dans la SPA. Code et routes API : à retirer (PR `area:integrations` dédiée) ou laisser mort jusqu’à cette PR ; ne pas corriger / étendre. Réintro seulement sur signal d’usage. |
+| Archive doc (cible) | **Confluence** (éventuel, plus cohérent avec Jira Cloud) — pas commencé ; pas de promesse de date. Pas de second silo Notion en parallèle. |
 | Colonne Sujet `/mes-taches` | **Toujours visible** quand `ShowMyTasks` (P1) — pas gated par `ShowSubjectColumn` (utile même en mono-sujet pour distinguer les tâches) |
 | Breadcrumb fiche sujet | Ancêtre → **`/subjects`** |
 
@@ -52,36 +57,37 @@ Flags d'origine (legacy `middleware.resolveUICaps` → `PageData`, **supprimés*
 | `ShowAssign` / `ShowMyTasks` / `ShowCollab` | ≥2 membres org | P1 |
 | `ShowSubjectColumn` | ≥2 sujets visibles | P2 |
 | `HasJira` | intégration Jira **configurée** (org active) | P3 |
-| `HasNotion` | intégration Notion **configurée** (token présent) | P3 |
+| `HasNotion` | **Obsolète (produit)** — Notion hors périmètre | — |
 | `HasWebhooks` | webhooks **activés** (URLs + secret) | P3 |
-| `HasEvidence` | preuve **scellée** sur la fiche revue (`done` + hash CSV) — page-scoped | P3 |
+| `HasEvidence` | **Obsolète (produit)** — ne plus utiliser ; voir décision « Preuve ZIP / hash CSV » | — |
 
 | Palier | Déclencheur | Surface |
 |--------|-------------|---------|
-| **P0 — Particulier** | `SimpleUI` | Listes en cours (nav mobile « En cours ») · Listes ; cocher ; CSV ; pas assign / tâches / collab |
+| **P0 — Particulier** | `SimpleUI` | Listes en cours (nav mobile « En cours ») · Listes ; cocher ; pas assign / tâches / collab |
 | **P1 — Duo** | 2ᵉ **membre** (pas seulement whitelist) | + Assignation · Mes tâches · collab fiche sujet · onglet Organisation si whitelist/membres |
 | **P2 — Multi-sujet** | ≥2 sujets | + Colonne Sujet · domaines · vocabulaire « Modèles » |
-| **P3 — Conformité** | Intégration configurée / preuve scellée | Notion/Jira/webhooks/preuve restent **capability-gated** (config ou hash), pas masqués par SimpleUI |
+| **P3 — Conformité** | Intégration configurée | Jira/webhooks **capability-gated** (config), pas masqués par SimpleUI ; **pas** Notion ni « preuve » |
 
-**À trancher** : la SPA n'implémente pas ces paliers (aucun flag `SimpleUI` / `ShowAssign` / `ShowSubjectColumn` exposé par l'API ; seules des `capabilities.can_*` par ressource existent dans `openapi.yaml`). Réimplémenter la progressive disclosure côté front ou acter son abandon.
+**Acté (SPA minimale)** : pas de flags legacy `SimpleUI` côté API. Heuristiques front : **Modèles** masqués si `!can_edit` (reader) ; **Mes tâches** si `member_count ≥ 2` (champ org) ; colonne sujet `/runs` si `visible_subject_count ≥ 2`. Capabilities `can_*` par ressource inchangées. Plein SimpleUI (vocabulaire listes, etc.) reste icebox hors presets `ui_*`.
 
-**Partiel livré** : les presets `ui_run_label` / `ui_subject_label` de l'org active sont consommés par la nav, le hub `/` et les H1 `/runs` · `/subjects` · `/modeles` (`frontend/src/lib/i18n/uiLabels.ts`). Vocabulaire « Listes » pour les modèles si `ui_run_label=listes_en_cours` (heuristique particulier, en attendant `ShowSubjectColumn`). Pas encore d'écran admin pour changer les presets.
+**Partiel livré** : les presets `ui_run_label` / `ui_subject_label` de l'org active sont consommés par la nav, le hub `/` et les H1 `/runs` · `/subjects` · `/modeles` (`frontend/src/lib/i18n/uiLabels.ts`). Vocabulaire « Listes » pour les modèles si `ui_run_label=listes_en_cours` (heuristique particulier, en attendant `ShowSubjectColumn`). Défaut produit libellé conteneur = **projet** (fallback front si preset vide/inconnu) ; orgs déjà en base avec `sujet` gardent « Sujet » jusqu’à migration/admin. Pas encore d'écran admin pour changer les presets.
 
 ### Matrice capability P3
 
-P3 n’est **pas** un unlock structurel : dans le legacy, les flags org (`HasJira` / `HasNotion` / `HasWebhooks`) étaient résolus via la config chiffrée et `HasEvidence` posé par la fiche revue (hash scellé). Dans la SPA, l'équivalent est porté par les capabilities par ressource (`can_link`, `can_export_notion`) et les écrans `/admin/integrations/*`.
+P3 n’est **pas** un unlock structurel : flags org legacy (`HasJira` / `HasWebhooks` ; ~~`HasNotion`~~ retiré produit). `HasEvidence` abandonné. Dans la SPA, P3 = `can_link` (Jira) + écrans `/admin/integrations/*` (sans Notion).
 
 | Surface | Gate PageData | Gate page-spécifique (héritage B4b/B4c) | Visible si SimpleUI ? |
 |---------|---------------|------------------------------------------|------------------------|
 | Lien / création Jira (point NOK) | `HasJira` | `JiraConfigured` (= `HasJira`) | Oui, si Jira configuré |
-| Import Notion (`/modeles/…`) | `HasNotion` | `NotionConfigured` (= `HasNotion`) | Oui, si Notion configuré |
-| Export Notion (revue `done`) | `HasNotion` (prérequis token) | `NotionConfigured` = **ExportReady** (token + base) | Oui, si export ready |
+| Import / export / admin Notion | ~~`HasNotion`~~ | **Non** — hors périmètre | — |
 | Admin webhooks / overview | `HasWebhooks` | `Configured` / overview Enabled | N/A (admin org) |
-| Hash + ZIP preuve (revue `done`) | `HasEvidence` | `CanExportEvidence` (= `HasEvidence`) | Oui, si hash scellé |
+| Attestation de clôture (fiche `done`) | — | Toujours si `done` (qui / quand / note) | Oui |
+| Hash + ZIP preuve | ~~`HasEvidence`~~ | **Non** — ne pas réintroduire | — |
+| Archive Confluence | — | **Cible future**, pas livré | — |
 
 Règles :
 1. **SimpleUI ne masque jamais** une surface P3 dont la capability est vraie.
-2. **Absence de config / hash** → CTA masqué ou message « non configuré », pas une erreur opaque.
+2. **Absence de config** → CTA masqué ou message « non configuré », pas une erreur opaque.
 3. Admin « configurer l’intégration » reste RBAC org owner/admin (voir `docs/RBAC.md`) — orthogonal aux flags UI.
 
 Principes :
@@ -112,7 +118,7 @@ Principes :
 | `subject_domains` / `template_domains` | **Domaines** — matching modèle↔sujet (intersection ; modèle sans domaine = tous sujets) |
 | `subject_tags` | **Étiquettes** — descriptif uniquement, pas de filtrage modèle |
 | Colonne modèles index `/modeles` | **Domaines** (plus « Tags ») — aligner placeholder recherche |
-| Libellé sujet (org) | Preset admin `ui_subject_label` ∈ {sujet, cible, entite, asset} — défaut `sujet` (champ `Organization.ui_subject_label`). **À trancher** : plus d'écran d'édition ni de consommation front |
+| Libellé conteneur (org) | Preset `ui_subject_label` ∈ {**projet** (défaut produit), sujet, cible, entite, asset}. Code/API restent `subjects` ; l’UI dit **Projet(s)** par défaut. `sujet` reste disponible (ton audit). **Schéma** : CHECK/DEFAULT SQL encore sur `sujet` sans `projet` — migration `area:data` requise pour persister le preset. Consommation front partielle (`uiLabels.ts`) ; pas encore d'écran admin. |
 | Item `nok` | **Non validé** (code `nok` inchangé) |
 | Rôles (`lead`, `reader`…) | Français via un helper de libellés front (`formatRole`) |
 | Statuts item / revue | Français via helpers de libellés front (`formatItemStatus` / `formatRunStatus`) |
@@ -140,4 +146,6 @@ Principes :
 
 ## Dette doc connue
 
-Points **À trancher** (code SPA ≠ décision, laissés en l'état volontairement) : redirection `/` → `/runs` et post-login ; CTA « Lancer une revue » sur `/runs` et `/modeles/{id}` ; pagination `/runs` ; format H1 fiche revue ; progressive disclosure (paliers P0–P3 sans flags API) ; preset `ui_subject_label` sans écran ; barre de navigation commune ; schéma de couleur (fond sombre dégradé actuel vs thème clair mb « Basecamp » de la charte).
+Points encore ouverts : format H1 fiche revue (sans #id) ; écran admin presets `ui_*` ; schéma de couleur (fond sombre vs thème clair mb) ; SimpleUI vocabulaire listes complet ; Confluence archive ; CSV utilitaire.
+
+**Livré (session)** : `/` + post-login → `/runs` ; CTA lancer `/runs` + modèle ; pagination + filtres URL ; historique revues fiche sujet ; grille statut inline + attestation clôture ; disclosure nav (modeles/readers, mes-tâches ≥2, colonne sujet ≥2) ; garde `/admin` ; webhooks dans AdminNav ; migration `projet` + `completed_by` ; Notion retiré.

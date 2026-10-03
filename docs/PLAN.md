@@ -8,7 +8,7 @@ Application de gestion de check-lists pour revues qualité.
 
 ## Vision
 
-> **Revues** exécute et trace les revues ; **Jira** traite les `nok` ; **webhooks** notifient le reste de la stack ; **Notion** archive et documente.
+> **Revues** exécute et trace les revues ; **Jira** traite les `nok` ; **webhooks** notifient le reste de la stack.
 
 Remplace Excel, fils de mails et check-lists éparpillées, sans devenir une usine à gaz.
 
@@ -45,7 +45,7 @@ Go + chi + OpenAPI (codegen) + sqlc
 SvelteKit (SPA) + @jeb-maker/mb
 SQLite (WAL) + goose
 OAuth2 GitHub · sessions cookie + CSRF
-SMTP · Jira / webhooks / Notion
+SMTP · Jira / webhooks
 Caddy · 1 binaire · 1 VM
 ```
 
@@ -60,7 +60,7 @@ revues/
     auth/             # OAuth, sessions, CSRF, RBAC
     features/         # services métier (vertical)
     store/            # SQL (sqlc)
-    integrations/     # jira, notion, webhooks
+    integrations/     # jira, webhooks
     notifications/ attachments/ crypto/ config/
     web/              # router API, middleware, static SPA
   migrations/
@@ -145,7 +145,7 @@ erDiagram
 3. Fiche sujet — revues, collab (équipes/membres si P1+), domaines/étiquettes si multi-sujet
 4. Liste / éditeur modèles ou listes (vocabulaire via `ShowSubjectColumn`)
 5. Assistant lancement revue (`/revues/nouvelle`) — **2 étapes** (sujet → modèle/liste)
-6. Détail revue — points (SvelteKit + mb), progression, Jira/Notion/preuve selon capabilities
+6. Détail revue — points (SvelteKit + mb), progression, Jira/preuve selon capabilities
 7. Mes tâches (si ≥2 membres)
 8. Admin org — utilisateurs, sujets, SMTP, intégrations, libellés UI
 
@@ -175,17 +175,9 @@ Config : URL(s), secret HMAC-SHA256, `event_id` unique, cases à cocher par év�
 
 **Sécurité** : anti-SSRF (blocklist IP privées, timeout 5s, max 1 redirect). Voir [CONVENTIONS.md](./CONVENTIONS.md).
 
-### Notion (v1.1) — companion, pas remplacement
+### Notion — retiré
 
-Notion **ne remplace pas** Revues pour l'exécution des revues (pas d'audit, pas de snapshot, pas de Jira).
-
-| Sens | Action |
-|------|--------|
-| Revues → Notion | Exporter une revue clôturée (archive doc) |
-| Notion → Revues | Importer un modèle depuis une DB Notion |
-| Lien | URL Notion sur un projet |
-
-Pas de sync bidirectionnelle temps réel.
+Intégration Notion **hors périmètre produit** (plus d’API ni d’UI). Voir [NOTION.md](./NOTION.md).
 
 ### SMTP (v1)
 
@@ -216,7 +208,7 @@ Détail runtime : `.cursor/skills/revues-ui-audit/decisions.md`.
 | **P0 — Particulier** | `SimpleUI` (1 org · 1 membre · ≤1 sujet · whitelist ≤1 · pas admin global) | Revues · Listes ; cocher ; CSV ; pas assign / tâches / collab |
 | **P1 — Duo** | ≥2 **membres** org | + Assignation · Mes tâches · collab fiche sujet |
 | **P2 — Multi-sujet** | ≥2 sujets visibles | + Colonne Sujet · domaines · vocabulaire « Modèles » |
-| **P3 — Conformité** | `HasJira` / `HasNotion` / `HasWebhooks` (config org) · `HasEvidence` (hash scellé, page revue) | Notion/Jira/webhooks/preuve **capability-gated** (pas masqués par SimpleUI) |
+| **P3 — Conformité** | `HasJira` / `HasWebhooks` (config org) · `HasEvidence` (hash scellé, page revue) | Jira/webhooks/preuve **capability-gated** (pas masqués par SimpleUI) |
 
 Principes : unlock don’t fork · vocabulaire suit le palier (Listes → Modèles) · déclencheur structurel (pas de toggle « mode pro ») · P3 indépendant de SimpleUI.
 
@@ -238,7 +230,7 @@ Reste et icebox : [ROADMAP.md](./ROADMAP.md). Délégation : [DELEGATION.md](./D
 
 - [x] Webhooks : `review.completed` + `review.item.nok`
 - [x] SMTP configurable par admin
-- [x] Notion en companion (export prioritaire, import ensuite)
+- [x] ~~Notion en companion~~ — retiré (hors périmètre)
 - [x] SQLite WAL en v1
 - [x] Harness agents (AGENTS.md, CI, check.sh) avant code métier
 - [x] Schéma canonique : [schema/canonical.sql](./schema/canonical.sql)

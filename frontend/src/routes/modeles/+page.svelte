@@ -48,7 +48,6 @@
 		{#if canManage}
 			<p class="actions">
 				<mb-button variant="primary" href="/modeles/new">{newTemplateCTA}</mb-button>
-				<mb-button variant="secondary" href="/modeles/notion-import">Importer depuis Notion</mb-button>
 			</p>
 		{/if}
 	</header>

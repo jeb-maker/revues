@@ -10,16 +10,22 @@
 		updateSubject,
 		type SubjectDetail
 	} from '$lib/api/subjects';
+	import { listSubjectRuns, type RunSummary } from '$lib/api/runs';
 	import { session } from '$lib/auth/session';
-	import { formatRole, formatVisibility, roleOptions } from '$lib/i18n/labels';
+	import { formatRole, formatRunStatus, formatVisibility, roleOptions, runStatusVariant } from '$lib/i18n/labels';
+	import { runLabels, subjectLabels } from '$lib/i18n/uiLabels';
 	import { inputValue } from '$lib/mb';
 
 	type SubjectRole = 'lead' | 'contributor' | 'viewer';
 	const SUBJECT_ROLES = roleOptions<SubjectRole>(['viewer', 'contributor', 'lead']);
 
-	const csrf = session().csrf_token;
+	const boot = session();
+	const csrf = boot.csrf_token;
+	const subjectLbl = $derived(subjectLabels(boot.organization?.ui_subject_label));
+	const runLbl = $derived(runLabels(boot.organization?.ui_run_label));
 
 	let subject = $state<SubjectDetail | null>(null);
+	let runs = $state<RunSummary[]>([]);
 	let error = $state('');
 	let loading = $state(true);
 	let editing = $state(false);
@@ -60,13 +66,19 @@
 
 	async function refresh() {
 		applySubject(await getSubject(subjectId(), csrf));
+		try {
+			const res = await listSubjectRuns(subjectId(), csrf);
+			runs = res.runs ?? [];
+		} catch {
+			runs = [];
+		}
 	}
 
 	onMount(async () => {
 		try {
 			await refresh();
 		} catch (e) {
-			error = e instanceof Error ? e.message : 'Sujet introuvable.';
+			error = e instanceof Error ? e.message : `${subjectLbl.singular} introuvable.`;
 		} finally {
 			loading = false;
 		}
@@ -143,7 +155,7 @@
 		<mb-alert variant="danger">{error || 'Sujet introuvable.'}</mb-alert>
 	{:else}
 		<header class="page-header">
-			<p class="crumbs"><a href="/subjects">Sujets</a> · {subject.name}</p>
+			<p class="crumbs"><a href="/subjects">{subjectLbl.plural}</a> · {subject.name}</p>
 			<h1>{subject.name}</h1>
 			{#if subject.description}
 				<p class="lede">{subject.description}</p>
@@ -158,9 +170,10 @@
 			</p>
 			<p class="actions">
 				{#if subject.capabilities.can_launch}
-					<mb-button variant="primary" href={`/subjects/${subject.id}/launch`}>Lancer une revue</mb-button>
+					<mb-button variant="primary" href={`/subjects/${subject.id}/launch`}
+						>Lancer {runLbl.article} {runLbl.singular}</mb-button
+					>
 				{/if}
-				<mb-button variant="secondary" href="/runs">Voir les revues</mb-button>
 				{#if subject.capabilities.can_manage}
 					<mb-button variant="ghost" onclick={() => (editing = !editing)}>
 						{editing ? 'Annuler' : 'Modifier'}
@@ -169,6 +182,23 @@
 				{/if}
 			</p>
 		</header>
+
+		<section class="section" aria-labelledby="revues-sujet">
+			<h2 id="revues-sujet">{runLbl.nav}</h2>
+			{#if runs.length === 0}
+				<p class="muted">{runLbl.noneArticle} {runLbl.singular} pour ce {subjectLbl.singular.toLowerCase()}.</p>
+			{:else}
+				<ul class="row-list">
+					{#each runs as r (r.id)}
+						<li>
+							<a href={`/runs/${r.id}`}><strong>{r.title}</strong></a>
+							<mb-badge variant={runStatusVariant(r.status)}>{formatRunStatus(r.status)}</mb-badge>
+							<span class="muted">{r.progress.percent} %</span>
+						</li>
+					{/each}
+				</ul>
+			{/if}
+		</section>
 
 		{#if error}
 			<mb-alert variant="danger">{error}</mb-alert>

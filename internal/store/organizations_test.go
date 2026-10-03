@@ -160,8 +160,8 @@ func TestDefaultOrganizationExistsAfterMigrate(t *testing.T) {
 	if defaultOrg.Name != "Default" {
 		t.Fatalf("default org name = %q, want Default", defaultOrg.Name)
 	}
-	if defaultOrg.UISubjectLabel != store.UISubjectLabelSujet {
-		t.Fatalf("default ui_subject_label = %q, want %q", defaultOrg.UISubjectLabel, store.UISubjectLabelSujet)
+	if defaultOrg.UISubjectLabel != store.UISubjectLabelProjet {
+		t.Fatalf("default ui_subject_label = %q, want %q", defaultOrg.UISubjectLabel, store.UISubjectLabelProjet)
 	}
 	if defaultOrg.UIRunLabel != store.UIRunLabelRevues {
 		t.Fatalf("default ui_run_label = %q, want %q", defaultOrg.UIRunLabel, store.UIRunLabelRevues)

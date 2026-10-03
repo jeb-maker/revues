@@ -75,7 +75,7 @@ func TestOrgsAPI_TableDriven(t *testing.T) {
 				if org["slug"] != "acme-corp" || org["role"] != store.OrgRoleOwner {
 					t.Fatalf("organization = %#v", org)
 				}
-				if resp["redirect"] != "/" {
+				if resp["redirect"] != "/runs" {
 					t.Fatalf("redirect = %v", resp["redirect"])
 				}
 				_, orgID, err := st.SessionByTokenHash(context.Background(), auth.HashToken(session.cookie.Value))
@@ -341,7 +341,7 @@ func TestOrganizations_PostLoginRoute(t *testing.T) {
 		wantPath   string
 	}{
 		{name: "zero organizations", userID: userNoOrg.ID, wantOrgArg: auth.SessionOrgPending, wantPath: "/org/new"},
-		{name: "one organization", userID: userOne.ID, wantOrgArg: orgOne.ID, wantPath: "/"},
+		{name: "one organization", userID: userOne.ID, wantOrgArg: orgOne.ID, wantPath: "/runs"},
 		{name: "many organizations", userID: userMany.ID, wantOrgArg: auth.SessionOrgPending, wantPath: "/org/select"},
 	}
 

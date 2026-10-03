@@ -231,7 +231,7 @@ func TestCompleteRunWithEvidence_RejectsPendingRequired(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = st.CompleteRunWithEvidence(ctx, run.ID, "note", "abc", "2026-10-03T12:00:00Z")
+	err = st.CompleteRunWithEvidence(ctx, run.ID, "note", "abc", "2026-10-03T12:00:00Z", 1)
 	if !errors.Is(err, store.ErrPendingRequiredItems) {
 		t.Fatalf("CompleteRunWithEvidence() = %v, want ErrPendingRequiredItems", err)
 	}
@@ -281,7 +281,7 @@ func TestCompleteRunWithEvidence_AtomicSeal(t *testing.T) {
 
 	hash := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 	completedAt := "2026-10-03T12:00:00Z"
-	if err = st.CompleteRunWithEvidence(ctx, run.ID, "done", hash, completedAt); err != nil {
+	if err = st.CompleteRunWithEvidence(ctx, run.ID, "done", hash, completedAt, 1); err != nil {
 		t.Fatalf("CompleteRunWithEvidence(): %v", err)
 	}
 	got, err := st.RunByID(ctx, run.ID)
@@ -344,7 +344,7 @@ func TestCompleteRunWithEvidence_HashMatchesPostCompleteExport(t *testing.T) {
 		t.Fatal(err)
 	}
 	hash := runs.SHA256Hex(csvData)
-	if err = st.CompleteRunWithEvidence(ctx, run.ID, "done", hash, completedAt); err != nil {
+	if err = st.CompleteRunWithEvidence(ctx, run.ID, "done", hash, completedAt, 1); err != nil {
 		t.Fatalf("CompleteRunWithEvidence(): %v", err)
 	}
 

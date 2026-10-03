@@ -17,12 +17,17 @@
 	const links = $derived.by(() => {
 		const run = runLabels(boot.organization?.ui_run_label);
 		const subject = subjectLabels(boot.organization?.ui_subject_label);
-		return [
+		const items: { href: string; label: string }[] = [
 			{ href: '/runs', label: run.nav },
-			{ href: '/subjects', label: subject.plural },
-			{ href: '/modeles', label: templateNavLabel(boot.organization?.ui_run_label) },
-			{ href: '/mes-taches', label: 'Mes tâches' }
-		] as const;
+			{ href: '/subjects', label: subject.plural }
+		];
+		if (boot.show_modeles) {
+			items.push({ href: '/modeles', label: templateNavLabel(boot.organization?.ui_run_label) });
+		}
+		if (boot.show_my_tasks) {
+			items.push({ href: '/mes-taches', label: 'Mes tâches' });
+		}
+		return items;
 	});
 
 	function current(href: string): 'page' | undefined {
@@ -49,7 +54,7 @@
 
 <header class="app-header">
 	<div class="app-header__inner">
-		<a class="brand" href="/">Revues</a>
+		<a class="brand" href={boot.authenticated ? '/runs' : '/'}>Revues</a>
 		{#if boot.authenticated && boot.user}
 			<mb-nav-toggle for="main-nav" label-open="Ouvrir le menu" label-close="Fermer le menu"
 			></mb-nav-toggle>

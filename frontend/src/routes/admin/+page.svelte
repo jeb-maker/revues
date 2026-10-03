@@ -6,7 +6,7 @@
 		{ href: '/admin/members', title: 'Membres', desc: 'Rôles dans l’organisation : propriétaire, administrateur, membre.' },
 		{ href: '/admin/teams', title: 'Équipes', desc: 'Composition des équipes.' },
 		{ href: '/admin/settings/policies', title: 'Politiques', desc: 'Délégation aux référents de sujet.' },
-		{ href: '/admin/integrations', title: 'Intégrations', desc: 'Jira, Notion, webhooks sortants.' },
+		{ href: '/admin/integrations', title: 'Intégrations', desc: 'Jira et webhooks sortants.' },
 		{ href: '/admin/settings/smtp', title: 'SMTP', desc: 'Relais d’envoi des notifications.' }
 	];
 </script>

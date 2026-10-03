@@ -39,6 +39,8 @@ type ChecklistRun struct {
 	CreatedBy         sql.NullInt64
 	StartedAt         sql.NullString
 	CompletedAt       sql.NullString
+	CompletedBy       sql.NullInt64
+	CompletedByLogin  string
 	NotionURL         string
 	EvidenceCSVSHA256 string
 	CreatedAt         string
@@ -149,14 +151,16 @@ func (s *Store) CreateChecklistRunWithDueDate(
 func (s *Store) RunByID(ctx context.Context, id int64) (*ChecklistRun, error) {
 	var run ChecklistRun
 	err := s.db.QueryRowContext(ctx, `
-		SELECT id, subject_id, template_version_id, status, due_date, closing_note,
-		       created_by, started_at, completed_at, notion_url, evidence_csv_sha256, created_at
-		FROM checklist_runs
-		WHERE id = ?
+		SELECT r.id, r.subject_id, r.template_version_id, r.status, r.due_date, r.closing_note,
+		       r.created_by, r.started_at, r.completed_at, r.completed_by, COALESCE(u.login, ''),
+		       r.notion_url, r.evidence_csv_sha256, r.created_at
+		FROM checklist_runs r
+		LEFT JOIN users u ON u.id = r.completed_by
+		WHERE r.id = ?
 	`, id).Scan(
 		&run.ID, &run.SubjectID, &run.TemplateVersionID, &run.Status, &run.DueDate,
-		&run.ClosingNote, &run.CreatedBy, &run.StartedAt, &run.CompletedAt, &run.NotionURL,
-		&run.EvidenceCSVSHA256, &run.CreatedAt,
+		&run.ClosingNote, &run.CreatedBy, &run.StartedAt, &run.CompletedAt, &run.CompletedBy, &run.CompletedByLogin,
+		&run.NotionURL, &run.EvidenceCSVSHA256, &run.CreatedAt,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrRunNotFound
@@ -170,11 +174,13 @@ func (s *Store) RunByID(ctx context.Context, id int64) (*ChecklistRun, error) {
 // ListRunsBySubject returns runs for a subject ordered by recency.
 func (s *Store) ListRunsBySubject(ctx context.Context, subjectID int64) ([]ChecklistRun, error) {
 	rows, err := s.db.QueryContext(ctx, `
-		SELECT id, subject_id, template_version_id, status, due_date, closing_note,
-		       created_by, started_at, completed_at, notion_url, evidence_csv_sha256, created_at
-		FROM checklist_runs
-		WHERE subject_id = ? AND status != ?
-		ORDER BY created_at DESC
+		SELECT r.id, r.subject_id, r.template_version_id, r.status, r.due_date, r.closing_note,
+		       r.created_by, r.started_at, r.completed_at, r.completed_by, COALESCE(u.login, ''),
+		       r.notion_url, r.evidence_csv_sha256, r.created_at
+		FROM checklist_runs r
+		LEFT JOIN users u ON u.id = r.completed_by
+		WHERE r.subject_id = ? AND r.status != ?
+		ORDER BY r.created_at DESC
 	`, subjectID, RunStatusArchived)
 	if err != nil {
 		return nil, fmt.Errorf("list runs by subject: %w", err)
@@ -186,8 +192,8 @@ func (s *Store) ListRunsBySubject(ctx context.Context, subjectID int64) ([]Check
 		var run ChecklistRun
 		if err := rows.Scan(
 			&run.ID, &run.SubjectID, &run.TemplateVersionID, &run.Status, &run.DueDate,
-			&run.ClosingNote, &run.CreatedBy, &run.StartedAt, &run.CompletedAt, &run.NotionURL,
-			&run.EvidenceCSVSHA256, &run.CreatedAt,
+			&run.ClosingNote, &run.CreatedBy, &run.StartedAt, &run.CompletedAt, &run.CompletedBy, &run.CompletedByLogin,
+			&run.NotionURL, &run.EvidenceCSVSHA256, &run.CreatedAt,
 		); err != nil {
 			return nil, fmt.Errorf("scan run: %w", err)
 		}
@@ -265,11 +271,13 @@ func (s *Store) StartRun(ctx context.Context, id int64) error {
 // ListRunsDueOn returns in-progress runs whose due_date starts with datePrefix (YYYY-MM-DD).
 func (s *Store) ListRunsDueOn(ctx context.Context, datePrefix string) ([]ChecklistRun, error) {
 	rows, err := s.db.QueryContext(ctx, `
-		SELECT id, subject_id, template_version_id, status, due_date, closing_note,
-		       created_by, started_at, completed_at, notion_url, evidence_csv_sha256, created_at
-		FROM checklist_runs
-		WHERE status = ? AND due_date IS NOT NULL AND due_date LIKE ?
-		ORDER BY due_date, id
+		SELECT r.id, r.subject_id, r.template_version_id, r.status, r.due_date, r.closing_note,
+		       r.created_by, r.started_at, r.completed_at, r.completed_by, COALESCE(u.login, ''),
+		       r.notion_url, r.evidence_csv_sha256, r.created_at
+		FROM checklist_runs r
+		LEFT JOIN users u ON u.id = r.completed_by
+		WHERE r.status = ? AND r.due_date IS NOT NULL AND r.due_date LIKE ?
+		ORDER BY r.due_date, r.id
 	`, RunStatusInProgress, datePrefix+"%")
 	if err != nil {
 		return nil, fmt.Errorf("list runs due on: %w", err)
@@ -281,8 +289,8 @@ func (s *Store) ListRunsDueOn(ctx context.Context, datePrefix string) ([]Checkli
 		var run ChecklistRun
 		if err := rows.Scan(
 			&run.ID, &run.SubjectID, &run.TemplateVersionID, &run.Status, &run.DueDate,
-			&run.ClosingNote, &run.CreatedBy, &run.StartedAt, &run.CompletedAt, &run.NotionURL,
-			&run.EvidenceCSVSHA256, &run.CreatedAt,
+			&run.ClosingNote, &run.CreatedBy, &run.StartedAt, &run.CompletedAt, &run.CompletedBy, &run.CompletedByLogin,
+			&run.NotionURL, &run.EvidenceCSVSHA256, &run.CreatedAt,
 		); err != nil {
 			return nil, fmt.Errorf("scan run due on: %w", err)
 		}
@@ -379,7 +387,7 @@ func (s *Store) SealRunEvidenceHash(ctx context.Context, id int64, csvSHA256 str
 // completedAt must be the RFC3339 timestamp embedded in the CSV hash (export
 // uses COALESCE(completed_at,”) as RunDate). Pass the same value the handler
 // used when hashing so the sealed digest matches a post-complete re-export.
-func (s *Store) CompleteRunWithEvidence(ctx context.Context, id int64, closingNote, csvSHA256, completedAt string) error {
+func (s *Store) CompleteRunWithEvidence(ctx context.Context, id int64, closingNote, csvSHA256, completedAt string, completedBy int64) error {
 	hash := strings.TrimSpace(csvSHA256)
 	completedAt = strings.TrimSpace(completedAt)
 	if completedAt == "" {
@@ -396,14 +404,14 @@ func (s *Store) CompleteRunWithEvidence(ctx context.Context, id int64, closingNo
 
 		res, err := tx.ExecContext(ctx, `
 			UPDATE checklist_runs
-			SET status = ?, completed_at = ?, closing_note = ?,
+			SET status = ?, completed_at = ?, closing_note = ?, completed_by = ?,
 			    evidence_csv_sha256 = CASE WHEN ? != '' THEN ? ELSE evidence_csv_sha256 END
 			WHERE id = ? AND status = ?
 			  AND NOT EXISTS (
 				SELECT 1 FROM run_items
 				WHERE run_id = ? AND required = 1 AND status = ?
 			  )
-		`, RunStatusDone, completedAt, closingNote, hash, hash, id, RunStatusInProgress, id, RunItemStatusPending)
+		`, RunStatusDone, completedAt, closingNote, completedBy, hash, hash, id, RunStatusInProgress, id, RunItemStatusPending)
 		if err != nil {
 			return fmt.Errorf("complete run with evidence: %w", err)
 		}
@@ -446,20 +454,4 @@ func diagnoseCompleteRunFailure(ctx context.Context, tx *sql.Tx, id int64) error
 		return ErrPendingRequiredItems
 	}
 	return ErrRunNotFound
-}
-
-// SetRunNotionURL stores the Notion page URL for an exported run.
-func (s *Store) SetRunNotionURL(ctx context.Context, runID int64, notionURL string) error {
-	res, err := s.db.ExecContext(ctx, `UPDATE checklist_runs SET notion_url = ? WHERE id = ?`, strings.TrimSpace(notionURL), runID)
-	if err != nil {
-		return fmt.Errorf("set run notion url: %w", err)
-	}
-	n, err := res.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("set run notion url rows: %w", err)
-	}
-	if n == 0 {
-		return ErrRunNotFound
-	}
-	return nil
 }

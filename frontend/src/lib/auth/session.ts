@@ -17,8 +17,10 @@ export type ActiveOrganization = {
 	role: string;
 	/** Preset org `organizations.ui_run_label` (revues, listes_en_cours…). */
 	ui_run_label?: string;
-	/** Preset org `organizations.ui_subject_label` (sujet, cible…). */
+	/** Preset org `organizations.ui_subject_label` (projet, sujet, cible…). */
 	ui_subject_label?: string;
+	member_count: number;
+	visible_subject_count: number;
 };
 
 export type Session = BootstrapResponse & {
@@ -30,6 +32,12 @@ export type Session = BootstrapResponse & {
 	can_admin: boolean;
 	/** Rôle global `editor` ou `admin` (modèles, création de sujet). */
 	can_edit: boolean;
+	/** Nav Modèles (editor+). */
+	show_modeles: boolean;
+	/** Nav Mes tâches (≥ 2 membres org). */
+	show_my_tasks: boolean;
+	/** Colonne Sujet sur /runs (≥ 2 sujets visibles). */
+	show_subject_column: boolean;
 };
 
 const ORG_GATES = new Set(['/org/new', '/org/select']);
@@ -70,7 +78,10 @@ export function offlineSession(): Session {
 		organization: null,
 		organization_count: 0,
 		can_admin: false,
-		can_edit: false
+		can_edit: false,
+		show_modeles: false,
+		show_my_tasks: false,
+		show_subject_column: false
 	};
 }
 
@@ -91,7 +102,9 @@ async function fetchSession(): Promise<Session> {
 					name: active.name,
 					role: active.role,
 					ui_run_label: active.ui_run_label,
-					ui_subject_label: active.ui_subject_label
+					ui_subject_label: active.ui_subject_label,
+					member_count: active.member_count ?? 0,
+					visible_subject_count: active.visible_subject_count ?? 0
 				};
 			}
 		} catch {
@@ -100,11 +113,17 @@ async function fetchSession(): Promise<Session> {
 	}
 
 	const orgRole = organization?.role ?? '';
+	const canEdit = role === 'admin' || role === 'editor';
+	const memberCount = organization?.member_count ?? 0;
+	const subjectCount = organization?.visible_subject_count ?? 0;
 	return {
 		...boot,
 		organization,
 		organization_count: organizationCount,
 		can_admin: role === 'admin' || orgRole === 'owner' || orgRole === 'admin',
-		can_edit: role === 'admin' || role === 'editor'
+		can_edit: canEdit,
+		show_modeles: canEdit,
+		show_my_tasks: memberCount >= 2,
+		show_subject_column: subjectCount >= 2
 	};
 }

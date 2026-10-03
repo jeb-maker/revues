@@ -461,34 +461,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/templates/notion-import": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Import modèle depuis une base Notion (wizard)
-         * @description Auth + org + CanManageGlobal (editor+) + CSRF. Parité métier avec
-         *     l'ancien flux multi-étapes (fetch → mapping → preview → create).
-         *
-         *     - `action=fetch` : lit le schéma de la base (URL ou ID) et propose un mapping.
-         *     - `action=preview` : requête les pages et construit l'aperçu des points.
-         *     - `action=import` : crée le modèle (version 1) à partir de l'aperçu.
-         *
-         *     Chemin collection (pas `{templateId}`) : l'import **crée** un nouveau
-         *     modèle ; équivalent documenté de `/templates/{templateId}/notion-import`.
-         */
-        post: operations["postTemplatesNotionImport"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/runs": {
         parameters: {
             query?: never;
@@ -597,31 +569,6 @@ export interface paths {
          * @description Auth + CanCompleteAccess. Bloque si points obligatoires pending. Emit review.completed. CSRF.
          */
         post: operations["completeRun"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/runs/{runId}/notion-export": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Identifiant de la revue */
-                runId: components["parameters"]["RunId"];
-            };
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Exporter une revue clôturée vers Notion
-         * @description Auth + CanCompleteAccess sur le sujet + CSRF. Revue `done` uniquement.
-         *     Crée une page dans la base Notion par défaut (config admin) et stocke
-         *     `notion_url` sur la revue. 409 si déjà exportée.
-         */
-        post: operations["postRunNotionExport"];
         delete?: never;
         options?: never;
         head?: never;
@@ -913,8 +860,8 @@ export interface paths {
         };
         /**
          * Hub intégrations (états + navigation)
-         * @description Auth + RequireOrgAdmin. Liste SMTP / Jira / Notion / Webhooks avec
-         *     enabled + config_path SPA. Config détaillée Jira/Notion/Webhooks = WP-020/021/022.
+         * @description Auth + RequireOrgAdmin. Liste SMTP / Jira / Webhooks avec
+         *     enabled + config_path SPA. Config détaillée Jira/Webhooks = WP-020/022.
          */
         get: operations["listAdminIntegrations"];
         put?: never;
@@ -1006,58 +953,6 @@ export interface paths {
          *     configuré. Titre/description optionnels (préremplissage serveur sinon).
          */
         post: operations["postRunItemJiraCreate"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/admin/integrations/notion": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Configuration Notion (jeton masqué)
-         * @description Auth + RequireOrgAdmin (owner/admin org active ou admin global).
-         *     Jamais de jeton en clair — `has_api_token` seulement. Parité métier
-         *     avec l'ancienne UI `/admin/integrations/notion` (WP-021).
-         */
-        get: operations["getAdminNotionSettings"];
-        /**
-         * Enregistrer la configuration Notion chiffrée
-         * @description Auth + RequireOrgAdmin + CSRF. Jeton omis ou vide = conserve le secret
-         *     existant (`MergeSecret`). Chiffrement AES-GCM (`REVUES_ENCRYPTION_KEY`).
-         */
-        put: operations["putAdminNotionSettings"];
-        post?: never;
-        /**
-         * Effacer la configuration Notion
-         * @description Auth + RequireOrgAdmin + CSRF. Supprime la ligne `integrations` type notion.
-         */
-        delete: operations["deleteAdminNotionSettings"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/admin/integrations/notion/test": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Tester la connexion Notion (users/me)
-         * @description Auth + RequireOrgAdmin + CSRF. Utilise le jeton stocké (chiffré).
-         *     Appelle `GET https://api.notion.com/v1/users/me` (Notion-Version 2022-06-28).
-         */
-        post: operations["postAdminNotionTest"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1316,6 +1211,10 @@ export interface components {
             role: string;
             ui_subject_label?: string;
             ui_run_label?: string;
+            /** @description Nombre de membres de l'organisation (disclosure Mes tâches / assign) */
+            member_count: number;
+            /** @description Sujets visibles pour l'appelant dans cette org (colonne Sujet si ≥ 2) */
+            visible_subject_count?: number;
         };
         OrganizationInvitation: {
             /** Format: int64 */
@@ -1565,8 +1464,6 @@ export interface components {
             can_update_items: boolean;
             can_assign: boolean;
             can_complete: boolean;
-            /** @description true si revue done, droits CanCompleteAccess, Notion ExportReady */
-            can_export_notion: boolean;
         };
         RunItem: {
             /** Format: int64 */
@@ -1658,11 +1555,6 @@ export interface components {
             updated_at?: string;
         };
         RunDetail: {
-            /**
-             * Format: uri
-             * @description URL page Notion si exportée
-             */
-            notion_url?: string | null;
             /** Format: int64 */
             id: number;
             title: string;
@@ -1680,6 +1572,8 @@ export interface components {
             created_at: string;
             started_at?: string | null;
             completed_at?: string | null;
+            /** @description Login de l'utilisateur qui a clôturé (attestation) */
+            completed_by_login?: string | null;
             progress: components["schemas"]["RunProgress"];
             items: components["schemas"]["RunItem"][];
             assignees?: components["schemas"]["RunAssignee"][];
@@ -1807,10 +1701,10 @@ export interface components {
         };
         IntegrationSummary: {
             /**
-             * @description Identifiant stable (smtp|jira|notion|webhooks)
+             * @description Identifiant stable (smtp|jira|webhooks)
              * @enum {string}
              */
-            key: "smtp" | "jira" | "notion" | "webhooks";
+            key: "smtp" | "jira" | "webhooks";
             name: string;
             description: string;
             enabled: boolean;
@@ -1883,85 +1777,6 @@ export interface components {
             created_at: string;
             /** @description true si mime image affichable inline */
             is_image: boolean;
-        };
-        NotionColumnMapping: {
-            /** @description Colonne titre Notion → libellé point */
-            label?: string;
-            section?: string;
-            help_text?: string;
-            /** @description Colonne checkbox → point obligatoire */
-            required?: string;
-        };
-        NotionExportResponse: {
-            /**
-             * Format: uri
-             * @description URL de la page Notion créée
-             */
-            notion_url: string;
-        };
-        NotionImportPreviewItem: {
-            label: string;
-            section: string;
-            help_text: string;
-            required: boolean;
-        };
-        NotionImportRequest: {
-            /** @enum {string} */
-            action: "fetch" | "preview" | "import";
-            /** @description URL ou ID base (fetch) ; optionnel si database_id déjà connu */
-            database_ref?: string;
-            /** @description ID normalisé renvoyé par fetch (requis pour preview/import) */
-            database_id?: string;
-            template_name?: string;
-            /** @description Domaines du modèle créé (action=import) */
-            domains?: string[];
-            mapping?: components["schemas"]["NotionColumnMapping"];
-        };
-        NotionImportResponse: {
-            /**
-             * @description Étape atteinte après l'action
-             * @enum {string}
-             */
-            step: "mapping" | "preview" | "done";
-            database_id?: string;
-            database_title?: string;
-            properties?: components["schemas"]["NotionPropertyOption"][];
-            mapping?: components["schemas"]["NotionColumnMapping"];
-            template_name?: string;
-            preview_items?: components["schemas"]["NotionImportPreviewItem"][];
-            preview_count?: number;
-            /** @description Présent si step=done (modèle créé) */
-            template?: components["schemas"]["TemplateDetail"];
-        };
-        NotionPropertyOption: {
-            name: string;
-            /** @description Type propriété Notion (title, rich_text, select, …) */
-            type: string;
-        };
-        NotionSettings: {
-            /** @description true si un jeton est stocké */
-            configured: boolean;
-            /** @description true si jeton + default_database_id permettent l'export */
-            export_ready: boolean;
-            /** @description Libellé admin du workspace */
-            workspace_name: string;
-            /** @description ID base Notion (32 hex, sans tirets) */
-            default_database_id: string;
-            /** @description true si un jeton est stocké (jamais renvoyé en clair) */
-            has_api_token: boolean;
-        };
-        NotionSettingsUpdate: {
-            /** @description Omis ou vide = conserve le secret existant */
-            api_token?: string;
-            workspace_name?: string;
-            /** @description UUID ou 32 hex (avec ou sans tirets) */
-            default_database_id?: string;
-        };
-        NotionTestResponse: {
-            ok: boolean;
-            message: string;
-            user_name?: string;
-            workspace_name?: string;
         };
         WebhookSettings: {
             /** @description true si une config est stockée */
@@ -2795,44 +2610,6 @@ export interface operations {
             500: components["responses"]["InternalError"];
         };
     };
-    postTemplatesNotionImport: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["NotionImportRequest"];
-            };
-        };
-        responses: {
-            /** @description Étape fetch ou preview */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["NotionImportResponse"];
-                };
-            };
-            /** @description Modèle créé (`action=import`) */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["NotionImportResponse"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-            500: components["responses"]["InternalError"];
-        };
-    };
     listRuns: {
         parameters: {
             query?: {
@@ -2996,35 +2773,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RunDetail"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-            409: components["responses"]["Conflict"];
-            500: components["responses"]["InternalError"];
-        };
-    };
-    postRunNotionExport: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Identifiant de la revue */
-                runId: components["parameters"]["RunId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Page Notion créée */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["NotionExportResponse"];
                 };
             };
             400: components["responses"]["BadRequest"];
@@ -3723,102 +3471,6 @@ export interface operations {
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
-            500: components["responses"]["InternalError"];
-        };
-    };
-    getAdminNotionSettings: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Config Notion courante (ou vide si non configurée) */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["NotionSettings"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            500: components["responses"]["InternalError"];
-        };
-    };
-    putAdminNotionSettings: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["NotionSettingsUpdate"];
-            };
-        };
-        responses: {
-            /** @description Config enregistrée (jeton masqué) */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["NotionSettings"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            500: components["responses"]["InternalError"];
-        };
-    };
-    deleteAdminNotionSettings: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Configuration effacée */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            500: components["responses"]["InternalError"];
-        };
-    };
-    postAdminNotionTest: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Connexion réussie */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["NotionTestResponse"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
             500: components["responses"]["InternalError"];
         };
     };

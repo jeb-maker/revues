@@ -23,7 +23,6 @@ import (
 	"github.com/jeb-maker/revues/internal/features/checklisttemplates"
 	"github.com/jeb-maker/revues/internal/features/organizations"
 	"github.com/jeb-maker/revues/internal/integrations/jira"
-	"github.com/jeb-maker/revues/internal/integrations/notion"
 	"github.com/jeb-maker/revues/internal/integrations/webhooks"
 	"github.com/jeb-maker/revues/internal/notifications"
 	"github.com/jeb-maker/revues/internal/store"
@@ -33,10 +32,9 @@ import (
 
 // Deps holds runtime dependencies for HTTP routing.
 type Deps struct {
-	Config       config.Config
-	DB           *sql.DB
-	NotionClient *notion.Client    // optional HTTP override (tests)
-	Notifier     apiv1.RunNotifier // optional override (tests); default = notifications.Service
+	Config   config.Config
+	DB       *sql.DB
+	Notifier apiv1.RunNotifier // optional override (tests); default = notifications.Service
 }
 
 // NewRouter builds the HTTP handler tree for the application.
@@ -83,11 +81,9 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, *webhooks.Dispa
 		EncryptionKey: adminSMTPKey,
 	}
 	jiraSvc := &jira.Service{Store: st, EncryptionKey: adminSMTPKey}
-	notionSvc := &notion.Service{Store: st, EncryptionKey: adminSMTPKey}
 	integrationsSvc := &adminintegrations.IntegrationsService{
 		Settings: settingsSvc,
 		Jira:     jiraSvc,
-		Notion:   notionSvc,
 	}
 	attachmentsSvc := &attachments.Service{Store: st, Dir: deps.Config.AttachmentsDir}
 	notificationsSvc := &notifications.Service{
@@ -111,7 +107,7 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, *webhooks.Dispa
 
 	apiServer := apiv1.NewServer(
 		authSvc, orgSvc, templatesSvc, st, deps.Config, sessions, webhookDispatcher, runNotifier,
-		settingsSvc, integrationsSvc, attachmentsSvc, notionSvc, deps.NotionClient,
+		settingsSvc, integrationsSvc, attachmentsSvc,
 	)
 
 	r := chi.NewRouter()

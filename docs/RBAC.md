@@ -204,11 +204,11 @@ Paths réels de `api/openapi/openapi.yaml` (préfixe `/api/v1`). Helpers : `ensu
 | `GET /me/tasks` | Auth + org active ; points assignés à l'utilisateur courant uniquement |
 | `GET /runs/{id}` · `GET /runs/{id}/items/{itemId}` | `ensureRunAccess` (`CanViewAccess` sur le sujet de la revue) |
 | `PATCH /runs/{id}/items/{itemId}` | `ensureRunAccess` + `CanUpdateAccess` (statut / commentaire) ; `CanAssignAccess` si `assigned_to` |
-| `POST /runs/{id}/complete` · `POST /runs/{id}/notion-export` | `ensureRunAccess` + `CanCompleteAccess` |
+| `POST /runs/{id}/complete` | `ensureRunAccess` + `CanCompleteAccess` |
 | `GET\|PUT\|POST /runs/{id}/items/{itemId}/jira` | `ensureRunAccess` + `CanLinkJiraAccess` |
 | `GET\|POST /runs/{id}/items/{itemId}/attachments` · `GET /runs/{id}/items/{itemId}/attachments/{attachmentId}` | `ensureRunAccess` ; upload : `CanUpdateAccess` + validation magic bytes / taille |
 | `GET /templates*` | Auth + org active |
-| `POST\|PUT\|DELETE /templates*` · `POST /templates/notion-import` | Auth + `CanManageGlobal` (editor+ / org admin) ; versions publiées immuables |
+| `POST\|PUT\|DELETE /templates*` | Auth + `CanManageGlobal` (editor+ / org admin) ; versions publiées immuables |
 | `/admin/allowed-emails*` · `/admin/members*` · `/admin/teams*` · `/admin/settings/policies` | `requireOrgAdmin` |
 | `/admin/settings/smtp*` · `/admin/integrations*` · `/admin/webhooks*` (config, test, deliveries, drain, retry) | `requireOrgAdmin` ; URLs sortantes validées anti-SSRF |
 

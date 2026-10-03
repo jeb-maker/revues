@@ -17,7 +17,7 @@ internal/
     queries/                # SQL source sqlc
     sqlc/                   # code généré (make sqlc)
   web/                      # router API, middleware, static SPA
-  integrations/             # jira, notion, webhooks
+  integrations/             # jira, webhooks
   notifications/ attachments/ crypto/ config/
 migrations/                 # goose SQL
 sqlc.yaml                   # config sqlc

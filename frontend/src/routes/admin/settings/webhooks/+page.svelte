@@ -165,7 +165,7 @@
 		<mb-alert variant="success">{message}</mb-alert>
 	{/if}
 
-	<AdminNav section="integrations">
+	<AdminNav section="webhooks">
 		{#if loading}
 			<p class="loading">Chargement…</p>
 		{:else}

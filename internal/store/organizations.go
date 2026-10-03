@@ -33,8 +33,9 @@ const (
 	OrgRoleAdmin  = "admin"
 	OrgRoleMember = "member"
 
-	// UISubjectLabelSujet is the schema default for organizations.ui_subject_label
-	// (presets sujet/cible/entite/asset are enforced by the SQL CHECK constraint).
+	// UISubjectLabelProjet is the product default for organizations.ui_subject_label.
+	UISubjectLabelProjet = "projet"
+	// UISubjectLabelSujet remains a valid preset (audit tone).
 	UISubjectLabelSujet = "sujet"
 
 	UIRunLabelRevues        = "revues"
@@ -392,6 +393,18 @@ func (s *Store) CountUserOrganizations(ctx context.Context, userID int64) (int, 
 		return 0, fmt.Errorf("count user organizations: %w", err)
 	}
 
+	return count, nil
+}
+
+// CountOrganizationMembers returns how many members belong to the organization.
+func (s *Store) CountOrganizationMembers(ctx context.Context, organizationID int64) (int, error) {
+	var count int
+	err := s.db.QueryRowContext(ctx, `
+		SELECT COUNT(*) FROM organization_members WHERE organization_id = ?
+	`, organizationID).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("count organization members: %w", err)
+	}
 	return count, nil
 }
 

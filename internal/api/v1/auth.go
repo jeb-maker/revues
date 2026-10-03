@@ -26,16 +26,16 @@ func (s *Server) GetBootstrap(w http.ResponseWriter, r *http.Request) {
 		token := appmiddleware.SessionTokenFromContext(r)
 		csrf := auth.CSRFToken(token, s.Config.SessionSecret)
 		u := mapUser(user)
-		redirect := "/"
+		redirect := "/runs"
 		if s.Auth != nil {
 			_, route, err := authfeature.PostLoginRoute(r.Context(), s.Auth.Store, user.ID)
 			if err == nil && route != "" {
 				redirect = route
 			}
-			// Prefer home when session already has an active org.
+			// Prefer runs hub when session already has an active org.
 			if token != "" && s.Orgs != nil {
 				if list, listErr := s.Orgs.List(r.Context(), user, token, r); listErr == nil && list.ActiveOrganizationID > 0 {
-					redirect = "/"
+					redirect = "/runs"
 				}
 			}
 		}
