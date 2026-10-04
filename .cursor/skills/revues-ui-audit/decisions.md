@@ -78,7 +78,7 @@ Flags d'origine (legacy `middleware.resolveUICaps` → `PageData`, **supprimés*
 | **P2 — Multi-sujet** | ≥2 sujets | + Colonne Sujet · domaines · vocabulaire « Modèles » |
 | **P3 — Conformité** | Intégration configurée | Jira/webhooks **capability-gated** (config), pas masqués par SimpleUI ; **pas** Notion ni « preuve » |
 
-**Acté (SPA minimale)** : pas de flags legacy `SimpleUI` côté API. Heuristiques front : **Modèles** masqués si `!can_edit` (reader) ; **Mes tâches / Assigné** off via `FEATURE_ASSIGN_TASKS` (réactiver + `member_count ≥ 2`) ; colonne sujet `/runs` si `visible_subject_count ≥ 2`. Capabilities `can_*` par ressource inchangées. Plein SimpleUI (vocabulaire listes, etc.) reste icebox hors presets `ui_*`.
+**Acté (SPA minimale)** : pas de flags legacy `SimpleUI` côté API. Heuristiques front : **Modèles** masqués si `!can_edit` (reader) ; **Mes tâches / Assigné** off via `FEATURE_ASSIGN_TASKS` (réactiver + `member_count ≥ 2`) ; **Personnes** fiche sujet si `show_collab` (`member_count ≥ 2`) ; colonne sujet `/runs` si `visible_subject_count ≥ 2`. Capabilities `can_*` par ressource inchangées. Plein SimpleUI (vocabulaire listes, etc.) reste icebox hors presets `ui_*`.
 
 **Partiel livré** : les presets `ui_run_label` / `ui_subject_label` de l'org active sont consommés par la nav, le hub `/` et les H1 `/runs` · `/subjects` · `/modeles` (`frontend/src/lib/i18n/uiLabels.ts`). Vocabulaire « Listes » pour les modèles si `ui_run_label=listes_en_cours` (heuristique particulier, en attendant `ShowSubjectColumn`). Défaut produit libellé conteneur = **projet** (fallback front si preset vide/inconnu) ; orgs déjà en base avec `sujet` gardent « Sujet » jusqu’à migration/admin. Pas encore d'écran admin pour changer les presets.
 

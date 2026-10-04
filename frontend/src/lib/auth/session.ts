@@ -44,6 +44,8 @@ export type Session = BootstrapResponse & {
 	show_my_tasks: boolean;
 	/** Colonne / champ Assigné sur fiche revue et fiche point. */
 	show_assign: boolean;
+	/** Collab fiche sujet (Personnes) — ≥ 2 membres org. */
+	show_collab: boolean;
 	/** Colonne Sujet sur /runs (≥ 2 sujets visibles). */
 	show_subject_column: boolean;
 };
@@ -90,6 +92,7 @@ export function offlineSession(): Session {
 		show_modeles: false,
 		show_my_tasks: false,
 		show_assign: false,
+		show_collab: false,
 		show_subject_column: false
 	};
 }
@@ -134,6 +137,7 @@ async function fetchSession(): Promise<Session> {
 		show_modeles: canEdit,
 		show_my_tasks: assignTasks,
 		show_assign: assignTasks,
+		show_collab: memberCount >= 2,
 		show_subject_column: subjectCount >= 2
 	};
 }
