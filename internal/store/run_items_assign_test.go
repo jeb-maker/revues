@@ -18,8 +18,15 @@ func TestAssignRunItem(t *testing.T) {
 	if err != nil {
 		t.Fatalf("UpsertGitHubUser(contrib): %v", err)
 	}
-	if err = st.AddSubjectMember(ctx, run.SubjectID, contrib.ID, store.SubjectRoleContributor); err != nil {
-		t.Fatalf("AddSubjectMember(): %v", err)
+	defaultOrg, err := st.OrganizationBySlug(ctx, "default")
+	if err != nil {
+		t.Fatalf("OrganizationBySlug(): %v", err)
+	}
+	if err = st.AddOrganizationMember(ctx, defaultOrg.ID, contrib.ID, store.OrgRoleMember); err != nil {
+		t.Fatalf("AddOrganizationMember(): %v", err)
+	}
+	if err = st.UpsertDirectSubjectMember(ctx, run.SubjectID, contrib.ID, store.SubjectRoleContributor); err != nil {
+		t.Fatalf("UpsertDirectSubjectMember(): %v", err)
 	}
 
 	if err = st.AssignRunItem(ctx, run.ID, itemID, &contrib.ID); err != nil {
@@ -85,8 +92,15 @@ func TestAssignRunItemChecked_OptimisticLock(t *testing.T) {
 			if err != nil {
 				t.Fatalf("UpsertGitHubUser(contrib): %v", err)
 			}
-			if err = st.AddSubjectMember(ctx, run.SubjectID, contrib.ID, store.SubjectRoleContributor); err != nil {
-				t.Fatalf("AddSubjectMember(): %v", err)
+			defaultOrg, orgErr := st.OrganizationBySlug(ctx, "default")
+			if orgErr != nil {
+				t.Fatalf("OrganizationBySlug(): %v", orgErr)
+			}
+			if err = st.AddOrganizationMember(ctx, defaultOrg.ID, contrib.ID, store.OrgRoleMember); err != nil {
+				t.Fatalf("AddOrganizationMember(): %v", err)
+			}
+			if err = st.UpsertDirectSubjectMember(ctx, run.SubjectID, contrib.ID, store.SubjectRoleContributor); err != nil {
+				t.Fatalf("UpsertDirectSubjectMember(): %v", err)
 			}
 			before, err := st.RunItemByID(ctx, run.ID, itemID)
 			if err != nil {

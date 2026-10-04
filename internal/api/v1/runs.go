@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jeb-maker/revues/internal/auth"
 	"github.com/jeb-maker/revues/internal/features/runs"
 	"github.com/jeb-maker/revues/internal/store"
 )
@@ -44,8 +43,9 @@ func (s *Server) ListRuns(w http.ResponseWriter, r *http.Request, params ListRun
 		offset = *params.Offset
 	}
 
-	admin := auth.HasMinRole(user.Role, auth.RoleAdmin)
-	summaries, total, err := s.Store.ListFilteredRunSummaries(r.Context(), user.ID, admin, status, q, limit, offset)
+	orgRole, orgMember := s.orgMembership(r, user.ID)
+	orgAdmin := orgMember && (orgRole == store.OrgRoleOwner || orgRole == store.OrgRoleAdmin)
+	summaries, total, err := s.Store.ListFilteredRunSummaries(r.Context(), user.ID, orgAdmin, status, q, limit, offset)
 	if err != nil {
 		slog.Error("list runs", "err", err)
 		writeAPIError(w, http.StatusInternalServerError, "internal_error", "Erreur interne.")

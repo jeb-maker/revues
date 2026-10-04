@@ -8,7 +8,6 @@ import (
 
 	openapi_types "github.com/oapi-codegen/runtime/types"
 
-	"github.com/jeb-maker/revues/internal/auth"
 	"github.com/jeb-maker/revues/internal/features/subjects"
 	"github.com/jeb-maker/revues/internal/store"
 	appmiddleware "github.com/jeb-maker/revues/internal/web/middleware"
@@ -28,8 +27,9 @@ func (s *Server) ListSubjects(w http.ResponseWriter, r *http.Request, params Lis
 	if params.Q != nil {
 		q = strings.TrimSpace(*params.Q)
 	}
-	admin := auth.HasMinRole(user.Role, auth.RoleAdmin)
-	items, err := s.Store.ListSubjects(r.Context(), user.ID, admin, q)
+	orgRole, orgMember := s.orgMembership(r, user.ID)
+	orgAdmin := orgMember && (orgRole == store.OrgRoleOwner || orgRole == store.OrgRoleAdmin)
+	items, err := s.Store.ListSubjects(r.Context(), user.ID, orgAdmin, q)
 	if err != nil {
 		slog.Error("list subjects", "err", err)
 		writeAPIError(w, http.StatusInternalServerError, "internal_error", "Erreur interne.")
@@ -42,7 +42,7 @@ func (s *Server) ListSubjects(w http.ResponseWriter, r *http.Request, params Lis
 	}
 	writeJSON(w, http.StatusOK, SubjectListResponse{
 		Subjects:  out,
-		CanCreate: subjects.CanCreateSubject(user),
+		CanCreate: subjects.CanCreateSubject(user, orgMember),
 	})
 }
 
@@ -55,7 +55,8 @@ func (s *Server) CreateSubject(w http.ResponseWriter, r *http.Request) {
 	if !requireOrg(w, r) {
 		return
 	}
-	if !subjects.CanCreateSubject(user) {
+	orgRole, orgMember := s.orgMembership(r, user.ID)
+	if !subjects.CanCreateSubject(user, orgMember) {
 		writeAPIError(w, http.StatusForbidden, "forbidden", "Droits insuffisants.")
 		return
 	}
@@ -71,7 +72,6 @@ func (s *Server) CreateSubject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	orgRole, orgMember := s.orgMembership(r, user.ID)
 	canSetVisibility := subjects.CanSetSubjectVisibility(user, orgRole, orgMember, store.SubjectAccess{})
 	visibility := store.SubjectVisibilityNormal
 	if canSetVisibility && req.Visibility != nil {

@@ -26,13 +26,14 @@ func (s *Store) ResolveLoginRole(ctx context.Context, email, bootstrapAdmin stri
 // match, or pending invitation are rejected with ErrEmailNotAllowed (same
 // message path for anti-enumeration).
 //
-// Global admin is granted only via REVUES_BOOTSTRAP_ADMIN_EMAIL (legacy until #310).
+// Bootstrap email is allowed to register/login and becomes org owner via
+// EnsureBootstrapOrgOwner; it no longer receives users.role=admin.
 func (s *Store) ResolveLoginRoleStrict(ctx context.Context, email, bootstrapAdmin string, requireInvite bool) (string, error) {
 	email = strings.ToLower(strings.TrimSpace(email))
 	bootstrapAdmin = strings.ToLower(strings.TrimSpace(bootstrapAdmin))
 
 	if bootstrapAdmin != "" && email == bootstrapAdmin {
-		return auth.RoleAdmin, nil
+		return auth.RoleEditor, nil
 	}
 
 	if user, err := s.UserByEmail(ctx, email); err == nil {

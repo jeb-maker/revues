@@ -20,8 +20,15 @@ func (s *Server) ListTemplates(w http.ResponseWriter, r *http.Request, params Li
 	if params.Q != nil {
 		q = *params.Q
 	}
+	if !requireOrg(w, r) {
+		return
+	}
 	rows, err := s.Templates.ListIndex(r.Context(), user, q)
 	if err != nil {
+		if errors.Is(err, checklisttemplates.ErrForbidden) {
+			writeAPIError(w, http.StatusForbidden, "forbidden", "Droits insuffisants.")
+			return
+		}
 		slog.Error("list templates", "err", err)
 		writeAPIError(w, http.StatusInternalServerError, "internal_error", "Erreur interne.")
 		return
@@ -49,7 +56,8 @@ func (s *Server) CreateTemplate(w http.ResponseWriter, r *http.Request) {
 		writeTemplateErr(w, err)
 		return
 	}
-	writeJSON(w, http.StatusCreated, mapTemplateDetail(detail, checklisttemplates.CanManageGlobal(user)))
+	_, orgMember := s.orgMembership(r, user.ID)
+	writeJSON(w, http.StatusCreated, mapTemplateDetail(detail, checklisttemplates.CanManageGlobal(user, orgMember)))
 }
 
 // GetTemplate serves GET /api/v1/templates/{templateId}.
@@ -65,7 +73,8 @@ func (s *Server) GetTemplate(w http.ResponseWriter, r *http.Request, templateId 
 		writeTemplateErr(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, mapTemplateDetail(detail, checklisttemplates.CanManageGlobal(user)))
+	_, orgMember := s.orgMembership(r, user.ID)
+	writeJSON(w, http.StatusOK, mapTemplateDetail(detail, checklisttemplates.CanManageGlobal(user, orgMember)))
 }
 
 // SaveTemplate serves PUT /api/v1/templates/{templateId}.
@@ -162,7 +171,8 @@ func (s *Server) GetTemplateVersion(w http.ResponseWriter, r *http.Request, temp
 		writeTemplateErr(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, mapTemplateDetail(detail, checklisttemplates.CanManageGlobal(user)))
+	_, orgMember := s.orgMembership(r, user.ID)
+	writeJSON(w, http.StatusOK, mapTemplateDetail(detail, checklisttemplates.CanManageGlobal(user, orgMember)))
 }
 
 func requireAPIUser(w http.ResponseWriter, r *http.Request) (*store.User, bool) {

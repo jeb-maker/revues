@@ -134,8 +134,18 @@ func TestTeamsStore(t *testing.T) {
 		if err != nil {
 			t.Fatalf("ListDirectSubjectMembers(): %v", err)
 		}
-		if len(direct) != 1 || direct[0].Role != store.SubjectRoleLead {
-			t.Fatalf("direct = %+v", direct)
+		// Creator is auto-lead; bob upserted to lead → 2 leads.
+		if len(direct) != 2 {
+			t.Fatalf("direct = %+v, want 2 leads (creator + bob)", direct)
+		}
+		var bobRole string
+		for _, m := range direct {
+			if m.UserID == bob.ID {
+				bobRole = m.Role
+			}
+		}
+		if bobRole != store.SubjectRoleLead {
+			t.Fatalf("bob role = %q, want lead", bobRole)
 		}
 		if err := st.RemoveDirectSubjectMember(ctx, subject.ID, bob.ID); err != nil {
 			t.Fatalf("RemoveDirectSubjectMember(): %v", err)

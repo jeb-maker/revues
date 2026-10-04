@@ -63,8 +63,15 @@ func TestServiceNotifyRunCompleted(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateSubject(): %v", err)
 	}
-	if err = st.AddSubjectMember(ctx, project.ID, member.ID, store.SubjectRoleContributor); err != nil {
-		t.Fatalf("AddSubjectMember(): %v", err)
+	defaultOrg, err := st.OrganizationBySlug(ctx, "default")
+	if err != nil {
+		t.Fatalf("OrganizationBySlug(): %v", err)
+	}
+	if err = st.AddOrganizationMember(ctx, defaultOrg.ID, member.ID, store.OrgRoleMember); err != nil {
+		t.Fatalf("AddOrganizationMember(): %v", err)
+	}
+	if err = st.UpsertDirectSubjectMember(ctx, project.ID, member.ID, store.SubjectRoleContributor); err != nil {
+		t.Fatalf("UpsertDirectSubjectMember(): %v", err)
 	}
 	template, _, err := st.CreateChecklistTemplate(ctx, "Modèle", lead.ID, nil, nil)
 	if err != nil {
@@ -102,8 +109,15 @@ func TestServiceNotifyItemAssigned(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateSubject(): %v", err)
 	}
-	if err = st.AddSubjectMember(ctx, project.ID, assignee.ID, store.SubjectRoleContributor); err != nil {
-		t.Fatalf("AddSubjectMember(): %v", err)
+	defaultOrg, err := st.OrganizationBySlug(ctx, "default")
+	if err != nil {
+		t.Fatalf("OrganizationBySlug(): %v", err)
+	}
+	if err = st.AddOrganizationMember(ctx, defaultOrg.ID, assignee.ID, store.OrgRoleMember); err != nil {
+		t.Fatalf("AddOrganizationMember(): %v", err)
+	}
+	if err = st.UpsertDirectSubjectMember(ctx, project.ID, assignee.ID, store.SubjectRoleContributor); err != nil {
+		t.Fatalf("UpsertDirectSubjectMember(): %v", err)
 	}
 	template, _, err := st.CreateChecklistTemplate(ctx, "Modèle", lead.ID, nil, []store.TemplateItemInput{
 		{Label: "Point A", Required: true},
