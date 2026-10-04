@@ -35,59 +35,6 @@ func normalizeTag(raw string) string {
 	return tag
 }
 
-// ListSubjectTags returns descriptive labels for a subject ordered alphabetically.
-func (s *Store) ListSubjectTags(ctx context.Context, subjectID int64) ([]string, error) {
-	rows, err := s.db.QueryContext(ctx, `
-		SELECT tag FROM subject_tags WHERE subject_id = ? ORDER BY tag
-	`, subjectID)
-	if err != nil {
-		return nil, fmt.Errorf("list subject tags: %w", err)
-	}
-	defer rows.Close()
-
-	var tags []string
-	for rows.Next() {
-		var tag string
-		if err := rows.Scan(&tag); err != nil {
-			return nil, fmt.Errorf("scan subject tag: %w", err)
-		}
-		tags = append(tags, tag)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("iterate subject tags: %w", err)
-	}
-	return tags, nil
-}
-
-// SetSubjectTags replaces all descriptive labels on a subject.
-func (s *Store) SetSubjectTags(ctx context.Context, subjectID int64, tags []string) error {
-	tags = NormalizeTags(tags)
-
-	tx, err := s.db.BeginTx(ctx, nil)
-	if err != nil {
-		return fmt.Errorf("begin tx: %w", err)
-	}
-	defer func() {
-		_ = tx.Rollback()
-	}()
-
-	if _, err := tx.ExecContext(ctx, `DELETE FROM subject_tags WHERE subject_id = ?`, subjectID); err != nil {
-		return fmt.Errorf("delete subject tags: %w", err)
-	}
-	for _, tag := range tags {
-		if _, err := tx.ExecContext(ctx, `
-			INSERT INTO subject_tags (subject_id, tag) VALUES (?, ?)
-		`, subjectID, tag); err != nil {
-			return fmt.Errorf("insert subject tag: %w", err)
-		}
-	}
-
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("commit subject tags: %w", err)
-	}
-	return nil
-}
-
 // ListSubjectDomains returns matching domains for a subject ordered alphabetically.
 func (s *Store) ListSubjectDomains(ctx context.Context, subjectID int64) ([]string, error) {
 	rows, err := s.db.QueryContext(ctx, `

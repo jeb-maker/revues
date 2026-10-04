@@ -101,11 +101,11 @@ fi
 # 4. Frontend SvelteKit (npm ci / check / build + budgets SPA)
 # ---------------------------------------------------------------------------
 # Budgets documentés dans docs/PLAN.md (WP-005). Vendor mb mesuré, hors fail.
-# Mesuré (PR-B shell + thème app.css) : JS 240 KiB / 104 KiB gz ; CSS 9,2 KiB / 3,1 KiB gz — marge ~10 %.
-SPA_JS_RAW_MAX=270336      # 264 KiB — stack + Jira/Webhooks
-SPA_JS_GZIP_MAX=115712     # 113 KiB gzip-9 — stack + Jira/Webhooks + icônes d'action SVG
-SPA_CSS_RAW_MAX=14336      # 14 KiB — app.css (+ page-header/filters/icônes) + TemplateEditor + styles locaux
-SPA_CSS_GZIP_MAX=4608      # 4,5 KiB gzip-9
+# Mesuré (mb 0.5.1 + fiche revue styles) : JS ~269 KiB / 115 KiB gz ; CSS ~17,4 KiB / 4,9 KiB gz.
+SPA_JS_RAW_MAX=286720      # 280 KiB — stack + search combobox + fiche revue
+SPA_JS_GZIP_MAX=122880     # 120 KiB gzip-9
+SPA_CSS_RAW_MAX=20480      # 20 KiB — app.css + TemplateEditor + fiche revue locale
+SPA_CSS_GZIP_MAX=5632      # 5,5 KiB gzip-9
 
 if [[ -f frontend/package.json ]]; then
   if command -v npm >/dev/null 2>&1; then

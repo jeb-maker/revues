@@ -19,7 +19,6 @@ Pas d’admin global produit ; `users.role` est un vestige technique (défaut `e
 | Entité | Accès |
 |--------|----------|
 | **Projet** | Org owner/admin **ou** grant `subject_members` / équipe |
-| **Étiquettes** (`subject_tags`) | Classification — **jamais** d'accès |
 | **Domaines** (`subject_domains`, `template_domains`) | Matching modèles ↔ sujet — **jamais** d'accès |
 
 ### Permissions projet (`internal/features/subjects/service.go`)
@@ -98,7 +97,6 @@ Colonne encore présente (`admin` / `editor` / `reader`) mais **non utilisée** 
 
 ### Hors périmètre accès
 
-- **`subject_tags`** : classification descriptive **uniquement**.
 - **`subject_domains` / `template_domains`** : matching modèles ↔ sujet **uniquement**.
 
 ---

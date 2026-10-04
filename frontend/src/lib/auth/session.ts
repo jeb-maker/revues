@@ -23,6 +23,12 @@ export type ActiveOrganization = {
 	visible_subject_count: number;
 };
 
+/**
+ * Assignation + Mes tâches : désactivés côté UI (sélection d'assigné non fiable).
+ * API / schéma `assigned_to` / `GET /me/tasks` restent ; réactiver ici + search IncludeTasks.
+ */
+export const FEATURE_ASSIGN_TASKS = false;
+
 export type Session = BootstrapResponse & {
 	/** Organisation active sur la session (null si aucune ou non authentifié). */
 	organization: ActiveOrganization | null;
@@ -34,8 +40,10 @@ export type Session = BootstrapResponse & {
 	can_edit: boolean;
 	/** Nav Modèles (editor+). */
 	show_modeles: boolean;
-	/** Nav Mes tâches (≥ 2 membres org). */
+	/** Nav Mes tâches + résultats search `task` (gate P1, off tant que FEATURE_ASSIGN_TASKS). */
 	show_my_tasks: boolean;
+	/** Colonne / champ Assigné sur fiche revue et fiche point. */
+	show_assign: boolean;
 	/** Colonne Sujet sur /runs (≥ 2 sujets visibles). */
 	show_subject_column: boolean;
 };
@@ -81,6 +89,7 @@ export function offlineSession(): Session {
 		can_edit: false,
 		show_modeles: false,
 		show_my_tasks: false,
+		show_assign: false,
 		show_subject_column: false
 	};
 }
@@ -115,6 +124,7 @@ async function fetchSession(): Promise<Session> {
 	const canEdit = organization != null; // membre org : catalogue modèles / création projet
 	const memberCount = organization?.member_count ?? 0;
 	const subjectCount = organization?.visible_subject_count ?? 0;
+	const assignTasks = FEATURE_ASSIGN_TASKS && memberCount >= 2;
 	return {
 		...boot,
 		organization,
@@ -122,7 +132,8 @@ async function fetchSession(): Promise<Session> {
 		can_admin: orgRole === 'owner' || orgRole === 'admin',
 		can_edit: canEdit,
 		show_modeles: canEdit,
-		show_my_tasks: memberCount >= 2,
+		show_my_tasks: assignTasks,
+		show_assign: assignTasks,
 		show_subject_column: subjectCount >= 2
 	};
 }

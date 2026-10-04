@@ -36,7 +36,6 @@
 	let name = $state('');
 	let description = $state('');
 	let domains = $state('');
-	let tags = $state('');
 	let visibility = $state<'normal' | 'private'>('normal');
 
 	let memberPick = $state('');
@@ -69,7 +68,6 @@
 		name = s.name;
 		description = s.description ?? '';
 		domains = joinCSV(s.domains);
-		tags = joinCSV(s.tags);
 		visibility = s.visibility;
 	}
 
@@ -108,8 +106,7 @@
 			const body: Parameters<typeof updateSubject>[1] = {
 				name: name.trim(),
 				description: description.trim(),
-				domains: splitCSV(domains),
-				tags: splitCSV(tags)
+				domains: splitCSV(domains)
 			};
 			if (subject.capabilities.can_set_visibility) {
 				body.visibility = visibility;
@@ -248,12 +245,6 @@
 								value={domains}
 								oninput={(e) => (domains = inputValue(e))}
 							></mb-input>
-							<mb-input
-								label="Étiquettes"
-								hint="Séparées par des virgules."
-								value={tags}
-								oninput={(e) => (tags = inputValue(e))}
-							></mb-input>
 							{#if subject.capabilities.can_set_visibility}
 								<mb-select
 									label="Visibilité"
@@ -275,31 +266,16 @@
 				</form>
 			{:else}
 				<mb-card>
-					<h2 slot="header">Domaines et étiquettes</h2>
-					<section aria-labelledby="domaines">
-						<h3 id="domaines">Domaines</h3>
-						{#if subject.domains.length === 0}
-							<p class="muted">Aucun domaine.</p>
-						{:else}
-							<p class="tags">
-								{#each subject.domains as d (d)}
-									<mb-tag>{d}</mb-tag>
-								{/each}
-							</p>
-						{/if}
-					</section>
-					<section aria-labelledby="etiquettes">
-						<h3 id="etiquettes">Étiquettes</h3>
-						{#if subject.tags.length === 0}
-							<p class="muted">Aucune étiquette.</p>
-						{:else}
-							<p class="tags">
-								{#each subject.tags as t (t)}
-									<mb-tag>{t}</mb-tag>
-								{/each}
-							</p>
-						{/if}
-					</section>
+					<h2 slot="header">Domaines</h2>
+					{#if subject.domains.length === 0}
+						<p class="muted">Aucun domaine — tous les modèles sont compatibles.</p>
+					{:else}
+						<p class="tags">
+							{#each subject.domains as d (d)}
+								<mb-tag>{d}</mb-tag>
+							{/each}
+						</p>
+					{/if}
 				</mb-card>
 			{/if}
 

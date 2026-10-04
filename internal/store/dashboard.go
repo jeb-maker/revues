@@ -293,8 +293,8 @@ func scanRunListSummaries(rows interface {
 		); err != nil {
 			return nil, fmt.Errorf("scan run list summary: %w", err)
 		}
-		// Subject stays in its own column; omit it from the title link label.
-		summary.Title = RunDisplayLabel(templateName, "", createdAt, summary.RunID)
+		// Subject stays in its own column; date has its own column — title = modèle · #id.
+		summary.Title = RunDisplayLabel(templateName, "", "", summary.RunID)
 		summary.CreatedAt = createdAt
 		summary.Percent = progressPercent(summary.Done, summary.Total)
 		summaries = append(summaries, summary)

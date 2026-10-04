@@ -15,8 +15,6 @@ type SubjectStore interface {
 	UpdateSubject(ctx context.Context, id int64, name, description string, domains []string) error
 	UpdateSubjectWithVisibility(ctx context.Context, id int64, name, description string, domains []string, visibility string) error
 	ListSubjectDomains(ctx context.Context, subjectID int64) ([]string, error)
-	ListSubjectTags(ctx context.Context, subjectID int64) ([]string, error)
-	SetSubjectTags(ctx context.Context, subjectID int64, tags []string) error
 	ArchiveSubject(ctx context.Context, id int64) error
 	ListSubjectMembers(ctx context.Context, subjectID int64) ([]SubjectMember, error)
 	ListDirectSubjectMembers(ctx context.Context, subjectID int64) ([]DirectSubjectMember, error)

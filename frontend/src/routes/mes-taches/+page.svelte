@@ -84,7 +84,7 @@
 	{:else if tasks.length === 0}
 		<mb-empty-state heading="Aucune tâche">Aucun point assigné avec ces filtres.</mb-empty-state>
 	{:else}
-		<mb-table columns="2fr 1.2fr 1fr 0.8fr auto" sticky-header>
+		<mb-table columns="2fr 1.2fr 1fr 0.8fr auto">
 			<mb-table-row slot="head">
 				<mb-table-cell>Point</mb-table-cell>
 				<mb-table-cell>Sujet</mb-table-cell>

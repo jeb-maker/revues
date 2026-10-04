@@ -1,6 +1,6 @@
 # Vendored `@jeb-maker/mb` (+ Lit peer, bundled)
 
-- **Version used by Revues: `0.5.0`** (Git tag `v0.5.0`)
+- **Version used by Revues: `0.5.1`** (Git tag `v0.5.1`)
 - **Source**: https://github.com/jeb-maker/miniature-broccoli
 - **Lit**: peer `^3.2.0` (build used `lit@3.3.x`) is **bundled into `mb-boot.js`** so the browser needs no import map. Vendor files are measured but excluded from the SPA app budgets (`scripts/check.sh` only fails on `frontend/build/_app/**`).
 
@@ -25,7 +25,7 @@ Assets are embedded by Go (`web/fs.go`) and served under `/static/vendor/jeb-mak
 
 Page styles live in Svelte `<style>` blocks (bundled by Vite) and cascade after the vendor stylesheets. `ensureMb()` is idempotent (guards on existing `<link>`/`<script>`).
 
-TypeScript typings for the custom elements used in templates: `frontend/src/lib/mb/elements.d.ts`.
+TypeScript typings for the custom elements used in templates: `frontend/src/lib/mb/svelte.d.ts` (copie de `svelte.d.ts` upstream 0.5.1, plus overlay Revues : `oninput`/`onchange`/`onclick` sur `MbBaseAttrs`, `type="date"` sur `mb-input`).
 
 ## `mb-boot.js` registers
 
@@ -37,8 +37,8 @@ TypeScript typings for the custom elements used in templates: `frontend/src/lib/
 
 ```bash
 export PATH="$HOME/.nvm/versions/node/v22.22.2/bin:$PATH"   # or any Node ≥ 20
-git clone --depth 1 --branch v0.5.0 https://github.com/jeb-maker/miniature-broccoli.git /tmp/mb-0.5.0
-cd /tmp/mb-0.5.0 && npm ci && npm run build
+git clone --depth 1 --branch v0.5.1 https://github.com/jeb-maker/miniature-broccoli.git /tmp/mb-0.5.1
+cd /tmp/mb-0.5.1 && npm ci && npm run build
 # Apply local sticky-disabled patch (see below) before bundling if rebuilding from clean clone.
 COMPS="button badge alert card input textarea checkbox select combobox modal progress segmented-control empty-state pagination toast radio radio-group tag breadcrumbs nav nav-toggle avatar spinner toolbar table"
 { for c in $COMPS; do echo "import './dist/components/\$c.js';"; done; } > boot-entry.js
@@ -47,6 +47,7 @@ npx esbuild boot-entry.js --bundle --format=esm \
   --minify --legal-comments=none
 cp dist/tokens/tokens-core.css dist/tokens/reference.css dist/tokens/semantic.css \
   /path/to/revues/web/static/vendor/jeb-maker-mb/tokens/
+cp svelte.d.ts /path/to/revues/frontend/src/lib/mb/svelte.d.ts
 ```
 
 `internal/web/staticassets_test.go` (`TestVendoredMBBundlePresent`) vérifie la présence des fichiers et l'enregistrement des CE dans `mb-boot.js`.
@@ -64,6 +65,12 @@ Aujourd’hui Revues ship **`mb-boot.js` monolithe** (simple, une requête).
 ## Local patches (Revues)
 
 - **`mb-button` / form controls — `disabled` sticky** : upstream ORs the host `disabled` prop with `formDisabledCallback` state. After `disabled` flips true→false, some browsers leave form-disabled set, so the control stays inert. Vendor patch trusts the host `disabled` prop only (Revues does not use disabled `<fieldset>`). Prefer `loading={busy}` for in-flight actions; gate empty required fields with `required` + submit guards, not `disabled={…||!value}`.
+- **Typings Svelte** : overlay local sur `svelte.d.ts` — `oninput` / `onchange` / `onclick` typés + `type="date"` sur `mb-input` (pas encore upstream).
+
+## 0.5.1 (vs 0.5.0)
+
+- First-party Svelte typings (`svelte.d.ts` / `@jeb-maker/mb/svelte`)
+- `mb-table-cell`: clearer dual-caret sort indicator (`part="sort-indicator"`)
 
 ## 0.5.0 (vs 0.4.1)
 

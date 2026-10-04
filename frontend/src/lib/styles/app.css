@@ -585,3 +585,29 @@ mb-table,
 mb-progress {
 	margin-bottom: var(--mb-space-4);
 }
+
+/* Align outer frame with row hairlines (vendor uses border-strong). */
+mb-table::part(frame) {
+	border-color: var(--mb-color-border);
+}
+
+/*
+  Centered sortable headers: the caret sits after the label, so padding-start
+  equal to (gap + indicator) keeps the label on the column center axis.
+*/
+mb-table-cell[align='center']::part(sort) {
+	box-sizing: border-box;
+	inline-size: 100%;
+	justify-content: center;
+	padding-inline-start: calc(0.55em + var(--mb-space-1));
+}
+
+/*
+  mb-table[sticky-header] sets .frame { overflow: visible }, so the square
+  header background paints over the rounded outer border (broken corners).
+  If sticky is re-enabled, match the inner radius so the head stays under the curve.
+*/
+mb-table[sticky-header]::part(head) {
+	border-start-start-radius: calc(var(--mb-radius-lg) - 1px);
+	border-start-end-radius: calc(var(--mb-radius-lg) - 1px);
+}

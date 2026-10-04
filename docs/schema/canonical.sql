@@ -153,13 +153,6 @@ CREATE TABLE team_subject_roles (
 
 CREATE INDEX idx_team_subject_roles_subject ON team_subject_roles(subject_id);
 
--- Étiquettes descriptives (filtrer, retrouver — jamais accès)
-CREATE TABLE subject_tags (
-    subject_id INTEGER NOT NULL REFERENCES subjects(id) ON DELETE CASCADE,
-    tag        TEXT NOT NULL,
-    PRIMARY KEY (subject_id, tag)
-);
-
 -- Domaines de matching modèles ↔ sujet
 CREATE TABLE subject_domains (
     subject_id INTEGER NOT NULL REFERENCES subjects(id) ON DELETE CASCADE,

@@ -16,18 +16,22 @@
 		{
 			href: '/subjects',
 			title: subject.plural,
-			desc: `Conteneurs de ${run.plural} : domaines, étiquettes, membres.`
+			desc: `Conteneurs de ${run.plural} : domaines, membres.`
 		},
 		{
 			href: '/modeles',
 			title: templatesLabel,
 			desc: 'Check-lists versionnées de l’organisation.'
 		},
-		{
-			href: '/mes-taches',
-			title: 'Mes tâches',
-			desc: `Points de ${run.singular} qui vous sont assignés.`
-		},
+		...(boot.show_my_tasks
+			? [
+					{
+						href: '/mes-taches',
+						title: 'Mes tâches',
+						desc: `Points de ${run.singular} qui vous sont assignés.`
+					}
+				]
+			: []),
 		...(boot.can_admin
 			? [{ href: '/admin', title: 'Administration', desc: 'Accès, équipes, politiques, intégrations.' }]
 			: [])

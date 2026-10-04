@@ -17,7 +17,7 @@ Audit **read-only** par défaut. N'implémenter que si **P0 UX** confirmé (voir
 1. `.cursor/rules/design.md` — charte
 2. [decisions.md](decisions.md) — décisions produit (ne pas re-signaler)
 3. Pages : `frontend/src/routes/**/*.svelte` (+ `+layout.svelte` / `+layout.ts` racine : header commun, session unique, garde d'auth)
-4. Lib front : `frontend/src/lib/**` — `components/` (`AdminNav.svelte`, `TemplateEditor.svelte`), `api/` (client OpenAPI généré + wrappers), `auth/session.ts` (session `page.data.boot`), `auth/messages.ts` (copy FR des erreurs login), `i18n/labels.ts` (libellés FR), `styles/app.css` (thème sur tokens), `mb/` (`ensureMb()`, `elements.d.ts`)
+4. Lib front : `frontend/src/lib/**` — `components/` (`AdminNav.svelte`, `TemplateEditor.svelte`), `api/` (client OpenAPI généré + wrappers), `auth/session.ts` (session `page.data.boot`), `auth/messages.ts` (copy FR des erreurs login), `i18n/labels.ts` (libellés FR), `styles/app.css` (thème sur tokens), `mb/` (`ensureMb()`, `svelte.d.ts`)
 5. CSS : `frontend/src/lib/styles/app.css` (classes hôte partagées) + blocs `<style>` résiduels des pages ; vendor `mb-*` sous `web/static/vendor/jeb-maker-mb/` (tokens `tokens-core.css`, `mb-bridge.css`, `mb-boot.js`)
 6. Contrat : `api/openapi/openapi.yaml` (capabilities `can_*` par ressource) ; règles métier et tests : `internal/features/**`, `internal/api/v1/*_test.go` — spec implicite souvent plus fiable que la charte seule
 
@@ -59,7 +59,7 @@ Checklist :
 - [ ] Presets org `ui_run_label` / `ui_subject_label` (schéma `Organization`) : vérifier s'ils sont consommés par l'écran audité avant de signaler un écart
 - [ ] UI 100 % FR (pas leads / Issue / direct non traduit)
 - [ ] Info essentielle en texte d'aide visible, pas placeholder seul
-- [ ] Domaines ≠ Étiquettes (terminologie decisions)
+- [ ] Domaines = matching modèles (pas d’étiquettes descriptives — retirées)
 
 ### Passe 2 — Composants
 

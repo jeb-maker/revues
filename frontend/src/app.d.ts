@@ -1,5 +1,5 @@
 // See https://svelte.dev/docs/kit/types#app.d.ts
-/// <reference path="./lib/mb/elements.d.ts" />
+/// <reference path="./lib/mb/svelte.d.ts" />
 
 import type { Session } from '$lib/auth/session';
 

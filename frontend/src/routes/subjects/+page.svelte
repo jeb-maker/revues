@@ -80,7 +80,7 @@
 			>Aucun {subject.singular.toLowerCase()} visible dans cette organisation.</mb-empty-state
 		>
 	{:else}
-		<mb-table columns="2fr 1fr auto" sticky-header>
+		<mb-table columns="2fr 1fr auto">
 			<mb-table-row slot="head">
 				<mb-table-cell>Nom</mb-table-cell>
 				<mb-table-cell>Visibilité</mb-table-cell>

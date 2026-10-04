@@ -89,7 +89,6 @@ func assertCoreTables(t *testing.T, ctx context.Context, db *sql.DB) error {
 		"users",
 		"sessions",
 		"subjects",
-		"subject_tags",
 		"subject_domains",
 		"checklist_templates",
 		"template_domains",

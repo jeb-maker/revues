@@ -70,7 +70,7 @@
 			{#if canManage}<a href="/modeles/new">Créer le premier modèle</a>.{:else}Aucun modèle publié.{/if}
 		</mb-empty-state>
 	{:else}
-		<mb-table columns="2fr 0.7fr 0.7fr 1.4fr auto" sticky-header>
+		<mb-table columns="2fr 0.7fr 0.7fr 1.4fr auto">
 			<mb-table-row slot="head">
 				<mb-table-cell>Nom</mb-table-cell>
 				<mb-table-cell>Version</mb-table-cell>

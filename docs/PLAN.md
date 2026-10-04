@@ -28,8 +28,8 @@ Stack SPA — seuils appliqués par `./scripts/check.sh` (WP-005). Vendor mb mes
 
 | Métrique | Seuil (`check.sh`) |
 |----------|--------------------|
-| JS **app** `frontend/build/_app/**/*.js` (hors vendor mb) | ≤ **264 KiB** brut · ≤ **113 KiB** gzip-9 |
-| CSS **app** `frontend/build/_app/**/*.css` (hors tokens mb) | ≤ **14 KiB** brut · ≤ **4,5 KiB** gzip-9 |
+| JS **app** `frontend/build/_app/**/*.js` (hors vendor mb) | ≤ **280 KiB** brut · ≤ **120 KiB** gzip-9 |
+| CSS **app** `frontend/build/_app/**/*.css` (hors tokens mb) | ≤ **20 KiB** brut · ≤ **5,5 KiB** gzip-9 |
 | Vendor mb `web/static/vendor/jeb-maker-mb/` | mesuré (log) ; **pas de fail** pour l’instant |
 | Requêtes API par navigation écran | viser ≤ 8 |
 | RAM serveur | < 128 Mo en charge normale |
@@ -76,7 +76,6 @@ erDiagram
     users ||--o{ checklist_runs : creates
     subjects ||--o{ checklist_runs : has
     subjects ||--o{ subject_domains : has
-    subjects ||--o{ subject_tags : labeled
     checklist_templates ||--o{ template_domains : has
     checklist_templates ||--o{ template_versions : versioned
     template_versions ||--o{ template_items : contains
@@ -89,7 +88,7 @@ erDiagram
 ### Tables principales
 
 - `users` — identité GitHub, rôle global (`admin` / `editor` / `reader`)
-- `subjects` + `subject_domains` + `subject_tags` — sujets revus, domaines (matching modèles) et étiquettes descriptives
+- `subjects` + `subject_domains` — sujets revus et domaines (matching modèles)
 - `checklist_templates` → `template_versions` → `template_items` — modèles versionnés
 - `checklist_runs` → `run_items` — exécutions (snapshot immuable), champ `due_date` optionnel
 - `run_item_events` — audit des changements de statut
@@ -142,11 +141,11 @@ erDiagram
 
 1. Connexion (GitHub OAuth et/ou email + mot de passe)
 2. Hub **Revues** (`/revues`) — liste paginée, filtres statut, CTA lancement
-3. Fiche sujet — revues, collab (équipes/membres si P1+), domaines/étiquettes si multi-sujet
+3. Fiche sujet — revues, collab (équipes/membres si P1+), domaines si multi-sujet
 4. Liste / éditeur modèles ou listes (vocabulaire via `ShowSubjectColumn`)
 5. Assistant lancement revue (`/revues/nouvelle`) — **2 étapes** (sujet → modèle/liste)
 6. Détail revue — points (SvelteKit + mb), progression, Jira/preuve selon capabilities
-7. Mes tâches (si ≥2 membres)
+7. Mes tâches — **désactivé** (icebox ; flag `FEATURE_ASSIGN_TASKS`)
 8. Admin org — utilisateurs, sujets, SMTP, intégrations, libellés UI
 
 ---
@@ -206,7 +205,7 @@ Détail runtime : `.cursor/skills/revues-ui-audit/decisions.md`.
 | Palier | Déclencheur | Surface |
 |--------|-------------|---------|
 | **P0 — Particulier** | `SimpleUI` (1 org · 1 membre · ≤1 sujet · pas admin global) | Revues · Listes ; cocher ; CSV ; pas assign / tâches / collab |
-| **P1 — Duo** | ≥2 **membres** org | + Assignation · Mes tâches · collab fiche sujet |
+| **P1 — Duo** | ≥2 **membres** org | + collab fiche sujet · *(assign / Mes tâches icebox)* |
 | **P2 — Multi-sujet** | ≥2 sujets visibles | + Colonne Sujet · domaines · vocabulaire « Modèles » |
 | **P3 — Conformité** | `HasJira` / `HasWebhooks` (config org) · `HasEvidence` (hash scellé, page revue) | Jira/webhooks/preuve **capability-gated** (pas masqués par SimpleUI) |
 

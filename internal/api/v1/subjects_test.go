@@ -37,7 +37,6 @@ func TestSubjectsAPI_CRUDAndMembers(t *testing.T) {
 		"name":        "Portail",
 		"description": "App web",
 		"domains":     []string{"frontend", "k8s"},
-		"tags":        []string{"prio"},
 		"visibility":  "normal",
 	}
 	rec := doJSON(t, handler, http.MethodPost, "/api/v1/subjects", createBody, session, csrf)
@@ -77,7 +76,6 @@ func TestSubjectsAPI_CRUDAndMembers(t *testing.T) {
 		"name":        "Portail v2",
 		"description": "Updated",
 		"domains":     []string{"api"},
-		"tags":        []string{"beta"},
 	}
 	patchRec := doJSON(t, handler, http.MethodPatch, "/api/v1/subjects/"+strconv.FormatInt(id, 10), patchBody, session, csrf)
 	if patchRec.Code != http.StatusOK {

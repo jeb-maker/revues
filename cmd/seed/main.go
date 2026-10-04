@@ -244,10 +244,6 @@ func seedV1(ctx context.Context, st *store.Store, admin *store.User) error {
 	if err != nil {
 		return fmt.Errorf("subject api: %w", err)
 	}
-	if err = st.SetSubjectTags(ctx, portail.ID, []string{"prod", "critique"}); err != nil {
-		return fmt.Errorf("tags portail: %w", err)
-	}
-
 	releaseTpl, _, err := st.CreateChecklistTemplate(ctx, "Revue de release", admin.ID, nil, []store.TemplateItemInput{
 		{Section: "Préparation", Label: "Branche release créée et taggée", HelpText: "Tag semver sur la branche de release.", Required: true},
 		{Section: "Préparation", Label: "Notes de version rédigées", Required: true},
@@ -342,10 +338,6 @@ func seedSoloUser(ctx context.Context, st *store.Store) error {
 	if err != nil {
 		return fmt.Errorf("private subject: %w", err)
 	}
-	if err = st.SetSubjectTags(ctx, personal.ID, []string{"solo", "privé"}); err != nil {
-		return fmt.Errorf("tags perso: %w", err)
-	}
-
 	tpl, _, err := st.CreateChecklistTemplate(ctx, "Revue perso", solo.ID, []string{"perso"}, []store.TemplateItemInput{
 		{Section: "Quotidien", Label: "Sauvegarde effectuée", Required: true},
 		{Section: "Quotidien", Label: "Mises à jour appliquées", Required: true},

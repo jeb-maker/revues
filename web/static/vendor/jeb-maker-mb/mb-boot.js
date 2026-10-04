@@ -2170,12 +2170,40 @@ var Lt=globalThis,Dt=Lt.ShadowRoot&&(Lt.ShadyCSS===void 0||Lt.ShadyCSS.nativeSha
   }
 
   .sort-indicator {
-    color: var(--mb-color-muted);
-    font-size: 0.75em;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.05em;
+    flex: none;
+    color: var(--mb-color-fg);
+    opacity: 0.55;
+    font-size: 0.55em;
+    line-height: 1;
   }
 
-  :host([sort-active]) .sort-indicator {
+  .sort-caret {
+    display: block;
+  }
+
+  .sort-indicator[data-direction='asc'],
+  .sort-indicator[data-direction='desc'] {
+    opacity: 1;
+  }
+
+  .sort-indicator[data-direction='asc'] .sort-caret-up,
+  .sort-indicator[data-direction='desc'] .sort-caret-down {
     color: var(--mb-color-accent);
+  }
+
+  .sort-indicator[data-direction='asc'] .sort-caret-down,
+  .sort-indicator[data-direction='desc'] .sort-caret-up {
+    opacity: 0.28;
+    color: var(--mb-color-muted);
+  }
+
+  .sort:hover .sort-indicator[data-direction='none'] {
+    opacity: 0.8;
   }
 
   :host([align='center']) .cell {
@@ -2316,7 +2344,7 @@ var Lt=globalThis,Dt=Lt.ShadowRoot&&(Lt.ShadyCSS===void 0||Lt.ShadyCSS.nativeSha
           <slot></slot>
         </div>
       </div>
-    `}};de([n({type:Boolean,reflect:!0})],pt.prototype,"head");de([n({reflect:!0})],pt.prototype,"section");de([n({attribute:"sort-value"})],pt.prototype,"sortValue");b("mb-table-row",pt);var Is=Object.defineProperty,F=(r,t,e,i)=>{for(var s=void 0,o=r.length-1,a;o>=0;o--)(a=r[o])&&(s=a(t,e,s)||s);return s&&Is(t,e,s),s},O=class extends p{constructor(){super(...arguments),this.label="",this.align="start",this.primary=!1,this.hideLabel=!1,this.actions=!1,this.sortKey="",this.sortable=!1,this.sortValue="",this.sortActive=!1,this.sortDirection=null}static{this.styles=[u,Je]}connectedCallback(){super.connectedCallback(),this.#e()}attributeChangedCallback(t,e,i){super.attributeChangedCallback(t,e,i),t==="data-sort-label"&&e!==i&&this.requestUpdate()}updated(t){if(this.#e(),t.has("sortKey")&&this.sortKey.trim()&&(this.sortable=!0),(t.has("hideLabel")||t.has("actions"))&&(this.hideLabel||this.actions)&&(this.dataset.labelLocked="true",this.label&&(this.label="")),this.#t()&&this.sortKey.trim()){let e=this.sortActive&&this.sortDirection?this.sortDirection:"none";this.setAttribute("aria-sort",e)}else this.removeAttribute("aria-sort")}#t(){let t=this.parentElement;return t?.slot==="head"||t?.hasAttribute("head")===!0}#e(){this.setAttribute("role",this.#t()?"columnheader":"cell")}#r(){return!this.sortActive||!this.sortDirection?"\u2195":this.sortDirection==="asc"?"\u2191":"\u2193"}#s(){let t=this.sortKey.trim()||this.label.trim()||(this.textContent??"").replace(/\s+/g," ").trim()||"column",e=this.getAttribute("data-sort-label")?.trim()||this.closest("mb-table")?.sortLabel?.trim()||"Sort by {name}";return e.includes("{name}")?e.replace(/\{name\}/g,t):`${e} ${t}`.trim()}render(){let t=!!this.label&&this.getAttribute("data-mode")==="cards"&&!this.#t()&&!this.hideLabel&&!this.actions,e=this.#t()&&(this.sortable||!!this.sortKey.trim());return l`
+    `}};de([n({type:Boolean,reflect:!0})],pt.prototype,"head");de([n({reflect:!0})],pt.prototype,"section");de([n({attribute:"sort-value"})],pt.prototype,"sortValue");b("mb-table-row",pt);var Is=Object.defineProperty,F=(r,t,e,i)=>{for(var s=void 0,o=r.length-1,a;o>=0;o--)(a=r[o])&&(s=a(t,e,s)||s);return s&&Is(t,e,s),s},O=class extends p{constructor(){super(...arguments),this.label="",this.align="start",this.primary=!1,this.hideLabel=!1,this.actions=!1,this.sortKey="",this.sortable=!1,this.sortValue="",this.sortActive=!1,this.sortDirection=null}static{this.styles=[u,Je]}connectedCallback(){super.connectedCallback(),this.#e()}attributeChangedCallback(t,e,i){super.attributeChangedCallback(t,e,i),t==="data-sort-label"&&e!==i&&this.requestUpdate()}updated(t){if(this.#e(),t.has("sortKey")&&this.sortKey.trim()&&(this.sortable=!0),(t.has("hideLabel")||t.has("actions"))&&(this.hideLabel||this.actions)&&(this.dataset.labelLocked="true",this.label&&(this.label="")),this.#t()&&this.sortKey.trim()){let e=this.sortActive&&this.sortDirection?this.sortDirection:"none";this.setAttribute("aria-sort",e)}else this.removeAttribute("aria-sort")}#t(){let t=this.parentElement;return t?.slot==="head"||t?.hasAttribute("head")===!0}#e(){this.setAttribute("role",this.#t()?"columnheader":"cell")}#r(){let t=this.sortKey.trim()||this.label.trim()||(this.textContent??"").replace(/\s+/g," ").trim()||"column",e=this.getAttribute("data-sort-label")?.trim()||this.closest("mb-table")?.sortLabel?.trim()||"Sort by {name}";return e.includes("{name}")?e.replace(/\{name\}/g,t):`${e} ${t}`.trim()}render(){let t=!!this.label&&this.getAttribute("data-mode")==="cards"&&!this.#t()&&!this.hideLabel&&!this.actions,e=this.#t()&&(this.sortable||!!this.sortKey.trim());return l`
       <div part="cell" class="cell">
         <span part="label" class="label" ?hidden=${!t}>${this.label}</span>
         <div part="value" class="value">
@@ -2325,10 +2353,18 @@ var Lt=globalThis,Dt=Lt.ShadowRoot&&(Lt.ShadyCSS===void 0||Lt.ShadyCSS.nativeSha
                   type="button"
                   part="sort"
                   class="sort"
-                  aria-label=${this.#s()}
+                  aria-label=${this.#r()}
                 >
                   <slot></slot>
-                  <span class="sort-indicator" aria-hidden="true">${this.#r()}</span>
+                  <span
+                    part="sort-indicator"
+                    class="sort-indicator"
+                    data-direction=${this.sortActive&&this.sortDirection?this.sortDirection:"none"}
+                    aria-hidden="true"
+                  >
+                    <span class="sort-caret sort-caret-up">▲</span>
+                    <span class="sort-caret sort-caret-down">▼</span>
+                  </span>
                 </button>
               `:l`<slot></slot>`}
         </div>
