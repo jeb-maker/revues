@@ -82,7 +82,7 @@
 					Les administrateurs de l’organisation et l’administrateur global ne sont jamais limités
 					par ces options.
 				</p>
-				<mb-button type="submit" variant="primary" disabled={loading}>
+				<mb-button type="submit" variant="primary" loading={loading}>
 					{loading ? 'Enregistrement…' : 'Enregistrer'}
 				</mb-button>
 			</form>

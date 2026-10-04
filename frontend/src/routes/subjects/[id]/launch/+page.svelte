@@ -93,28 +93,40 @@
 			Aucun modèle compatible (domaines). Créez ou étendez un <a href="/modeles">modèle</a>.
 		</p>
 	{:else}
-		<form class="stack-form" onsubmit={onLaunch}>
-			<mb-select
-				label="Modèle"
-				required
-				placeholder="Choisir…"
-				value={templateId}
-				onmb-change={(e) => (templateId = e.detail.value)}
-			>
-				{#each templates as t (t.id)}
-					<option value={String(t.id)}>{t.name} · v{t.latest_version} · {t.item_count} points</option>
-				{/each}
-			</mb-select>
-			<mb-input
-				label="Échéance"
-				hint="Optionnel — déclenche le rappel J-1."
-				type="date"
-				value={dueDate}
-				oninput={(e) => (dueDate = inputValue(e))}
-			></mb-input>
-			<mb-button type="submit" variant="primary" disabled={launching || !templateId}>
-				{launching ? 'Lancement…' : 'Lancer'}
-			</mb-button>
+		<form onsubmit={onLaunch}>
+			<div class="card-stack">
+				<mb-card>
+					<h2 slot="header">Lancement</h2>
+					<div class="stack-form">
+						<mb-select
+							label="Modèle"
+							required
+							placeholder="Choisir…"
+							value={templateId}
+							onmb-change={(e) => (templateId = e.detail.value)}
+						>
+							{#each templates as t (t.id)}
+								<option value={String(t.id)}>{t.name} · v{t.latest_version} · {t.item_count} points</option>
+							{/each}
+						</mb-select>
+						<mb-input
+							label="Échéance"
+							hint="Optionnel — déclenche le rappel J-1."
+							type="date"
+							value={dueDate}
+							oninput={(e) => (dueDate = inputValue(e))}
+						></mb-input>
+					</div>
+					<div slot="footer" class="actions">
+						<mb-button type="submit" variant="primary" loading={launching}>
+							{launching ? 'Lancement…' : 'Lancer'}
+						</mb-button>
+						{#if subject}
+							<a href={`/subjects/${subject.id}`}>Annuler</a>
+						{/if}
+					</div>
+				</mb-card>
+			</div>
 		</form>
 	{/if}
 </div>

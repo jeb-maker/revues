@@ -127,7 +127,7 @@
 						{/if}
 					</div>
 					<div slot="footer" class="actions">
-						<mb-button type="submit" variant="primary" disabled={loading || !name.trim()}>
+						<mb-button type="submit" variant="primary" loading={loading}>
 							{loading ? 'Création…' : 'Créer'}
 						</mb-button>
 						<a href="/subjects">Annuler</a>

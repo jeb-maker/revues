@@ -146,6 +146,7 @@ Principes :
 | Tokens | **`tokens-core.css`** (+ `mb-bridge.css`), injectés par `ensureMb()` depuis le layout racine — pas de `tokens.css` (évite reset `html`/`body`) ni `typography.css`/woff2 (budget) |
 | JS | `mb-boot.js` sous `web/static/vendor/jeb-maker-mb/` (Lit bundlé) — vendor mesuré hors budget app (`check.sh`) ; chargé par `ensureMb()` |
 | Shell + formulaires | Cible `mb-*` (button, alert, badge, input, textarea, tag, empty-state, spinner, table, **card**…) — fiches (`/modeles/{id}`, `/subjects/{id}`, `/runs/{id}`, fiche point) en `mb-card` + `.card-stack` ; listes = tableau + header row ; nav / breadcrumbs / toolbar / modal / toast encore à venir |
+| `mb-button` busy / gated | **`loading={busy}`** pour l’en-vol (pas `disabled={busy}`). Ne pas gater un submit avec `disabled` lié à un champ vide : préférer `required` + garde submit. Patch vendor local : ignore `formDisabledCallback` sticky (voir README vendor). `disabled=` réservé aux états structurels (`!configured`, pagination). |
 | Listes | **`mb-table`** (cible : admin, sujets, modèles, revues, tâches, sections de la fiche revue) |
 | Reste host | éditeur de modèle (`TemplateEditor.svelte`, `<table>` natif + DnD) ; `confirm()` natif |
 | Tracking gaps | https://github.com/jeb-maker/miniature-broccoli/issues/40–44 (fermés en 0.4.1) |

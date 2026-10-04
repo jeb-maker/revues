@@ -267,7 +267,7 @@
 							{/if}
 						</div>
 						<div slot="footer">
-							<mb-button type="submit" variant="primary" disabled={saving}>
+							<mb-button type="submit" variant="primary" loading={saving}>
 								{saving ? 'Enregistrement…' : 'Enregistrer'}
 							</mb-button>
 						</div>

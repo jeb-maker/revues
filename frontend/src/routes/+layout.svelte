@@ -110,7 +110,7 @@
 					</span>
 				{/if}
 				<span>{boot.user.display_name}</span>
-				<mb-button variant="ghost" size="sm" disabled={loggingOut} onclick={onLogout}>
+				<mb-button variant="ghost" size="sm" loading={loggingOut} onclick={onLogout}>
 					Se déconnecter
 				</mb-button>
 			</div>

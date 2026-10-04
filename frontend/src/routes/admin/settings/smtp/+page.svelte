@@ -179,7 +179,7 @@
 					oninput={(e) => (from = inputValue(e))}
 				></mb-input>
 				<p class="actions">
-					<mb-button type="submit" variant="primary" disabled={saving}>
+					<mb-button type="submit" variant="primary" loading={saving}>
 						{saving ? 'Enregistrement…' : 'Enregistrer'}
 					</mb-button>
 					{#if configured}

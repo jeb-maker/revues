@@ -245,7 +245,7 @@
 					</div>
 					{#if detail.capabilities.can_update_items || detail.capabilities.can_assign}
 						<div slot="footer">
-							<mb-button type="submit" variant="primary" disabled={saving}>
+							<mb-button type="submit" variant="primary" loading={saving}>
 								{saving ? 'Enregistrement…' : 'Enregistrer'}
 							</mb-button>
 						</div>
@@ -319,7 +319,7 @@
 							value={jiraIssue}
 							oninput={(e) => (jiraIssue = inputValue(e))}
 						></mb-input>
-						<mb-button type="submit" variant="secondary" disabled={jiraBusy}>
+						<mb-button type="submit" variant="secondary" loading={jiraBusy}>
 							{jiraLink ? 'Mettre à jour le lien' : "Lier l'issue"}
 						</mb-button>
 					</form>
@@ -339,7 +339,7 @@
 								value={jiraDescription}
 								oninput={(e) => (jiraDescription = inputValue(e))}
 							></mb-textarea>
-							<mb-button type="submit" variant="secondary" disabled={jiraBusy}>Créer le ticket Jira</mb-button>
+							<mb-button type="submit" variant="secondary" loading={jiraBusy}>Créer le ticket Jira</mb-button>
 						</form>
 					{/if}
 				{:else if jira?.can_link && !jira.configured}

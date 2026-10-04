@@ -85,7 +85,7 @@
 				value={description}
 				oninput={(e) => (description = inputValue(e))}
 			></mb-textarea>
-			<mb-button type="submit" variant="primary" disabled={loading}>
+			<mb-button type="submit" variant="primary" loading={loading}>
 				{loading ? 'Création…' : 'Créer'}
 			</mb-button>
 		</form>

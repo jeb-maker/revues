@@ -149,7 +149,7 @@
 							<option value={String(c.user_id)}>{c.display_name || c.login} ({c.email})</option>
 						{/each}
 					</mb-select>
-					<mb-button type="submit" variant="primary" disabled={loading}>
+					<mb-button type="submit" variant="primary" loading={loading}>
 						{loading ? 'Ajout…' : 'Ajouter'}
 					</mb-button>
 				{/if}

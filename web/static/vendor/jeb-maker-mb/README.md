@@ -60,6 +60,10 @@ Upstream recommande d’importer **seulement** les CE utilisées par page (pas d
 
 Aujourd’hui Revues ship **`mb-boot.js` monolithe** (simple, une requête).
 
+## Local patches (Revues)
+
+- **`mb-button` / form controls — `disabled` sticky** : upstream ORs the host `disabled` prop with `formDisabledCallback` state (`#e`). After `disabled` flips true→false, some browsers leave `#e` set, so the control stays inert. Vendor patch trusts the host `disabled` prop only (Revues does not use disabled `<fieldset>`). Prefer `loading={busy}` for in-flight actions; gate empty required fields with `required` + submit guards, not `disabled={…||!value}`.
+
 ## 0.4.1 (vs 0.3.1)
 
 - `mb-table` / `mb-table-row` / `mb-table-cell` — responsive lists, sections, sort, reorder

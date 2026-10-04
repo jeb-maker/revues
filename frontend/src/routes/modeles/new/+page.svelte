@@ -96,7 +96,7 @@
 				<h2 slot="header">Points</h2>
 				<TemplateEditor bind:items error={itemsError} />
 				<div slot="footer" class="actions">
-					<mb-button type="submit" variant="primary" disabled={saving}>
+					<mb-button type="submit" variant="primary" loading={saving}>
 						{saving ? 'Création…' : 'Créer'}
 					</mb-button>
 					<a href="/modeles">Annuler</a>

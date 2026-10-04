@@ -106,7 +106,8 @@
 								type="button"
 								variant="secondary"
 								size="sm"
-								disabled={acceptingId !== null}
+								loading={acceptingId === inv.id}
+								disabled={acceptingId !== null && acceptingId !== inv.id}
 								onclick={() => onAccept(inv.id)}
 							>
 								{acceptingId === inv.id ? 'Acceptation…' : 'Accepter'}
@@ -129,7 +130,7 @@
 						<mb-radio value={String(org.id)} label={org.name}></mb-radio>
 					{/each}
 				</mb-radio-group>
-				<mb-button type="submit" variant="primary" disabled={loading || selectedId == null}>
+				<mb-button type="submit" variant="primary" loading={loading}>
 					{loading ? 'Continuation…' : 'Continuer'}
 				</mb-button>
 			</form>
