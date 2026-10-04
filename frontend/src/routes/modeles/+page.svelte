@@ -76,7 +76,7 @@
 				<mb-table-cell>Version</mb-table-cell>
 				<mb-table-cell>Points</mb-table-cell>
 				<mb-table-cell>Domaines</mb-table-cell>
-				<mb-table-cell>Actions</mb-table-cell>
+				<mb-table-cell actions>Actions</mb-table-cell>
 			</mb-table-row>
 			{#each templates as t (t.id)}
 				<mb-table-row>
