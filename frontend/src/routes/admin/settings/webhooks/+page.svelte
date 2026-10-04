@@ -153,8 +153,8 @@
 		</p>
 		<h1>Webhooks sortants</h1>
 		<p class="lede">
-			URLs et secret HMAC chiffré. Signature <code>X-Revues-Signature: sha256=…</code>. Protection
-			anti-SSRF à chaque tentative.
+			Destinations qui reçoivent les événements Revues. Chaque envoi est signé avec le secret
+			pour que le destinataire puisse vérifier l’origine.
 		</p>
 	</header>
 
@@ -180,7 +180,7 @@
 					oninput={(e) => (urlsText = inputValue(e))}
 				></mb-textarea>
 				<mb-input
-					label="Secret HMAC"
+					label="Secret de signature"
 					type="password"
 					autocomplete="new-password"
 					hint={hasSecret ? 'Un secret est enregistré ; laissez vide pour le conserver.' : undefined}
@@ -191,13 +191,13 @@
 					checked={reviewCompleted}
 					onmb-change={(e) => (reviewCompleted = !!e.detail.checked)}
 				>
-					Événement <code>review.completed</code>
+					Quand une revue est clôturée
 				</mb-checkbox>
 				<mb-checkbox
 					checked={reviewItemNok}
 					onmb-change={(e) => (reviewItemNok = !!e.detail.checked)}
 				>
-					Événement <code>review.item.nok</code>
+					Quand un point est marqué non validé
 				</mb-checkbox>
 				<p class="actions">
 					<mb-button type="submit" variant="primary" disabled={saving}>

@@ -18,6 +18,7 @@ type ChecklistTemplateStore interface {
 	CreateTemplateVersion(ctx context.Context, templateID, createdBy int64, items []TemplateItemInput) (*TemplateVersion, error)
 	ListTemplateItems(ctx context.Context, versionID int64) ([]TemplateItem, error)
 	ReplaceTemplateItems(ctx context.Context, versionID int64, items []TemplateItemInput) error
+	UpdateTemplateItemsHelpText(ctx context.Context, versionID int64, items []TemplateItemInput) error
 	ListTemplateIndex(ctx context.Context, userID int64, admin bool, query string) ([]TemplateIndexRow, error)
 	UpdateChecklistTemplateName(ctx context.Context, id int64, name string) error
 	SetTemplateTags(ctx context.Context, templateID int64, tags []string) error

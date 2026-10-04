@@ -30,7 +30,7 @@
 	<header class="page-header">
 		<p class="crumbs"><a href="/admin">Administration</a> · Intégrations</p>
 		<h1>Intégrations</h1>
-		<p class="lede">État des connecteurs de l’organisation active.</p>
+		<p class="lede">État des intégrations de cette organisation.</p>
 	</header>
 
 	{#if error}
@@ -41,7 +41,7 @@
 		{#if loading}
 			<p class="loading">Chargement…</p>
 		{:else if items.length === 0}
-			<p class="muted">Aucun connecteur disponible.</p>
+			<p class="muted">Aucune intégration disponible.</p>
 		{:else}
 			<ul class="card-list">
 				{#each items as item (item.config_path)}

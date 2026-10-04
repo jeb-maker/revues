@@ -100,20 +100,22 @@
 	{:else if groups.length === 0}
 		<mb-empty-state heading="Aucun résultat">Aucun élément ne correspond à « {q} ».</mb-empty-state>
 	{:else}
-		{#each groups as group (group.kind)}
-			<section class="section" aria-labelledby={`search-${group.kind}`}>
-				<h2 id={`search-${group.kind}`}>{group.label}</h2>
-				<ul class="row-list">
-					{#each group.items as item (item.kind + '-' + item.id)}
-						<li>
-							<a href={item.href}><strong>{item.title}</strong></a>
-							{#if item.subtitle}
-								<span class="muted">{item.subtitle}</span>
-							{/if}
-						</li>
-					{/each}
-				</ul>
-			</section>
-		{/each}
+		<div class="card-stack">
+			{#each groups as group (group.kind)}
+				<mb-card>
+					<h2 slot="header" id={`search-${group.kind}`}>{group.label}</h2>
+					<ul class="row-list">
+						{#each group.items as item (item.kind + '-' + item.id)}
+							<li>
+								<a href={item.href}><strong>{item.title}</strong></a>
+								{#if item.subtitle}
+									<span class="muted">{item.subtitle}</span>
+								{/if}
+							</li>
+						{/each}
+					</ul>
+				</mb-card>
+			{/each}
+		</div>
 	{/if}
 </div>

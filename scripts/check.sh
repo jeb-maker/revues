@@ -104,7 +104,7 @@ fi
 # Mesuré (PR-B shell + thème app.css) : JS 240 KiB / 104 KiB gz ; CSS 9,2 KiB / 3,1 KiB gz — marge ~10 %.
 SPA_JS_RAW_MAX=270336      # 264 KiB — stack + Jira/Webhooks
 SPA_JS_GZIP_MAX=114688     # 112 KiB gzip-9 — stack + Jira/Webhooks
-SPA_CSS_RAW_MAX=12288      # 12 KiB — app.css (+ auth-card / shell) + styles locaux résiduels
+SPA_CSS_RAW_MAX=13312      # 13 KiB — app.css (+ page-header/filters) + TemplateEditor + styles locaux
 SPA_CSS_GZIP_MAX=4096      # 4 KiB gzip-9
 
 if [[ -f frontend/package.json ]]; then

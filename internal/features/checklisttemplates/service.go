@@ -158,14 +158,16 @@ func (s *Service) Create(ctx context.Context, user *store.User, in CreateInput) 
 	return &Detail{Template: tpl, Version: version, Items: stored, Domains: domains}, nil
 }
 
-// SaveInput updates metadata and publishes a new version (never mutates prior versions).
+// SaveInput updates metadata and either patches editorial fields on the latest
+// version or publishes a new version when the item structure changes.
 type SaveInput struct {
 	Name    string
 	Domains []string
 	Items   []store.TemplateItemInput
 }
 
-// Save updates name/domains and creates a new published version with items.
+// Save updates name/domains. Structural item changes publish a new version ;
+// help_text-only (or metadata-only) changes stay on the latest version.
 func (s *Service) Save(ctx context.Context, user *store.User, templateID int64, in SaveInput) (*Detail, error) {
 	if user == nil || !CanManageGlobal(user) {
 		return nil, ErrForbidden
@@ -187,6 +189,15 @@ func (s *Service) Save(ctx context.Context, user *store.User, templateID int64, 
 		return nil, ErrNotFound
 	}
 
+	latest, err := s.Store.LatestTemplateVersion(ctx, templateID)
+	if err != nil {
+		return nil, fmt.Errorf("latest version: %w", err)
+	}
+	currentItems, err := s.Store.ListTemplateItems(ctx, latest.ID)
+	if err != nil {
+		return nil, fmt.Errorf("list current items: %w", err)
+	}
+
 	if err = s.Store.UpdateChecklistTemplateName(ctx, templateID, name); err != nil {
 		return nil, fmt.Errorf("update name: %w", err)
 	}
@@ -194,16 +205,53 @@ func (s *Service) Save(ctx context.Context, user *store.User, templateID int64, 
 		return nil, fmt.Errorf("update domains: %w", err)
 	}
 
-	version, err := s.Store.CreateTemplateVersion(ctx, templateID, user.ID, items)
-	if err != nil {
-		return nil, fmt.Errorf("create version: %w", err)
+	version := latest
+	if IsStructuralItemChange(currentItems, items) {
+		version, err = s.Store.CreateTemplateVersion(ctx, templateID, user.ID, items)
+		if err != nil {
+			return nil, fmt.Errorf("create version: %w", err)
+		}
+	} else if IsHelpTextChange(currentItems, items) {
+		if err = s.Store.UpdateTemplateItemsHelpText(ctx, latest.ID, items); err != nil {
+			return nil, fmt.Errorf("editorial help_text update: %w", err)
+		}
 	}
+
 	tpl.Name = name
 	stored, err := s.Store.ListTemplateItems(ctx, version.ID)
 	if err != nil {
 		return nil, fmt.Errorf("list items after save: %w", err)
 	}
 	return &Detail{Template: tpl, Version: version, Items: stored, Domains: domains}, nil
+}
+
+// IsStructuralItemChange reports whether next differs from current in count,
+// order, label, section or required (help_text ignored).
+func IsStructuralItemChange(current []store.TemplateItem, next []store.TemplateItemInput) bool {
+	if len(current) != len(next) {
+		return true
+	}
+	for i := range current {
+		if current[i].Label != next[i].Label ||
+			current[i].Section != next[i].Section ||
+			current[i].Required != next[i].Required {
+			return true
+		}
+	}
+	return false
+}
+
+// IsHelpTextChange reports whether any help_text differs (same structure assumed).
+func IsHelpTextChange(current []store.TemplateItem, next []store.TemplateItemInput) bool {
+	if len(current) != len(next) {
+		return true
+	}
+	for i := range current {
+		if current[i].HelpText != next[i].HelpText {
+			return true
+		}
+	}
+	return false
 }
 
 // CreateVersion publishes a new version without changing name/domains.

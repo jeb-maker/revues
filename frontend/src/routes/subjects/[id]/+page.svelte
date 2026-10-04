@@ -181,10 +181,10 @@
 		<header class="page-header">
 			<p class="crumbs"><a href="/subjects">{subjectLbl.plural}</a> · {subject.name}</p>
 			<h1>{subject.name}</h1>
-			{#if subject.description}
+			{#if subject.description && !editing}
 				<p class="lede">{subject.description}</p>
 			{/if}
-			<p class="actions">
+			<p class="meta-row">
 				<mb-badge variant={subject.visibility === 'private' ? 'warning' : 'neutral'}>
 					{formatVisibility(subject.visibility)}
 				</mb-badge>
@@ -192,189 +192,221 @@
 					<span class="muted">Votre rôle : {formatRole(subject.access.role)}</span>
 				{/if}
 			</p>
-			<p class="actions">
-				{#if subject.capabilities.can_launch}
-					<mb-button variant="primary" href={`/subjects/${subject.id}/launch`}
-						>Lancer {runLbl.article} {runLbl.singular}</mb-button
-					>
-				{/if}
-				{#if subject.capabilities.can_manage}
-					<mb-button variant="ghost" onclick={() => (editing = !editing)}>
-						{editing ? 'Annuler' : 'Modifier'}
-					</mb-button>
-					<mb-button variant="danger" onclick={onArchive}>Archiver</mb-button>
-				{/if}
-			</p>
 		</header>
-
-		<section class="section" aria-labelledby="revues-sujet">
-			<h2 id="revues-sujet">{runLbl.nav}</h2>
-			{#if runs.length === 0}
-				<p class="muted">{runLbl.noneArticle} {runLbl.singular} pour ce {subjectLbl.singular.toLowerCase()}.</p>
-			{:else}
-				<ul class="row-list">
-					{#each runs as r (r.id)}
-						<li>
-							<a href={`/runs/${r.id}`}><strong>{r.title}</strong></a>
-							<mb-badge variant={runStatusVariant(r.status)}>{formatRunStatus(r.status)}</mb-badge>
-							<span class="muted">{r.progress.percent} %</span>
-						</li>
-					{/each}
-				</ul>
-			{/if}
-		</section>
 
 		{#if error}
 			<mb-alert variant="danger">{error}</mb-alert>
 		{/if}
 
-		{#if editing}
-			<form class="stack-form" onsubmit={onSave}>
-				<mb-input label="Nom" required value={name} oninput={(e) => (name = inputValue(e))}
-				></mb-input>
-				<mb-textarea
-					label="Description"
-					value={description}
-					oninput={(e) => (description = inputValue(e))}
-				></mb-textarea>
-				<mb-input
-					label="Domaines"
-					hint="Séparés par des virgules."
-					value={domains}
-					oninput={(e) => (domains = inputValue(e))}
-				></mb-input>
-				<mb-input
-					label="Étiquettes"
-					hint="Séparées par des virgules."
-					value={tags}
-					oninput={(e) => (tags = inputValue(e))}
-				></mb-input>
-				{#if subject.capabilities.can_set_visibility}
-					<mb-select
-						label="Visibilité"
-						required
-						value={visibility}
-						onmb-change={(e) => (visibility = e.detail.value as 'normal' | 'private')}
-					>
-						<option value="normal">{formatVisibility('normal')}</option>
-						<option value="private">{formatVisibility('private')}</option>
-					</mb-select>
-				{/if}
-				<mb-button type="submit" variant="secondary" disabled={saving}>
-					{saving ? 'Enregistrement…' : 'Enregistrer'}
-				</mb-button>
-			</form>
-		{:else}
-			<section class="section" aria-labelledby="domaines">
-				<h2 id="domaines">Domaines</h2>
-				{#if subject.domains.length === 0}
-					<p class="muted">Aucun domaine.</p>
+		<div class="card-stack">
+			<mb-card>
+				<h2 slot="header">{runLbl.nav}</h2>
+				{#if runs.length === 0}
+					<p class="muted">{runLbl.noneArticle} {runLbl.singular} pour ce {subjectLbl.singular.toLowerCase()}.</p>
 				{:else}
-					<p class="tags">
-						{#each subject.domains as d (d)}
-							<mb-tag>{d}</mb-tag>
+					<ul class="row-list">
+						{#each runs as r (r.id)}
+							<li>
+								<a href={`/runs/${r.id}`}><strong>{r.title}</strong></a>
+								<mb-badge variant={runStatusVariant(r.status)}>{formatRunStatus(r.status)}</mb-badge>
+								<span class="muted">{r.progress.percent} %</span>
+							</li>
 						{/each}
-					</p>
+					</ul>
 				{/if}
-			</section>
-			<section class="section" aria-labelledby="etiquettes">
-				<h2 id="etiquettes">Étiquettes</h2>
-				{#if subject.tags.length === 0}
-					<p class="muted">Aucune étiquette.</p>
-				{:else}
-					<p class="tags">
-						{#each subject.tags as t (t)}
-							<mb-tag>{t}</mb-tag>
-						{/each}
-					</p>
+				{#if subject.capabilities.can_launch || subject.capabilities.can_manage}
+					<div slot="footer" class="actions">
+						{#if subject.capabilities.can_launch && !editing}
+							<mb-button variant="primary" href={`/subjects/${subject.id}/launch`}
+								>Lancer {runLbl.article} {runLbl.singular}</mb-button
+							>
+						{/if}
+						{#if subject.capabilities.can_manage}
+							<mb-button variant="secondary" onclick={() => (editing = !editing)}>
+								{editing ? 'Annuler' : 'Modifier'}
+							</mb-button>
+						{/if}
+					</div>
 				{/if}
-			</section>
-		{/if}
+			</mb-card>
 
-		<section class="section" aria-labelledby="personnes">
-			<h2 id="personnes">Personnes</h2>
-			<p class="muted">
-				Personnes affectées à ce {subjectLbl.singular.toLowerCase()} — parcours nominal
-				(pas d’équipes).
-			</p>
-			{#if subject.members.length === 0}
-				<p class="muted">
-					Aucune personne affectée. Affectez un membre de l’organisation{#if boot.can_admin},
-						ou invitez-le d’abord dans l’org (<a href="/admin/members">Admin · Membres</a>){/if}.
-				</p>
-			{:else}
-				<ul class="row-list">
-					{#each subject.members as m (m.user_id)}
-						<li>
-							<strong>{m.display_name}</strong>
-							<span class="muted">{m.email}</span>
-							<mb-badge>{formatRole(m.role)}</mb-badge>
-							{#if subject.capabilities.can_manage_members}
-								<mb-button variant="ghost" size="sm" onclick={() => onRemoveMember(m.user_id)}>
-									Retirer
-								</mb-button>
+			{#if editing}
+				<form onsubmit={onSave}>
+					<mb-card>
+						<h2 slot="header">Modifier</h2>
+						<div class="stack-form">
+							<mb-input label="Nom" required value={name} oninput={(e) => (name = inputValue(e))}
+							></mb-input>
+							<mb-textarea
+								label="Description"
+								value={description}
+								oninput={(e) => (description = inputValue(e))}
+							></mb-textarea>
+							<mb-input
+								label="Domaines"
+								hint="Séparés par des virgules."
+								value={domains}
+								oninput={(e) => (domains = inputValue(e))}
+							></mb-input>
+							<mb-input
+								label="Étiquettes"
+								hint="Séparées par des virgules."
+								value={tags}
+								oninput={(e) => (tags = inputValue(e))}
+							></mb-input>
+							{#if subject.capabilities.can_set_visibility}
+								<mb-select
+									label="Visibilité"
+									required
+									value={visibility}
+									onmb-change={(e) => (visibility = e.detail.value as 'normal' | 'private')}
+								>
+									<option value="normal">{formatVisibility('normal')}</option>
+									<option value="private">{formatVisibility('private')}</option>
+								</mb-select>
 							{/if}
-						</li>
-					{/each}
-				</ul>
+						</div>
+						<div slot="footer">
+							<mb-button type="submit" variant="primary" disabled={saving}>
+								{saving ? 'Enregistrement…' : 'Enregistrer'}
+							</mb-button>
+						</div>
+					</mb-card>
+				</form>
+			{:else}
+				<mb-card>
+					<h2 slot="header">Domaines et étiquettes</h2>
+					<section aria-labelledby="domaines">
+						<h3 id="domaines">Domaines</h3>
+						{#if subject.domains.length === 0}
+							<p class="muted">Aucun domaine.</p>
+						{:else}
+							<p class="tags">
+								{#each subject.domains as d (d)}
+									<mb-tag>{d}</mb-tag>
+								{/each}
+							</p>
+						{/if}
+					</section>
+					<section aria-labelledby="etiquettes">
+						<h3 id="etiquettes">Étiquettes</h3>
+						{#if subject.tags.length === 0}
+							<p class="muted">Aucune étiquette.</p>
+						{:else}
+							<p class="tags">
+								{#each subject.tags as t (t)}
+									<mb-tag>{t}</mb-tag>
+								{/each}
+							</p>
+						{/if}
+					</section>
+				</mb-card>
 			{/if}
 
-			{#if subject.capabilities.can_manage_members}
-				<form class="stack-form" onsubmit={onAddMember}>
-					{#if candidatePeople.length > 0}
-						<mb-select
-							label="Personne (membres de l’organisation)"
-							value={memberPick}
-							onmb-change={(e) => {
-								memberPick = e.detail.value;
-								if (memberPick) showEmailFallback = false;
-							}}
-						>
-							<option value="">Choisir…</option>
-							{#each candidatePeople as p (p.user_id)}
-								<option value={p.email}>{p.display_name || p.email} · {p.email}</option>
-							{/each}
-						</mb-select>
-					{:else}
-						<p class="field-hint">
-							Tous les membres org sont déjà affectés, ou l’annuaire est vide.
-						</p>
-					{/if}
-					<mb-select
-						label="Rôle sur le {subjectLbl.singular.toLowerCase()}"
-						required
-						value={memberRole}
-						onmb-change={(e) => (memberRole = e.detail.value as SubjectRole)}
-					>
-						{#each SUBJECT_ROLES as r (r.value)}
-							<option value={r.value}>{r.label}</option>
+			<mb-card>
+				<h2 slot="header">Personnes</h2>
+				<p class="muted">
+					Personnes affectées à ce {subjectLbl.singular.toLowerCase()}.
+				</p>
+				{#if subject.members.length === 0}
+					<p class="muted">
+						Aucune personne affectée. Affectez un membre de l’organisation{#if boot.can_admin},
+							ou invitez-le d’abord dans l’org (<a href="/admin/members">Admin · Membres</a>){/if}.
+					</p>
+				{:else}
+					<ul class="row-list">
+						{#each subject.members as m (m.user_id)}
+							<li>
+								<strong>{m.display_name}</strong>
+								<span class="muted">{m.email}</span>
+								<mb-badge>{formatRole(m.role)}</mb-badge>
+								{#if subject.capabilities.can_manage_members}
+									<mb-button variant="ghost" size="sm" onclick={() => onRemoveMember(m.user_id)}>
+										Retirer
+									</mb-button>
+								{/if}
+							</li>
 						{/each}
-					</mb-select>
-					{#if showEmailFallback}
-						<mb-input
-							label="Email (compte existant hors liste)"
-							type="email"
-							value={memberEmail}
-							oninput={(e) => (memberEmail = inputValue(e))}
-						></mb-input>
-					{:else}
-						<p class="actions">
-							<mb-button
-								type="button"
-								variant="ghost"
-								size="sm"
-								onclick={() => {
-									showEmailFallback = true;
-									memberPick = '';
+					</ul>
+				{/if}
+
+				{#if subject.capabilities.can_manage_members}
+					<form class="stack-form" onsubmit={onAddMember}>
+						{#if candidatePeople.length > 0}
+							<mb-select
+								label="Personne (membres de l’organisation)"
+								value={memberPick}
+								onmb-change={(e) => {
+									memberPick = e.detail.value;
+									if (memberPick) showEmailFallback = false;
 								}}
 							>
-								Ajouter par email
-							</mb-button>
-						</p>
-					{/if}
-					<mb-button type="submit" variant="secondary">Affecter</mb-button>
-				</form>
+								<option value="">Choisir…</option>
+								{#each candidatePeople as p (p.user_id)}
+									<option value={p.email}>{p.display_name || p.email} · {p.email}</option>
+								{/each}
+							</mb-select>
+						{:else}
+							<p class="field-hint">
+								Tous les membres org sont déjà affectés, ou l’annuaire est vide.
+							</p>
+						{/if}
+						<mb-select
+							label="Rôle sur le {subjectLbl.singular.toLowerCase()}"
+							required
+							value={memberRole}
+							onmb-change={(e) => (memberRole = e.detail.value as SubjectRole)}
+						>
+							{#each SUBJECT_ROLES as r (r.value)}
+								<option value={r.value}>{r.label}</option>
+							{/each}
+						</mb-select>
+						{#if showEmailFallback}
+							<mb-input
+								label="Email (compte existant hors liste)"
+								type="email"
+								value={memberEmail}
+								oninput={(e) => (memberEmail = inputValue(e))}
+							></mb-input>
+						{:else}
+							<p class="actions">
+								<mb-button
+									type="button"
+									variant="ghost"
+									size="sm"
+									onclick={() => {
+										showEmailFallback = true;
+										memberPick = '';
+									}}
+								>
+									Ajouter par email
+								</mb-button>
+							</p>
+						{/if}
+						<mb-button type="submit" variant="secondary">Affecter</mb-button>
+					</form>
+				{/if}
+			</mb-card>
+
+			{#if subject.capabilities.can_manage}
+				<mb-card>
+					<h2 slot="header">Archiver</h2>
+					<p class="muted">Le {subjectLbl.singular.toLowerCase()} ne sera plus disponible pour de nouvelles revues.</p>
+					<div slot="footer">
+						<mb-button variant="danger" onclick={onArchive}>Archiver</mb-button>
+					</div>
+				</mb-card>
 			{/if}
-		</section>
+		</div>
 	{/if}
 </div>
+
+<style>
+	h3 {
+		margin: var(--mb-space-3) 0 var(--mb-space-2);
+		font-size: var(--mb-font-size-md);
+	}
+	section:first-of-type h3 {
+		margin-top: 0;
+	}
+</style>

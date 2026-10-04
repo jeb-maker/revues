@@ -55,42 +55,56 @@
 	{:else if detail}
 		<header class="page-header">
 			<h1>{detail.name}</h1>
-			<p class="muted">
+			<p class="lede">
 				Version v{detail.version.version} · publiée le {detail.version.published_at}
 				{#if detail.domains?.length}
 					· domaines : {detail.domains.join(', ')}
 				{/if}
 			</p>
-			<p class="actions">
-				<mb-button href={`/subjects?template_id=${detail.id}`} variant="primary">
-					Lancer avec ce modèle
-				</mb-button>
-				{#if detail.can_manage}
-					<mb-button href={`/modeles/${detail.id}/edit`} variant="secondary">Modifier</mb-button>
-					<mb-button variant="danger" onclick={onArchive}>Archiver</mb-button>
-				{/if}
-			</p>
 		</header>
 
-		<section class="section">
-			<h2>Points ({detail.items.length})</h2>
-			<ol class="items">
-				{#each detail.items as item, i (item.position)}
-					{#if (i === 0 || item.section !== detail.items[i - 1].section) && item.section}
-						<li class="items__section" aria-hidden="true"><h3>{item.section}</h3></li>
-					{/if}
-					<li class="item">
-						<span class="item__pos">{item.position}.</span>
-						<span class="item__label">
-							{item.label}{#if item.required}<span class="item__req" title="Obligatoire">*</span>{/if}
-						</span>
-						{#if item.help_text}
-							<span class="item__help">{item.help_text}</span>
+		<div class="card-stack">
+			<mb-card>
+				<h2 slot="header">Points ({detail.items.length})</h2>
+				<ol class="items">
+					{#each detail.items as item, i (item.position)}
+						{#if (i === 0 || item.section !== detail.items[i - 1].section) && item.section}
+							<li class="items__section" aria-hidden="true"><h3>{item.section}</h3></li>
 						{/if}
-					</li>
-				{/each}
-			</ol>
-		</section>
+						<li class="item">
+							<span class="item__pos">{item.position}.</span>
+							<span class="item__label">
+								{item.label}{#if item.required}<span class="item__req" title="Obligatoire">*</span>{/if}
+							</span>
+							{#if item.help_text}
+								<span class="item__help">{item.help_text}</span>
+							{/if}
+						</li>
+					{/each}
+				</ol>
+				<div slot="footer" class="actions">
+					<mb-button href={`/subjects?template_id=${detail.id}`} variant="primary">
+						Lancer
+					</mb-button>
+					{#if detail.can_manage}
+						<mb-button href={`/modeles/${detail.id}/edit`} variant="secondary">Modifier</mb-button>
+					{/if}
+				</div>
+			</mb-card>
+
+			{#if detail.can_manage}
+				<mb-card>
+					<h2 slot="header">Archiver</h2>
+					<p class="muted">
+						Les revues déjà lancées gardent les points tels qu’au lancement. Une correction
+						d’explication n’oblige pas une nouvelle version.
+					</p>
+					<div slot="footer">
+						<mb-button variant="danger" onclick={onArchive}>Archiver</mb-button>
+					</div>
+				</mb-card>
+			{/if}
+		</div>
 	{/if}
 </div>
 

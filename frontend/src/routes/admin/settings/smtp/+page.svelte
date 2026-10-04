@@ -119,7 +119,7 @@
 	<header class="page-header">
 		<p class="crumbs"><a href="/admin">Administration</a> · SMTP</p>
 		<h1>Relais SMTP</h1>
-		<p class="lede">Configuration chiffrée — le mot de passe n’est jamais renvoyé par l’API.</p>
+		<p class="lede">Le mot de passe est enregistré de façon sécurisée et n’est jamais réaffiché.</p>
 	</header>
 
 	{#if error}

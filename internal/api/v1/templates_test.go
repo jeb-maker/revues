@@ -56,7 +56,27 @@ func TestTemplatesAPI_CRUDAndVersionImmutability(t *testing.T) {
 		t.Fatalf("list status = %d", listRec.Code)
 	}
 
-	// Save → new version (immutability)
+	// Editorial save (help_text typo) → same version
+	editBody := map[string]any{
+		"name":    "Contrôle véhicule",
+		"domains": []string{"auto"},
+		"items": []map[string]any{
+			{"section": "Général", "label": "Freins", "required": true, "help_text": "OK"},
+			{"section": "Général", "label": "Pneus", "help_text": "Usure corrigée"},
+		},
+	}
+	editRec := doJSON(t, handler, http.MethodPut, "/api/v1/templates/"+strconv.FormatInt(id, 10), editBody, session, csrf)
+	if editRec.Code != http.StatusOK {
+		t.Fatalf("editorial save status = %d body=%s", editRec.Code, editRec.Body.String())
+	}
+	var edited map[string]any
+	_ = json.Unmarshal(editRec.Body.Bytes(), &edited)
+	editedVer := edited["version"].(map[string]any)
+	if int(editedVer["version"].(float64)) != 1 {
+		t.Fatalf("editorial version = %v, want 1", editedVer["version"])
+	}
+
+	// Structural save → new version (prior snapshot immutable)
 	saveBody := map[string]any{
 		"name":    "Contrôle véhicule",
 		"domains": []string{"auto"},

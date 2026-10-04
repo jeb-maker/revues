@@ -29,7 +29,7 @@ Stack SPA — seuils appliqués par `./scripts/check.sh` (WP-005). Vendor mb mes
 | Métrique | Seuil (`check.sh`) |
 |----------|--------------------|
 | JS **app** `frontend/build/_app/**/*.js` (hors vendor mb) | ≤ **264 KiB** brut · ≤ **112 KiB** gzip-9 |
-| CSS **app** `frontend/build/_app/**/*.css` (hors tokens mb) | ≤ **12 KiB** brut · ≤ **4 KiB** gzip-9 |
+| CSS **app** `frontend/build/_app/**/*.css` (hors tokens mb) | ≤ **13 KiB** brut · ≤ **4 KiB** gzip-9 |
 | Vendor mb `web/static/vendor/jeb-maker-mb/` | mesuré (log) ; **pas de fail** pour l’instant |
 | Requêtes API par navigation écran | viser ≤ 8 |
 | RAM serveur | < 128 Mo en charge normale |
@@ -101,7 +101,7 @@ erDiagram
 
 ### Règles métier clés
 
-1. Modifier un modèle = **nouvelle version**, jamais UPDATE destructif sur une version publiée.
+1. Modifier un modèle : **nouvelle version** si le diff est structurel (points : titre, catégorie, obligatoire, ordre, ajout/suppression) ; **UPDATE éditorial** autorisé sur la dernière version pour `help_text` (et métadonnées nom/domaines). Jamais de réécriture structurelle d’une version déjà publiée — les snapshots `run_items` restent figés.
 2. Lancer une revue = **copie SQL** des items vers `run_items`.
 3. Statuts point : `pending` / `ok` / `nok` / `na` — commentaire **obligatoire** si `nok`.
 4. Seuls `status`, `comment`, `assigned_to`, `checked_*` sont mutables sur `run_items`.
