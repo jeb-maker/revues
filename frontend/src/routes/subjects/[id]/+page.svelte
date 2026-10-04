@@ -48,6 +48,11 @@
 		return orgPeople.filter((p) => !taken.has(p.user_id));
 	});
 
+	/** Domaines visibles hors édition : multi-sujet, ou déjà renseignés. */
+	const showDomainsRead = $derived(
+		!!subject && (boot.show_subject_column || subject.domains.length > 0)
+	);
+
 	function subjectId(): number {
 		return Number(page.params.id);
 	}
@@ -63,12 +68,31 @@
 			.filter(Boolean);
 	}
 
+	function formatCreatedDate(iso: string): string {
+		const t = Date.parse(iso);
+		if (Number.isNaN(t)) return iso || '—';
+		return new Date(t).toLocaleDateString('fr-FR');
+	}
+
 	function applySubject(s: SubjectDetail) {
 		subject = s;
 		name = s.name;
 		description = s.description ?? '';
 		domains = joinCSV(s.domains);
 		visibility = s.visibility;
+	}
+
+	function startEdit() {
+		if (!subject) return;
+		applySubject(subject);
+		editing = true;
+		error = '';
+	}
+
+	function cancelEdit() {
+		if (subject) applySubject(subject);
+		editing = false;
+		error = '';
 	}
 
 	async function refresh() {
@@ -84,11 +108,13 @@
 	onMount(async () => {
 		try {
 			await refresh();
-			try {
-				const dir = await listOrgDirectory();
-				orgPeople = dir.members ?? [];
-			} catch {
-				orgPeople = [];
+			if (boot.show_collab) {
+				try {
+					const dir = await listOrgDirectory();
+					orgPeople = dir.members ?? [];
+				} catch {
+					orgPeople = [];
+				}
 			}
 		} catch (e) {
 			error = e instanceof Error ? e.message : `${subjectLbl.singular} introuvable.`;
@@ -121,7 +147,7 @@
 	}
 
 	async function onArchive() {
-		if (!subject || !confirm('Archiver ce sujet ?')) return;
+		if (!subject || !confirm(`Archiver ce ${subjectLbl.singular.toLowerCase()} ?`)) return;
 		error = '';
 		try {
 			await archiveSubject(subject.id, csrf);
@@ -135,9 +161,7 @@
 		e.preventDefault();
 		if (!subject) return;
 		error = '';
-		const email =
-			memberPick.trim() ||
-			(showEmailFallback ? memberEmail.trim() : '');
+		const email = memberPick.trim() || (showEmailFallback ? memberEmail.trim() : '');
 		if (!email) {
 			error = 'Choisissez une personne ou saisissez un email.';
 			return;
@@ -166,18 +190,27 @@
 </script>
 
 <svelte:head>
-	<title>{subject?.name ?? 'Sujet'} — Revues</title>
+	<title>{subject?.name ?? subjectLbl.singular} — Revues</title>
 </svelte:head>
 
 <div class="page">
 	{#if loading}
 		<p class="loading"><mb-spinner label="Chargement"></mb-spinner> Chargement…</p>
 	{:else if !subject}
-		<mb-alert variant="danger">{error || 'Sujet introuvable.'}</mb-alert>
+		<p class="crumbs"><a href="/subjects">{subjectLbl.plural}</a></p>
+		<mb-alert variant="danger">{error || `${subjectLbl.singular} introuvable.`}</mb-alert>
 	{:else}
+		<p class="crumbs"><a href="/subjects">{subjectLbl.plural}</a></p>
+
 		<header class="page-header">
-			<p class="crumbs"><a href="/subjects">{subjectLbl.plural}</a> · {subject.name}</p>
-			<h1>{subject.name}</h1>
+			<div class="page-header__row">
+				<h1>{subject.name}</h1>
+				{#if subject.capabilities.can_manage && !editing}
+					<div class="page-header__actions">
+						<mb-button variant="secondary" onclick={startEdit}>Modifier</mb-button>
+					</div>
+				{/if}
+			</div>
 			{#if subject.description && !editing}
 				<p class="lede">{subject.description}</p>
 			{/if}
@@ -188,6 +221,13 @@
 				{#if subject.access.role}
 					<span class="muted">Votre rôle : {formatRole(subject.access.role)}</span>
 				{/if}
+				{#if !editing && showDomainsRead && subject.domains.length > 0}
+					<span class="meta-domains" aria-label="Domaines">
+						{#each subject.domains as d (d)}
+							<mb-tag>{d}</mb-tag>
+						{/each}
+					</span>
+				{/if}
 			</p>
 		</header>
 
@@ -196,37 +236,6 @@
 		{/if}
 
 		<div class="card-stack">
-			<mb-card>
-				<h2 slot="header">{runLbl.nav}</h2>
-				{#if runs.length === 0}
-					<p class="muted">{runLbl.noneArticle} {runLbl.singular} pour ce {subjectLbl.singular.toLowerCase()}.</p>
-				{:else}
-					<ul class="row-list">
-						{#each runs as r (r.id)}
-							<li>
-								<a href={`/runs/${r.id}`}><strong>{r.title}</strong></a>
-								<mb-badge variant={runStatusVariant(r.status)}>{formatRunStatus(r.status)}</mb-badge>
-								<span class="muted">{r.progress.percent} %</span>
-							</li>
-						{/each}
-					</ul>
-				{/if}
-				{#if subject.capabilities.can_launch || subject.capabilities.can_manage}
-					<div slot="footer" class="actions">
-						{#if subject.capabilities.can_launch && !editing}
-							<mb-button variant="primary" href={`/subjects/${subject.id}/launch`}
-								>{launchRunCTA(runLbl)}</mb-button
-							>
-						{/if}
-						{#if subject.capabilities.can_manage}
-							<mb-button variant="secondary" onclick={() => (editing = !editing)}>
-								{editing ? 'Annuler' : 'Modifier'}
-							</mb-button>
-						{/if}
-					</div>
-				{/if}
-			</mb-card>
-
 			{#if editing}
 				<form onsubmit={onSave}>
 					<mb-card>
@@ -239,12 +248,6 @@
 								value={description}
 								oninput={(e) => (description = inputValue(e))}
 							></mb-textarea>
-							<mb-input
-								label="Domaines"
-								hint="Séparés par des virgules."
-								value={domains}
-								oninput={(e) => (domains = inputValue(e))}
-							></mb-input>
 							{#if subject.capabilities.can_set_visibility}
 								<mb-select
 									label="Visibilité"
@@ -256,118 +259,202 @@
 									<option value="private">{formatVisibility('private')}</option>
 								</mb-select>
 							{/if}
+							<details class="advanced">
+								<summary>Options avancées</summary>
+								<div class="stack-form advanced__body">
+									<mb-input
+										label="Domaines"
+										hint="Séparés par des virgules. Associent les modèles compatibles (intersection)."
+										value={domains}
+										oninput={(e) => (domains = inputValue(e))}
+									></mb-input>
+								</div>
+							</details>
 						</div>
-						<div slot="footer">
+						<div slot="footer" class="actions">
 							<mb-button type="submit" variant="primary" loading={saving}>
 								{saving ? 'Enregistrement…' : 'Enregistrer'}
+							</mb-button>
+							<mb-button type="button" variant="secondary" onclick={cancelEdit} disabled={saving}>
+								Annuler
 							</mb-button>
 						</div>
 					</mb-card>
 				</form>
-			{:else}
+			{/if}
+
+			<mb-card>
+				<h2 slot="header">
+					{runLbl.nav}
+					{#if runs.length > 0}
+						<span class="count muted">· {runs.length}</span>
+					{/if}
+				</h2>
+				{#if runs.length === 0}
+					<p class="muted">
+						{runLbl.noneArticle}
+						{runLbl.singular} pour ce {subjectLbl.singular.toLowerCase()}.
+					</p>
+				{:else}
+					<mb-table columns="minmax(12rem, 1.6fr) 7.5rem 6rem 5.5rem 2.75rem">
+						<mb-table-row slot="head">
+							<mb-table-cell>Titre</mb-table-cell>
+							<mb-table-cell>Statut</mb-table-cell>
+							<mb-table-cell align="end">Progression</mb-table-cell>
+							<mb-table-cell align="end">Date</mb-table-cell>
+							<mb-table-cell></mb-table-cell>
+						</mb-table-row>
+						{#each runs as r (r.id)}
+							<mb-table-row>
+								<mb-table-cell label="Titre" primary>
+									<a href={`/runs/${r.id}`}>{r.title}</a>
+								</mb-table-cell>
+								<mb-table-cell label="Statut">
+									{#if r.status !== 'in_progress'}
+										<mb-badge variant={runStatusVariant(r.status)}
+											>{formatRunStatus(r.status)}</mb-badge
+										>
+									{:else}
+										<span class="muted">{formatRunStatus(r.status)}</span>
+									{/if}
+								</mb-table-cell>
+								<mb-table-cell label="Progression" align="end">
+									<span class="muted">{r.progress.percent} %</span>
+								</mb-table-cell>
+								<mb-table-cell label="Date" align="end">
+									<span class="muted">{formatCreatedDate(r.created_at)}</span>
+								</mb-table-cell>
+								<mb-table-cell actions>
+									<a
+										class="row-action"
+										href={`/runs/${r.id}`}
+										aria-label="Ouvrir"
+										title="Ouvrir"
+									>
+										<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"
+											><path d="M5 12h14M13 6l6 6-6 6" /></svg
+										>
+									</a>
+								</mb-table-cell>
+							</mb-table-row>
+						{/each}
+					</mb-table>
+				{/if}
+				{#if subject.capabilities.can_launch && !editing}
+					<div slot="footer" class="actions">
+						<mb-button variant="primary" href={`/subjects/${subject.id}/launch`}
+							>{launchRunCTA(runLbl)}</mb-button
+						>
+					</div>
+				{/if}
+			</mb-card>
+
+			{#if !editing && showDomainsRead && subject.domains.length === 0 && boot.show_subject_column}
+				<details class="advanced advanced--card">
+					<summary>Domaines</summary>
+					<p class="muted">Aucun domaine — tous les modèles sont compatibles.</p>
+				</details>
+			{/if}
+
+			{#if boot.show_collab}
 				<mb-card>
-					<h2 slot="header">Domaines</h2>
-					{#if subject.domains.length === 0}
-						<p class="muted">Aucun domaine — tous les modèles sont compatibles.</p>
-					{:else}
-						<p class="tags">
-							{#each subject.domains as d (d)}
-								<mb-tag>{d}</mb-tag>
-							{/each}
+					<h2 slot="header">Personnes</h2>
+					{#if subject.members.length === 0}
+						<p class="muted">
+							Aucune personne affectée. Affectez un membre de l’organisation{#if boot.can_admin}
+								, ou invitez-le d’abord (<a href="/admin/members">Admin · Membres</a>){/if}.
 						</p>
+					{:else}
+						<ul class="row-list">
+							{#each subject.members as m (m.user_id)}
+								<li>
+									<strong>{m.display_name}</strong>
+									<span class="muted">{m.email}</span>
+									<mb-badge>{formatRole(m.role)}</mb-badge>
+									{#if subject.capabilities.can_manage_members}
+										<mb-button
+											variant="ghost"
+											size="sm"
+											onclick={() => onRemoveMember(m.user_id)}
+										>
+											Retirer
+										</mb-button>
+									{/if}
+								</li>
+							{/each}
+						</ul>
+					{/if}
+
+					{#if subject.capabilities.can_manage_members}
+						<form class="stack-form member-form" onsubmit={onAddMember}>
+							{#if candidatePeople.length > 0}
+								<mb-select
+									label="Personne"
+									value={memberPick}
+									onmb-change={(e) => {
+										memberPick = e.detail.value;
+										if (memberPick) showEmailFallback = false;
+									}}
+								>
+									<option value="">Choisir…</option>
+									{#each candidatePeople as p (p.user_id)}
+										<option value={p.email}
+											>{p.display_name || p.email} · {p.email}</option
+										>
+									{/each}
+								</mb-select>
+							{:else}
+								<p class="field-hint">
+									Tous les membres org sont déjà affectés, ou l’annuaire est vide.
+								</p>
+							{/if}
+							<mb-select
+								label="Rôle"
+								required
+								value={memberRole}
+								onmb-change={(e) => (memberRole = e.detail.value as SubjectRole)}
+							>
+								{#each SUBJECT_ROLES as r (r.value)}
+									<option value={r.value}>{r.label}</option>
+								{/each}
+							</mb-select>
+							{#if showEmailFallback}
+								<mb-input
+									label="Email (compte existant hors liste)"
+									type="email"
+									value={memberEmail}
+									oninput={(e) => (memberEmail = inputValue(e))}
+								></mb-input>
+							{:else}
+								<p class="actions">
+									<mb-button
+										type="button"
+										variant="ghost"
+										size="sm"
+										onclick={() => {
+											showEmailFallback = true;
+											memberPick = '';
+										}}
+									>
+										Ajouter par email
+									</mb-button>
+								</p>
+							{/if}
+							<div class="actions">
+								<mb-button type="submit" variant="secondary">Affecter</mb-button>
+							</div>
+						</form>
 					{/if}
 				</mb-card>
 			{/if}
 
-			<mb-card>
-				<h2 slot="header">Personnes</h2>
-				<p class="muted">
-					Personnes affectées à ce {subjectLbl.singular.toLowerCase()}.
-				</p>
-				{#if subject.members.length === 0}
-					<p class="muted">
-						Aucune personne affectée. Affectez un membre de l’organisation{#if boot.can_admin},
-							ou invitez-le d’abord dans l’org (<a href="/admin/members">Admin · Membres</a>){/if}.
-					</p>
-				{:else}
-					<ul class="row-list">
-						{#each subject.members as m (m.user_id)}
-							<li>
-								<strong>{m.display_name}</strong>
-								<span class="muted">{m.email}</span>
-								<mb-badge>{formatRole(m.role)}</mb-badge>
-								{#if subject.capabilities.can_manage_members}
-									<mb-button variant="ghost" size="sm" onclick={() => onRemoveMember(m.user_id)}>
-										Retirer
-									</mb-button>
-								{/if}
-							</li>
-						{/each}
-					</ul>
-				{/if}
-
-				{#if subject.capabilities.can_manage_members}
-					<form class="stack-form" onsubmit={onAddMember}>
-						{#if candidatePeople.length > 0}
-							<mb-select
-								label="Personne (membres de l’organisation)"
-								value={memberPick}
-								onmb-change={(e) => {
-									memberPick = e.detail.value;
-									if (memberPick) showEmailFallback = false;
-								}}
-							>
-								<option value="">Choisir…</option>
-								{#each candidatePeople as p (p.user_id)}
-									<option value={p.email}>{p.display_name || p.email} · {p.email}</option>
-								{/each}
-							</mb-select>
-						{:else}
-							<p class="field-hint">
-								Tous les membres org sont déjà affectés, ou l’annuaire est vide.
-							</p>
-						{/if}
-						<mb-select
-							label="Rôle sur le {subjectLbl.singular.toLowerCase()}"
-							required
-							value={memberRole}
-							onmb-change={(e) => (memberRole = e.detail.value as SubjectRole)}
-						>
-							{#each SUBJECT_ROLES as r (r.value)}
-								<option value={r.value}>{r.label}</option>
-							{/each}
-						</mb-select>
-						{#if showEmailFallback}
-							<mb-input
-								label="Email (compte existant hors liste)"
-								type="email"
-								value={memberEmail}
-								oninput={(e) => (memberEmail = inputValue(e))}
-							></mb-input>
-						{:else}
-							<p class="actions">
-								<mb-button
-									type="button"
-									variant="ghost"
-									size="sm"
-									onclick={() => {
-										showEmailFallback = true;
-										memberPick = '';
-									}}
-								>
-									Ajouter par email
-								</mb-button>
-							</p>
-						{/if}
-						<mb-button type="submit" variant="secondary">Affecter</mb-button>
-					</form>
-				{/if}
-			</mb-card>
-
-			{#if subject.capabilities.can_manage}
+			{#if subject.capabilities.can_manage && !editing}
 				<mb-card>
 					<h2 slot="header">Archiver</h2>
-					<p class="muted">Le {subjectLbl.singular.toLowerCase()} ne sera plus disponible pour de nouvelles revues.</p>
+					<p class="muted">
+						Le {subjectLbl.singular.toLowerCase()} ne sera plus disponible pour de nouvelles
+						{runLbl.plural.toLowerCase()}.
+					</p>
 					<div slot="footer">
 						<mb-button variant="danger" onclick={onArchive}>Archiver</mb-button>
 					</div>
@@ -378,11 +465,38 @@
 </div>
 
 <style>
-	h3 {
-		margin: var(--mb-space-3) 0 var(--mb-space-2);
-		font-size: var(--mb-font-size-md);
+	.count {
+		font-weight: var(--mb-font-weight-regular, 400);
 	}
-	section:first-of-type h3 {
-		margin-top: 0;
+	.meta-domains {
+		display: inline-flex;
+		flex-wrap: wrap;
+		gap: var(--mb-space-1);
+		align-items: center;
+	}
+	.advanced {
+		margin: 0;
+	}
+	.advanced summary {
+		cursor: pointer;
+		color: var(--mb-color-fg-muted, inherit);
+		font-size: var(--mb-font-size-sm, 0.875rem);
+	}
+	.advanced__body {
+		margin-top: var(--mb-space-3);
+	}
+	.advanced--card {
+		padding: var(--mb-space-3) var(--mb-space-4);
+		border: 1px solid var(--mb-color-border);
+		border-radius: var(--mb-radius-lg);
+		background: var(--mb-color-surface, transparent);
+	}
+	.advanced--card p {
+		margin: var(--mb-space-2) 0 0;
+	}
+	.member-form {
+		margin-top: var(--mb-space-4);
+		padding-top: var(--mb-space-4);
+		border-top: 1px solid var(--mb-color-border);
 	}
 </style>
