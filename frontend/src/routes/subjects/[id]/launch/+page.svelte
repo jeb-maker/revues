@@ -5,9 +5,12 @@
 	import { getSubject, type SubjectDetail } from '$lib/api/subjects';
 	import { createRun, listSubjectRunTemplates, type RunTemplateSummary } from '$lib/api/runs';
 	import { session } from '$lib/auth/session';
+	import { runLabels } from '$lib/i18n/uiLabels';
 	import { inputValue } from '$lib/mb';
 
-	const csrf = session().csrf_token;
+	const boot = session();
+	const csrf = boot.csrf_token;
+	const run = $derived(runLabels(boot.organization?.ui_run_label));
 
 	let subject = $state<SubjectDetail | null>(null);
 	let templates = $state<RunTemplateSummary[]>([]);
@@ -64,7 +67,7 @@
 </script>
 
 <svelte:head>
-	<title>Lancer une revue — {subject?.name ?? 'Sujet'}</title>
+	<title>Lancer {run.article} {run.singular} — {subject?.name ?? 'Sujet'}</title>
 </svelte:head>
 
 <div class="page">
@@ -81,7 +84,7 @@
 		<form class="page--narrow" onsubmit={onLaunch}>
 			<div class="card-stack">
 				<mb-card>
-					<h1 slot="header">Lancer une revue</h1>
+					<h1 slot="header">Lancer {run.article} {run.singular}</h1>
 					<div class="stack-form">
 						{#if error}
 							<mb-alert variant="danger">{error}</mb-alert>

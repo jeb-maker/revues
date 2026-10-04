@@ -99,15 +99,7 @@ export function templateNavLabel(runPreset?: string | null): string {
 	return asRunPreset(runPreset) === 'listes_en_cours' ? 'Listes' : 'Modèles';
 }
 
-export function launchRunCTA(run: RunUILabels): string {
-	switch (run.preset) {
-		case 'listes_en_cours':
-			return 'Lancer une liste';
-		case 'audits':
-			return 'Lancer un audit';
-		case 'checklists':
-			return 'Lancer une checklist';
-		default:
-			return 'Lancer une revue';
-	}
+/** CTA primaire listes / fiches : court — le H1 ou le contexte porte déjà le type. */
+export function launchRunCTA(_run: RunUILabels): string {
+	return 'Lancer';
 }
