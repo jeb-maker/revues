@@ -84,7 +84,7 @@
 			<mb-table-row slot="head">
 				<mb-table-cell>Nom</mb-table-cell>
 				<mb-table-cell>Visibilité</mb-table-cell>
-				<mb-table-cell>Actions</mb-table-cell>
+				<mb-table-cell actions>Actions</mb-table-cell>
 			</mb-table-row>
 			{#each subjects as s (s.id)}
 				<mb-table-row>

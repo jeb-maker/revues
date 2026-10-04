@@ -96,7 +96,7 @@
 				<mb-table-cell>Sujet</mb-table-cell>
 				<mb-table-cell>Revue</mb-table-cell>
 				<mb-table-cell>Statut</mb-table-cell>
-				<mb-table-cell>Actions</mb-table-cell>
+				<mb-table-cell actions>Actions</mb-table-cell>
 			</mb-table-row>
 			{#each tasks as task (task.id)}
 				<mb-table-row>

@@ -337,6 +337,7 @@ main:focus {
 }
 
 .icon {
+	display: block;
 	width: 1.1em;
 	height: 1.1em;
 	fill: none;
@@ -349,12 +350,17 @@ main:focus {
 }
 .row-actions {
 	display: inline-flex;
+	align-items: center;
+	justify-content: flex-end;
 	gap: var(--mb-space-1);
 }
 a.row-action {
 	display: inline-flex;
+	align-items: center;
+	justify-content: center;
 	min-width: 2rem;
 	min-height: 2rem;
+	line-height: 1;
 }
 
 /* Après .actions : annuler le margin-bottom dans le bandeau H1 + CTA. */

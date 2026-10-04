@@ -156,7 +156,7 @@
 				{/if}
 				<mb-table-cell>Statut</mb-table-cell>
 				<mb-table-cell>Progression</mb-table-cell>
-				<mb-table-cell>Actions</mb-table-cell>
+				<mb-table-cell actions>Actions</mb-table-cell>
 			</mb-table-row>
 			{#each runs as item (item.id)}
 				<mb-table-row>
