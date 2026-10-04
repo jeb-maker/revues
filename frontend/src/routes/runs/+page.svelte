@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
+	import { untrack } from 'svelte';
 	import { listRuns, type RunSummary } from '$lib/api/runs';
 	import { session } from '$lib/auth/session';
 	import { formatRunStatus, runStatusVariant } from '$lib/i18n/labels';
@@ -8,6 +9,9 @@
 	import { searchHrefFromListQuery } from '$lib/navigation/listQueryRedirect';
 
 	type RunFilter = '' | 'draft' | 'in_progress' | 'done' | 'overdue';
+	type SortKey = 'titre' | 'sujet' | 'date' | 'statut' | 'progression';
+	type SortDirection = 'asc' | 'desc';
+
 	const PAGE_SIZE = 25;
 	const STATUS_FILTERS: { value: RunFilter; label: string }[] = [
 		{ value: '', label: 'Tous' },
@@ -28,32 +32,36 @@
 	let offset = $state(0);
 	let error = $state('');
 	let loading = $state(true);
+	let sortKey = $state<SortKey>('date');
+	let sortDirection = $state<SortDirection>('desc');
 
-	function readURL() {
-		const sp = page.url.searchParams;
+	function parseStatus(sp: URLSearchParams): RunFilter {
 		const st = (sp.get('status') ?? '') as RunFilter;
-		status = STATUS_FILTERS.some((f) => f.value === st) ? st : '';
+		return STATUS_FILTERS.some((f) => f.value === st) ? st : '';
+	}
+
+	function parseOffset(sp: URLSearchParams): number {
 		const off = Number(sp.get('offset') ?? '0');
-		offset = Number.isFinite(off) && off >= 0 ? off : 0;
+		return Number.isFinite(off) && off >= 0 ? off : 0;
 	}
 
-	async function syncURL() {
+	function runsHref(nextStatus: RunFilter, nextOffset: number): string {
 		const sp = new URLSearchParams();
-		if (status) sp.set('status', status);
-		if (offset > 0) sp.set('offset', String(offset));
+		if (nextStatus) sp.set('status', nextStatus);
+		if (nextOffset > 0) sp.set('offset', String(nextOffset));
 		const qs = sp.toString();
-		await goto(qs ? `/runs?${qs}` : '/runs', { replaceState: true, keepFocus: true, noScroll: true });
+		return qs ? `/runs?${qs}` : '/runs';
 	}
 
-	async function load() {
+	async function loadWith(statusFilter: RunFilter, pageOffset: number) {
 		loading = true;
 		error = '';
 		try {
 			const res = await listRuns({
 				csrfToken: csrf,
-				status: status || undefined,
+				status: statusFilter || undefined,
 				limit: PAGE_SIZE,
-				offset
+				offset: pageOffset
 			});
 			runs = res.runs ?? [];
 			total = res.total;
@@ -64,6 +72,8 @@
 		}
 	}
 
+	// URL is the source of truth. untrack(load) so reading status/offset inside
+	// listRuns does not re-subscribe this effect (that was resetting the select).
 	$effect(() => {
 		void page.url.search;
 		const redirect = searchHrefFromListQuery(page.url.searchParams.get('q'));
@@ -71,28 +81,71 @@
 			void goto(redirect, { replaceState: true });
 			return;
 		}
-		readURL();
-		void load();
+		const sp = page.url.searchParams;
+		const nextStatus = parseStatus(sp);
+		const nextOffset = parseOffset(sp);
+		status = nextStatus;
+		offset = nextOffset;
+		untrack(() => {
+			void loadWith(nextStatus, nextOffset);
+		});
 	});
 
-	async function onFilter(e: Event) {
-		e.preventDefault();
+	async function onStatusChange(e: CustomEvent<{ value: string }>) {
+		const next = e.detail.value as RunFilter;
+		status = STATUS_FILTERS.some((f) => f.value === next) ? next : '';
 		offset = 0;
-		await syncURL();
-		await load();
+		await goto(runsHref(status, 0), { replaceState: true, keepFocus: true, noScroll: true });
 	}
 
 	async function goPage(nextOffset: number) {
-		offset = Math.max(0, nextOffset);
-		await syncURL();
-		await load();
+		const off = Math.max(0, nextOffset);
+		offset = off;
+		await goto(runsHref(status, off), { replaceState: true, keepFocus: true, noScroll: true });
 	}
+
+	function formatCreatedDate(iso: string): string {
+		const t = Date.parse(iso);
+		if (Number.isNaN(t)) return iso || '—';
+		return new Date(t).toLocaleDateString('fr-FR');
+	}
+
+	function onSort(e: CustomEvent<{ key: string; direction: string }>) {
+		const key = e.detail.key as SortKey;
+		const direction = e.detail.direction === 'asc' ? 'asc' : 'desc';
+		if (key !== 'titre' && key !== 'sujet' && key !== 'date' && key !== 'statut' && key !== 'progression') {
+			return;
+		}
+		sortKey = key;
+		sortDirection = direction;
+	}
+
+	const displayed = $derived.by(() => {
+		const list = [...runs];
+		const dir = sortDirection === 'asc' ? 1 : -1;
+		list.sort((a, b) => {
+			switch (sortKey) {
+				case 'titre':
+					return a.title.localeCompare(b.title, 'fr') * dir;
+				case 'sujet':
+					return a.subject_name.localeCompare(b.subject_name, 'fr') * dir;
+				case 'statut':
+					return a.status.localeCompare(b.status) * dir;
+				case 'progression':
+					return (a.progress.percent - b.progress.percent) * dir;
+				case 'date':
+				default:
+					return a.created_at.localeCompare(b.created_at) * dir;
+			}
+		});
+		return list;
+	});
 
 	const pageEnd = $derived(Math.min(offset + PAGE_SIZE, total));
 	const hasPrev = $derived(offset > 0);
 	const hasNext = $derived(offset + PAGE_SIZE < total);
 	const tableColumns = $derived(
-		boot.show_subject_column ? '2fr 1.2fr 1fr 0.7fr auto' : '2fr 1fr 0.7fr auto'
+		boot.show_subject_column ? '2fr 1.1fr 0.8fr 0.9fr 0.7fr auto' : '2fr 0.8fr 0.9fr 0.7fr auto'
 	);
 </script>
 
@@ -119,18 +172,17 @@
 		<mb-alert variant="danger">{error}</mb-alert>
 	{/if}
 
-	<form class="filters" onsubmit={onFilter}>
+	<div class="filters">
 		<mb-select
 			label="Statut"
 			hide-label
 			value={status}
-			onmb-change={(e) => (status = e.detail.value as RunFilter)}
+			onmb-change={onStatusChange}
 		>
 			{#each STATUS_FILTERS as f (f.value)}
 				<option value={f.value}>{f.label}</option>
 			{/each}
 		</mb-select>
-		<mb-button type="submit" variant="secondary">Filtrer</mb-button>
 		{#if !loading}
 			<p class="filters__count muted">
 				{total} {total > 1 ? run.plural : run.singular}
@@ -139,7 +191,7 @@
 				{/if}
 			</p>
 		{/if}
-	</form>
+	</div>
 
 	{#if loading}
 		<p class="loading"><mb-spinner label="Chargement"></mb-spinner> Chargement…</p>
@@ -148,28 +200,41 @@
 			<a href="/subjects">{launchRunCTA(run)}</a> depuis un {subject.singular.toLowerCase()}.
 		</mb-empty-state>
 	{:else}
-		<mb-table columns={tableColumns} sticky-header>
+		<mb-table
+			columns={tableColumns}
+			sticky-header
+			sort-key={sortKey}
+			sort-direction={sortDirection}
+			sort-label="Trier par {name}"
+			onmb-sort={onSort}
+		>
 			<mb-table-row slot="head">
-				<mb-table-cell>Titre</mb-table-cell>
+				<mb-table-cell sort-key="titre">Titre</mb-table-cell>
 				{#if boot.show_subject_column}
-					<mb-table-cell>{subject.singular}</mb-table-cell>
+					<mb-table-cell sort-key="sujet">{subject.singular}</mb-table-cell>
 				{/if}
-				<mb-table-cell>Statut</mb-table-cell>
-				<mb-table-cell>Progression</mb-table-cell>
+				<mb-table-cell sort-key="date">Date</mb-table-cell>
+				<mb-table-cell sort-key="statut">Statut</mb-table-cell>
+				<mb-table-cell sort-key="progression">Progression</mb-table-cell>
 				<mb-table-cell actions>Actions</mb-table-cell>
 			</mb-table-row>
-			{#each runs as item (item.id)}
+			{#each displayed as item (item.id)}
 				<mb-table-row>
-					<mb-table-cell label="Titre" primary>
+					<mb-table-cell label="Titre" primary sort-value={item.title}>
 						<a href={`/runs/${item.id}`}>{item.title}</a>
 					</mb-table-cell>
 					{#if boot.show_subject_column}
-						<mb-table-cell label={subject.singular}>{item.subject_name}</mb-table-cell>
+						<mb-table-cell label={subject.singular} sort-value={item.subject_name}
+							>{item.subject_name}</mb-table-cell
+						>
 					{/if}
-					<mb-table-cell label="Statut">
+					<mb-table-cell label="Date" sort-value={item.created_at}>
+						<span class="date">{formatCreatedDate(item.created_at)}</span>
+					</mb-table-cell>
+					<mb-table-cell label="Statut" sort-value={item.status}>
 						<mb-badge variant={runStatusVariant(item.status)}>{formatRunStatus(item.status)}</mb-badge>
 					</mb-table-cell>
-					<mb-table-cell label="Progression">
+					<mb-table-cell label="Progression" sort-value={String(item.progress.percent).padStart(3, '0')}>
 						<span class="pct">{item.progress.percent} %</span>
 					</mb-table-cell>
 					<mb-table-cell actions>
@@ -196,7 +261,8 @@
 </div>
 
 <style>
-	.pct {
+	.pct,
+	.date {
 		font-variant-numeric: tabular-nums;
 	}
 </style>

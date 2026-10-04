@@ -20,16 +20,20 @@ Stack (octobre 2026) : SvelteKit SPA + `@jeb-maker/mb`, API JSON `/api/v1`. Rout
 | Fil d'Ariane | **Ancêtres seulement** (≥ 2 niveaux) ; **absent** sur pages racine (1 crumb) — le courant = H1. **Toujours pleine largeur de `.page`** — ne pas l’embarquer dans `.page--narrow` (le formulaire seul se centre). **Bande réservée** : `.page` garde la hauteur crumbs même sans fil (`padding-top` + `--page-crumbs-band`) pour ne pas faire sauter le H1. |
 | Saisie points (revue en cours) | **Sans confirm** sur changement de statut ; confirm **uniquement** à la clôture |
 | Clôturer | `mb-button` **primary** + `confirm()` ; pas `variant="danger"` |
-| Fiche point | **Satellite** PJ / Jira / historique / assign — saisie **statut** aussi en grille sur la fiche revue ; lien **Détails** pour le reste |
+| Fiche point | **Satellite** PJ / Jira / historique — saisie **statut + commentaire (+ assign)** sur la fiche revue en tableau ; lien row-action pour le reste |
+| Fiche revue — explications | `help_text` **toujours affiché en entier** sous le libellé du point |
+| Fiche revue — grille saisie | Pleine largeur (`page--wide`) : **ligne titre** (libellé + Détails) puis **une ligne** Explication · Statut (boutons verticaux compacts = hauteur de ligne) · Commentaire (même hauteur) · Assigné si dispo. Explication trop longue → scroll. Autosave ; **NOK sans commentaire** = erreur inline |
+| Fiche revue — filtre points | Si > 4 points : filtre local Tous · En attente · Non validés · Obligatoires (`mb-segmented-control`) |
+| Fiche revue — lede | Date (`created_at`) · version · progression discrète `done/total · %` + fine barre 3px · badge hors `in_progress` · échéance |
 | Statut revue à la création | **Directement `in_progress`** — pas d'étape brouillon ni CTA « Démarrer » (legacy `draft` encore démarable) |
-| Liste `/runs` | **Pagination** — 25 par page, total affiché ; filtres `?status=` / `?q=` / `?offset=` dans l’URL |
+| Liste `/runs` | **Pagination** — 25 par page, total affiché ; filtres `?status=` / `?q=` / `?offset=` dans l’URL ; filtre statut **appliqué à la sélection** (pas de bouton Filtrer) ; colonnes triables (client, page courante) dont Date (`created_at`) |
 | Post-CRUD sujet | **Créer** (`/subjects/new`) → redirect fiche `/subjects/{id}` (hub métier) ; **modifier / archiver** inline sur la fiche `/subjects/{id}` (capabilities `can_manage`) — plus de routes `/admin/subjects*` |
 | Colonne « Auteur » sur `/runs` | **Non** — placeholder sans « auteur » ; recherche SQL par login conservée |
 | Titre de revue (UI) | **Supprimé** — pas de champ titre à la création ni en liste (issue parallèle) |
 | H1 fiche revue | **Sans `#id`** ; sans nom de sujet en mono-sujet (évite répétition). Listes / exports gardent le label avec `#id` si besoin. **À trancher** : la SPA affiche `run.title` = « modèle · sujet · date · #id » |
 | Flash « Revue créée » | **Non** — redirect sans message ; la page elle-même suffit |
 | Statut sur fiche revue | Badge omis si `in_progress` (évident) ; garder pour `done` / autres + échéance |
-| Progression fiche revue | **Sous le H2 Points**, pas dans un bandeau meta au-dessus |
+| Progression fiche revue | **Discrète dans le lede** (compteur + barre 3px) — pas sous le H2 Points |
 | Liste `/runs` — sujet | Titre = modèle · date · `#id` (**sans** sujet) ; colonne Sujet **masquée** quand un seul sujet |
 | Colonne Assigné (grille points) | **`ShowAssign`** — ≥2 membres org (P1), pas seulement `!SimpleUI` |
 | Colonne Sujet `/runs` | ≥2 sujets visibles (P2) |

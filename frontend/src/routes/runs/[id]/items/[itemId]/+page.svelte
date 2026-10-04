@@ -75,6 +75,11 @@
 	onMount(async () => {
 		try {
 			apply(await getRunItem(runId(), itemId(), csrf));
+			// Préselection depuis la grille revue (?status=nok) si le point n'a pas encore ce statut.
+			const pref = page.url.searchParams.get('status');
+			if (pref && ITEM_STATUSES.includes(pref as ItemStatus) && detail?.capabilities.can_update_items) {
+				status = pref as ItemStatus;
+			}
 			await refreshJira();
 		} catch (e) {
 			error = e instanceof Error ? e.message : 'Point introuvable.';
