@@ -3,7 +3,8 @@
   Tout repose sur les tokens mb (web/static/vendor/jeb-maker-mb/tokens/semantic.css) :
   le mode sombre vient de `prefers-color-scheme`, rien n'est forcé ici.
   Classes hôte partagées (.cursor/rules/design.md) : .page, .page-header, .lede, .muted,
-  .actions, .stack-form, .field-hint, .field-error, .table-scroll, .page--auth, .auth-card.
+  .actions, .stack-form, .field-hint, .field-error, .table-scroll, .card-stack,
+  .page--auth, .auth-card.
 */
 
 *,
@@ -318,6 +319,23 @@ main:focus {
 .stack-form > .actions {
 	align-self: flex-start;
 	margin: 0;
+}
+
+/* Empilement de mb-card (fiche point, formulaires multi-cartes). */
+.card-stack {
+	display: flex;
+	flex-direction: column;
+	gap: var(--mb-space-4);
+	margin: 0 0 var(--mb-space-5);
+}
+
+.card-stack .stack-form {
+	margin: 0;
+}
+
+.card-stack mb-card h2[slot='header'] {
+	margin: 0;
+	font-size: var(--mb-font-size-md);
 }
 
 .filters {
