@@ -336,6 +336,27 @@ main:focus {
 	margin: 0 0 var(--mb-space-4);
 }
 
+.icon {
+	width: 1.1em;
+	height: 1.1em;
+	fill: none;
+	stroke: currentColor;
+	stroke-width: 2;
+}
+.icon--fill {
+	fill: currentColor;
+	stroke: none;
+}
+.row-actions {
+	display: inline-flex;
+	gap: var(--mb-space-1);
+}
+a.row-action {
+	display: inline-flex;
+	min-width: 2rem;
+	min-height: 2rem;
+}
+
 /* Après .actions : annuler le margin-bottom dans le bandeau H1 + CTA. */
 .page-header__row > .actions,
 .page-header__actions {

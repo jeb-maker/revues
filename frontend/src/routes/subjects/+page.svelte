@@ -57,7 +57,12 @@
 			<h1>{subject.plural}</h1>
 			{#if canCreate && !templateId}
 				<p class="actions page-header__actions">
-					<mb-button variant="primary" href="/subjects/new">Nouveau</mb-button>
+					<mb-button variant="primary" href="/subjects/new">
+						<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"
+							><path d="M12 5v14M5 12h14" /></svg
+						>
+						Nouveau {subject.singular.toLowerCase()}
+					</mb-button>
 				</p>
 			{/if}
 		</div>
@@ -95,7 +100,22 @@
 						</mb-badge>
 					</mb-table-cell>
 					<mb-table-cell actions>
-						<a href={subjectHref(s.id)}>{templateId ? 'Lancer' : 'Ouvrir'}</a>
+						<a
+							class="row-action"
+							href={subjectHref(s.id)}
+							aria-label={templateId ? 'Lancer' : 'Ouvrir'}
+							title={templateId ? 'Lancer' : 'Ouvrir'}
+						>
+							{#if templateId}
+								<svg class="icon icon--fill" viewBox="0 0 24 24" aria-hidden="true"
+									><path d="M8 5v14l11-7z" /></svg
+								>
+							{:else}
+								<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"
+									><path d="M5 12h14M13 6l6 6-6 6" /></svg
+								>
+							{/if}
+						</a>
 					</mb-table-cell>
 				</mb-table-row>
 			{/each}
