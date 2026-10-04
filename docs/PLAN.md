@@ -94,7 +94,7 @@ erDiagram
 - `checklist_runs` → `run_items` — exécutions (snapshot immuable), champ `due_date` optionnel
 - `run_item_events` — audit des changements de statut
 - `sessions` — sessions serveur (ID aléatoire hashé)
-- `allowed_emails` — liste blanche admin
+- `organization_invitations` — invitations à rejoindre une org (gate login avec flag strict)
 - `integrations` + `integration_links` — config Jira, webhooks, liens externes
 - `settings` — SMTP et config chiffrée
 - `attachments` — pièces jointes (v1.1)
@@ -130,7 +130,7 @@ erDiagram
 
 - **GitHub OAuth** en v1 (Authorization Code + PKCE, flux serveur)
 - **Inscription manuelle** (email + mot de passe argon2id) en complément de GitHub
-- Liste blanche admin (emails ou domaine `@entreprise.com`) — email GitHub **vérifié** obligatoire ; mêmes règles whitelist pour l'inscription locale
+- Invitations org + flag invite-only (`REVUES_LOGIN_REQUIRE_WHITELIST`) — email GitHub **vérifié** obligatoire
 - Sessions cookie `HttpOnly` + `Secure` + `SameSite=Lax`, ID hashé en base, rotation au login
 - CSRF sur toutes les mutations API (`X-CSRF-Token`) ; cookie guest pour login/register non authentifiés
 - Matrice RBAC : voir [RBAC.md](./RBAC.md)
@@ -205,7 +205,7 @@ Détail runtime : `.cursor/skills/revues-ui-audit/decisions.md`.
 
 | Palier | Déclencheur | Surface |
 |--------|-------------|---------|
-| **P0 — Particulier** | `SimpleUI` (1 org · 1 membre · ≤1 sujet · whitelist ≤1 · pas admin global) | Revues · Listes ; cocher ; CSV ; pas assign / tâches / collab |
+| **P0 — Particulier** | `SimpleUI` (1 org · 1 membre · ≤1 sujet · pas admin global) | Revues · Listes ; cocher ; CSV ; pas assign / tâches / collab |
 | **P1 — Duo** | ≥2 **membres** org | + Assignation · Mes tâches · collab fiche sujet |
 | **P2 — Multi-sujet** | ≥2 sujets visibles | + Colonne Sujet · domaines · vocabulaire « Modèles » |
 | **P3 — Conformité** | `HasJira` / `HasWebhooks` (config org) · `HasEvidence` (hash scellé, page revue) | Jira/webhooks/preuve **capability-gated** (pas masqués par SimpleUI) |

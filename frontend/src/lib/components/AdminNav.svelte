@@ -7,7 +7,6 @@
 	}: {
 		section:
 			| 'hub'
-			| 'users'
 			| 'members'
 			| 'policies'
 			| 'integrations'
@@ -19,7 +18,6 @@
 	// Équipes : icebox produit — API/schéma conservés, hors nav nominale (#295).
 	const links = [
 		{ href: '/admin', id: 'hub', label: 'Organisation' },
-		{ href: '/admin/users', id: 'users', label: 'Emails autorisés' },
 		{ href: '/admin/members', id: 'members', label: 'Membres' },
 		{ href: '/admin/settings/policies', id: 'policies', label: 'Politiques' },
 		{ href: '/admin/integrations', id: 'integrations', label: 'Intégrations' },

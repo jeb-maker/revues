@@ -2,8 +2,7 @@
 	import AdminNav from '$lib/components/AdminNav.svelte';
 
 	const sections = [
-		{ href: '/admin/users', title: 'Emails autorisés', desc: 'Qui peut se connecter, et avec quel rôle (lecteur ou éditeur).' },
-		{ href: '/admin/members', title: 'Membres', desc: 'Rôles dans l’organisation : propriétaire, administrateur, membre.' },
+		{ href: '/admin/members', title: 'Membres', desc: 'Inviter et gérer les rôles : propriétaire, administrateur, membre.' },
 		{ href: '/admin/settings/policies', title: 'Politiques', desc: 'Délégation aux référents de projet.' },
 		{ href: '/admin/integrations', title: 'Intégrations', desc: 'Jira et webhooks sortants.' },
 		{ href: '/admin/settings/smtp', title: 'SMTP', desc: 'Relais d’envoi des notifications.' }
@@ -17,7 +16,7 @@
 <div class="page">
 	<header class="page-header">
 		<h1>Administration</h1>
-		<p class="lede">Emails autorisés, rôles, politiques et intégrations de cette organisation.</p>
+		<p class="lede">Membres, invitations, politiques et intégrations de cette organisation.</p>
 	</header>
 
 	<AdminNav section="hub">

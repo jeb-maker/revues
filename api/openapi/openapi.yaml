@@ -18,7 +18,7 @@ tags:
 - name: orgs
   description: Organisations — liste, création, sélection active, invitations
 - name: admin
-  description: Administration organisation — whitelist, membres, équipes, politiques
+  description: Administration organisation — membres, invitations, équipes, politiques
 - name: subjects
   description: Sujets (CRUD, membres, domaines, étiquettes)
 - name: templates
@@ -220,7 +220,8 @@ paths:
       tags:
       - auth
       summary: Inscription email + mot de passe
-      description: 'Crée un compte local si l''email est autorisé (whitelist / bootstrap).
+      description: 'Crée un compte local si l''email est autorisé (invitation /
+        bootstrap / self-service selon `REVUES_LOGIN_REQUIRE_WHITELIST`).
 
         CSRF guest requis. Pose `revues_session` en cas de succès.
 
@@ -1104,83 +1105,6 @@ paths:
           $ref: '#/components/responses/Conflict'
         '500':
           $ref: '#/components/responses/InternalError'
-  /admin/allowed-emails:
-    get:
-      operationId: listAllowedEmails
-      tags: [admin]
-      summary: Liste blanche emails de l'org active
-      description: |
-        RequireOrgAdmin (owner/admin org ou admin global) + org active.
-        Rôles whitelist : reader | editor uniquement.
-      responses:
-        "200":
-          description: Emails autorisés
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/AllowedEmailListResponse"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "500":
-          $ref: "#/components/responses/InternalError"
-    post:
-      operationId: createAllowedEmail
-      tags: [admin]
-      summary: Ajouter / mettre à jour un email autorisé
-      description: |
-        Upsert whitelist (reader|editor). CSRF requis. RequireOrgAdmin.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/AllowedEmailWriteRequest"
-      responses:
-        "201":
-          description: Email enregistré
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/AllowedEmail"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "500":
-          $ref: "#/components/responses/InternalError"
-
-  /admin/allowed-emails/{email}:
-    delete:
-      operationId: deleteAllowedEmail
-      tags: [admin]
-      summary: Retirer un email de la whitelist
-      description: |
-        CSRF requis. Impossible de retirer son propre email. RequireOrgAdmin.
-      parameters:
-        - name: email
-          in: path
-          required: true
-          schema:
-            type: string
-            format: email
-      responses:
-        "204":
-          description: Email retiré
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "500":
-          $ref: "#/components/responses/InternalError"
-
   /admin/members:
     get:
       operationId: listOrganizationMembers
@@ -3250,40 +3174,6 @@ components:
           $ref: '#/components/schemas/RunCapabilities'
         pending_required_count:
           type: integer
-    AllowedEmail:
-      type: object
-      required: [email, role, created_at]
-      properties:
-        email:
-          type: string
-          format: email
-        role:
-          type: string
-          description: Rôle global whitelist (reader|editor)
-          enum: [reader, editor]
-        created_at:
-          type: string
-
-    AllowedEmailListResponse:
-      type: object
-      required: [emails]
-      properties:
-        emails:
-          type: array
-          items:
-            $ref: "#/components/schemas/AllowedEmail"
-
-    AllowedEmailWriteRequest:
-      type: object
-      required: [email, role]
-      properties:
-        email:
-          type: string
-          format: email
-        role:
-          type: string
-          enum: [reader, editor]
-
     OrganizationMember:
       type: object
       required: [user_id, login, email, display_name, role, joined_at]

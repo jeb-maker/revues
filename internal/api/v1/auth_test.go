@@ -159,15 +159,7 @@ func TestAuthAPI_RegisterWhitelistReject(t *testing.T) {
 		BootstrapAdminEmail:   "admin@example.com",
 		Env:                   "development",
 	}
-	handler, st := newTestRouterWithStore(t, cfg)
-
-	// Seed an org + whitelist unrelated email so strict mode is meaningful.
-	ctx := context.Background()
-	orgCtx := testutil.DefaultOrgContext(ctx, st)
-	if err := st.InsertAllowedEmail(orgCtx, "allowed@example.com", auth.RoleEditor); err != nil {
-		t.Fatalf("InsertAllowedEmail: %v", err)
-	}
-	_ = orgCtx
+	handler, _ := newTestRouterWithStore(t, cfg)
 
 	guest, csrf := bootstrapGuest(t, handler)
 
@@ -190,6 +182,51 @@ func TestAuthAPI_RegisterWhitelistReject(t *testing.T) {
 	if !strings.Contains(rec.Body.String(), "registration_failed") &&
 		!strings.Contains(rec.Body.String(), "Impossible de créer") {
 		t.Fatalf("unexpected body %q", rec.Body.String())
+	}
+}
+
+func TestAuthAPI_RegisterWithPendingInvitation(t *testing.T) {
+	t.Parallel()
+
+	cfg := config.Config{
+		SessionSecret:         "test-secret-at-least-thirty-two-bytes",
+		LoginRequireWhitelist: true,
+		BootstrapAdminEmail:   "admin@example.com",
+		Env:                   "development",
+	}
+	handler, st := newTestRouterWithStore(t, cfg)
+	ctx := context.Background()
+
+	owner, err := st.UpsertGitHubUser(ctx, 501, "invowner", "inv-owner@example.com", "Owner", "", auth.RoleEditor)
+	if err != nil {
+		t.Fatalf("UpsertGitHubUser: %v", err)
+	}
+	org, err := st.CreateOrganization(ctx, "Invite Gate", "invite-gate", owner.ID)
+	if err != nil {
+		t.Fatalf("CreateOrganization: %v", err)
+	}
+	if err = st.AddOrganizationMember(ctx, org.ID, owner.ID, store.OrgRoleOwner); err != nil {
+		t.Fatalf("AddOrganizationMember: %v", err)
+	}
+	if err = st.CreateOrganizationInvitation(ctx, "invited@example.com", org.ID, store.OrgRoleMember); err != nil {
+		t.Fatalf("CreateOrganizationInvitation: %v", err)
+	}
+
+	guest, csrf := bootstrapGuest(t, handler)
+	payload := map[string]string{
+		"email":            "invited@example.com",
+		"password":         "password1234",
+		"password_confirm": "password1234",
+	}
+	body, _ := json.Marshal(payload)
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/register", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-CSRF-Token", csrf)
+	req.AddCookie(guest)
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
 	}
 }
 

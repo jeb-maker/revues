@@ -98,7 +98,7 @@ Source : `internal/config/config.go` (`Load`). Le binaire lit `os.Getenv` — pa
 | `REVUES_GITHUB_CLIENT_ID` | OAuth GitHub (bouton masqué si absent) |
 | `REVUES_GITHUB_CLIENT_SECRET` | OAuth GitHub |
 | `REVUES_BOOTSTRAP_ADMIN_EMAIL` | Email qui reçoit le rôle `admin` global (et devient owner de l'org par défaut) à son premier login |
-| `REVUES_LOGIN_REQUIRE_WHITELIST` | `1`/`true` : refuse register et OAuth hors `allowed_emails` / org / invitation / bootstrap (message générique anti-énumération) |
+| `REVUES_LOGIN_REQUIRE_WHITELIST` | `1`/`true` : refuse register et OAuth hors membre org / invitation pending / bootstrap (message générique anti-énumération ; nom historique) |
 | `REVUES_DEV_AUTH` | `1`/`true` : auto-session admin locale (hors production, requêtes loopback uniquement) + `POST /auth/dev/login` |
 | `REVUES_DEV_AUTH_EMAIL` | Email de l'utilisateur DevAuth (défaut `admin@example.com`) |
 

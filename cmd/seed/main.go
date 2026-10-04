@@ -384,9 +384,6 @@ func seedParticulierUser(ctx context.Context, st *store.Store) error {
 	}
 
 	orgCtx := orgctx.WithOrganizationID(ctx, org.ID)
-	if err = st.InsertAllowedEmail(orgCtx, user.Email, auth.RoleEditor); err != nil {
-		return fmt.Errorf("particulier whitelist: %w", err)
-	}
 
 	home, err := st.CreateSubjectWithVisibility(
 		orgCtx,

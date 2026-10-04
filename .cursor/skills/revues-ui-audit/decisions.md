@@ -58,7 +58,7 @@ Flags d'origine (legacy `middleware.resolveUICaps` → `PageData`, **supprimés*
 
 | Flag | Seuil | Palier |
 |------|--------|--------|
-| `SimpleUI` | 1 org · 1 membre · ≤1 sujet · whitelist ≤1 · pas admin global | P0 |
+| `SimpleUI` | 1 org · 1 membre · ≤1 sujet · pas admin global | P0 |
 | `ShowAssign` / `ShowMyTasks` / `ShowCollab` | ≥2 membres org | P1 |
 | `ShowSubjectColumn` | ≥2 sujets visibles | P2 |
 | `HasJira` | intégration Jira **configurée** (org active) | P3 |
@@ -69,7 +69,7 @@ Flags d'origine (legacy `middleware.resolveUICaps` → `PageData`, **supprimés*
 | Palier | Déclencheur | Surface |
 |--------|-------------|---------|
 | **P0 — Particulier** | `SimpleUI` | Listes en cours (nav mobile « En cours ») · Listes ; cocher ; pas assign / tâches / collab |
-| **P1 — Duo** | 2ᵉ **membre** (pas seulement whitelist) | + Assignation · Mes tâches · collab fiche sujet · onglet Organisation si whitelist/membres |
+| **P1 — Duo** | 2ᵉ **membre** (pas seulement invitation pending) | + Assignation · Mes tâches · collab fiche sujet · onglet Organisation si membres |
 | **P2 — Multi-sujet** | ≥2 sujets | + Colonne Sujet · domaines · vocabulaire « Modèles » |
 | **P3 — Conformité** | Intégration configurée | Jira/webhooks **capability-gated** (config), pas masqués par SimpleUI ; **pas** Notion ni « preuve » |
 
@@ -99,14 +99,14 @@ Principes :
 1. **Unlock, don’t fork** — routes et schéma stables ; surface UI seulement.
 2. **Vocabulaire suit le palier** — Listes (P0/P1 mono-sujet) → Modèles (P2+).
 3. **Déclencheur structurel** — membres / sujets, pas un toggle « mode pro ».
-4. **Whitelist ≠ collab** — inviter sans login n’ouvre pas encore assignation.
+4. **Invitation ≠ collab** — inviter sans acceptation / login n’ouvre pas encore assignation.
 
 ## Navigation
 
 | Sujet | Décision |
 |-------|----------|
 | Onglet principal | **Sans marque / logo** dans la barre. Menu à gauche : **Revues** (preset `ui_run_label` ; particulier Listes en cours) · Projets/Sujets · Modèles (éditeur+) · Mes tâches (≥2 membres) · Admin — recherche + compte à droite. |
-| Solo sans onglet Organisation | Lien header **Organisation** → hub minimal (`/admin` org) : Inviter + Mes sujets ; onglet Organisation complet réapparaît après le 2ᵉ email whitelisté |
+| Solo sans onglet Organisation | Lien header **Organisation** → hub minimal (`/admin` org) : Inviter + Mes sujets ; onglet Organisation complet réapparaît après le 2ᵉ **membre** |
 | Sujets dans nav principale | **Non** (org classique) — accès via le hub org ou le lancement de revue ; la liste membre est `/subjects` |
 | Route `/subjects` (liste membre) | **Conservée** (deep link) mais **hors nav** en org classique — plus de liste admin séparée |
 | Mode SimpleUI (particulier) | **Oui** — 1 org / 1 membre / ≤1 sujet / pas admin global. Nav = **Listes en cours · Listes** via preset `ui_run_label=listes_en_cours` (routes `/modeles` / `/runs` inchangées). Vocabulaire « liste » à la place de « modèle ». Fiche sujet = hub checklists ; pas d'Équipes / Membres / domaines. Voir **À trancher** (progressive disclosure). |

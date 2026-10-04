@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"strings"
 	"testing"
 
@@ -32,9 +31,9 @@ func TestAdminAPI_RBACAndParity(t *testing.T) {
 		fn   func(t *testing.T, handler http.Handler, st *store.Store)
 	}{
 		{
-			name: "list allowed emails requires session",
+			name: "list members requires session",
 			fn: func(t *testing.T, handler http.Handler, _ *store.Store) {
-				req := httptest.NewRequest(http.MethodGet, "/api/v1/admin/allowed-emails", nil)
+				req := httptest.NewRequest(http.MethodGet, "/api/v1/admin/members", nil)
 				rec := httptest.NewRecorder()
 				handler.ServeHTTP(rec, req)
 				assertStatusBody(t, rec, http.StatusUnauthorized, "unauthenticated")
@@ -61,7 +60,7 @@ func TestAdminAPI_RBACAndParity(t *testing.T) {
 				}
 				activateOrgSession(t, handler, st, &member, org.ID)
 
-				req := httptest.NewRequest(http.MethodGet, "/api/v1/admin/allowed-emails", nil)
+				req := httptest.NewRequest(http.MethodGet, "/api/v1/admin/members", nil)
 				req.AddCookie(member.cookie)
 				rec := httptest.NewRecorder()
 				handler.ServeHTTP(rec, req)
@@ -69,99 +68,17 @@ func TestAdminAPI_RBACAndParity(t *testing.T) {
 			},
 		},
 		{
-			name: "org admin can CRUD allowed emails",
-			fn: func(t *testing.T, handler http.Handler, st *store.Store) {
-				owner := registerSession(t, handler, "owner-emails@example.com", "OwnerEmails")
-				createOrgAPI(t, handler, owner, "Emails Org", "emails-org")
-				owner = refreshSessionCSRF(t, handler, owner.cookie)
-
-				payload := map[string]string{"email": "colleague@example.com", "role": "editor"}
-				raw, _ := json.Marshal(payload)
-				req := httptest.NewRequest(http.MethodPost, "/api/v1/admin/allowed-emails", bytes.NewReader(raw))
-				req.Header.Set("Content-Type", "application/json")
-				req.Header.Set("X-CSRF-Token", owner.csrf)
-				req.AddCookie(owner.cookie)
-				rec := httptest.NewRecorder()
-				handler.ServeHTTP(rec, req)
-				if rec.Code != http.StatusCreated {
-					t.Fatalf("create status=%d body=%s", rec.Code, rec.Body.String())
-				}
-
-				reqList := httptest.NewRequest(http.MethodGet, "/api/v1/admin/allowed-emails", nil)
-				reqList.AddCookie(owner.cookie)
-				recList := httptest.NewRecorder()
-				handler.ServeHTTP(recList, reqList)
-				if recList.Code != http.StatusOK {
-					t.Fatalf("list status=%d body=%s", recList.Code, recList.Body.String())
-				}
-				var list map[string]any
-				_ = json.Unmarshal(recList.Body.Bytes(), &list)
-				emails, _ := list["emails"].([]any)
-				if len(emails) != 1 {
-					t.Fatalf("emails=%v", list["emails"])
-				}
-
-				owner = refreshSessionCSRF(t, handler, owner.cookie)
-				delPath := "/api/v1/admin/allowed-emails/" + url.PathEscape("colleague@example.com")
-				reqDel := httptest.NewRequest(http.MethodDelete, delPath, nil)
-				reqDel.Header.Set("X-CSRF-Token", owner.csrf)
-				reqDel.AddCookie(owner.cookie)
-				recDel := httptest.NewRecorder()
-				handler.ServeHTTP(recDel, reqDel)
-				if recDel.Code != http.StatusNoContent {
-					t.Fatalf("delete status=%d body=%s", recDel.Code, recDel.Body.String())
-				}
-
-				// Store scoped to active org should be empty.
-				org, err := st.OrganizationBySlug(context.Background(), "emails-org")
-				if err != nil {
-					t.Fatalf("OrganizationBySlug: %v", err)
-				}
-				orgCtx := orgctx.WithOrganizationID(context.Background(), org.ID)
-				left, err := st.ListAllowedEmails(orgCtx)
-				if err != nil || len(left) != 0 {
-					t.Fatalf("remaining emails=%v err=%v", left, err)
-				}
-			},
-		},
-		{
-			name: "create allowed email requires CSRF",
+			name: "create invitation requires CSRF",
 			fn: func(t *testing.T, handler http.Handler, _ *store.Store) {
 				owner := registerSession(t, handler, "owner-csrf@example.com", "OwnerCSRF")
 				createOrgAPI(t, handler, owner, "CSRF Org", "csrf-org")
-				body := `{"email":"x@example.com","role":"reader"}`
-				req := httptest.NewRequest(http.MethodPost, "/api/v1/admin/allowed-emails", strings.NewReader(body))
+				body := `{"email":"x@example.com","org_role":"member"}`
+				req := httptest.NewRequest(http.MethodPost, "/api/v1/admin/invitations", strings.NewReader(body))
 				req.Header.Set("Content-Type", "application/json")
 				req.AddCookie(owner.cookie)
 				rec := httptest.NewRecorder()
 				handler.ServeHTTP(rec, req)
 				assertStatusBody(t, rec, http.StatusForbidden, "csrf")
-			},
-		},
-		{
-			name: "cannot delete own whitelist email",
-			fn: func(t *testing.T, handler http.Handler, st *store.Store) {
-				owner := registerSession(t, handler, "owner-self@example.com", "OwnerSelf")
-				createOrgAPI(t, handler, owner, "Self Org", "self-org")
-				org, err := st.OrganizationBySlug(context.Background(), "self-org")
-				if err != nil {
-					t.Fatalf("OrganizationBySlug: %v", err)
-				}
-				orgCtx := orgctx.WithOrganizationID(context.Background(), org.ID)
-				if err = st.InsertAllowedEmail(orgCtx, "owner-self@example.com", auth.RoleEditor); err != nil {
-					t.Fatalf("InsertAllowedEmail: %v", err)
-				}
-				// InsertAllowedEmail revokes sessions for that email — re-login.
-				owner = loginSession(t, handler, "owner-self@example.com", "password1234")
-				activateOrgSession(t, handler, st, &owner, org.ID)
-
-				delPath := "/api/v1/admin/allowed-emails/" + url.PathEscape("owner-self@example.com")
-				req := httptest.NewRequest(http.MethodDelete, delPath, nil)
-				req.Header.Set("X-CSRF-Token", owner.csrf)
-				req.AddCookie(owner.cookie)
-				rec := httptest.NewRecorder()
-				handler.ServeHTTP(rec, req)
-				assertStatusBody(t, rec, http.StatusBadRequest, "propre")
 			},
 		},
 		{
@@ -374,33 +291,4 @@ func activateOrgSession(t *testing.T, handler http.Handler, st *store.Store, ses
 	if err != nil || active != orgID {
 		t.Fatalf("session org=%d err=%v want %d", active, err, orgID)
 	}
-}
-
-func loginSession(t *testing.T, handler http.Handler, email, password string) testSession {
-	t.Helper()
-	guest, csrf := bootstrapGuest(t, handler)
-	payload := map[string]string{"email": email, "password": password}
-	body, _ := json.Marshal(payload)
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/login", bytes.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("X-CSRF-Token", csrf)
-	req.AddCookie(guest)
-	rec := httptest.NewRecorder()
-	handler.ServeHTTP(rec, req)
-	if rec.Code != http.StatusOK {
-		t.Fatalf("login %s: %d %s", email, rec.Code, rec.Body.String())
-	}
-	var authOK map[string]any
-	_ = json.Unmarshal(rec.Body.Bytes(), &authOK)
-	sessionCSRF, _ := authOK["csrf_token"].(string)
-	var sessionCookie *http.Cookie
-	for _, c := range resultCookies(t, rec) {
-		if c.Name == "revues_session" {
-			sessionCookie = c
-		}
-	}
-	if sessionCookie == nil || sessionCSRF == "" {
-		t.Fatal("missing session after login")
-	}
-	return testSession{cookie: sessionCookie, csrf: sessionCSRF}
 }

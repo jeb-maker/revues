@@ -146,7 +146,7 @@ export interface paths {
         put?: never;
         /**
          * Inscription email + mot de passe
-         * @description Crée un compte local si l'email est autorisé (whitelist / bootstrap).
+         * @description Crée un compte local si l'email est autorisé (invitation / bootstrap / self-service selon `REVUES_LOGIN_REQUIRE_WHITELIST`).
          *     CSRF guest requis. Pose `revues_session` en cas de succès.
          */
         post: operations["postAuthRegister"];
@@ -648,51 +648,6 @@ export interface paths {
          * @description Auth + CanUpdateAccess; assign exige CanAssignAccess. Comment obligatoire si nok. Run done -> 409. Verrou optimiste : `updated_at` fourni et périmé -> 409 `conflict` (recharger le point). Emit review.item.nok. Email « point assigné » si nouvel assigné. CSRF.
          */
         patch: operations["updateRunItem"];
-        trace?: never;
-    };
-    "/admin/allowed-emails": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Liste blanche emails de l'org active
-         * @description RequireOrgAdmin (owner/admin org ou admin global) + org active.
-         *     Rôles whitelist : reader | editor uniquement.
-         */
-        get: operations["listAllowedEmails"];
-        put?: never;
-        /**
-         * Ajouter / mettre à jour un email autorisé
-         * @description Upsert whitelist (reader|editor). CSRF requis. RequireOrgAdmin.
-         */
-        post: operations["createAllowedEmail"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/admin/allowed-emails/{email}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /**
-         * Retirer un email de la whitelist
-         * @description CSRF requis. Impossible de retirer son propre email. RequireOrgAdmin.
-         */
-        delete: operations["deleteAllowedEmail"];
-        options?: never;
-        head?: never;
-        patch?: never;
         trace?: never;
     };
     "/admin/members": {
@@ -1728,25 +1683,6 @@ export interface components {
             assignees?: components["schemas"]["RunAssignee"][];
             capabilities: components["schemas"]["RunCapabilities"];
             pending_required_count?: number;
-        };
-        AllowedEmail: {
-            /** Format: email */
-            email: string;
-            /**
-             * @description Rôle global whitelist (reader|editor)
-             * @enum {string}
-             */
-            role: "reader" | "editor";
-            created_at: string;
-        };
-        AllowedEmailListResponse: {
-            emails: components["schemas"]["AllowedEmail"][];
-        };
-        AllowedEmailWriteRequest: {
-            /** Format: email */
-            email: string;
-            /** @enum {string} */
-            role: "reader" | "editor";
         };
         OrganizationMember: {
             /** Format: int64 */
@@ -3045,82 +2981,6 @@ export interface operations {
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
-            500: components["responses"]["InternalError"];
-        };
-    };
-    listAllowedEmails: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Emails autorisés */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AllowedEmailListResponse"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            500: components["responses"]["InternalError"];
-        };
-    };
-    createAllowedEmail: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AllowedEmailWriteRequest"];
-            };
-        };
-        responses: {
-            /** @description Email enregistré */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AllowedEmail"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            500: components["responses"]["InternalError"];
-        };
-    };
-    deleteAllowedEmail: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                email: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Email retiré */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
             500: components["responses"]["InternalError"];
         };
     };

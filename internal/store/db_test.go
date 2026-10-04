@@ -88,7 +88,6 @@ func assertCoreTables(t *testing.T, ctx context.Context, db *sql.DB) error {
 	tables := []string{
 		"users",
 		"sessions",
-		"allowed_emails",
 		"subjects",
 		"subject_tags",
 		"subject_domains",

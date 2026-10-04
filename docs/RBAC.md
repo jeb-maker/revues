@@ -61,7 +61,7 @@ Parcours produit nominal : **affectation personne → projet** (`subject_members
 
 | Rôle | Description |
 |------|-------------|
-| `owner` | Gouvernance org : équipes, whitelist, politiques, **intégrations de l'org** (SMTP, Jira, webhooks) ; **voit tous** les sujets/revues de l'org |
+| `owner` | Gouvernance org : équipes, invitations, politiques, **intégrations de l'org** (SMTP, Jira, webhooks) ; **voit tous** les sujets/revues de l'org |
 | `admin` | Idem `owner` sauf actions réservées owner si ajoutées ultérieurement |
 | `member` | Membre org ; accès sujet via équipe, membership direct, ou invitation |
 
@@ -195,7 +195,7 @@ Paths réels de `api/openapi/openapi.yaml` (préfixe `/api/v1`). Helpers : `ensu
 
 | Route | Contrôle |
 |-------|----------|
-| `GET /bootstrap` · `GET /me` · `POST /auth/login\|register\|logout` | Session cookie ; CSRF sur les POST ; whitelist (`REVUES_LOGIN_REQUIRE_WHITELIST`) sur register |
+| `GET /bootstrap` · `GET /me` · `POST /auth/login\|register\|logout` | Session cookie ; CSRF sur les POST ; invite-only (`REVUES_LOGIN_REQUIRE_WHITELIST`) sur register |
 | `GET\|POST /orgs` · `POST /orgs/active` · `POST /orgs/invitations/{id}/accept` | Auth ; appartenance org vérifiée côté service (`features/organizations`) |
 | `GET /orgs/members` | Auth + org active ; annuaire minimal (tous les membres org) pour affectation projet |
 | `GET /subjects` · `POST /subjects` | Auth + org active ; `CanCreateSubject` pour POST |
@@ -213,7 +213,7 @@ Paths réels de `api/openapi/openapi.yaml` (préfixe `/api/v1`). Helpers : `ensu
 | `GET\|POST /runs/{id}/items/{itemId}/attachments` · `GET /runs/{id}/items/{itemId}/attachments/{attachmentId}` | `ensureRunAccess` ; upload : `CanUpdateAccess` + validation magic bytes / taille |
 | `GET /templates*` | Auth + org active |
 | `POST\|PUT\|DELETE /templates*` | Auth + `CanManageGlobal` (editor+ / org admin) ; versions publiées immuables |
-| `/admin/allowed-emails*` · `/admin/members*` · `/admin/invitations*` · `/admin/teams*` · `/admin/settings/policies` | `requireOrgAdmin` ; invitations : rôle `owner` réservé aux owners (ou admin global) |
+| `/admin/members*` · `/admin/invitations*` · `/admin/teams*` · `/admin/settings/policies` | `requireOrgAdmin` ; invitations : rôle `owner` réservé aux owners (ou admin global) |
 | `/admin/settings/smtp*` · `/admin/integrations*` · `/admin/webhooks*` (config, test, deliveries, drain, retry) | `requireOrgAdmin` ; URLs sortantes validées anti-SSRF |
 
 Toutes les routes sensibles appellent `ResolveSubjectAccess` (ou helper dérivé) — pas de rôle sujet seul. Les routes `/subjects/{id}/teams` (grant équipe ↔ sujet) n'existent pas dans l'API v1 : `GrantTeamSubjectRole` n'est accessible que par le store.
@@ -231,7 +231,7 @@ Chaque PR `area:auth` ou `area:core` maintient (ou étend) les tests existants :
 | IDOR sujet / org / privé | `TestIDOR_CrossSubject` (`internal/features/subjects/idor_test.go`), `TestSubjectsAPI_IDOR_CrossOrg`, `TestSubjectsAPI_IDOR_PrivateSubject`, `TestSubjectsAPI_ReaderCannotCreate` — `internal/api/v1/subjects_test.go` |
 | IDOR revue / point + CSRF | `TestRunsAPI_IDORAndCSRF`, `TestRunsAPI_RequiresAuth`, `TestRunsAPI_LaunchSnapshotUpdateCompleteAndGuards` — `internal/api/v1/runs_test.go` |
 | Pièces jointes (IDOR, type, taille) | `TestAttachments_IDOR_CrossUser`, `TestAttachments_UploadDownloadSecurity` — `internal/api/v1/attachments_test.go` ; `TestProcessUpload_Rejects*` — `internal/attachments/process_test.go` |
-| CSRF / session / whitelist auth | `TestAuthAPI_BootstrapGuestCSRF`, `TestAuthAPI_LoginRequiresCSRF`, `TestAuthAPI_LogoutRequiresCSRF`, `TestAuthAPI_MeRequiresSession`, `TestAuthAPI_RegisterWhitelistReject` — `internal/api/v1/auth_test.go` ; `TestTemplatesAPI_RequiresAuthAndCSRF` |
+| CSRF / session / invite-only auth | `TestAuthAPI_BootstrapGuestCSRF`, `TestAuthAPI_LoginRequiresCSRF`, `TestAuthAPI_LogoutRequiresCSRF`, `TestAuthAPI_MeRequiresSession`, `TestAuthAPI_RegisterWhitelistReject`, `TestAuthAPI_RegisterWithPendingInvitation` — `internal/api/v1/auth_test.go` ; `TestTemplatesAPI_RequiresAuthAndCSRF` |
 | Admin org (owner/admin vs member) | `TestAdminAPI_RBACAndParity`, `TestAdminIntegrations_RequiresOrgAdmin`, `TestAdminSMTP_OrgOwnerAllowed`, `TestAdminSMTP_MaskedPasswordAndOrgAdmin`, `TestAdminJira_MaskedTokenTestAndRBAC`, `TestAdminWebhooks_ConfigHMACAndSSRF` — `internal/api/v1/admin*_test.go` |
 | Anti-SSRF webhooks / Jira | `TestWebhook_SSRF_Block`, `TestWebhook_SSRF_BlockPrivateDial`, `TestDispatcher_Drain_ReChecksSSRF` — `internal/integrations/webhooks/dispatcher_test.go` ; `TestAdminJira_RejectsPrivateURL` |
 

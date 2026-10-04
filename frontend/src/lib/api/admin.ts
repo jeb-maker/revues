@@ -2,10 +2,6 @@
 import { createApiClient } from './client';
 import type { paths } from './schema';
 
-export type AllowedEmailListResponse =
-	paths['/admin/allowed-emails']['get']['responses']['200']['content']['application/json'];
-export type AllowedEmailWriteRequest =
-	paths['/admin/allowed-emails']['post']['requestBody']['content']['application/json'];
 export type OrganizationMemberListResponse =
 	paths['/admin/members']['get']['responses']['200']['content']['application/json'];
 export type UpdateOrganizationMemberRoleRequest =
@@ -29,32 +25,6 @@ function errorMessage(payload: unknown, fallback: string): string {
 		if (err?.message) return err.message;
 	}
 	return fallback;
-}
-
-export async function listAllowedEmails(): Promise<AllowedEmailListResponse> {
-	const client = createApiClient();
-	const { data, error, response } = await client.GET('/admin/allowed-emails');
-	if (data) return data;
-	throw new Error(errorMessage(error, `Emails autorisés: ${response.status}`));
-}
-
-export async function createAllowedEmail(
-	body: AllowedEmailWriteRequest,
-	csrf: string
-): Promise<AllowedEmailListResponse['emails'][number]> {
-	const client = createApiClient({ csrfToken: csrf });
-	const { data, error, response } = await client.POST('/admin/allowed-emails', { body });
-	if (data) return data;
-	throw new Error(errorMessage(error, `Ajout email: ${response.status}`));
-}
-
-export async function deleteAllowedEmail(email: string, csrf: string): Promise<void> {
-	const client = createApiClient({ csrfToken: csrf });
-	const { error, response } = await client.DELETE('/admin/allowed-emails/{email}', {
-		params: { path: { email } }
-	});
-	if (response.status === 204) return;
-	throw new Error(errorMessage(error, `Retrait email: ${response.status}`));
 }
 
 export async function listOrganizationMembers(): Promise<OrganizationMemberListResponse> {

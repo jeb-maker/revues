@@ -9,7 +9,7 @@
 // Aggregate layout (keep related queries in these files — do not grow a god file):
 //
 //	db.go, migrate — pool, pragmas, goose
-//	users.go, sessions.go, allowed_emails.go — auth identity (users/sessions → sqlc)
+//	users.go, sessions.go, login_role.go — auth identity (users/sessions → sqlc)
 //	organizations.go, organization_invitations.go, teams.go — multi-tenant
 //	subjects.go, subject_access.go, tags.go — subjects & access
 //	checklist_templates.go — models / versions / items
@@ -22,6 +22,6 @@
 // Feature packages define small consumer interfaces; *Store satisfies them.
 //
 // Remaining hand-written SQL (migrate incrementally in follow-up area:data issues):
-// allowed_emails, organizations*, teams, subjects*, tags, checklist_templates,
+// organizations*, teams, subjects*, tags, checklist_templates,
 // runs*, attachments, integrations*, settings, webhook/email deliveries, dashboard.
 package store
