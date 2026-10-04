@@ -119,22 +119,29 @@ code {
 .app-header__search {
 	display: flex;
 	align-items: center;
-	gap: var(--mb-space-2);
 	min-width: 10rem;
 	max-width: 18rem;
 	margin-left: auto;
 }
 
-.app-header__search > mb-input {
+.app-header__search > mb-combobox {
 	flex: 1 1 auto;
 	min-width: 0;
+	inline-size: 100%;
 }
 
 /* Aligne la hauteur du champ sur mb-button size=sm (2rem). */
-.app-header__search > mb-input::part(control) {
+.app-header__search > mb-combobox::part(control) {
 	min-block-size: 2rem;
 	padding-block: 0.15rem;
 	font-size: var(--mb-font-size-sm);
+}
+
+/* Suggestions plus larges que le champ compact (ancrées à droite). */
+.app-header__search > mb-combobox::part(panel) {
+	inset-inline: auto 0;
+	inline-size: min(28rem, calc(100vw - 2rem));
+	min-inline-size: 100%;
 }
 
 .app-header__account {

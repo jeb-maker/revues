@@ -8,12 +8,20 @@
   --mb-color-fg: var(--mb-ref-ink-950);
   --mb-color-muted: var(--mb-ref-ink-600);
   --mb-color-border: var(--mb-ref-paper-100);
+  /* Identifies controls against paper surfaces (WCAG 1.4.11, ≥3:1). */
+  --mb-color-border-strong: #6e857a;
+  --mb-color-border-hover: var(--mb-color-muted);
+  --mb-color-hover: rgb(20 32 27 / 8%);
 
   --mb-color-accent: var(--mb-ref-moss-700);
+  --mb-color-accent-hover: #18573c;
+  --mb-color-accent-active: #134832;
   --mb-color-on-accent: #ffffff;
   --mb-color-accent-soft: var(--mb-ref-moss-100);
 
   --mb-color-danger: var(--mb-ref-coral-700);
+  --mb-color-danger-hover: #8b3225;
+  --mb-color-danger-active: #752a1f;
   --mb-color-on-danger: #ffffff;
   --mb-color-danger-soft: var(--mb-ref-coral-100);
 
@@ -23,7 +31,8 @@
   --mb-color-info: var(--mb-ref-sky-700);
   --mb-color-info-soft: var(--mb-ref-sky-100);
 
-  --mb-color-success: var(--mb-ref-moss-600);
+  /* Darkened so 14px status text clears 4.5:1 on success-soft. */
+  --mb-color-success: #1e6846;
   --mb-color-success-soft: var(--mb-ref-moss-100);
 
   --mb-space-1: var(--mb-ref-space-1);
@@ -52,6 +61,18 @@
   --mb-focus-offset: 2px;
   --mb-transition: 160ms ease;
   --mb-shadow: 0 12px 40px rgb(20 32 27 / 12%);
+  --mb-shadow-sm: 0 1px 2px rgb(20 32 27 / 6%), 0 8px 24px rgb(20 32 27 / 6%);
+
+  /*
+    Control geometry — shared by buttons, fields, toolbar chrome, chips.
+    Keep toolbar siblings (input / select / button / segmented) on the same track.
+  */
+  --mb-control-height: 2.5rem;
+  --mb-control-height-sm: 2rem;
+  --mb-control-padding-inline: var(--mb-space-3);
+  --mb-control-padding-inline-end-select: var(--mb-space-5);
+  --mb-field-label-gap: var(--mb-space-2);
+  --mb-narrow: 36rem;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -64,12 +85,18 @@
     --mb-color-fg: #f3f6f2;
     --mb-color-muted: #9aada3;
     --mb-color-border: #2d3d35;
+    --mb-color-border-strong: #678274;
+    --mb-color-hover: rgb(243 246 242 / 12%);
 
-    --mb-color-accent: #3d9e6f;
+    --mb-color-accent: #54b886;
+    --mb-color-accent-hover: #6ac898;
+    --mb-color-accent-active: #7fd4a8;
     --mb-color-on-accent: #0f1613;
     --mb-color-accent-soft: #1a3d2c;
 
     --mb-color-danger: #e07a6a;
+    --mb-color-danger-hover: #e89184;
+    --mb-color-danger-active: #f0a79c;
     --mb-color-on-danger: #1a1210;
     --mb-color-danger-soft: #3d221e;
 
@@ -83,6 +110,7 @@
     --mb-color-success-soft: #1a3d2c;
 
     --mb-shadow: 0 12px 40px rgb(0 0 0 / 40%);
+    --mb-shadow-sm: 0 1px 2px rgb(0 0 0 / 40%), 0 8px 24px rgb(0 0 0 / 32%);
   }
 }
 
@@ -95,12 +123,18 @@
   --mb-color-fg: #f3f6f2;
   --mb-color-muted: #9aada3;
   --mb-color-border: #2d3d35;
+  --mb-color-border-strong: #678274;
+  --mb-color-hover: rgb(243 246 242 / 12%);
 
-  --mb-color-accent: #3d9e6f;
+  --mb-color-accent: #54b886;
+  --mb-color-accent-hover: #6ac898;
+  --mb-color-accent-active: #7fd4a8;
   --mb-color-on-accent: #0f1613;
   --mb-color-accent-soft: #1a3d2c;
 
   --mb-color-danger: #e07a6a;
+  --mb-color-danger-hover: #e89184;
+  --mb-color-danger-active: #f0a79c;
   --mb-color-on-danger: #1a1210;
   --mb-color-danger-soft: #3d221e;
 
@@ -114,6 +148,7 @@
   --mb-color-success-soft: #1a3d2c;
 
   --mb-shadow: 0 12px 40px rgb(0 0 0 / 40%);
+  --mb-shadow-sm: 0 1px 2px rgb(0 0 0 / 40%), 0 8px 24px rgb(0 0 0 / 32%);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -133,6 +168,7 @@ mb-button:not(:defined),
 mb-input:not(:defined),
 mb-textarea:not(:defined),
 mb-select:not(:defined),
+mb-combobox:not(:defined),
 mb-checkbox:not(:defined),
 mb-radio:not(:defined),
 mb-radio-group:not(:defined),

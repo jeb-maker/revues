@@ -1,6 +1,6 @@
 # Vendored `@jeb-maker/mb` (+ Lit peer, bundled)
 
-- **Version used by Revues: `0.4.1`** (Git tag `v0.4.1`)
+- **Version used by Revues: `0.5.0`** (Git tag `v0.5.0`)
 - **Source**: https://github.com/jeb-maker/miniature-broccoli
 - **Lit**: peer `^3.2.0` (build used `lit@3.3.x`) is **bundled into `mb-boot.js`** so the browser needs no import map. Vendor files are measured but excluded from the SPA app budgets (`scripts/check.sh` only fails on `frontend/build/_app/**`).
 
@@ -29,7 +29,7 @@ TypeScript typings for the custom elements used in templates: `frontend/src/lib/
 
 ## `mb-boot.js` registers
 
-`mb-button`, `mb-badge`, `mb-alert`, `mb-card`, `mb-input`, `mb-textarea`, `mb-checkbox`, `mb-select`, `mb-modal`, `mb-progress`, `mb-segmented-control`, `mb-empty-state`, `mb-pagination`, `mb-toast`, `mb-radio`, `mb-radio-group`, `mb-tag`, `mb-breadcrumbs`, `mb-nav`, `mb-nav-toggle`, `mb-avatar`, `mb-spinner`, `mb-toolbar`, `mb-table`, `mb-table-row`, `mb-table-cell`.
+`mb-button`, `mb-badge`, `mb-alert`, `mb-card`, `mb-input`, `mb-textarea`, `mb-checkbox`, `mb-select`, `mb-combobox`, `mb-modal`, `mb-progress`, `mb-segmented-control`, `mb-empty-state`, `mb-pagination`, `mb-toast`, `mb-radio`, `mb-radio-group`, `mb-tag`, `mb-breadcrumbs`, `mb-nav`, `mb-nav-toggle`, `mb-avatar`, `mb-spinner`, `mb-toolbar`, `mb-table`, `mb-table-row`, `mb-table-cell`.
 
 ## Rebuild (maintainers)
 
@@ -37,9 +37,10 @@ TypeScript typings for the custom elements used in templates: `frontend/src/lib/
 
 ```bash
 export PATH="$HOME/.nvm/versions/node/v22.22.2/bin:$PATH"   # or any Node ≥ 20
-git clone --depth 1 --branch v0.4.1 https://github.com/jeb-maker/miniature-broccoli.git /tmp/mb-0.4.1
-cd /tmp/mb-0.4.1 && npm ci && npm run build
-COMPS="button badge alert card input textarea checkbox select modal progress segmented-control empty-state pagination toast radio radio-group tag breadcrumbs nav nav-toggle avatar spinner toolbar table"
+git clone --depth 1 --branch v0.5.0 https://github.com/jeb-maker/miniature-broccoli.git /tmp/mb-0.5.0
+cd /tmp/mb-0.5.0 && npm ci && npm run build
+# Apply local sticky-disabled patch (see below) before bundling if rebuilding from clean clone.
+COMPS="button badge alert card input textarea checkbox select combobox modal progress segmented-control empty-state pagination toast radio radio-group tag breadcrumbs nav nav-toggle avatar spinner toolbar table"
 { for c in $COMPS; do echo "import './dist/components/\$c.js';"; done; } > boot-entry.js
 npx esbuild boot-entry.js --bundle --format=esm \
   --outfile=/path/to/revues/web/static/vendor/jeb-maker-mb/mb-boot.js \
@@ -62,15 +63,15 @@ Aujourd’hui Revues ship **`mb-boot.js` monolithe** (simple, une requête).
 
 ## Local patches (Revues)
 
-- **`mb-button` / form controls — `disabled` sticky** : upstream ORs the host `disabled` prop with `formDisabledCallback` state (`#e`). After `disabled` flips true→false, some browsers leave `#e` set, so the control stays inert. Vendor patch trusts the host `disabled` prop only (Revues does not use disabled `<fieldset>`). Prefer `loading={busy}` for in-flight actions; gate empty required fields with `required` + submit guards, not `disabled={…||!value}`.
+- **`mb-button` / form controls — `disabled` sticky** : upstream ORs the host `disabled` prop with `formDisabledCallback` state. After `disabled` flips true→false, some browsers leave form-disabled set, so the control stays inert. Vendor patch trusts the host `disabled` prop only (Revues does not use disabled `<fieldset>`). Prefer `loading={busy}` for in-flight actions; gate empty required fields with `required` + submit guards, not `disabled={…||!value}`.
 
-## 0.4.1 (vs 0.3.1)
+## 0.5.0 (vs 0.4.1)
 
-- `mb-table` / `mb-table-row` / `mb-table-cell` — responsive lists, sections, sort, reorder
-- Section `meta` / `count: false` / `hide-count`; `sticky-header`; `reorder-label` / `sort-label`; cell `hide-label` / `actions`
+- `mb-combobox` — typeahead / search suggestions (grouped options, keyboard nav, loading/empty, `mb-input` + `mb-select` + `mb-change`)
+- Packaging fix for nested `mb-table` CE modules (`sideEffects` / barrel registration)
 
 ## Consumed in Revues
 
-Pages SvelteKit (`frontend/src/routes/**`) : `mb-button`, `mb-alert`, `mb-input`, `mb-textarea`, `mb-badge`, `mb-tag`, `mb-spinner`, `mb-empty-state`, `mb-table` / `mb-table-row` / `mb-table-cell`.
+Pages SvelteKit (`frontend/src/routes/**`) : `mb-button`, `mb-alert`, `mb-input`, `mb-textarea`, `mb-badge`, `mb-tag`, `mb-spinner`, `mb-empty-state`, `mb-combobox`, `mb-table` / `mb-table-row` / `mb-table-cell`.
 
 **Still host-owned**: template-editor table (`frontend/src/lib/components/TemplateEditor.svelte`, DnD + indices), native `confirm()` for destructive actions.

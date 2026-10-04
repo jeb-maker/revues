@@ -85,13 +85,13 @@
 		{#if q}
 			<p class="lede">Résultats pour « {q} ».</p>
 		{:else}
-			<p class="lede">Saisissez un terme dans la barre du haut, puis validez.</p>
+			<p class="lede">Saisissez un terme dans la barre du haut pour afficher des suggestions.</p>
 		{/if}
 	</header>
 
 	{#if !q}
 		<mb-empty-state heading="Aucune requête">
-			Utilisez le champ Recherche du bandeau pour lancer une recherche.
+			Utilisez le champ Recherche du bandeau : les suggestions apparaissent en tapant.
 		</mb-empty-state>
 	{:else if error}
 		<mb-alert variant="danger">{error}</mb-alert>
