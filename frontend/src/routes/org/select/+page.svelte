@@ -126,7 +126,7 @@
 					onmb-change={(e) => (selectedId = Number(e.detail.value))}
 				>
 					{#each data.organizations as org (org.id)}
-						<mb-radio value={String(org.id)} label={`${org.name} (${org.slug})`}></mb-radio>
+						<mb-radio value={String(org.id)} label={org.name}></mb-radio>
 					{/each}
 				</mb-radio-group>
 				<mb-button type="submit" variant="primary" disabled={loading || selectedId == null}>

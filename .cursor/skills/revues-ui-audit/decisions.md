@@ -13,7 +13,8 @@ Stack (octobre 2026) : SvelteKit SPA + `@jeb-maker/mb`, API JSON `/api/v1`. Rout
 | Post-login (1 org) | **`/runs`** — `bootstrap.redirect` / `PostLoginRoute` = `/runs` (plus `/`). |
 | CTA « Lancer une revue » sur `/runs` | **Oui** — toolbar + empty states ; lien vers `/subjects` (choix projet) puis `/subjects/{id}/launch`. |
 | CTA fiche sujet | **Conservé** — lancement depuis un sujet connu reste possible |
-| CTA fiche modèle `/modeles/{id}` | **Oui** — « Lancer avec ce modèle » → `/subjects` avec `?template_id=` puis launch avec modèle présélectionné (`?template_id=` sur `/subjects/{id}/launch`). |
+| CTA fiche modèle `/modeles/{id}` | **Oui** — « Lancer » en bas de la carte Points → `/subjects` avec `?template_id=` puis launch avec modèle présélectionné (`?template_id=` sur `/subjects/{id}/launch`). |
+| CTA liste `/modeles` | **Oui** — row-action « Lancer » (lien, pas primary) → `/subjects?template_id=` — même flux que la fiche. |
 | Stepper wizard | **Supprimé** — fil d'Ariane ; **2 étapes** (sujet → modèle via `/subjects/{id}/launch`, clic = lancer) |
 | Titre de page (H1) | **Visible** — `.page-title` = dernier crumb |
 | Fil d'Ariane | **Ancêtres seulement** (≥ 2 niveaux) ; **absent** sur pages racine (1 crumb) — le courant = H1 |
@@ -34,10 +35,12 @@ Stack (octobre 2026) : SvelteKit SPA + `@jeb-maker/mb`, API JSON `/api/v1`. Rout
 | Colonne Sujet `/runs` | ≥2 sujets visibles (P2) |
 | Nav « Mes tâches » | **`ShowMyTasks`** — ≥2 membres org (P1) |
 | Fiche sujet Équipes/Membres | **`ShowCollab`** — ≥2 membres ; sinon layout « revues d’abord » |
-| Placement CTA | **Listes** : primaire dans la toolbar de la carte (pas sous le H1). **Formulaires** : primaire en bas **dans** la dernière carte métier éditable (carte Archiver / danger-zone = exception ; satellites lecture/PJ/Jira/historique **sans** primaire). **Un seul** `mb-button` primary par écran ; secondaires en `variant="secondary"` / `ghost`. Si export CSV un jour : secondary (pas preuve). |
+| Placement CTA | **Listes** : primaire en haut à droite face au H1 (`.page-header__row` + `.page-header__actions`) ; pas sous le titre. Compteur de résultats (ex. « 2 revues ») sur la **même ligne** que les filtres, aligné à droite (`.filters__count`). **Fiches** : H1 + méta hors cartes ; contenu en `mb-card` / `.card-stack` ; primaire en bas **dans** le footer de la dernière carte métier utile (Points / Revues / Clôture) ; Archiver = carte danger-zone séparée. **Formulaires / édition** (`/subjects/new`, `/modeles/new`, `/modeles/{id}/edit`, `/org/new`, édition inline fiche sujet) : champs en `mb-card` ; primaire en bas dans le footer de la dernière carte métier éditable. Satellites lecture/PJ/Jira/historique **sans** primaire. **Un seul** `mb-button` primary par écran ; secondaires en `variant="secondary"` / `ghost`. Si export CSV un jour : secondary (pas preuve). |
+| Ledes (sous-titres) | **Minimaux** — supprimer les ledes qui paraphrasent le H1 sur les listes ; garder seulement une instruction utile (ex. mode `?template_id=` sur `/subjects`). |
+| Vocabulaire technique UI | **Interdit** dans l’appli : snapshot, matching, whitelist, slug, HMAC, SSRF, « l’API », icebox, parcours nominal, etc. Dire le métier en français courant. OK en docs / OpenAPI / code. |
 | Fiche point `/runs/{id}/items/{itemId}` | **`mb-card`** : Saisie (footer = Enregistrer primary) · Pièce jointe · Issue Jira (secondary) · Historique si événements. `help_text` en callout **au-dessus** du `.card-stack`. Historique = `row-list` plat (pas de sous-cartes). |
 | Statut vs progression (cartes revue) | **Option 1+5** : badge omis si `in_progress` (la progression suffit) ; colonne Statut **absente en SimpleUI**. Badge conservé pour brouillon / terminée / archivée hors SimpleUI. |
-| Libellé runs (instances) | Preset org `ui_run_label` : `revues` (défaut) · `listes_en_cours` · `audits` · `checklists`. Surface : nav, H1, breadcrumbs, empty states, CTA. Particulier (seed) = `listes_en_cours` ; mobile nav short = « En cours ». Marque produit « Revues » inchangée. |
+| Libellé runs (instances) | Preset org `ui_run_label` : `revues` (défaut) · `listes_en_cours` · `audits` · `checklists`. Surface : nav, H1, breadcrumbs, empty states, CTA. Particulier (seed) = `listes_en_cours` ; mobile nav short = « En cours ». Pas de marque « Revues » dans le chrome (onglet nav seulement). |
 | Accès revues terminées / filtres | Liste `/runs` : filtre **Tous · En cours · Terminées · En retard** (`?status=` ; `overdue` = en retard). Clôture : `POST /runs/{id}/complete` puis rechargement de la fiche côté SPA. |
 | Preuve ZIP / hash CSV (produit) | **Abandonnée** — le pack « preuve » (SHA256 scellé + ZIP) est du théâtre conformité ; la traçabilité métier (`run_item_events`, snapshot, `completed_at`, `closing_note`, auteur) suffit. Ne pas re-exposer de CTA « Télécharger la preuve » ni traiter `HasEvidence` comme surface P3. Colonne `evidence_csv_sha256` : interne / legacy, pas un argument produit. |
 | Attestation de clôture | **Oui (cible)** — sur fiche revue `done` : encart « Clôturée par X le … » + note de clôture ; optionnellement confirmation explicite à la clôture. Responsabilité humaine visible, pas crypto. |
@@ -102,13 +105,14 @@ Principes :
 
 | Sujet | Décision |
 |-------|----------|
-| Onglet principal | **Revues** (preset org `ui_run_label` ; particulier Listes en cours) · Mes tâches · Modèles (éditeur+) · **Organisation** (admin org ; intégrations dans le sous-menu org) — **sans logo/marque** dans la barre (menu seul). **À trancher** : la SPA n'a pas encore de barre de navigation commune (chaque page porte son en-tête) |
+| Onglet principal | **Sans marque / logo** dans la barre. Menu à gauche : **Revues** (preset `ui_run_label` ; particulier Listes en cours) · Projets/Sujets · Modèles (éditeur+) · Mes tâches (≥2 membres) · Admin — recherche + compte à droite. |
 | Solo sans onglet Organisation | Lien header **Organisation** → hub minimal (`/admin` org) : Inviter + Mes sujets ; onglet Organisation complet réapparaît après le 2ᵉ email whitelisté |
 | Sujets dans nav principale | **Non** (org classique) — accès via le hub org ou le lancement de revue ; la liste membre est `/subjects` |
 | Route `/subjects` (liste membre) | **Conservée** (deep link) mais **hors nav** en org classique — plus de liste admin séparée |
 | Mode SimpleUI (particulier) | **Oui** — 1 org / 1 membre / ≤1 sujet / pas admin global. Nav = **Listes en cours · Listes** via preset `ui_run_label=listes_en_cours` (routes `/modeles` / `/runs` inchangées). Vocabulaire « liste » à la place de « modèle ». Fiche sujet = hub checklists ; pas d'Équipes / Membres / domaines. Voir **À trancher** (progressive disclosure). |
 | Vocabulaire Listes / Modèles | Piloté par **`!ShowSubjectColumn`** (mono-sujet = Listes), pas seulement `SimpleUI` — évite schisme P1 nav vs formulaires |
-| Formulaire `/modeles/new` (listUI) | **Tableau** desktop une ligne (Case · Catégorie · Aide · Obligatoire · actions) / **cartes** mobile ; catégorie = `section` ; **nouvelle ligne hérite** de la catégorie précédente ; Aide sans « optionnel » ; DnD desktop ; flèches mobile ; CTA hors carte (`lib/components/TemplateEditor.svelte`) |
+| Formulaire `/modeles/new` (listUI) | **Tableau** desktop une ligne (Titre · Catégorie · Explication · Obligatoire · actions) / **cartes** mobile ; Explication compacte (ellipsis), multi-lignes en overlay au focus ; catégorie = `section` ; **nouvelle ligne hérite** de la catégorie précédente ; DnD desktop ; flèches mobile ; CTA hors carte (`lib/components/TemplateEditor.svelte`) |
+| Versionnement modèle (save) | **Diff serveur** : structurel (titre, catégorie, obligatoire, ajout/suppression/ordre) → nouvelle `template_version` ; éditorial seul (`help_text`, nom, domaines) → **pas** de nouvelle version (UPDATE sur la dernière version / métadonnées). Snapshots `run_items` inchangés. `POST /templates/{id}/versions` = forcer une nouvelle version. UI edit : CTA « Enregistrer » vs « Publier une nouvelle version ». |
 | CSS assets | Styles par page dans les blocs `<style>` Svelte (bundle Vite) ; budget CI = seuils JS/CSS app de `scripts/check.sh` ; Compress gzip middleware côté Go |
 | Modèles pour lecteurs | **Masqués** — rôle `reader` seul n'a pas l'onglet Modèles |
 | Deep links `/subjects/{id}` | **Conservés** — accessibles à tous les membres org |
@@ -141,7 +145,7 @@ Principes :
 | Version consommée | **`0.4.1`** (tag Git `v0.4.1`) |
 | Tokens | **`tokens-core.css`** (+ `mb-bridge.css`), injectés par `ensureMb()` depuis le layout racine — pas de `tokens.css` (évite reset `html`/`body`) ni `typography.css`/woff2 (budget) |
 | JS | `mb-boot.js` sous `web/static/vendor/jeb-maker-mb/` (Lit bundlé) — vendor mesuré hors budget app (`check.sh`) ; chargé par `ensureMb()` |
-| Shell + formulaires | Cible `mb-*` (button, alert, badge, input, textarea, tag, empty-state, spinner, table, **card**…) — **fiche point** utilise `mb-card` + `.card-stack` ; nav / breadcrumbs / toolbar / modal / toast encore à venir sur les autres écrans |
+| Shell + formulaires | Cible `mb-*` (button, alert, badge, input, textarea, tag, empty-state, spinner, table, **card**…) — fiches (`/modeles/{id}`, `/subjects/{id}`, `/runs/{id}`, fiche point) en `mb-card` + `.card-stack` ; listes = tableau + header row ; nav / breadcrumbs / toolbar / modal / toast encore à venir |
 | Listes | **`mb-table`** (cible : admin, sujets, modèles, revues, tâches, sections de la fiche revue) |
 | Reste host | éditeur de modèle (`TemplateEditor.svelte`, `<table>` natif + DnD) ; `confirm()` natif |
 | Tracking gaps | https://github.com/jeb-maker/miniature-broccoli/issues/40–44 (fermés en 0.4.1) |

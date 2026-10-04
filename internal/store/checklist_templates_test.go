@@ -144,6 +144,50 @@ func TestReplaceTemplateItemsRejectsPublishedVersion(t *testing.T) {
 	}
 }
 
+func TestUpdateTemplateItemsHelpTextEditorial(t *testing.T) {
+	ctx := context.Background()
+	db := openMemoryDB(t)
+	st := store.New(db)
+	ctx = testutil.DefaultOrgContext(ctx, st)
+
+	lead, err := st.UpsertGitHubUser(ctx, 1, "lead", "lead@example.com", "Lead", "", auth.RoleEditor)
+	if err != nil {
+		t.Fatalf("UpsertGitHubUser(): %v", err)
+	}
+
+	_, version, err := st.CreateChecklistTemplate(ctx, "Modèle A", lead.ID, nil, []store.TemplateItemInput{
+		{Section: "G", Label: "Point A", HelpText: "old", Required: true},
+		{Section: "G", Label: "Point B", HelpText: ""},
+	})
+	if err != nil {
+		t.Fatalf("CreateChecklistTemplate(): %v", err)
+	}
+
+	err = st.UpdateTemplateItemsHelpText(ctx, version.ID, []store.TemplateItemInput{
+		{Section: "G", Label: "Point A", HelpText: "new", Required: true},
+		{Section: "G", Label: "Point B", HelpText: "also"},
+	})
+	if err != nil {
+		t.Fatalf("UpdateTemplateItemsHelpText(): %v", err)
+	}
+
+	items, err := st.ListTemplateItems(ctx, version.ID)
+	if err != nil {
+		t.Fatalf("ListTemplateItems(): %v", err)
+	}
+	if items[0].HelpText != "new" || items[1].HelpText != "also" {
+		t.Fatalf("help texts = %+v", items)
+	}
+
+	err = st.UpdateTemplateItemsHelpText(ctx, version.ID, []store.TemplateItemInput{
+		{Section: "G", Label: "renamed", HelpText: "x", Required: true},
+		{Section: "G", Label: "Point B", HelpText: "also"},
+	})
+	if !errors.Is(err, store.ErrPublishedVersionImmutable) {
+		t.Fatalf("structural disguised as editorial: %v", err)
+	}
+}
+
 func TestListTemplateVersionsAndByNumber(t *testing.T) {
 	ctx := context.Background()
 	db := openMemoryDB(t)

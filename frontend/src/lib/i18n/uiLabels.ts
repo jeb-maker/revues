@@ -1,6 +1,6 @@
 /**
  * Presets org `ui_run_label` / `ui_subject_label` (colonnes organizations).
- * Marque produit « Revues » inchangée — seuls les libellés d'instances / conteneurs changent.
+ * Pas de marque dans le chrome : le hub runs est un onglet nav (preset `ui_run_label`).
  * Défaut produit conteneur = projet (code API : subjects).
  */
 

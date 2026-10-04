@@ -108,6 +108,124 @@ func TestService_CreateAndSavePublishesNewImmutableVersions(t *testing.T) {
 	}
 }
 
+func TestService_SaveEditorialDoesNotBumpVersion(t *testing.T) {
+	ctx, svc, st, user := newTemplateService(t)
+
+	created, err := svc.Create(ctx, user, checklisttemplates.CreateInput{
+		Name: "Édito",
+		Items: []store.TemplateItemInput{
+			{Section: "A", Label: "Point", HelpText: "typo icci", Required: true},
+		},
+	})
+	if err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+	v1 := created.Version.Version
+	v1ID := created.Version.ID
+
+	saved, err := svc.Save(ctx, user, created.Template.ID, checklisttemplates.SaveInput{
+		Name: "Édito renommé",
+		Items: []store.TemplateItemInput{
+			{Section: "A", Label: "Point", HelpText: "typo ici", Required: true},
+		},
+	})
+	if err != nil {
+		t.Fatalf("Save editorial: %v", err)
+	}
+	if saved.Version.Version != v1 || saved.Version.ID != v1ID {
+		t.Fatalf("version bumped: got v%d id=%d, want v%d id=%d", saved.Version.Version, saved.Version.ID, v1, v1ID)
+	}
+	if saved.Template.Name != "Édito renommé" {
+		t.Fatalf("name = %q", saved.Template.Name)
+	}
+	if len(saved.Items) != 1 || saved.Items[0].HelpText != "typo ici" {
+		t.Fatalf("items = %+v", saved.Items)
+	}
+
+	versions, err := svc.ListVersions(ctx, created.Template.ID)
+	if err != nil {
+		t.Fatalf("ListVersions: %v", err)
+	}
+	if len(versions) != 1 {
+		t.Fatalf("versions = %+v, want 1", versions)
+	}
+
+	// Metadata-only (same items) also stays on v1.
+	again, err := svc.Save(ctx, user, created.Template.ID, checklisttemplates.SaveInput{
+		Name:    "Édito renommé",
+		Domains: []string{"ops"},
+		Items: []store.TemplateItemInput{
+			{Section: "A", Label: "Point", HelpText: "typo ici", Required: true},
+		},
+	})
+	if err != nil {
+		t.Fatalf("Save metadata: %v", err)
+	}
+	if again.Version.Version != v1 {
+		t.Fatalf("metadata save bumped version to %d", again.Version.Version)
+	}
+	tags, err := st.ListTemplateTags(ctx, created.Template.ID)
+	if err != nil || len(tags) != 1 || tags[0] != "ops" {
+		t.Fatalf("domains = %v (%v)", tags, err)
+	}
+}
+
+func TestService_SaveStructuralStillBumpsAfterEditorial(t *testing.T) {
+	ctx, svc, _, user := newTemplateService(t)
+
+	created, err := svc.Create(ctx, user, checklisttemplates.CreateInput{
+		Name:  "Mix",
+		Items: []store.TemplateItemInput{{Label: "A", HelpText: "h"}},
+	})
+	if err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+
+	_, err = svc.Save(ctx, user, created.Template.ID, checklisttemplates.SaveInput{
+		Name:  "Mix",
+		Items: []store.TemplateItemInput{{Label: "A", HelpText: "h2"}},
+	})
+	if err != nil {
+		t.Fatalf("editorial: %v", err)
+	}
+
+	saved, err := svc.Save(ctx, user, created.Template.ID, checklisttemplates.SaveInput{
+		Name:  "Mix",
+		Items: []store.TemplateItemInput{{Label: "A renommé", HelpText: "h2"}},
+	})
+	if err != nil {
+		t.Fatalf("structural: %v", err)
+	}
+	if saved.Version.Version != 2 {
+		t.Fatalf("version = %d, want 2", saved.Version.Version)
+	}
+}
+
+func TestIsStructuralItemChange(t *testing.T) {
+	base := []store.TemplateItem{
+		{Section: "S", Label: "L", HelpText: "h", Required: true},
+	}
+	tests := []struct {
+		name string
+		next []store.TemplateItemInput
+		want bool
+	}{
+		{name: "identical", next: []store.TemplateItemInput{{Section: "S", Label: "L", HelpText: "h", Required: true}}, want: false},
+		{name: "help only", next: []store.TemplateItemInput{{Section: "S", Label: "L", HelpText: "h2", Required: true}}, want: false},
+		{name: "label", next: []store.TemplateItemInput{{Section: "S", Label: "X", HelpText: "h", Required: true}}, want: true},
+		{name: "section", next: []store.TemplateItemInput{{Section: "T", Label: "L", HelpText: "h", Required: true}}, want: true},
+		{name: "required", next: []store.TemplateItemInput{{Section: "S", Label: "L", HelpText: "h", Required: false}}, want: true},
+		{name: "count", next: []store.TemplateItemInput{{Section: "S", Label: "L", Required: true}, {Label: "Z"}}, want: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := checklisttemplates.IsStructuralItemChange(base, tt.next); got != tt.want {
+				t.Fatalf("got %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestService_PublishedVersionImmutable(t *testing.T) {
 	ctx, svc, _, user := newTemplateService(t)
 

@@ -38,3 +38,21 @@ export function toWriteItems(items: EditorItem[]) {
 			required: it.required
 		}));
 }
+
+/** Aligné sur IsStructuralItemChange côté Go (help_text ignoré). */
+export function isStructuralItemChange(
+	baseline: Array<{ section: string; label: string; required: boolean }>,
+	next: Array<{ section: string; label: string; required: boolean }>
+): boolean {
+	if (baseline.length !== next.length) return true;
+	for (let i = 0; i < baseline.length; i++) {
+		if (
+			baseline[i].section !== next[i].section ||
+			baseline[i].label !== next[i].label ||
+			baseline[i].required !== next[i].required
+		) {
+			return true;
+		}
+	}
+	return false;
+}

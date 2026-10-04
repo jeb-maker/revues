@@ -145,120 +145,116 @@
 	{#if loading}
 		<p class="loading"><mb-spinner label="Chargement"></mb-spinner> Chargement…</p>
 	{:else if run}
-		{#if run.status === 'done'}
-			<section class="attestation section" aria-labelledby="attestation-title">
-				<h2 id="attestation-title">Attestation de clôture</h2>
-				<p>
-					Clôturée
-					{#if run.completed_by_login}
-						par <strong>@{run.completed_by_login}</strong>
+		<div class="card-stack">
+			{#if run.status === 'done'}
+				<mb-card>
+					<h2 slot="header">Attestation de clôture</h2>
+					<p>
+						Clôturée
+						{#if run.completed_by_login}
+							par <strong>@{run.completed_by_login}</strong>
+						{/if}
+						{#if run.completed_at}
+							le <strong>{formatWhen(run.completed_at)}</strong>
+						{/if}.
+					</p>
+					{#if run.closing_note}
+						<p class="muted">{run.closing_note}</p>
 					{/if}
-					{#if run.completed_at}
-						le <strong>{formatWhen(run.completed_at)}</strong>
-					{/if}.
-				</p>
-				{#if run.closing_note}
-					<p class="callout">{run.closing_note}</p>
-				{/if}
-			</section>
-		{/if}
-
-		<section class="progress" aria-label="Progression">
-			<h2>Points</h2>
-			<p class="row">
-				<strong>{run.progress.percent} %</strong>
-				<span class="muted">{run.progress.done}/{run.progress.total} traités</span>
-			</p>
-			<mb-progress
-				percent={run.progress.percent}
-				aria-label={`Progression ${run.progress.percent} %`}
-			></mb-progress>
-			{#if (run.pending_required_count ?? 0) > 0}
-				<p class="field-error">{run.pending_required_count} point(s) obligatoire(s) en attente</p>
+				</mb-card>
 			{/if}
-		</section>
 
-		{#each groupBySection(run.items) as group (group.section)}
-			<section class="items">
-				<h3>{group.section}</h3>
-				<ul class="item-grid">
-					{#each group.items as item (item.id)}
-						<li class="item-row">
-							<span class="label">
-								{item.label}
-								{#if item.required}<abbr title="Obligatoire">*</abbr>{/if}
-							</span>
-							{#if run.capabilities.can_update_items}
-								<mb-select
-									label="Statut"
-									hide-label
-									value={item.status}
-									disabled={savingId === item.id}
-									onmb-change={(e) => onStatusChange(item, e.detail.value as ItemStatus)}
-								>
-									{#each ITEM_STATUSES as s (s.value)}
-										<option value={s.value}>{s.label}</option>
-									{/each}
-								</mb-select>
-							{:else}
-								<mb-badge variant={itemStatusVariant(item.status)}
-									>{formatItemStatus(item.status)}</mb-badge
-								>
-							{/if}
-							{#if item.assigned_login}
-								<span class="muted">@{item.assigned_login}</span>
-							{/if}
-							<a class="details" href={`/runs/${run.id}/items/${item.id}`}>Détails</a>
-						</li>
-					{/each}
-				</ul>
-			</section>
-		{/each}
+			<mb-card>
+				<h2 slot="header">Points</h2>
+				<p class="progress-row">
+					<strong>{run.progress.percent} %</strong>
+					<span class="muted">{run.progress.done}/{run.progress.total} traités</span>
+				</p>
+				<mb-progress
+					percent={run.progress.percent}
+					aria-label={`Progression ${run.progress.percent} %`}
+				></mb-progress>
+				{#if (run.pending_required_count ?? 0) > 0}
+					<p class="field-error">{run.pending_required_count} point(s) obligatoire(s) en attente</p>
+				{/if}
 
-		{#if run.capabilities.can_complete}
-			<form class="stack-form section" onsubmit={onComplete}>
-				<h2>Clôture</h2>
-				<mb-textarea
-					label="Note de clôture"
-					rows="3"
-					value={closingNote}
-					oninput={(e) => (closingNote = inputValue(e))}
-				></mb-textarea>
-				<mb-button type="submit" variant="primary" disabled={closing}>
-					{closing ? 'Clôture…' : `Clôturer ${runLbl.article} ${runLbl.singular}`}
-				</mb-button>
-			</form>
-		{/if}
+				{#each groupBySection(run.items) as group (group.section)}
+					<section class="items">
+						<h3>{group.section}</h3>
+						<ul class="item-grid">
+							{#each group.items as item (item.id)}
+								<li class="item-row">
+									<span class="label">
+										{item.label}
+										{#if item.required}<abbr title="Obligatoire">*</abbr>{/if}
+									</span>
+									{#if run.capabilities.can_update_items}
+										<mb-select
+											label="Statut"
+											hide-label
+											value={item.status}
+											disabled={savingId === item.id}
+											onmb-change={(e) => onStatusChange(item, e.detail.value as ItemStatus)}
+										>
+											{#each ITEM_STATUSES as s (s.value)}
+												<option value={s.value}>{s.label}</option>
+											{/each}
+										</mb-select>
+									{:else}
+										<mb-badge variant={itemStatusVariant(item.status)}
+											>{formatItemStatus(item.status)}</mb-badge
+										>
+									{/if}
+									{#if item.assigned_login}
+										<span class="muted">@{item.assigned_login}</span>
+									{/if}
+									<a class="details" href={`/runs/${run.id}/items/${item.id}`}>Détails</a>
+								</li>
+							{/each}
+						</ul>
+					</section>
+				{/each}
+			</mb-card>
+
+			{#if run.capabilities.can_complete}
+				<form onsubmit={onComplete}>
+					<mb-card>
+						<h2 slot="header">Clôture</h2>
+						<div class="stack-form">
+							<mb-textarea
+								label="Note de clôture"
+								rows="3"
+								value={closingNote}
+								oninput={(e) => (closingNote = inputValue(e))}
+							></mb-textarea>
+						</div>
+						<div slot="footer">
+							<mb-button type="submit" variant="primary" disabled={closing}>
+								{closing ? 'Clôture…' : `Clôturer ${runLbl.article} ${runLbl.singular}`}
+							</mb-button>
+						</div>
+					</mb-card>
+				</form>
+			{/if}
+		</div>
 	{/if}
 </div>
 
 <style>
-	.attestation {
-		padding: var(--mb-space-4);
-		border: 1px solid var(--mb-color-border);
-		border-radius: var(--mb-radius-md, 4px);
-		background: var(--mb-color-bg-subtle, transparent);
-	}
-	.attestation h2 {
-		margin-top: 0;
-		font-size: var(--mb-font-size-md);
-	}
-	.progress {
-		margin-bottom: var(--mb-space-5);
-	}
-	.progress .row {
+	.progress-row {
 		display: flex;
 		justify-content: space-between;
 		align-items: baseline;
 		margin: 0 0 var(--mb-space-2);
 	}
-	.progress strong {
+	.progress-row strong {
 		font-size: var(--mb-font-size-lg);
 	}
 	.items {
-		margin-bottom: var(--mb-space-5);
+		margin-top: var(--mb-space-4);
 	}
 	.items h3 {
+		margin: 0 0 var(--mb-space-2);
 		font-size: var(--mb-font-size-md);
 	}
 	.item-grid {

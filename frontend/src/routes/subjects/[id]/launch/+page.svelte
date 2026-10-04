@@ -77,7 +77,7 @@
 			· Lancer
 		</p>
 		<h1>Lancer une revue</h1>
-		<p class="lede">Snapshot transactionnel du modèle choisi — les points sont figés à ce moment.</p>
+		<p class="lede">Les points du modèle choisi sont copiés tels quels au lancement.</p>
 	</header>
 
 	{#if error}

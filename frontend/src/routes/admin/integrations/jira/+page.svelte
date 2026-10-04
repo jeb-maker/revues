@@ -115,8 +115,8 @@
 		</p>
 		<h1>Jira Cloud</h1>
 		<p class="lede">
-			Identifiants chiffrés — le jeton API n’est jamais renvoyé par l’API. Jira Server / Data
-			Center hors périmètre.
+			Le jeton est enregistré de façon sécurisée et n’est jamais réaffiché. Jira Server / Data
+			Center n’est pas pris en charge.
 		</p>
 	</header>
 
@@ -150,12 +150,12 @@
 					oninput={(e) => (email = inputValue(e))}
 				></mb-input>
 				<mb-input
-					label="Jeton API"
+					label="Jeton Atlassian"
 					type="password"
 					autocomplete="new-password"
 					hint={hasApiToken
 						? 'Un jeton est enregistré ; laissez vide pour le conserver.'
-						: 'Jeton API Atlassian.'}
+						: 'Jeton Atlassian (compte → Sécurité).'}
 					value={apiToken}
 					oninput={(e) => (apiToken = inputValue(e))}
 				></mb-input>
@@ -187,9 +187,7 @@
 
 			<section class="section">
 				<h2>Test de connexion</h2>
-				<p class="muted">
-					Vérifie les identifiants enregistrés via l’API REST Jira (<code>/myself</code>).
-				</p>
+				<p class="muted">Vérifie que Revues peut se connecter à votre instance Jira.</p>
 				<mb-button type="button" variant="secondary" disabled={!configured} onclick={onTest}>
 					Tester la connexion
 				</mb-button>

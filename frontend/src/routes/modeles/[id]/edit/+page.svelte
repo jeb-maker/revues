@@ -7,6 +7,7 @@
 	import { inputValue } from '$lib/mb';
 	import TemplateEditor from '$lib/components/TemplateEditor.svelte';
 	import {
+		isStructuralItemChange,
 		itemsFromDetail,
 		toWriteItems,
 		type EditorItem
@@ -20,10 +21,30 @@
 	let domains = $state('');
 	let versionLabel = $state('');
 	let items = $state<EditorItem[]>([]);
+	let baselineItems = $state<EditorItem[]>([]);
 	let error = $state('');
 	let itemsError = $state('');
 	let saving = $state(false);
 	let ready = $state(false);
+
+	const writeItems = $derived(toWriteItems(items));
+	const structural = $derived(
+		isStructuralItemChange(
+			toWriteItems(baselineItems).map((it) => ({
+				section: it.section,
+				label: it.label,
+				required: it.required
+			})),
+			writeItems.map((it) => ({
+				section: it.section,
+				label: it.label,
+				required: it.required
+			}))
+		)
+	);
+	const submitLabel = $derived(
+		structural ? 'Publier une nouvelle version' : 'Enregistrer'
+	);
 
 	onMount(async () => {
 		const id = Number(page.params.id);
@@ -47,6 +68,7 @@
 			domains = (detail.domains ?? []).join(', ');
 			versionLabel = `v${detail.version.version}`;
 			items = itemsFromDetail(detail.items);
+			baselineItems = itemsFromDetail(detail.items);
 		} catch (e) {
 			error = e instanceof Error ? e.message : 'Chargement impossible.';
 		} finally {
@@ -58,7 +80,6 @@
 		e.preventDefault();
 		error = '';
 		itemsError = '';
-		const writeItems = toWriteItems(items);
 		if (!name.trim()) {
 			error = 'Le nom est obligatoire.';
 			return;
@@ -96,10 +117,18 @@
 			<a href="/modeles">Modèles</a> · <a href={`/modeles/${templateId || ''}`}>{name || 'Modèle'}</a> · Modifier
 		</p>
 		<h1>Modifier le modèle</h1>
-		<p class="lede">
-			Version actuelle {versionLabel}. L’enregistrement publie une <strong>nouvelle version</strong> ;
-			les revues déjà lancées conservent la version figée.
-		</p>
+		{#if versionLabel}
+			<p class="lede">
+				Version actuelle {versionLabel}.
+				{#if structural}
+					Modifier un point (titre, catégorie, obligatoire, ordre) publie une
+					<strong>nouvelle version</strong>.
+				{:else}
+					Corriger une explication, le nom ou les domaines enregistre
+					<strong>sans</strong> nouvelle version.
+				{/if}
+			</p>
+		{/if}
 	</header>
 
 	{#if error}
@@ -109,32 +138,40 @@
 	{#if !ready}
 		<p class="loading">Chargement…</p>
 	{:else}
-		<form class="stack-form" onsubmit={onSubmit}>
-			<mb-input
-				label="Nom"
-				type="text"
-				required
-				maxlength="200"
-				value={name}
-				oninput={(e) => (name = inputValue(e))}
-			></mb-input>
-			<mb-input
-				label="Domaines"
-				hint="Séparés par des virgules, ex. infra, ops."
-				type="text"
-				value={domains}
-				oninput={(e) => (domains = inputValue(e))}
-			></mb-input>
-			<section>
-				<h2>Points</h2>
-				<TemplateEditor bind:items error={itemsError} />
-			</section>
-			<p class="actions">
-				<mb-button type="submit" variant="primary" disabled={saving}>
-					{saving ? 'Enregistrement…' : 'Enregistrer (nouvelle version)'}
-				</mb-button>
-				<a href={`/modeles/${templateId}`}>Annuler</a>
-			</p>
+		<form onsubmit={onSubmit}>
+			<div class="card-stack">
+				<mb-card>
+					<h2 slot="header">Identité</h2>
+					<div class="stack-form">
+						<mb-input
+							label="Nom"
+							type="text"
+							required
+							maxlength="200"
+							value={name}
+							oninput={(e) => (name = inputValue(e))}
+						></mb-input>
+						<mb-input
+							label="Domaines"
+							hint="Séparés par des virgules, ex. infra, ops."
+							type="text"
+							value={domains}
+							oninput={(e) => (domains = inputValue(e))}
+						></mb-input>
+					</div>
+				</mb-card>
+
+				<mb-card>
+					<h2 slot="header">Points</h2>
+					<TemplateEditor bind:items error={itemsError} />
+					<div slot="footer" class="actions">
+						<mb-button type="submit" variant="primary" disabled={saving}>
+							{saving ? 'Enregistrement…' : submitLabel}
+						</mb-button>
+						<a href={`/modeles/${templateId}`}>Annuler</a>
+					</div>
+				</mb-card>
+			</div>
 		</form>
 	{/if}
 </div>

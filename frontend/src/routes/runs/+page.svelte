@@ -102,11 +102,12 @@
 
 <div class="page">
 	<header class="page-header">
-		<h1>{run.nav}</h1>
-		<p class="lede">Exécutions en cours et historiques — progression par snapshot.</p>
-		<p class="actions toolbar">
-			<mb-button href="/subjects" variant="primary">{launchRunCTA(run)}</mb-button>
-		</p>
+		<div class="page-header__row">
+			<h1>{run.nav}</h1>
+			<p class="actions page-header__actions">
+				<mb-button href="/subjects" variant="primary">{launchRunCTA(run)}</mb-button>
+			</p>
+		</div>
 	</header>
 
 	{#if error}
@@ -125,6 +126,14 @@
 			{/each}
 		</mb-select>
 		<mb-button type="submit" variant="secondary">Filtrer</mb-button>
+		{#if !loading}
+			<p class="filters__count muted">
+				{total} {total > 1 ? run.plural : run.singular}
+				{#if total > PAGE_SIZE}
+					· {offset + 1}–{pageEnd}
+				{/if}
+			</p>
+		{/if}
 	</form>
 
 	{#if loading}
@@ -134,12 +143,6 @@
 			<a href="/subjects">{launchRunCTA(run)}</a> depuis un {subject.singular.toLowerCase()}.
 		</mb-empty-state>
 	{:else}
-		<p class="muted">
-			{total} {total > 1 ? run.plural : run.singular}
-			{#if total > PAGE_SIZE}
-				· {offset + 1}–{pageEnd}
-			{/if}
-		</p>
 		<mb-table columns={tableColumns} sticky-header>
 			<mb-table-row slot="head">
 				<mb-table-cell>Titre</mb-table-cell>
@@ -184,9 +187,6 @@
 </div>
 
 <style>
-	.toolbar {
-		margin-top: var(--mb-space-3);
-	}
 	.pct {
 		font-variant-numeric: tabular-nums;
 	}

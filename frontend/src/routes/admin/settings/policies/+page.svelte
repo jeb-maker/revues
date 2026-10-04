@@ -80,8 +80,7 @@
 				></mb-checkbox>
 				<p class="field-hint">
 					Les administrateurs de l’organisation et l’administrateur global ne sont jamais limités
-					par ces options. Les équipes org sont en icebox : la politique
-					<code>leads_may_assign_teams</code> n’est plus exposée ici (valeur API conservée).
+					par ces options.
 				</p>
 				<mb-button type="submit" variant="primary" disabled={loading}>
 					{loading ? 'Enregistrement…' : 'Enregistrer'}

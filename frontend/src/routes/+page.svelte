@@ -43,7 +43,7 @@
 		<h1>Bonjour {boot.user?.display_name}</h1>
 		<p class="lede">
 			{#if boot.organization}
-				Organisation active : <strong>{boot.organization.name}</strong>.
+				Organisation : <strong>{boot.organization.name}</strong>.
 			{/if}
 			{launchRunCTA(run)} depuis un {subject.singular.toLowerCase()}, suivez vos points, publiez de
 			nouvelles versions de {templatesLabel.toLowerCase()}.

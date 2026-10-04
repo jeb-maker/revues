@@ -69,6 +69,7 @@ func (s *Server) GetTemplate(w http.ResponseWriter, r *http.Request, templateId 
 }
 
 // SaveTemplate serves PUT /api/v1/templates/{templateId}.
+// Structural item changes publish a new version; editorial help_text / metadata do not.
 //
 //nolint:staticcheck // OpenAPI operation param name (templateId)
 func (s *Server) SaveTemplate(w http.ResponseWriter, r *http.Request, templateId TemplateId) {

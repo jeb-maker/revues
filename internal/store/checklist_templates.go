@@ -246,9 +246,10 @@ func (s *Store) ArchiveChecklistTemplate(ctx context.Context, id int64) error {
 // in the active organization (or the parent template is missing).
 var ErrTemplateVersionNotFound = errors.New("template version not found")
 
-// ErrPublishedVersionImmutable is returned when a caller attempts to mutate
-// items of an already published template version. Published versions are
-// immutable: changes require CreateTemplateVersion.
+// ErrPublishedVersionImmutable is returned when a caller attempts a structural
+// mutation of an already published template version. Structural changes must
+// go through CreateTemplateVersion. Editorial help_text updates on the latest
+// version use UpdateTemplateItemsHelpText instead.
 var ErrPublishedVersionImmutable = errors.New("published template version is immutable")
 
 // LatestTemplateVersion returns the highest version for a template.
@@ -326,10 +327,53 @@ func (s *Store) TemplateVersionByNumber(ctx context.Context, templateID int64, v
 	return &v, nil
 }
 
-// ReplaceTemplateItems is intentionally unsupported: published versions are immutable.
-// Callers must use CreateTemplateVersion to publish a new snapshot.
+// ReplaceTemplateItems is intentionally unsupported for structural rewrites.
+// Callers must use CreateTemplateVersion for structural changes, or
+// UpdateTemplateItemsHelpText for editorial help_text-only updates.
 func (s *Store) ReplaceTemplateItems(_ context.Context, _ int64, _ []TemplateItemInput) error {
 	return ErrPublishedVersionImmutable
+}
+
+// UpdateTemplateItemsHelpText updates only help_text on an existing version.
+// Items must match the current structure (count, order, label, section, required).
+func (s *Store) UpdateTemplateItemsHelpText(ctx context.Context, versionID int64, items []TemplateItemInput) error {
+	current, err := s.ListTemplateItems(ctx, versionID)
+	if err != nil {
+		return fmt.Errorf("list items for editorial update: %w", err)
+	}
+	if len(current) != len(items) {
+		return ErrPublishedVersionImmutable
+	}
+	for i := range current {
+		if current[i].Label != items[i].Label ||
+			current[i].Section != items[i].Section ||
+			current[i].Required != items[i].Required {
+			return ErrPublishedVersionImmutable
+		}
+	}
+
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin tx: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	for i, item := range items {
+		res, execErr := tx.ExecContext(ctx, `
+			UPDATE template_items SET help_text = ? WHERE id = ? AND version_id = ?
+		`, item.HelpText, current[i].ID, versionID)
+		if execErr != nil {
+			return fmt.Errorf("update help_text: %w", execErr)
+		}
+		n, _ := res.RowsAffected()
+		if n != 1 {
+			return fmt.Errorf("update help_text: expected 1 row, got %d", n)
+		}
+	}
+	if err = tx.Commit(); err != nil {
+		return fmt.Errorf("commit editorial update: %w", err)
+	}
+	return nil
 }
 
 // ListTemplateItems returns ordered items for a version.

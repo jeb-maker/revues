@@ -62,38 +62,46 @@
 	<header class="page-header">
 		<p class="crumbs"><a href="/modeles">Modèles</a> · Nouveau</p>
 		<h1>Nouveau modèle</h1>
-		<p class="lede">La création publie immédiatement la version 1 (snapshot immuable).</p>
+		<p class="lede">Le modèle est utilisable dès sa création.</p>
 	</header>
 
 	{#if error}
 		<mb-alert variant="danger">{error}</mb-alert>
 	{/if}
 
-	<form class="stack-form" onsubmit={onSubmit}>
-		<mb-input
-			label="Nom"
-			type="text"
-			required
-			maxlength="200"
-			value={name}
-			oninput={(e) => (name = inputValue(e))}
-		></mb-input>
-		<mb-input
-			label="Domaines"
-			hint="Séparés par des virgules, ex. infra, ops."
-			type="text"
-			value={domains}
-			oninput={(e) => (domains = inputValue(e))}
-		></mb-input>
-		<section>
-			<h2>Points</h2>
-			<TemplateEditor bind:items error={itemsError} />
-		</section>
-		<p class="actions">
-			<mb-button type="submit" variant="primary" disabled={saving}>
-				{saving ? 'Création…' : 'Créer'}
-			</mb-button>
-			<a href="/modeles">Annuler</a>
-		</p>
+	<form onsubmit={onSubmit}>
+		<div class="card-stack">
+			<mb-card>
+				<h2 slot="header">Identité</h2>
+				<div class="stack-form">
+					<mb-input
+						label="Nom"
+						type="text"
+						required
+						maxlength="200"
+						value={name}
+						oninput={(e) => (name = inputValue(e))}
+					></mb-input>
+					<mb-input
+						label="Domaines"
+						hint="Séparés par des virgules, ex. infra, ops."
+						type="text"
+						value={domains}
+						oninput={(e) => (domains = inputValue(e))}
+					></mb-input>
+				</div>
+			</mb-card>
+
+			<mb-card>
+				<h2 slot="header">Points</h2>
+				<TemplateEditor bind:items error={itemsError} />
+				<div slot="footer" class="actions">
+					<mb-button type="submit" variant="primary" disabled={saving}>
+						{saving ? 'Création…' : 'Créer'}
+					</mb-button>
+					<a href="/modeles">Annuler</a>
+				</div>
+			</mb-card>
+		</div>
 	</form>
 </div>

@@ -60,7 +60,7 @@ Le code généré est **commité** (pas de génération obligatoire en CI pour l
 | `POST /api/v1/auth/register` | Inscription locale (CSRF guest) |
 | `POST /api/v1/auth/logout` | Logout (CSRF session) |
 | `GET/POST /api/v1/templates` | Catalogue / création modèle (v1) |
-| `GET/PUT/DELETE /api/v1/templates/{id}` | Détail / save (= nouvelle version) / archive |
+| `GET/PUT/DELETE /api/v1/templates/{id}` | Détail / save (nouvelle version si diff structurel ; sinon éditorial in-place) / archive |
 | `GET/POST /api/v1/templates/{id}/versions` | Historique / publier version |
 | `GET /api/v1/templates/{id}/versions/{n}` | Snapshot immuable |
 | `GET /api/v1/runs` | Liste des revues visibles (filtre status/q) |

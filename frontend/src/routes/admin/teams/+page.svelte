@@ -73,7 +73,7 @@
 				oninput={(e) => (name = inputValue(e))}
 			></mb-input>
 			<mb-input
-				label="Identifiant (slug)"
+				label="Identifiant"
 				hint="Optionnel — généré depuis le nom si vide."
 				type="text"
 				value={slug}

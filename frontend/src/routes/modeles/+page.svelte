@@ -44,13 +44,14 @@
 
 <div class="page">
 	<header class="page-header">
-		<h1>{templatesLabel}</h1>
-		<p class="lede">Catalogue des check-lists versionnées de l’organisation.</p>
-		{#if canManage}
-			<p class="actions">
-				<mb-button variant="primary" href="/modeles/new">{newTemplateCTA}</mb-button>
-			</p>
-		{/if}
+		<div class="page-header__row">
+			<h1>{templatesLabel}</h1>
+			{#if canManage}
+				<p class="actions page-header__actions">
+					<mb-button variant="primary" href="/modeles/new">{newTemplateCTA}</mb-button>
+				</p>
+			{/if}
+		</div>
 	</header>
 
 	{#if error}
@@ -88,6 +89,7 @@
 					</mb-table-cell>
 					<mb-table-cell actions>
 						<a href={`/modeles/${t.id}`}>Ouvrir</a>
+						<a href={`/subjects?template_id=${t.id}`}>Lancer</a>
 						{#if canManage}
 							<a href={`/modeles/${t.id}/edit`}>Éditer</a>
 						{/if}

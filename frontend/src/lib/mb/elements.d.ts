@@ -12,6 +12,7 @@ declare module 'svelte/elements' {
 	interface MbAttrs {
 		variant?: string;
 		size?: string;
+		density?: string;
 		type?: string;
 		name?: string;
 		value?: string;

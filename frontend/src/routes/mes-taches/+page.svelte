@@ -61,8 +61,9 @@
 
 <div class="page page--wide">
 	<header class="page-header">
-		<h1>Mes tâches</h1>
-		<p class="lede">Points de revue qui vous sont assignés — filtrez par statut et ouvrez le détail.</p>
+		<div class="page-header__row">
+			<h1>Mes tâches</h1>
+		</div>
 	</header>
 
 	<form class="filters" onsubmit={onFilter}>
@@ -77,6 +78,9 @@
 			{/each}
 		</mb-select>
 		<mb-button type="submit" variant="secondary">Filtrer</mb-button>
+		{#if !loading}
+			<p class="filters__count muted">{tasks.length} tâche{tasks.length > 1 ? 's' : ''}</p>
+		{/if}
 	</form>
 
 	{#if error}
@@ -86,7 +90,6 @@
 	{:else if tasks.length === 0}
 		<mb-empty-state heading="Aucune tâche">Aucun point assigné avec ces filtres.</mb-empty-state>
 	{:else}
-		<p class="muted">{tasks.length} tâche{tasks.length > 1 ? 's' : ''}</p>
 		<mb-table columns="2fr 1.2fr 1fr 0.8fr auto" sticky-header>
 			<mb-table-row slot="head">
 				<mb-table-cell>Point</mb-table-cell>

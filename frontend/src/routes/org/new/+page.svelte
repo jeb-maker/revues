@@ -48,27 +48,35 @@
 <div class="page page--narrow">
 	<header class="page-header">
 		<h1>Créer votre organisation</h1>
-		<p class="lede">Créez votre organisation pour commencer à utiliser Revues.</p>
 	</header>
 
 	{#if error}
 		<mb-alert variant="danger">{error}</mb-alert>
 	{/if}
 
-	<form class="stack-form" onsubmit={onSubmit}>
-		<mb-input label="Nom" type="text" name="name" required value={name} oninput={onNameInput}
-		></mb-input>
-		<mb-input
-			label="Identifiant (slug)"
-			hint="Lettres minuscules, chiffres et tirets. Pré-rempli depuis le nom."
-			type="text"
-			name="slug"
-			value={slug}
-			placeholder="mon-equipe"
-			oninput={onSlugInput}
-		></mb-input>
-		<mb-button type="submit" variant="primary" disabled={loading || !name.trim()}>
-			{loading ? 'Création…' : "Créer l'organisation"}
-		</mb-button>
+	<form onsubmit={onSubmit}>
+		<div class="card-stack">
+			<mb-card>
+				<h2 slot="header">Organisation</h2>
+				<div class="stack-form">
+					<mb-input label="Nom" type="text" name="name" required value={name} oninput={onNameInput}
+					></mb-input>
+					<mb-input
+						label="Identifiant"
+						hint="Lettres minuscules, chiffres et tirets. Pré-rempli depuis le nom."
+						type="text"
+						name="slug"
+						value={slug}
+						placeholder="mon-equipe"
+						oninput={onSlugInput}
+					></mb-input>
+				</div>
+				<div slot="footer" class="actions">
+					<mb-button type="submit" variant="primary" disabled={loading || !name.trim()}>
+						{loading ? 'Création…' : "Créer l'organisation"}
+					</mb-button>
+				</div>
+			</mb-card>
+		</div>
 	</form>
 </div>

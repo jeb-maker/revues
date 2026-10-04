@@ -5,12 +5,11 @@
 	import { listSubjects, type SubjectSummary } from '$lib/api/subjects';
 	import { session } from '$lib/auth/session';
 	import { formatVisibility } from '$lib/i18n/labels';
-	import { runLabels, subjectLabels } from '$lib/i18n/uiLabels';
+	import { subjectLabels } from '$lib/i18n/uiLabels';
 	import { searchHrefFromListQuery } from '$lib/navigation/listQueryRedirect';
 
 	const boot = session();
 	const subject = $derived(subjectLabels(boot.organization?.ui_subject_label));
-	const run = $derived(runLabels(boot.organization?.ui_run_label));
 	const templateId = $derived(page.url.searchParams.get('template_id'));
 
 	let subjects = $state<SubjectSummary[]>([]);
@@ -54,18 +53,16 @@
 
 <div class="page">
 	<header class="page-header">
-		<h1>{subject.plural}</h1>
-		<p class="lede">
-			{#if templateId}
-				Choisissez un {subject.singular.toLowerCase()} pour lancer avec ce modèle.
-			{:else}
-				Conteneurs de {run.plural} — domaines, étiquettes et membres.
+		<div class="page-header__row">
+			<h1>{subject.plural}</h1>
+			{#if canCreate && !templateId}
+				<p class="actions page-header__actions">
+					<mb-button variant="primary" href="/subjects/new">Nouveau {subject.singular.toLowerCase()}</mb-button>
+				</p>
 			{/if}
-		</p>
-		{#if canCreate && !templateId}
-			<p class="actions">
-				<mb-button variant="primary" href="/subjects/new">Nouveau {subject.singular.toLowerCase()}</mb-button>
-			</p>
+		</div>
+		{#if templateId}
+			<p class="lede">Choisissez un {subject.singular.toLowerCase()} pour lancer avec ce modèle.</p>
 		{/if}
 	</header>
 
@@ -75,7 +72,7 @@
 		<p class="loading"><mb-spinner label="Chargement"></mb-spinner> Chargement…</p>
 	{:else if subjects.length === 0}
 		<mb-empty-state heading="Aucun {subject.singular.toLowerCase()}"
-			>Aucun {subject.singular.toLowerCase()} visible dans l'organisation active.</mb-empty-state
+			>Aucun {subject.singular.toLowerCase()} visible dans cette organisation.</mb-empty-state
 		>
 	{:else}
 		<mb-table columns="2fr 1fr auto" sticky-header>
