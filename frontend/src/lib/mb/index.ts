@@ -56,5 +56,13 @@ function ensureStylesheet(href: string): void {
 
 /** Valeur courante d'un `mb-input` / `mb-textarea` depuis son événement `input`. */
 export function inputValue(e: Event): string {
+	const fromCurrent = e.currentTarget as { value?: string } | null;
+	if (fromCurrent && typeof fromCurrent.value === 'string') return fromCurrent.value;
 	return (e.target as HTMLInputElement).value;
+}
+
+/** Lit la valeur d'un `mb-input` nommé dans un formulaire (y compris autofill sans `input`). */
+export function formFieldValue(form: HTMLFormElement, name: string): string {
+	const el = form.querySelector(`[name="${CSS.escape(name)}"]`) as { value?: string } | null;
+	return typeof el?.value === 'string' ? el.value : '';
 }

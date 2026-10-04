@@ -566,7 +566,6 @@ type OrganizationMemberListResponse struct {
 
 // RegisterRequest defines model for RegisterRequest.
 type RegisterRequest struct {
-	DisplayName     string              `json:"display_name"`
 	Email           openapi_types.Email `json:"email"`
 	Password        string              `json:"password"`
 	PasswordConfirm string              `json:"password_confirm"`

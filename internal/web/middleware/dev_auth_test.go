@@ -194,6 +194,96 @@ func TestEnsureDevAuth_DisabledIsNoop(t *testing.T) {
 	}
 }
 
+func TestEnsureDevAuth_ExemptsGitHubOAuthPaths(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	db, err := store.Open(ctx, t.TempDir()+"/test.db", 0)
+	if err != nil {
+		t.Fatalf("Open(): %v", err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+	if err = store.Migrate(ctx, db); err != nil {
+		t.Fatalf("Migrate(): %v", err)
+	}
+
+	st := store.New(db)
+	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
+
+	handler := appmiddleware.CapturePeerAddr(
+		appmiddleware.EnsureDevAuth(st, sessions, true, "admin@example.com")(
+			http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if _, ok := appmiddleware.UserFromContext(r.Context()); ok {
+					t.Errorf("path %s must not inject DevAuth user", r.URL.Path)
+				}
+				w.WriteHeader(http.StatusOK)
+			}),
+		),
+	)
+
+	for _, path := range []string{"/auth/github/start", "/auth/github/callback", "/api/v1/auth/login"} {
+		req := localDevRequest(http.MethodGet, path)
+		rec := httptest.NewRecorder()
+		handler.ServeHTTP(rec, req)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("%s status = %d", path, rec.Code)
+		}
+		for _, c := range rec.Result().Cookies() {
+			if c.Name == "revues_session" && c.Value != "" {
+				t.Fatalf("%s must not set revues_session cookie", path)
+			}
+		}
+	}
+}
+
+func TestEnsureDevAuth_InjectsOnBootstrap(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	db, err := store.Open(ctx, t.TempDir()+"/test.db", 0)
+	if err != nil {
+		t.Fatalf("Open(): %v", err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+	if err = store.Migrate(ctx, db); err != nil {
+		t.Fatalf("Migrate(): %v", err)
+	}
+
+	st := store.New(db)
+	sessions := &auth.SessionManager{Store: st, SessionSecret: "test-secret-at-least-thirty-two-bytes"}
+
+	var gotUser bool
+	handler := appmiddleware.CapturePeerAddr(
+		appmiddleware.LoadUser(st)(
+			appmiddleware.EnsureDevAuth(st, sessions, true, "admin@example.com")(
+				http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					_, gotUser = appmiddleware.UserFromContext(r.Context())
+					w.WriteHeader(http.StatusOK)
+				}),
+			),
+		),
+	)
+
+	req := localDevRequest(http.MethodGet, "/api/v1/bootstrap")
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d", rec.Code)
+	}
+	if !gotUser {
+		t.Fatal("bootstrap must inject DevAuth user so the SPA does not redirect to /login")
+	}
+	foundCookie := false
+	for _, c := range rec.Result().Cookies() {
+		if c.Name == "revues_session" && c.Value != "" {
+			foundCookie = true
+		}
+	}
+	if !foundCookie {
+		t.Fatal("expected revues_session cookie on bootstrap")
+	}
+}
+
 func TestDevAuthEnabled_NeverInProduction(t *testing.T) {
 	t.Setenv("REVUES_ENV", "production")
 	t.Setenv("REVUES_DEV_AUTH", "1")

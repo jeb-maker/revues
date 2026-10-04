@@ -2,10 +2,9 @@
 	import { goto } from '$app/navigation';
 	import { register } from '$lib/api/auth';
 	import { refreshSession, resetSession, session } from '$lib/auth/session';
-	import { inputValue } from '$lib/mb';
+	import { formFieldValue, inputValue } from '$lib/mb';
 
 	let email = $state('');
-	let displayName = $state('');
 	let password = $state('');
 	let passwordConfirm = $state('');
 	let error = $state('');
@@ -13,11 +12,15 @@
 
 	async function onSubmit(e: Event) {
 		e.preventDefault();
+		const form = e.currentTarget as HTMLFormElement;
+		email = formFieldValue(form, 'email').trim();
+		password = formFieldValue(form, 'password');
+		passwordConfirm = formFieldValue(form, 'password_confirm');
 		error = '';
 		loading = true;
 		try {
 			const res = await register(
-				{ email, display_name: displayName, password, password_confirm: passwordConfirm },
+				{ email, password, password_confirm: passwordConfirm },
 				session().csrf_token
 			);
 			resetSession();
@@ -35,58 +38,51 @@
 	<title>Inscription — Revues</title>
 </svelte:head>
 
-<div class="page page--narrow">
-	<header class="page-header">
-		<h1>Créer un compte</h1>
-		<p class="lede">Inscription email + mot de passe (sous réserve d’autorisation).</p>
-	</header>
+<div class="page page--auth">
+	<div class="auth-card">
+		<header class="page-header">
+			<h1>Créer un compte</h1>
+		</header>
 
-	{#if error}
-		<mb-alert variant="danger">{error}</mb-alert>
-	{/if}
+		{#if error}
+			<mb-alert variant="danger">{error}</mb-alert>
+		{/if}
 
-	<form class="stack-form" onsubmit={onSubmit}>
-		<mb-input
-			label="Email"
-			type="email"
-			name="email"
-			autocomplete="email"
-			required
-			value={email}
-			oninput={(e) => (email = inputValue(e))}
-		></mb-input>
-		<mb-input
-			label="Nom affiché"
-			type="text"
-			name="display_name"
-			autocomplete="name"
-			required
-			value={displayName}
-			oninput={(e) => (displayName = inputValue(e))}
-		></mb-input>
-		<mb-input
-			label="Mot de passe"
-			hint="8 caractères minimum."
-			type="password"
-			name="password"
-			autocomplete="new-password"
-			required
-			value={password}
-			oninput={(e) => (password = inputValue(e))}
-		></mb-input>
-		<mb-input
-			label="Confirmer le mot de passe"
-			type="password"
-			name="password_confirm"
-			autocomplete="new-password"
-			required
-			value={passwordConfirm}
-			oninput={(e) => (passwordConfirm = inputValue(e))}
-		></mb-input>
-		<mb-button type="submit" variant="primary" disabled={loading}>
-			{loading ? 'Création…' : 'Créer mon compte'}
-		</mb-button>
-	</form>
+		<form class="stack-form" onsubmit={onSubmit}>
+			<mb-input
+				label="Email"
+				type="email"
+				name="email"
+				autocomplete="email"
+				required
+				value={email}
+				oninput={(e) => (email = inputValue(e))}
+			></mb-input>
+			<mb-input
+				label="Mot de passe"
+				hint="12 caractères minimum."
+				type="password"
+				name="password"
+				autocomplete="new-password"
+				required
+				value={password}
+				oninput={(e) => (password = inputValue(e))}
+			></mb-input>
+			<mb-input
+				label="Confirmer le mot de passe"
+				type="password"
+				name="password_confirm"
+				autocomplete="new-password"
+				required
+				value={passwordConfirm}
+				oninput={(e) => (passwordConfirm = inputValue(e))}
+			></mb-input>
+			<mb-button type="submit" variant="primary" loading={loading}>
+				{loading ? 'Création…' : 'Créer mon compte'}
+			</mb-button>
+		</form>
 
-	<p class="muted">Déjà un compte ? <a href="/login">Se connecter</a></p>
+		<hr class="auth-rule" />
+		<p class="auth-footer muted">Déjà un compte ? <a href="/login">Se connecter</a></p>
+	</div>
 </div>

@@ -23,7 +23,7 @@ func TestCreateLocalUser_AndCredentials(t *testing.T) {
 	}
 	st := store.New(db)
 
-	hash, err := auth.HashPassword("password123")
+	hash, err := auth.HashPassword("password1234")
 	if err != nil {
 		t.Fatalf("HashPassword(): %v", err)
 	}

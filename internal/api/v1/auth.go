@@ -84,13 +84,33 @@ func (s *Server) PostAuthLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req LoginRequest
-	if err := decodeJSONBody(r, &req); err != nil {
+	var raw struct {
+		Email    string `json:"email"`
+		Password string `json:"password"`
+	}
+	if err := decodeJSONBody(r, &raw); err != nil {
 		writeAPIError(w, http.StatusBadRequest, "validation_failed", "Requête invalide.")
 		return
 	}
 
-	result, err := s.Auth.PasswordLogin(r.Context(), string(req.Email), req.Password)
+	email := strings.TrimSpace(raw.Email)
+	password := raw.Password
+	switch {
+	case email == "" && password == "":
+		writeAPIError(w, http.StatusBadRequest, "validation_failed", "Indiquez votre email et votre mot de passe.")
+		return
+	case email == "":
+		writeAPIError(w, http.StatusBadRequest, "validation_failed", "Indiquez votre adresse email.")
+		return
+	case password == "":
+		writeAPIError(w, http.StatusBadRequest, "validation_failed", "Indiquez votre mot de passe.")
+		return
+	case !strings.Contains(email, "@"):
+		writeAPIError(w, http.StatusBadRequest, "validation_failed", "Adresse email invalide.")
+		return
+	}
+
+	result, err := s.Auth.PasswordLogin(r.Context(), email, password)
 	if err != nil {
 		if errors.Is(err, authfeature.ErrInvalidCredentials) {
 			writeAPIError(w, http.StatusUnauthorized, "invalid_credentials", "Email ou mot de passe incorrect.")
@@ -123,7 +143,7 @@ func (s *Server) PostAuthRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := s.Auth.Register(r.Context(), string(req.Email), req.DisplayName, req.Password, req.PasswordConfirm)
+	result, err := s.Auth.Register(r.Context(), string(req.Email), req.Password, req.PasswordConfirm)
 	if err != nil {
 		switch {
 		case errors.Is(err, authfeature.ErrValidation):
@@ -195,12 +215,10 @@ func validationMessage(err error) string {
 	switch {
 	case errors.Is(err, authfeature.ErrValidation) && strings.Contains(msg, "invalid email"):
 		return "Adresse email invalide."
-	case errors.Is(err, authfeature.ErrValidation) && strings.Contains(msg, "display name"):
-		return "Indiquez un nom affiché."
 	case errors.Is(err, authfeature.ErrValidation) && strings.Contains(msg, "password mismatch"):
 		return "Les mots de passe ne correspondent pas."
 	case errors.Is(err, authfeature.ErrValidation) && strings.Contains(msg, "weak password"):
-		return "Le mot de passe doit contenir entre 8 et 72 caractères."
+		return "Le mot de passe doit contenir entre 12 et 72 caractères."
 	default:
 		if i := strings.Index(msg, ": "); i >= 0 && i+2 < len(msg) {
 			tail := strings.TrimSpace(msg[i+2:])

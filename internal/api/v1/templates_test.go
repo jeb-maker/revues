@@ -140,12 +140,12 @@ func TestTemplatesAPI_RequiresAuthAndCSRF(t *testing.T) {
 
 func registerAndSession(t *testing.T, handler http.Handler, email, name string) (*http.Cookie, string) {
 	t.Helper()
+	_ = name
 	guest, guestCSRF := bootstrapGuest(t, handler)
 	payload := map[string]string{
 		"email":            email,
-		"display_name":     name,
-		"password":         "password123",
-		"password_confirm": "password123",
+		"password":         "password1234",
+		"password_confirm": "password1234",
 	}
 	body, _ := json.Marshal(payload)
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/register", bytes.NewReader(body))

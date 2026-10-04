@@ -110,9 +110,14 @@ func isDevAuthExemptPath(path string) bool {
 		return true
 	case strings.HasPrefix(path, "/auth/dev/"):
 		return true
+	case strings.HasPrefix(path, "/auth/github/"):
+		// OAuth must not auto-inject the demo admin (start would set a session before GitHub).
+		return true
 	case strings.HasPrefix(path, "/static/"):
 		return true
-	case strings.HasPrefix(path, "/api/v1/auth/"), path == "/api/v1/bootstrap", path == "/api/v1/health":
+	// /api/v1/bootstrap is NOT exempt: the SPA decides auth via bootstrap, so DevAuth
+	// must inject there or every protected route redirects to /login.
+	case strings.HasPrefix(path, "/api/v1/auth/"), path == "/api/v1/health":
 		return true
 	default:
 		return false

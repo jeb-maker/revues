@@ -63,7 +63,6 @@ export async function login(
 export async function register(
 	body: {
 		email: string;
-		display_name: string;
 		password: string;
 		password_confirm: string;
 	},

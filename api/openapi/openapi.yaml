@@ -2269,21 +2269,22 @@ components:
       type: object
       required:
       - email
-      - display_name
       - password
       - password_confirm
       properties:
         email:
           type: string
           format: email
-        display_name:
-          type: string
         password:
           type: string
           format: password
+          minLength: 12
+          maxLength: 72
         password_confirm:
           type: string
           format: password
+          minLength: 12
+          maxLength: 72
     AuthSuccessResponse:
       type: object
       required:

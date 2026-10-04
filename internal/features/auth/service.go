@@ -73,18 +73,15 @@ func (s *Service) PasswordLogin(ctx context.Context, email, password string) (*L
 }
 
 // Register creates a local account and session when the email is allowed.
-func (s *Service) Register(ctx context.Context, email, displayName, password, confirm string) (*LoginResult, error) {
+// Display name is derived from the email local-part (no client input).
+func (s *Service) Register(ctx context.Context, email, password, confirm string) (*LoginResult, error) {
 	email = strings.TrimSpace(email)
-	displayName = strings.TrimSpace(displayName)
 
 	if _, err := mail.ParseAddress(email); err != nil || !strings.Contains(email, "@") {
 		return nil, fmt.Errorf("%w: invalid email", ErrValidation)
 	}
 	email = strings.ToLower(email)
 
-	if displayName == "" {
-		return nil, fmt.Errorf("%w: display name required", ErrValidation)
-	}
 	if password != confirm {
 		return nil, fmt.Errorf("%w: password mismatch", ErrValidation)
 	}
@@ -106,6 +103,7 @@ func (s *Service) Register(ctx context.Context, email, displayName, password, co
 	}
 
 	login := localLoginFromEmail(email)
+	displayName := displayNameFromEmail(email)
 	user, err := s.Store.CreateLocalUser(ctx, email, login, displayName, role, passwordHash)
 	if err != nil {
 		if errors.Is(err, store.ErrEmailTaken) {
@@ -218,6 +216,22 @@ func localLoginFromEmail(email string) string {
 		return out[:64]
 	}
 	return out
+}
+
+// displayNameFromEmail derives a display name from the email local-part.
+func displayNameFromEmail(email string) string {
+	local := email
+	if at := strings.IndexByte(email, '@'); at > 0 {
+		local = email[:at]
+	}
+	local = strings.TrimSpace(local)
+	if local == "" {
+		return "Utilisateur"
+	}
+	if len(local) > 80 {
+		return local[:80]
+	}
+	return local
 }
 
 var (

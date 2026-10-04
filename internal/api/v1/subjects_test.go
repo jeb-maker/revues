@@ -88,7 +88,7 @@ func TestSubjectsAPI_CRUDAndMembers(t *testing.T) {
 	}
 
 	// Invitee for members
-	invitee, err := st.CreateLocalUser(ctx, "member@example.com", "member", "Member", auth.RoleEditor, mustHash(t, "password123"))
+	invitee, err := st.CreateLocalUser(ctx, "member@example.com", "member", "Member", auth.RoleEditor, mustHash(t, "password1234"))
 	if err != nil {
 		t.Fatalf("CreateLocalUser(invitee): %v", err)
 	}
@@ -267,7 +267,7 @@ func TestSubjectsAPI_RequiresAuth(t *testing.T) {
 func seedSessionUser(t *testing.T, st *store.Store, cfg config.Config, email, name, role string, joinDefault bool) (*store.User, *http.Cookie, string) {
 	t.Helper()
 	ctx := context.Background()
-	user, err := st.CreateLocalUser(ctx, email, strings.Split(email, "@")[0], name, role, mustHash(t, "password123"))
+	user, err := st.CreateLocalUser(ctx, email, strings.Split(email, "@")[0], name, role, mustHash(t, "password1234"))
 	if err != nil {
 		t.Fatalf("CreateLocalUser(%s): %v", email, err)
 	}

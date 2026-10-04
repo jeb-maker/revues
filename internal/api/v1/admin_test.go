@@ -152,7 +152,7 @@ func TestAdminAPI_RBACAndParity(t *testing.T) {
 					t.Fatalf("InsertAllowedEmail: %v", err)
 				}
 				// InsertAllowedEmail revokes sessions for that email — re-login.
-				owner = loginSession(t, handler, "owner-self@example.com", "password123")
+				owner = loginSession(t, handler, "owner-self@example.com", "password1234")
 				activateOrgSession(t, handler, st, &owner, org.ID)
 
 				delPath := "/api/v1/admin/allowed-emails/" + url.PathEscape("owner-self@example.com")
