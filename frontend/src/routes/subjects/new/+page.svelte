@@ -69,71 +69,74 @@
 	<title>Nouveau {subject.singular.toLowerCase()} — Revues</title>
 </svelte:head>
 
-<div class="page page--narrow">
-	<header class="page-header">
-		<p class="crumbs"><a href="/subjects">{subject.plural}</a> · Nouveau</p>
-		<h1>Nouveau {subject.singular.toLowerCase()}</h1>
-	</header>
+<div class="page">
+	<p class="crumbs"><a href="/subjects">{subject.plural}</a> · Nouveau</p>
 
-	{#if !ready}
-		<p class="loading"><mb-spinner label="Chargement"></mb-spinner> Chargement…</p>
-	{:else}
-		{#if error}
-			<mb-alert variant="danger">{error}</mb-alert>
+	<div class="page--narrow">
+		<header class="page-header">
+			<h1>Nouveau {subject.singular.toLowerCase()}</h1>
+		</header>
+
+		{#if !ready}
+			<p class="loading"><mb-spinner label="Chargement"></mb-spinner> Chargement…</p>
+		{:else}
+			{#if error}
+				<mb-alert variant="danger">{error}</mb-alert>
+			{/if}
+
+			<form onsubmit={onSubmit}>
+				<div class="card-stack">
+					<mb-card>
+						<h2 slot="header">{subject.singular}</h2>
+						<div class="stack-form">
+							<mb-input
+								label="Nom"
+								name="name"
+								required
+								value={name}
+								oninput={(e) => (name = inputValue(e))}
+							></mb-input>
+							<mb-textarea
+								label="Description"
+								name="description"
+								value={description}
+								oninput={(e) => (description = inputValue(e))}
+							></mb-textarea>
+							<mb-input
+								label="Domaines"
+								hint="Séparés par des virgules, ex. frontend, auth. Servent à associer les modèles compatibles."
+								name="domains"
+								value={domains}
+								oninput={(e) => (domains = inputValue(e))}
+							></mb-input>
+							<mb-input
+								label="Étiquettes"
+								hint="Séparées par des virgules, ex. prio, beta."
+								name="tags"
+								value={tags}
+								oninput={(e) => (tags = inputValue(e))}
+							></mb-input>
+							{#if canSetVisibility}
+								<mb-select
+									label="Visibilité"
+									name="visibility"
+									value={visibility}
+									onmb-change={(e) => (visibility = e.detail.value as 'normal' | 'private')}
+								>
+									<option value="normal">{formatVisibility('normal')}</option>
+									<option value="private">{formatVisibility('private')}</option>
+								</mb-select>
+							{/if}
+						</div>
+						<div slot="footer" class="actions">
+							<mb-button type="submit" variant="primary" loading={loading}>
+								{loading ? 'Création…' : 'Créer'}
+							</mb-button>
+							<a href="/subjects">Annuler</a>
+						</div>
+					</mb-card>
+				</div>
+			</form>
 		{/if}
-
-		<form onsubmit={onSubmit}>
-			<div class="card-stack">
-				<mb-card>
-					<h2 slot="header">{subject.singular}</h2>
-					<div class="stack-form">
-						<mb-input
-							label="Nom"
-							name="name"
-							required
-							value={name}
-							oninput={(e) => (name = inputValue(e))}
-						></mb-input>
-						<mb-textarea
-							label="Description"
-							name="description"
-							value={description}
-							oninput={(e) => (description = inputValue(e))}
-						></mb-textarea>
-						<mb-input
-							label="Domaines"
-							hint="Séparés par des virgules, ex. frontend, auth. Servent à associer les modèles compatibles."
-							name="domains"
-							value={domains}
-							oninput={(e) => (domains = inputValue(e))}
-						></mb-input>
-						<mb-input
-							label="Étiquettes"
-							hint="Séparées par des virgules, ex. prio, beta."
-							name="tags"
-							value={tags}
-							oninput={(e) => (tags = inputValue(e))}
-						></mb-input>
-						{#if canSetVisibility}
-							<mb-select
-								label="Visibilité"
-								name="visibility"
-								value={visibility}
-								onmb-change={(e) => (visibility = e.detail.value as 'normal' | 'private')}
-							>
-								<option value="normal">{formatVisibility('normal')}</option>
-								<option value="private">{formatVisibility('private')}</option>
-							</mb-select>
-						{/if}
-					</div>
-					<div slot="footer" class="actions">
-						<mb-button type="submit" variant="primary" disabled={loading || !name.trim()}>
-							{loading ? 'Création…' : 'Créer'}
-						</mb-button>
-						<a href="/subjects">Annuler</a>
-					</div>
-				</mb-card>
-			</div>
-		</form>
-	{/if}
+	</div>
 </div>

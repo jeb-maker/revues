@@ -10,7 +10,6 @@
 	const boot = session();
 	const canManage = boot.can_edit;
 	const templatesLabel = $derived(templateNavLabel(boot.organization?.ui_run_label));
-	const newTemplateCTA = $derived(templatesLabel === 'Listes' ? 'Nouvelle liste' : 'Nouveau modèle');
 
 	let templates = $state<TemplateSummary[]>([]);
 	let error = $state('');
@@ -48,7 +47,7 @@
 			<h1>{templatesLabel}</h1>
 			{#if canManage}
 				<p class="actions page-header__actions">
-					<mb-button variant="primary" href="/modeles/new">{newTemplateCTA}</mb-button>
+					<mb-button variant="primary" href="/modeles/new">Nouveau</mb-button>
 				</p>
 			{/if}
 		</div>

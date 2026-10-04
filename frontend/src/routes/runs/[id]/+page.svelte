@@ -229,7 +229,7 @@
 							></mb-textarea>
 						</div>
 						<div slot="footer">
-							<mb-button type="submit" variant="primary" disabled={closing}>
+							<mb-button type="submit" variant="primary" loading={closing}>
 								{closing ? 'Clôture…' : `Clôturer ${runLbl.article} ${runLbl.singular}`}
 							</mb-button>
 						</div>

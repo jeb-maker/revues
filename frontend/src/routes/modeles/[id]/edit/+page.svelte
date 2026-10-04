@@ -165,7 +165,7 @@
 					<h2 slot="header">Points</h2>
 					<TemplateEditor bind:items error={itemsError} />
 					<div slot="footer" class="actions">
-						<mb-button type="submit" variant="primary" disabled={saving}>
+						<mb-button type="submit" variant="primary" loading={saving}>
 							{saving ? 'Enregistrement…' : submitLabel}
 						</mb-button>
 						<a href={`/modeles/${templateId}`}>Annuler</a>

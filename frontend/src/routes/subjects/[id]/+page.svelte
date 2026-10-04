@@ -14,7 +14,7 @@
 	import { listSubjectRuns, type RunSummary } from '$lib/api/runs';
 	import { session } from '$lib/auth/session';
 	import { formatRole, formatRunStatus, formatVisibility, roleOptions, runStatusVariant } from '$lib/i18n/labels';
-	import { runLabels, subjectLabels } from '$lib/i18n/uiLabels';
+	import { launchRunCTA, runLabels, subjectLabels } from '$lib/i18n/uiLabels';
 	import { inputValue } from '$lib/mb';
 
 	type SubjectRole = 'lead' | 'contributor' | 'viewer';
@@ -218,7 +218,7 @@
 					<div slot="footer" class="actions">
 						{#if subject.capabilities.can_launch && !editing}
 							<mb-button variant="primary" href={`/subjects/${subject.id}/launch`}
-								>Lancer {runLbl.article} {runLbl.singular}</mb-button
+								>{launchRunCTA(runLbl)}</mb-button
 							>
 						{/if}
 						{#if subject.capabilities.can_manage}
@@ -267,7 +267,7 @@
 							{/if}
 						</div>
 						<div slot="footer">
-							<mb-button type="submit" variant="primary" disabled={saving}>
+							<mb-button type="submit" variant="primary" loading={saving}>
 								{saving ? 'Enregistrement…' : 'Enregistrer'}
 							</mb-button>
 						</div>

@@ -157,7 +157,7 @@
 							<option value={opt.value}>{opt.label}</option>
 						{/each}
 					</mb-select>
-					<mb-button type="submit" variant="primary" disabled={inviting}>Inviter</mb-button>
+					<mb-button type="submit" variant="primary" loading={inviting}>Inviter</mb-button>
 				</form>
 			</section>
 
@@ -186,7 +186,7 @@
 											<mb-button
 												variant="ghost"
 												size="sm"
-												disabled={revokingId === inv.id}
+												loading={revokingId === inv.id}
 												onclick={() => onRevoke(inv.id)}
 											>
 												Révoquer

@@ -5,7 +5,7 @@
   Classes hôte partagées (.cursor/rules/design.md) : .page, .page-header,
   .page-header__row, .page-header__actions, .lede, .muted, .actions, .filters,
   .filters__count, .stack-form, .field-hint, .field-error, .table-scroll,
-  .card-stack, .page--auth, .auth-card.
+  .card-stack, .page--auth, .auth-card, .actions--stack.
 */
 
 *,
@@ -174,12 +174,26 @@ main:focus {
 
 .page {
 	width: 100%;
-	padding: var(--mb-space-5) var(--mb-space-4) var(--mb-space-8);
+	/* Bande crumbs réservée : même rythme vertical avec ou sans fil d’Ariane. */
+	--page-crumbs-band: calc(
+		var(--mb-font-size-sm, 0.875rem) * var(--mb-line-height, 1.5) + var(--mb-space-4)
+	);
+	padding: calc(var(--mb-space-3) + var(--page-crumbs-band)) var(--mb-space-4) var(--mb-space-8);
+}
+
+/* Fil présent : la bande est consommée par .crumbs, plus de réserve en padding. */
+.page:has(.crumbs) {
+	padding-top: var(--mb-space-3);
 }
 
 .page--narrow {
 	max-width: 30rem;
 	margin-inline: auto;
+}
+
+/* Autorise page--narrow sur un enfant (ex. form) sans double padding .page */
+.page > .page--narrow {
+	width: 100%;
 }
 
 .page--wide {
@@ -277,12 +291,11 @@ main:focus {
 }
 
 .page-header__actions {
-	margin: 0;
 	flex: 0 0 auto;
 }
 
 .crumbs {
-	margin: 0 0 var(--mb-space-2);
+	margin: 0 0 var(--mb-space-4);
 	font-size: var(--mb-font-size-sm);
 	color: var(--mb-color-muted);
 }
@@ -291,6 +304,11 @@ main:focus {
 	max-width: 38rem;
 	margin: var(--mb-space-2) 0 0;
 	color: var(--mb-color-muted);
+}
+
+.stack-form > .lede {
+	margin: 0;
+	max-width: none;
 }
 
 .muted {
@@ -318,8 +336,32 @@ main:focus {
 	margin: 0 0 var(--mb-space-4);
 }
 
+/* Après .actions : annuler le margin-bottom dans le bandeau H1 + CTA. */
+.page-header__row > .actions,
+.page-header__actions {
+	margin: 0;
+}
+
 .card-stack .actions {
 	margin: 0;
+}
+
+/* CTA empilés pleine largeur (ex. page launch). */
+.actions--stack {
+	flex-direction: column;
+	align-items: stretch;
+	flex-wrap: nowrap;
+}
+
+.actions--stack mb-button {
+	display: block;
+	width: 100%;
+}
+
+.actions--stack mb-button::part(base) {
+	display: flex;
+	width: 100%;
+	max-inline-size: none;
 }
 
 .meta-row {

@@ -5,9 +5,12 @@
 	import { getSubject, type SubjectDetail } from '$lib/api/subjects';
 	import { createRun, listSubjectRunTemplates, type RunTemplateSummary } from '$lib/api/runs';
 	import { session } from '$lib/auth/session';
+	import { runLabels } from '$lib/i18n/uiLabels';
 	import { inputValue } from '$lib/mb';
 
-	const csrf = session().csrf_token;
+	const boot = session();
+	const csrf = boot.csrf_token;
+	const run = $derived(runLabels(boot.organization?.ui_run_label));
 
 	let subject = $state<SubjectDetail | null>(null);
 	let templates = $state<RunTemplateSummary[]>([]);
@@ -64,57 +67,71 @@
 </script>
 
 <svelte:head>
-	<title>Lancer une revue — {subject?.name ?? 'Sujet'}</title>
+	<title>Lancer {run.article} {run.singular} — {subject?.name ?? 'Sujet'}</title>
 </svelte:head>
 
-<div class="page page--narrow">
-	<header class="page-header">
-		<p class="crumbs">
-			<a href="/subjects">Sujets</a>
-			{#if subject}
-				· <a href={`/subjects/${subject.id}`}>{subject.name}</a>
-			{/if}
-			· Lancer
-		</p>
-		<h1>Lancer une revue</h1>
-		<p class="lede">Les points du modèle choisi sont copiés tels quels au lancement.</p>
-	</header>
-
-	{#if error}
-		<mb-alert variant="danger">{error}</mb-alert>
-	{/if}
+<div class="page">
+	<p class="crumbs">
+		<a href="/subjects">Sujets</a>
+		{#if subject}
+			· <a href={`/subjects/${subject.id}`}>{subject.name}</a>
+		{/if}
+	</p>
 
 	{#if loading}
 		<p class="loading"><mb-spinner label="Chargement"></mb-spinner> Chargement…</p>
-	{:else if !canLaunch}
-		<p class="muted">Vous n’avez pas les droits pour lancer une revue sur ce sujet.</p>
-	{:else if templates.length === 0}
-		<p class="muted">
-			Aucun modèle compatible (domaines). Créez ou étendez un <a href="/modeles">modèle</a>.
-		</p>
 	{:else}
-		<form class="stack-form" onsubmit={onLaunch}>
-			<mb-select
-				label="Modèle"
-				required
-				placeholder="Choisir…"
-				value={templateId}
-				onmb-change={(e) => (templateId = e.detail.value)}
-			>
-				{#each templates as t (t.id)}
-					<option value={String(t.id)}>{t.name} · v{t.latest_version} · {t.item_count} points</option>
-				{/each}
-			</mb-select>
-			<mb-input
-				label="Échéance"
-				hint="Optionnel — déclenche le rappel J-1."
-				type="date"
-				value={dueDate}
-				oninput={(e) => (dueDate = inputValue(e))}
-			></mb-input>
-			<mb-button type="submit" variant="primary" disabled={launching || !templateId}>
-				{launching ? 'Lancement…' : 'Lancer'}
-			</mb-button>
+		<form class="page--narrow" onsubmit={onLaunch}>
+			<div class="card-stack">
+				<mb-card>
+					<h1 slot="header">Lancer {run.article} {run.singular}</h1>
+					<div class="stack-form">
+						{#if error}
+							<mb-alert variant="danger">{error}</mb-alert>
+						{/if}
+
+						{#if !canLaunch}
+							<p class="muted">Vous n’avez pas les droits pour lancer une revue sur ce sujet.</p>
+						{:else if templates.length === 0}
+							<p class="muted">
+								Aucun modèle compatible (domaines). Créez ou étendez un
+								<a href="/modeles">modèle</a>.
+							</p>
+						{:else}
+							<mb-select
+								label="Modèle"
+								required
+								placeholder="Choisir…"
+								value={templateId}
+								onmb-change={(e) => (templateId = e.detail.value)}
+							>
+								{#each templates as t (t.id)}
+									<option value={String(t.id)}>{t.name} · v{t.latest_version} · {t.item_count} points</option>
+								{/each}
+							</mb-select>
+							<mb-input
+								label="Échéance"
+								hint="Optionnel — déclenche le rappel J-1."
+								type="date"
+								value={dueDate}
+								oninput={(e) => (dueDate = inputValue(e))}
+							></mb-input>
+						{/if}
+					</div>
+					<div slot="footer" class="actions actions--stack">
+						{#if canLaunch && templates.length > 0}
+							<mb-button type="submit" variant="primary" loading={launching}>
+								{launching ? 'Lancement…' : 'Lancer'}
+							</mb-button>
+						{/if}
+						{#if subject}
+							<mb-button href={`/subjects/${subject.id}`} variant="secondary">Annuler</mb-button>
+						{:else}
+							<mb-button href="/subjects" variant="secondary">Annuler</mb-button>
+						{/if}
+					</div>
+				</mb-card>
+			</div>
 		</form>
 	{/if}
 </div>
