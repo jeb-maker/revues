@@ -79,7 +79,6 @@ func TestAuthAPI_LoginRequiresCSRF(t *testing.T) {
 	}
 }
 
-
 func TestAuthAPI_LoginValidationMessages(t *testing.T) {
 	t.Parallel()
 
