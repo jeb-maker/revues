@@ -23,7 +23,7 @@ export default defineConfig({
 		// check.sh écrit frontend/build/ — sans ignore, Vite HMR recharge ces HTML
 		// et peut casser le client SPA (« Internal Error »).
 		watch: {
-			ignored: ['**/build/**', '**/.svelte-kit/output/**']
+			ignored: ['build/**']
 		}
 	}
 });
