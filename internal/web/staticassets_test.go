@@ -60,7 +60,7 @@ func TestVendoredMBBundlePresent(t *testing.T) {
 		t.Fatalf("ReadFile(mb-boot): %v", err)
 	}
 	for _, tag := range []string{
-		"mb-button", "mb-select", "mb-progress", "mb-empty-state", "mb-segmented-control", "mb-pagination",
+		"mb-button", "mb-select", "mb-combobox", "mb-progress", "mb-empty-state", "mb-segmented-control", "mb-pagination",
 		"mb-tag", "mb-breadcrumbs", "mb-nav", "mb-nav-toggle", "mb-avatar", "mb-spinner", "mb-toolbar", "mb-card",
 		"mb-table", "mb-table-row", "mb-table-cell",
 	} {
