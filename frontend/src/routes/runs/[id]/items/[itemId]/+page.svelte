@@ -203,162 +203,170 @@
 			<p class="callout">{detail.item.help_text}</p>
 		{/if}
 
-		<form class="stack-form" onsubmit={onSave}>
-			<mb-select
-				label="Statut"
-				required
-				value={status}
-				disabled={!detail.capabilities.can_update_items}
-				onmb-change={(e) => (status = e.detail.value as ItemStatus)}
-			>
-				{#each ITEM_STATUSES as s (s)}
-					<option value={s}>{formatItemStatus(s)}</option>
-				{/each}
-			</mb-select>
-
-			<mb-textarea
-				label={status === 'nok' ? 'Commentaire (obligatoire)' : 'Commentaire'}
-				rows="4"
-				value={comment}
-				disabled={!detail.capabilities.can_update_items}
-				required={status === 'nok'}
-				oninput={(e) => (comment = inputValue(e))}
-			></mb-textarea>
-
-			{#if detail.capabilities.can_assign || detail.item.assigned_to}
-				<mb-select
-					label="Assigné à"
-					placeholder="— Non assigné —"
-					value={assignedTo}
-					disabled={!detail.capabilities.can_assign}
-					onmb-change={(e) => (assignedTo = e.detail.value)}
-				>
-					{#each detail.assignees ?? [] as a (a.user_id)}
-						<option value={String(a.user_id)}>{a.display_name} (@{a.login})</option>
-					{/each}
-				</mb-select>
-			{/if}
-
-			{#if detail.capabilities.can_update_items || detail.capabilities.can_assign}
-				<mb-button type="submit" variant="primary" disabled={saving}>
-					{saving ? 'Enregistrement…' : 'Enregistrer'}
-				</mb-button>
-			{:else}
-				<p class="muted">Revue non éditable.</p>
-			{/if}
-		</form>
-
-		<section class="section" aria-labelledby="piece-jointe">
-			<h2 id="piece-jointe">Pièce jointe</h2>
-			{#if attachment}
-				<p class="attachment">
-					{#if attachment.is_image}
-						<img
-							class="preview"
-							src={attachmentDownloadURL(runId(), itemId(), attachment.id)}
-							alt={attachment.filename}
-						/>
-					{/if}
-					<a href={attachmentDownloadURL(runId(), itemId(), attachment.id)} download={attachment.filename}>
-						{attachment.filename}
-					</a>
-					<span class="muted">({Math.round(attachment.size_bytes / 1024)} Ko)</span>
-				</p>
-			{:else}
-				<p class="muted">Aucune pièce jointe.</p>
-			{/if}
-			{#if detail.capabilities.can_update_items}
-				<label class="file">
-					<span>{uploading ? 'Envoi…' : 'Ajouter ou remplacer'}</span>
-					<input
-						type="file"
-						accept=".jpg,.jpeg,.png,.webp,.pdf,image/*,application/pdf"
-						onchange={onUpload}
-						disabled={uploading}
-					/>
-					<span class="field-hint">JPEG, PNG, WebP ou PDF · 5 Mo max.</span>
-				</label>
-			{/if}
-			{#if uploadError}
-				<mb-alert variant="danger">{uploadError}</mb-alert>
-			{/if}
-		</section>
-
-		<section class="section" aria-labelledby="jira">
-			<h2 id="jira">Issue Jira</h2>
-			{#if jiraLink}
-				<p>
-					Liée à :
-					<a href={jiraLink.external_url} target="_blank" rel="noopener noreferrer">{jiraLink.external_key}</a>
-				</p>
-			{:else}
-				<p class="muted">Aucune issue Jira liée.</p>
-			{/if}
-
-			{#if jiraError}
-				<mb-alert variant="danger">{jiraError}</mb-alert>
-			{/if}
-			{#if jiraMessage}
-				<mb-alert variant="success">{jiraMessage}</mb-alert>
-			{/if}
-
-			{#if jira?.can_link && jira.configured}
-				<form class="stack-form" onsubmit={onLinkJira}>
-					<mb-input
-						label="Clé ou URL Jira"
-						hint="Ex. PROJ-123 ou https://…/browse/PROJ-123"
-						required
-						autocomplete="off"
-						value={jiraIssue}
-						oninput={(e) => (jiraIssue = inputValue(e))}
-					></mb-input>
-					<mb-button type="submit" variant="secondary" disabled={jiraBusy}>
-						{jiraLink ? 'Mettre à jour le lien' : "Lier l'issue"}
-					</mb-button>
-				</form>
-
-				{#if jira.can_create && !jiraLink}
-					<form class="stack-form" onsubmit={onCreateJira}>
-						<mb-input
-							label="Titre du ticket"
+		<div class="card-stack">
+			<form onsubmit={onSave}>
+				<mb-card>
+					<h2 slot="header">Saisie</h2>
+					<div class="stack-form">
+						<mb-select
+							label="Statut"
 							required
-							value={jiraTitle}
-							oninput={(e) => (jiraTitle = inputValue(e))}
-						></mb-input>
+							value={status}
+							disabled={!detail.capabilities.can_update_items}
+							onmb-change={(e) => (status = e.detail.value as ItemStatus)}
+						>
+							{#each ITEM_STATUSES as s (s)}
+								<option value={s}>{formatItemStatus(s)}</option>
+							{/each}
+						</mb-select>
+
 						<mb-textarea
-							label="Description"
-							rows="5"
-							required
-							value={jiraDescription}
-							oninput={(e) => (jiraDescription = inputValue(e))}
+							label={status === 'nok' ? 'Commentaire (obligatoire)' : 'Commentaire'}
+							rows="4"
+							value={comment}
+							disabled={!detail.capabilities.can_update_items}
+							required={status === 'nok'}
+							oninput={(e) => (comment = inputValue(e))}
 						></mb-textarea>
-						<mb-button type="submit" variant="secondary" disabled={jiraBusy}>Créer le ticket Jira</mb-button>
-					</form>
-				{/if}
-			{:else if jira?.can_link && !jira.configured}
-				<p class="muted">Jira n'est pas configuré — contactez un administrateur.</p>
-			{/if}
-		</section>
 
-		{#if detail.events?.length}
-			<section class="section" aria-labelledby="historique">
-				<h2 id="historique">Historique</h2>
-				<ul class="card-list">
-					{#each detail.events as ev (ev.id)}
-						<li class="card">
-							<span class="desc">{ev.created_at}</span>
-							<span>
-								{#if ev.user_login}@{ev.user_login}{/if}
-								{ev.old_status ? formatItemStatus(ev.old_status) : '—'} → {formatItemStatus(ev.new_status)}
-							</span>
-							{#if ev.comment}
-								<span class="desc">{ev.comment}</span>
-							{/if}
-						</li>
-					{/each}
-				</ul>
-			</section>
-		{/if}
+						{#if detail.capabilities.can_assign || detail.item.assigned_to}
+							<mb-select
+								label="Assigné à"
+								placeholder="— Non assigné —"
+								value={assignedTo}
+								disabled={!detail.capabilities.can_assign}
+								onmb-change={(e) => (assignedTo = e.detail.value)}
+							>
+								{#each detail.assignees ?? [] as a (a.user_id)}
+									<option value={String(a.user_id)}>{a.display_name} (@{a.login})</option>
+								{/each}
+							</mb-select>
+						{/if}
+					</div>
+					{#if detail.capabilities.can_update_items || detail.capabilities.can_assign}
+						<div slot="footer">
+							<mb-button type="submit" variant="primary" disabled={saving}>
+								{saving ? 'Enregistrement…' : 'Enregistrer'}
+							</mb-button>
+						</div>
+					{:else}
+						<p slot="footer" class="muted">Revue non éditable.</p>
+					{/if}
+				</mb-card>
+			</form>
+
+			<mb-card>
+				<h2 slot="header">Pièce jointe</h2>
+				{#if attachment}
+					<p class="attachment">
+						{#if attachment.is_image}
+							<img
+								class="preview"
+								src={attachmentDownloadURL(runId(), itemId(), attachment.id)}
+								alt={attachment.filename}
+							/>
+						{/if}
+						<a href={attachmentDownloadURL(runId(), itemId(), attachment.id)} download={attachment.filename}>
+							{attachment.filename}
+						</a>
+						<span class="muted">({Math.round(attachment.size_bytes / 1024)} Ko)</span>
+					</p>
+				{:else}
+					<p class="muted">Aucune pièce jointe.</p>
+				{/if}
+				{#if detail.capabilities.can_update_items}
+					<label class="file">
+						<span>{uploading ? 'Envoi…' : 'Ajouter ou remplacer'}</span>
+						<input
+							type="file"
+							accept=".jpg,.jpeg,.png,.webp,.pdf,image/*,application/pdf"
+							onchange={onUpload}
+							disabled={uploading}
+						/>
+						<span class="field-hint">JPEG, PNG, WebP ou PDF · 5 Mo max.</span>
+					</label>
+				{/if}
+				{#if uploadError}
+					<mb-alert variant="danger">{uploadError}</mb-alert>
+				{/if}
+			</mb-card>
+
+			<mb-card>
+				<h2 slot="header">Issue Jira</h2>
+				{#if jiraLink}
+					<p>
+						Liée à :
+						<a href={jiraLink.external_url} target="_blank" rel="noopener noreferrer">{jiraLink.external_key}</a>
+					</p>
+				{:else}
+					<p class="muted">Aucune issue Jira liée.</p>
+				{/if}
+
+				{#if jiraError}
+					<mb-alert variant="danger">{jiraError}</mb-alert>
+				{/if}
+				{#if jiraMessage}
+					<mb-alert variant="success">{jiraMessage}</mb-alert>
+				{/if}
+
+				{#if jira?.can_link && jira.configured}
+					<form class="stack-form" onsubmit={onLinkJira}>
+						<mb-input
+							label="Clé ou URL Jira"
+							hint="Ex. PROJ-123 ou https://…/browse/PROJ-123"
+							required
+							autocomplete="off"
+							value={jiraIssue}
+							oninput={(e) => (jiraIssue = inputValue(e))}
+						></mb-input>
+						<mb-button type="submit" variant="secondary" disabled={jiraBusy}>
+							{jiraLink ? 'Mettre à jour le lien' : "Lier l'issue"}
+						</mb-button>
+					</form>
+
+					{#if jira.can_create && !jiraLink}
+						<form class="stack-form" onsubmit={onCreateJira}>
+							<mb-input
+								label="Titre du ticket"
+								required
+								value={jiraTitle}
+								oninput={(e) => (jiraTitle = inputValue(e))}
+							></mb-input>
+							<mb-textarea
+								label="Description"
+								rows="5"
+								required
+								value={jiraDescription}
+								oninput={(e) => (jiraDescription = inputValue(e))}
+							></mb-textarea>
+							<mb-button type="submit" variant="secondary" disabled={jiraBusy}>Créer le ticket Jira</mb-button>
+						</form>
+					{/if}
+				{:else if jira?.can_link && !jira.configured}
+					<p class="muted">Jira n'est pas configuré — contactez un administrateur.</p>
+				{/if}
+			</mb-card>
+
+			{#if detail.events?.length}
+				<mb-card>
+					<h2 slot="header">Historique</h2>
+					<ul class="row-list">
+						{#each detail.events as ev (ev.id)}
+							<li class="event">
+								<span class="muted">{ev.created_at}</span>
+								<span>
+									{#if ev.user_login}@{ev.user_login}{/if}
+									{ev.old_status ? formatItemStatus(ev.old_status) : '—'} → {formatItemStatus(ev.new_status)}
+								</span>
+								{#if ev.comment}
+									<span class="muted">{ev.comment}</span>
+								{/if}
+							</li>
+						{/each}
+					</ul>
+				</mb-card>
+			{/if}
+		</div>
 	{/if}
 </div>
 
@@ -380,5 +388,13 @@
 		flex-direction: column;
 		gap: var(--mb-space-1);
 		font-size: var(--mb-font-size-sm);
+	}
+	.event {
+		flex-direction: column;
+		align-items: flex-start;
+		gap: var(--mb-space-1);
+	}
+	.row-list {
+		margin: 0;
 	}
 </style>

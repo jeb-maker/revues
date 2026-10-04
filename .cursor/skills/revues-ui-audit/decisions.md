@@ -34,7 +34,8 @@ Stack (octobre 2026) : SvelteKit SPA + `@jeb-maker/mb`, API JSON `/api/v1`. Rout
 | Colonne Sujet `/runs` | ≥2 sujets visibles (P2) |
 | Nav « Mes tâches » | **`ShowMyTasks`** — ≥2 membres org (P1) |
 | Fiche sujet Équipes/Membres | **`ShowCollab`** — ≥2 membres ; sinon layout « revues d’abord » |
-| Placement CTA | **Listes** : primaire dans la toolbar de la carte (pas sous le H1). **Formulaires** : primaire en bas **dans** la dernière carte (carte Archiver / danger-zone = exception). **Un seul** `mb-button` primary par écran ; secondaires en `variant="secondary"` / `ghost`. Si export CSV un jour : secondary (pas preuve). |
+| Placement CTA | **Listes** : primaire dans la toolbar de la carte (pas sous le H1). **Formulaires** : primaire en bas **dans** la dernière carte métier éditable (carte Archiver / danger-zone = exception ; satellites lecture/PJ/Jira/historique **sans** primaire). **Un seul** `mb-button` primary par écran ; secondaires en `variant="secondary"` / `ghost`. Si export CSV un jour : secondary (pas preuve). |
+| Fiche point `/runs/{id}/items/{itemId}` | **`mb-card`** : Saisie (footer = Enregistrer primary) · Pièce jointe · Issue Jira (secondary) · Historique si événements. `help_text` en callout **au-dessus** du `.card-stack`. Historique = `row-list` plat (pas de sous-cartes). |
 | Statut vs progression (cartes revue) | **Option 1+5** : badge omis si `in_progress` (la progression suffit) ; colonne Statut **absente en SimpleUI**. Badge conservé pour brouillon / terminée / archivée hors SimpleUI. |
 | Libellé runs (instances) | Preset org `ui_run_label` : `revues` (défaut) · `listes_en_cours` · `audits` · `checklists`. Surface : nav, H1, breadcrumbs, empty states, CTA. Particulier (seed) = `listes_en_cours` ; mobile nav short = « En cours ». Marque produit « Revues » inchangée. |
 | Accès revues terminées / filtres | Liste `/runs` : filtre **Tous · En cours · Terminées · En retard** (`?status=` ; `overdue` = en retard). Clôture : `POST /runs/{id}/complete` puis rechargement de la fiche côté SPA. |
@@ -140,7 +141,7 @@ Principes :
 | Version consommée | **`0.4.1`** (tag Git `v0.4.1`) |
 | Tokens | **`tokens-core.css`** (+ `mb-bridge.css`), injectés par `ensureMb()` depuis le layout racine — pas de `tokens.css` (évite reset `html`/`body`) ni `typography.css`/woff2 (budget) |
 | JS | `mb-boot.js` sous `web/static/vendor/jeb-maker-mb/` (Lit bundlé) — vendor mesuré hors budget app (`check.sh`) ; chargé par `ensureMb()` |
-| Shell + formulaires | Cible `mb-*` (button, alert, badge, input, textarea, tag, empty-state, spinner, table…) — la SPA n'utilise pas encore nav / breadcrumbs / card / toolbar / modal / toast |
+| Shell + formulaires | Cible `mb-*` (button, alert, badge, input, textarea, tag, empty-state, spinner, table, **card**…) — **fiche point** utilise `mb-card` + `.card-stack` ; nav / breadcrumbs / toolbar / modal / toast encore à venir sur les autres écrans |
 | Listes | **`mb-table`** (cible : admin, sujets, modèles, revues, tâches, sections de la fiche revue) |
 | Reste host | éditeur de modèle (`TemplateEditor.svelte`, `<table>` natif + DnD) ; `confirm()` natif |
 | Tracking gaps | https://github.com/jeb-maker/miniature-broccoli/issues/40–44 (fermés en 0.4.1) |
