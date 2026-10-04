@@ -49,8 +49,8 @@
 		void load();
 	});
 
-	async function onFilter(e: Event) {
-		e.preventDefault();
+	async function onStatusChange(e: CustomEvent<{ value: string }>) {
+		status = e.detail.value as StatusFilter;
 		await load();
 	}
 </script>
@@ -66,22 +66,16 @@
 		</div>
 	</header>
 
-	<form class="filters" onsubmit={onFilter}>
-		<mb-select
-			label="Statut"
-			hide-label
-			value={status}
-			onmb-change={(e) => (status = e.detail.value as StatusFilter)}
-		>
+	<div class="filters">
+		<mb-select label="Statut" hide-label value={status} onmb-change={onStatusChange}>
 			{#each STATUS_FILTERS as f (f.value)}
 				<option value={f.value}>{f.label}</option>
 			{/each}
 		</mb-select>
-		<mb-button type="submit" variant="secondary">Filtrer</mb-button>
 		{#if !loading}
 			<p class="filters__count muted">{tasks.length} tâche{tasks.length > 1 ? 's' : ''}</p>
 		{/if}
-	</form>
+	</div>
 
 	{#if error}
 		<mb-alert variant="danger">{error}</mb-alert>
