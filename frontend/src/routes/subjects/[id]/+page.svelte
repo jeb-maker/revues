@@ -18,6 +18,8 @@
 	import { inputValue } from '$lib/mb';
 
 	type SubjectRole = 'lead' | 'contributor' | 'viewer';
+	type SortKey = 'titre' | 'date' | 'statut' | 'progression';
+	type SortDirection = 'asc' | 'desc';
 	const SUBJECT_ROLES = roleOptions<SubjectRole>(['viewer', 'contributor', 'lead']);
 
 	const boot = session();
@@ -32,6 +34,8 @@
 	let loading = $state(true);
 	let editing = $state(false);
 	let saving = $state(false);
+	let sortKey = $state<SortKey>('date');
+	let sortDirection = $state<SortDirection>('desc');
 
 	let name = $state('');
 	let description = $state('');
@@ -78,6 +82,35 @@
 		if (Number.isNaN(t)) return iso || '—';
 		return new Date(t).toLocaleDateString('fr-FR');
 	}
+
+	function onRunsSort(e: CustomEvent<{ key: string; direction: string }>) {
+		const key = e.detail.key as SortKey;
+		const direction = e.detail.direction === 'asc' ? 'asc' : 'desc';
+		if (key !== 'titre' && key !== 'date' && key !== 'statut' && key !== 'progression') {
+			return;
+		}
+		sortKey = key;
+		sortDirection = direction;
+	}
+
+	const displayedRuns = $derived.by(() => {
+		const list = [...runs];
+		const dir = sortDirection === 'asc' ? 1 : -1;
+		list.sort((a, b) => {
+			switch (sortKey) {
+				case 'titre':
+					return a.title.localeCompare(b.title, 'fr') * dir;
+				case 'statut':
+					return a.status.localeCompare(b.status) * dir;
+				case 'progression':
+					return (a.progress.percent - b.progress.percent) * dir;
+				case 'date':
+				default:
+					return a.created_at.localeCompare(b.created_at) * dir;
+			}
+		});
+		return list;
+	});
 
 	function applySubject(s: SubjectDetail) {
 		subject = s;
@@ -336,33 +369,39 @@
 						{runLbl.singular} pour ce {subjectLbl.singular.toLowerCase()}.
 					</p>
 				{:else}
-					<mb-table columns="minmax(12rem, 1.6fr) 7.5rem 6rem 5.5rem 2.75rem">
+					<mb-table
+						columns="2fr 0.8fr 0.9fr 0.7fr 2.75rem"
+						sort-key={sortKey}
+						sort-direction={sortDirection}
+						sort-label="Trier par {name}"
+						onmb-sort={onRunsSort}
+					>
 						<mb-table-row slot="head">
-							<mb-table-cell>Titre</mb-table-cell>
-							<mb-table-cell>Statut</mb-table-cell>
-							<mb-table-cell align="end">Progression</mb-table-cell>
-							<mb-table-cell align="end">Date</mb-table-cell>
-							<mb-table-cell></mb-table-cell>
+							<mb-table-cell sort-key="titre">Titre</mb-table-cell>
+							<mb-table-cell sort-key="date" align="center">Date</mb-table-cell>
+							<mb-table-cell sort-key="statut" align="center">Statut</mb-table-cell>
+							<mb-table-cell sort-key="progression" align="center">Progression</mb-table-cell>
+							<mb-table-cell actions><span class="sr-only">Actions</span></mb-table-cell>
 						</mb-table-row>
-						{#each runs as r (r.id)}
+						{#each displayedRuns as r (r.id)}
 							<mb-table-row>
-								<mb-table-cell label="Titre" primary>
+								<mb-table-cell label="Titre" primary sort-value={r.title}>
 									<a href={`/runs/${r.id}`}>{r.title}</a>
 								</mb-table-cell>
-								<mb-table-cell label="Statut">
-									{#if r.status !== 'in_progress'}
-										<mb-badge variant={runStatusVariant(r.status)}
-											>{formatRunStatus(r.status)}</mb-badge
-										>
-									{:else}
-										<span class="muted">{formatRunStatus(r.status)}</span>
-									{/if}
+								<mb-table-cell label="Date" align="center" sort-value={r.created_at}>
+									<span class="date">{formatCreatedDate(r.created_at)}</span>
 								</mb-table-cell>
-								<mb-table-cell label="Progression" align="end">
-									<span class="muted">{r.progress.percent} %</span>
+								<mb-table-cell label="Statut" align="center" sort-value={r.status}>
+									<mb-badge variant={runStatusVariant(r.status)}
+										>{formatRunStatus(r.status)}</mb-badge
+									>
 								</mb-table-cell>
-								<mb-table-cell label="Date" align="end">
-									<span class="muted">{formatCreatedDate(r.created_at)}</span>
+								<mb-table-cell
+									label="Progression"
+									align="center"
+									sort-value={String(r.progress.percent).padStart(3, '0')}
+								>
+									<span class="pct">{r.progress.percent} %</span>
 								</mb-table-cell>
 								<mb-table-cell actions>
 									<a
@@ -643,5 +682,9 @@
 	}
 	.block :global(mb-table) {
 		margin-bottom: 0;
+	}
+	.pct,
+	.date {
+		font-variant-numeric: tabular-nums;
 	}
 </style>
