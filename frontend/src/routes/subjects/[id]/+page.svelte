@@ -42,11 +42,16 @@
 	let memberEmail = $state('');
 	let memberRole = $state<SubjectRole>('contributor');
 	let showEmailFallback = $state(false);
+	let memberBusyId = $state<number | 'new' | null>(null);
 
 	const candidatePeople = $derived.by(() => {
 		const taken = new Set((subject?.members ?? []).map((m) => m.user_id));
 		return orgPeople.filter((p) => !taken.has(p.user_id));
 	});
+
+	const selectedCandidate = $derived(
+		candidatePeople.find((p) => p.email === memberPick) ?? null
+	);
 
 	/** Domaines visibles hors édition : multi-sujet, ou déjà renseignés. */
 	const showDomainsRead = $derived(
@@ -157,34 +162,58 @@
 		}
 	}
 
-	async function onAddMember(e: Event) {
-		e.preventDefault();
+	async function onAddMember() {
 		if (!subject) return;
 		error = '';
-		const email = memberPick.trim() || (showEmailFallback ? memberEmail.trim() : '');
+		const email = (showEmailFallback ? memberEmail : memberPick).trim();
 		if (!email) {
 			error = 'Choisissez une personne ou saisissez un email.';
 			return;
 		}
+		memberBusyId = 'new';
 		try {
 			await addSubjectMember(subject.id, { email, role: memberRole }, csrf);
 			memberPick = '';
 			memberEmail = '';
 			showEmailFallback = false;
+			memberRole = 'contributor';
 			await refresh();
 		} catch (err) {
-			error = err instanceof Error ? err.message : 'Affectation impossible.';
+			error = err instanceof Error ? err.message : 'Ajout impossible.';
+		} finally {
+			memberBusyId = null;
+		}
+	}
+
+	async function onMemberRoleChange(userId: number, email: string, role: SubjectRole) {
+		if (!subject) return;
+		const current = subject.members.find((m) => m.user_id === userId);
+		if (!current || current.role === role) return;
+		error = '';
+		memberBusyId = userId;
+		try {
+			// POST upsert : même endpoint que l'ajout, met à jour le rôle.
+			await addSubjectMember(subject.id, { email, role }, csrf);
+			await refresh();
+		} catch (err) {
+			error = err instanceof Error ? err.message : 'Changement de rôle impossible.';
+			await refresh();
+		} finally {
+			memberBusyId = null;
 		}
 	}
 
 	async function onRemoveMember(userId: number) {
-		if (!subject || !confirm('Retirer ce membre ?')) return;
+		if (!subject || !confirm('Retirer cette personne ?')) return;
 		error = '';
+		memberBusyId = userId;
 		try {
 			await removeSubjectMember(subject.id, userId, csrf);
 			await refresh();
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Retrait impossible.';
+		} finally {
+			memberBusyId = null;
 		}
 	}
 </script>
@@ -200,7 +229,9 @@
 		<p class="crumbs"><a href="/subjects">{subjectLbl.plural}</a></p>
 		<mb-alert variant="danger">{error || `${subjectLbl.singular} introuvable.`}</mb-alert>
 	{:else}
-		<p class="crumbs"><a href="/subjects">{subjectLbl.plural}</a></p>
+		<p class="crumbs">
+			<a href="/subjects">{subjectLbl.plural}</a> · {subject.name}
+		</p>
 
 		<header class="page-header">
 			<div class="page-header__row">
@@ -215,9 +246,9 @@
 				<p class="lede">{subject.description}</p>
 			{/if}
 			<p class="meta-row">
-				<mb-badge variant={subject.visibility === 'private' ? 'warning' : 'neutral'}>
-					{formatVisibility(subject.visibility)}
-				</mb-badge>
+				{#if subject.visibility === 'private'}
+					<mb-badge variant="warning">{formatVisibility('private')}</mb-badge>
+				{/if}
 				{#if subject.access.role}
 					<span class="muted">Votre rôle : {formatRole(subject.access.role)}</span>
 				{/if}
@@ -235,7 +266,7 @@
 			<mb-alert variant="danger">{error}</mb-alert>
 		{/if}
 
-		<div class="card-stack">
+		<div class="stack">
 			{#if editing}
 				<form onsubmit={onSave}>
 					<mb-card>
@@ -283,13 +314,22 @@
 				</form>
 			{/if}
 
-			<mb-card>
-				<h2 slot="header">
-					{runLbl.nav}
-					{#if runs.length > 0}
-						<span class="count muted">· {runs.length}</span>
+			<section class="block" aria-labelledby="subject-runs">
+				<div class="block__head">
+					<h2 id="subject-runs">
+						{runLbl.nav}
+						{#if runs.length > 0}
+							<span class="count muted">· {runs.length}</span>
+						{/if}
+					</h2>
+					{#if subject.capabilities.can_launch && !editing}
+						<div class="actions">
+							<mb-button variant="primary" href={`/subjects/${subject.id}/launch`}
+								>{launchRunCTA(runLbl)}</mb-button
+							>
+						</div>
 					{/if}
-				</h2>
+				</div>
 				{#if runs.length === 0}
 					<p class="muted">
 						{runLbl.noneArticle}
@@ -340,112 +380,176 @@
 						{/each}
 					</mb-table>
 				{/if}
-				{#if subject.capabilities.can_launch && !editing}
-					<div slot="footer" class="actions">
-						<mb-button variant="primary" href={`/subjects/${subject.id}/launch`}
-							>{launchRunCTA(runLbl)}</mb-button
-						>
-					</div>
-				{/if}
-			</mb-card>
+			</section>
 
 			{#if !editing && showDomainsRead && subject.domains.length === 0 && boot.show_subject_column}
-				<details class="advanced advanced--card">
+				<details class="advanced advanced--panel">
 					<summary>Domaines</summary>
 					<p class="muted">Aucun domaine — tous les modèles sont compatibles.</p>
 				</details>
 			{/if}
 
 			{#if boot.show_collab}
-				<mb-card>
-					<h2 slot="header">Personnes</h2>
-					{#if subject.members.length === 0}
-						<p class="muted">
-							Aucune personne affectée. Affectez un membre de l’organisation{#if boot.can_admin}
-								, ou invitez-le d’abord (<a href="/admin/members">Admin · Membres</a>){/if}.
-						</p>
+				<section class="block" aria-labelledby="subject-people">
+					<h2 id="subject-people">Personnes</h2>
+					{#if subject.members.length === 0 && !subject.capabilities.can_manage_members}
+						<p class="muted">Aucune personne sur ce {subjectLbl.singular.toLowerCase()}.</p>
 					{:else}
-						<ul class="row-list">
+						<mb-table
+							columns={subject.capabilities.can_manage_members
+								? 'minmax(12rem, 1.6fr) 9rem 6.5rem'
+								: 'minmax(12rem, 1.6fr) 9rem'}
+						>
+							<mb-table-row slot="head">
+								<mb-table-cell>Personne</mb-table-cell>
+								<mb-table-cell>Rôle</mb-table-cell>
+								{#if subject.capabilities.can_manage_members}
+									<mb-table-cell></mb-table-cell>
+								{/if}
+							</mb-table-row>
 							{#each subject.members as m (m.user_id)}
-								<li>
-									<strong>{m.display_name}</strong>
-									<span class="muted">{m.email}</span>
-									<mb-badge>{formatRole(m.role)}</mb-badge>
+								<mb-table-row>
+									<mb-table-cell label="Personne" primary>
+										<span class="person">
+											<strong>{m.display_name}</strong>
+											<span class="muted">{m.email}</span>
+										</span>
+									</mb-table-cell>
+									<mb-table-cell label="Rôle">
+										{#if subject.capabilities.can_manage_members}
+											<mb-select
+												label="Rôle"
+												hide-label
+												density="compact"
+												value={m.role}
+												disabled={memberBusyId === m.user_id}
+												onmb-change={(e) =>
+													onMemberRoleChange(
+														m.user_id,
+														m.email,
+														e.detail.value as SubjectRole
+													)}
+											>
+												{#each SUBJECT_ROLES as r (r.value)}
+													<option value={r.value}>{r.label}</option>
+												{/each}
+											</mb-select>
+										{:else}
+											<mb-badge>{formatRole(m.role)}</mb-badge>
+										{/if}
+									</mb-table-cell>
 									{#if subject.capabilities.can_manage_members}
-										<mb-button
-											variant="ghost"
-											size="sm"
-											onclick={() => onRemoveMember(m.user_id)}
-										>
-											Retirer
-										</mb-button>
+										<mb-table-cell actions>
+											<mb-button
+												variant="ghost"
+												size="sm"
+												disabled={memberBusyId === m.user_id}
+												onclick={() => onRemoveMember(m.user_id)}
+											>
+												Retirer
+											</mb-button>
+										</mb-table-cell>
 									{/if}
-								</li>
+								</mb-table-row>
 							{/each}
-						</ul>
-					{/if}
-
-					{#if subject.capabilities.can_manage_members}
-						<form class="stack-form member-form" onsubmit={onAddMember}>
-							{#if candidatePeople.length > 0}
-								<mb-select
-									label="Personne"
-									value={memberPick}
-									onmb-change={(e) => {
-										memberPick = e.detail.value;
-										if (memberPick) showEmailFallback = false;
-									}}
-								>
-									<option value="">Choisir…</option>
-									{#each candidatePeople as p (p.user_id)}
-										<option value={p.email}
-											>{p.display_name || p.email} · {p.email}</option
+							{#if subject.capabilities.can_manage_members}
+								<mb-table-row>
+									<mb-table-cell label="Personne" primary>
+										{#if showEmailFallback}
+											<mb-input
+												label="Email"
+												hide-label
+												density="compact"
+												type="email"
+												placeholder="email@exemple.com"
+												value={memberEmail}
+												disabled={memberBusyId === 'new'}
+												oninput={(e) => (memberEmail = inputValue(e))}
+											></mb-input>
+										{:else if candidatePeople.length > 0}
+											<mb-select
+												label="Personne"
+												hide-label
+												density="compact"
+												placeholder="Choisir une personne…"
+												value={memberPick}
+												disabled={memberBusyId === 'new'}
+												onmb-change={(e) => (memberPick = e.detail.value)}
+											>
+												<option value="">Choisir une personne…</option>
+												{#each candidatePeople as p (p.user_id)}
+													<option value={p.email}
+														>{p.display_name || p.email}</option
+													>
+												{/each}
+											</mb-select>
+											{#if selectedCandidate}
+												<span class="muted person-email">{selectedCandidate.email}</span>
+											{/if}
+										{:else}
+											<p class="field-hint">
+												Plus personne à ajouter dans l’org.{#if boot.can_admin}
+													<a href="/admin/members">Inviter</a>{/if}
+											</p>
+										{/if}
+										{#if !showEmailFallback && (candidatePeople.length > 0 || boot.can_admin)}
+											<button
+												type="button"
+												class="linkish"
+												disabled={memberBusyId === 'new'}
+												onclick={() => {
+													showEmailFallback = true;
+													memberPick = '';
+												}}
+											>
+												Saisir un email
+											</button>
+										{:else if showEmailFallback}
+											<button
+												type="button"
+												class="linkish"
+												disabled={memberBusyId === 'new'}
+												onclick={() => {
+													showEmailFallback = false;
+													memberEmail = '';
+												}}
+											>
+												Choisir dans la liste
+											</button>
+										{/if}
+									</mb-table-cell>
+									<mb-table-cell label="Rôle">
+										<mb-select
+											label="Rôle"
+											hide-label
+											density="compact"
+											value={memberRole}
+											disabled={memberBusyId === 'new'}
+											onmb-change={(e) =>
+												(memberRole = e.detail.value as SubjectRole)}
 										>
-									{/each}
-								</mb-select>
-							{:else}
-								<p class="field-hint">
-									Tous les membres org sont déjà affectés, ou l’annuaire est vide.
-								</p>
+											{#each SUBJECT_ROLES as r (r.value)}
+												<option value={r.value}>{r.label}</option>
+											{/each}
+										</mb-select>
+									</mb-table-cell>
+									<mb-table-cell actions>
+										<mb-button
+											variant="secondary"
+											size="sm"
+											loading={memberBusyId === 'new'}
+											disabled={memberBusyId === 'new' ||
+												(!memberPick && !memberEmail.trim())}
+											onclick={onAddMember}
+										>
+											Ajouter
+										</mb-button>
+									</mb-table-cell>
+								</mb-table-row>
 							{/if}
-							<mb-select
-								label="Rôle"
-								required
-								value={memberRole}
-								onmb-change={(e) => (memberRole = e.detail.value as SubjectRole)}
-							>
-								{#each SUBJECT_ROLES as r (r.value)}
-									<option value={r.value}>{r.label}</option>
-								{/each}
-							</mb-select>
-							{#if showEmailFallback}
-								<mb-input
-									label="Email (compte existant hors liste)"
-									type="email"
-									value={memberEmail}
-									oninput={(e) => (memberEmail = inputValue(e))}
-								></mb-input>
-							{:else}
-								<p class="actions">
-									<mb-button
-										type="button"
-										variant="ghost"
-										size="sm"
-										onclick={() => {
-											showEmailFallback = true;
-											memberPick = '';
-										}}
-									>
-										Ajouter par email
-									</mb-button>
-								</p>
-							{/if}
-							<div class="actions">
-								<mb-button type="submit" variant="secondary">Affecter</mb-button>
-							</div>
-						</form>
+						</mb-table>
 					{/if}
-				</mb-card>
+				</section>
 			{/if}
 
 			{#if subject.capabilities.can_manage && !editing}
@@ -465,6 +569,27 @@
 </div>
 
 <style>
+	.stack {
+		display: flex;
+		flex-direction: column;
+		gap: var(--mb-space-6);
+	}
+	.block__head {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		justify-content: space-between;
+		gap: var(--mb-space-3);
+		margin-bottom: var(--mb-space-3);
+	}
+	.block__head h2,
+	.block > h2 {
+		margin: 0 0 var(--mb-space-3);
+		font-size: var(--mb-font-size-lg, 1.125rem);
+	}
+	.block__head h2 {
+		margin-bottom: 0;
+	}
 	.count {
 		font-weight: var(--mb-font-weight-regular, 400);
 	}
@@ -485,18 +610,38 @@
 	.advanced__body {
 		margin-top: var(--mb-space-3);
 	}
-	.advanced--card {
-		padding: var(--mb-space-3) var(--mb-space-4);
-		border: 1px solid var(--mb-color-border);
-		border-radius: var(--mb-radius-lg);
-		background: var(--mb-color-surface, transparent);
+	.advanced--panel {
+		padding: var(--mb-space-3) 0;
 	}
-	.advanced--card p {
+	.advanced--panel p {
 		margin: var(--mb-space-2) 0 0;
 	}
-	.member-form {
-		margin-top: var(--mb-space-4);
-		padding-top: var(--mb-space-4);
-		border-top: 1px solid var(--mb-color-border);
+	.person {
+		display: flex;
+		flex-direction: column;
+		gap: 0.15rem;
+		min-inline-size: 0;
+	}
+	.person-email,
+	.linkish {
+		display: block;
+		margin-top: var(--mb-space-1);
+		font-size: var(--mb-font-size-sm, 0.875rem);
+	}
+	.linkish {
+		padding: 0;
+		border: 0;
+		background: none;
+		color: var(--mb-color-fg-muted, inherit);
+		text-decoration: underline;
+		cursor: pointer;
+		text-align: start;
+	}
+	.linkish:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
+	}
+	.block :global(mb-table) {
+		margin-bottom: 0;
 	}
 </style>

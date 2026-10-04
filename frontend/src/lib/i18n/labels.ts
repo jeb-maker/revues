@@ -35,7 +35,8 @@ const ROLE: Record<string, string> = {
 };
 
 const VISIBILITY: Record<string, string> = {
-	normal: 'Normal',
+	/** Accès selon droits org / membres — pas restreint à une liste privée. */
+	normal: 'Organisation',
 	private: 'Privé'
 };
 
