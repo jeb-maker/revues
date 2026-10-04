@@ -14,8 +14,7 @@ func (s *Server) GetSearch(w http.ResponseWriter, r *http.Request, params GetSea
 	if !ok {
 		return
 	}
-	org, ok := orgFromRequest(r)
-	if !ok {
+	if _, ok := orgFromRequest(r); !ok {
 		writeAPIError(w, http.StatusForbidden, "org_required", "Organisation active requise.")
 		return
 	}
@@ -34,16 +33,8 @@ func (s *Server) GetSearch(w http.ResponseWriter, r *http.Request, params GetSea
 	orgRole, orgMember := s.orgMembership(r, user.ID)
 	orgAdmin := orgMember && (orgRole == store.OrgRoleOwner || orgRole == store.OrgRoleAdmin)
 	includeTemplates := orgMember
-	includeTasks := false
-	if s.Store != nil {
-		n, err := s.Store.CountOrganizationMembers(r.Context(), org.ID)
-		if err != nil {
-			slog.Error("search count members", "err", err)
-			writeAPIError(w, http.StatusInternalServerError, "internal_error", "Erreur interne.")
-			return
-		}
-		includeTasks = n >= 2
-	}
+	// Assignation / Mes tâches désactivés produit — ne pas exposer kind=task (réactiver avec FEATURE_ASSIGN_TASKS).
+	const includeTasks = false
 
 	hits, totals, err := s.Store.GlobalSearch(r.Context(), store.GlobalSearchOpts{
 		UserID:           user.ID,

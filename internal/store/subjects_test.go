@@ -187,15 +187,4 @@ func TestSubjectDomainsAndTags(t *testing.T) {
 	if len(domains) != 2 {
 		t.Fatalf("domains = %v, want 2", domains)
 	}
-
-	if err = st.SetSubjectTags(ctx, subject.ID, []string{"prod", "critical"}); err != nil {
-		t.Fatalf("SetSubjectTags(): %v", err)
-	}
-	tags, err := st.ListSubjectTags(ctx, subject.ID)
-	if err != nil {
-		t.Fatalf("ListSubjectTags(): %v", err)
-	}
-	if len(tags) != 2 {
-		t.Fatalf("tags = %v, want 2", tags)
-	}
 }

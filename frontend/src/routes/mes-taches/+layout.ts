@@ -1,7 +1,7 @@
 import { redirect } from '@sveltejs/kit';
 import type { LayoutLoad } from './$types';
 
-/** Mes tâches : visible seulement si ≥ 2 membres org. */
+/** Mes tâches : gate session `show_my_tasks` (FEATURE_ASSIGN_TASKS + ≥ 2 membres). */
 export const load: LayoutLoad = async ({ parent }) => {
 	const { boot } = await parent();
 	if (!boot.show_my_tasks) {

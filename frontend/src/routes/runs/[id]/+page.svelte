@@ -185,7 +185,7 @@
 		if (!run) return;
 		const d = drafts[item.id] ?? draftFromItem(item);
 		const canUpdate = run.capabilities.can_update_items;
-		const canAssign = run.capabilities.can_assign;
+		const canAssign = session().show_assign && run.capabilities.can_assign;
 		if (!canUpdate && !canAssign) return;
 
 		if (canUpdate && d.status === 'nok' && !d.comment.trim()) {
@@ -314,7 +314,8 @@
 	const filteredCount = $derived(filteredGroups.reduce((n, g) => n + g.items.length, 0));
 	const canEdit = $derived(!!run?.capabilities.can_update_items);
 	const showAssign = $derived(
-		!!run &&
+		session().show_assign &&
+			!!run &&
 			(run.capabilities.can_assign || run.items.some((i) => i.assigned_to != null)) &&
 			(run.assignees?.length ?? 0) > 0
 	);

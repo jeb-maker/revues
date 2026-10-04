@@ -100,7 +100,7 @@
 				body.status = status;
 				body.comment = comment;
 			}
-			if (detail.capabilities.can_assign) {
+			if (session().show_assign && detail.capabilities.can_assign) {
 				if (assignedTo === '') {
 					body.unassign = true;
 				} else {
@@ -234,7 +234,7 @@
 							oninput={(e) => (comment = inputValue(e))}
 						></mb-textarea>
 
-						{#if detail.capabilities.can_assign || detail.item.assigned_to}
+						{#if session().show_assign && (detail.capabilities.can_assign || detail.item.assigned_to)}
 							<mb-select
 								label="Assigné à"
 								placeholder="— Non assigné —"
@@ -248,7 +248,7 @@
 							</mb-select>
 						{/if}
 					</div>
-					{#if detail.capabilities.can_update_items || detail.capabilities.can_assign}
+					{#if detail.capabilities.can_update_items || (session().show_assign && detail.capabilities.can_assign)}
 						<div slot="footer">
 							<mb-button type="submit" variant="primary" loading={saving}>
 								{saving ? 'Enregistrement…' : 'Enregistrer'}

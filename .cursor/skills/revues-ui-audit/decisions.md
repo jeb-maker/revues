@@ -34,10 +34,10 @@ Stack (octobre 2026) : SvelteKit SPA + `@jeb-maker/mb`, API JSON `/api/v1`. Rout
 | Flash « Revue créée » | **Non** — redirect sans message ; la page elle-même suffit |
 | Statut sur fiche revue | Badge omis si `in_progress` (évident) ; garder pour `done` / autres + échéance |
 | Progression fiche revue | **Discrète dans le lede** (compteur + barre 3px) — pas sous le H2 Points |
-| Liste `/runs` — sujet | Titre = modèle · date · `#id` (**sans** sujet) ; colonne Sujet **masquée** quand un seul sujet |
-| Colonne Assigné (grille points) | **`ShowAssign`** — ≥2 membres org (P1), pas seulement `!SimpleUI` |
+| Liste `/runs` — sujet | Titre = modèle · `#id` (**sans** sujet ni date — la date a sa colonne) ; colonne Sujet **masquée** quand un seul sujet |
+| Colonne Assigné (grille points) | **Désactivée** — `FEATURE_ASSIGN_TASKS=false` (UI assignation non fiable) ; API `assigned_to` conservée |
 | Colonne Sujet `/runs` | ≥2 sujets visibles (P2) |
-| Nav « Mes tâches » | **`ShowMyTasks`** — ≥2 membres org (P1) |
+| Nav « Mes tâches » | **Désactivée** — même flag ; `/mes-taches` redirige vers `/runs` |
 | Fiche sujet Équipes/Membres | **`ShowCollab`** — ≥2 membres ; sinon layout « revues d’abord » |
 | Placement CTA | **Listes** : primaire en haut à droite face au H1 (`.page-header__row` + `.page-header__actions`) ; pas sous le titre. Libellés courts face au H1 : **« Nouveau »** (création projet/modèle), **« Lancer »** (création revue — `launchRunCTA`) — le H1 / la carte portent déjà le type. Compteur de résultats (ex. « 2 revues ») sur la **même ligne** que les filtres, aligné à droite (`.filters__count`). **Fiches** : H1 + méta hors cartes ; contenu en `mb-card` / `.card-stack` ; primaire en bas **dans** le footer de la dernière carte métier utile (Points / Revues / Clôture) ; Archiver = carte danger-zone séparée. **Formulaires / édition** (`/subjects/new`, `/modeles/new`, `/modeles/{id}/edit`, `/org/new`, édition inline fiche sujet) : champs en `mb-card` ; primaire en bas dans le footer de la dernière carte métier éditable. **Launch** `/subjects/{id}/launch` : composition unique en `mb-card` (H1 + champs) ; footer `.actions--stack` = Lancer primary + Annuler secondary **pleine largeur**. Satellites lecture/PJ/Jira/historique **sans** primaire. **Un seul** `mb-button` primary par écran ; secondaires en `variant="secondary"` / `ghost`. Si export CSV un jour : secondary (pas preuve). |
 | Ledes (sous-titres) | **Minimaux** — supprimer les ledes qui paraphrasent le H1 sur les listes ; garder seulement une instruction utile (ex. mode `?template_id=` sur `/subjects`). |
@@ -63,7 +63,8 @@ Flags d'origine (legacy `middleware.resolveUICaps` → `PageData`, **supprimés*
 | Flag | Seuil | Palier |
 |------|--------|--------|
 | `SimpleUI` | 1 org · 1 membre · ≤1 sujet | P0 |
-| `ShowAssign` / `ShowMyTasks` / `ShowCollab` | ≥2 membres org | P1 |
+| `ShowAssign` / `ShowMyTasks` | off (`FEATURE_ASSIGN_TASKS`) ; seuil historique ≥2 membres | P1 icebox |
+| `ShowCollab` | ≥2 membres org | P1 |
 | `ShowSubjectColumn` | ≥2 sujets visibles | P2 |
 | `HasJira` | intégration Jira **configurée** (org active) | P3 |
 | `HasNotion` | **Obsolète (produit)** — Notion hors périmètre | — |
@@ -73,11 +74,11 @@ Flags d'origine (legacy `middleware.resolveUICaps` → `PageData`, **supprimés*
 | Palier | Déclencheur | Surface |
 |--------|-------------|---------|
 | **P0 — Particulier** | `SimpleUI` | Listes en cours (nav mobile « En cours ») · Listes ; cocher ; pas assign / tâches / collab |
-| **P1 — Duo** | 2ᵉ **membre** (pas seulement invitation pending) | + Assignation · Mes tâches · collab fiche sujet · onglet Organisation si membres |
+| **P1 — Duo** | 2ᵉ **membre** (pas seulement invitation pending) | + collab fiche sujet · onglet Organisation si membres · *(Assignation / Mes tâches icebox — `FEATURE_ASSIGN_TASKS`)* |
 | **P2 — Multi-sujet** | ≥2 sujets | + Colonne Sujet · domaines · vocabulaire « Modèles » |
 | **P3 — Conformité** | Intégration configurée | Jira/webhooks **capability-gated** (config), pas masqués par SimpleUI ; **pas** Notion ni « preuve » |
 
-**Acté (SPA minimale)** : pas de flags legacy `SimpleUI` côté API. Heuristiques front : **Modèles** masqués si `!can_edit` (reader) ; **Mes tâches** si `member_count ≥ 2` (champ org) ; colonne sujet `/runs` si `visible_subject_count ≥ 2`. Capabilities `can_*` par ressource inchangées. Plein SimpleUI (vocabulaire listes, etc.) reste icebox hors presets `ui_*`.
+**Acté (SPA minimale)** : pas de flags legacy `SimpleUI` côté API. Heuristiques front : **Modèles** masqués si `!can_edit` (reader) ; **Mes tâches / Assigné** off via `FEATURE_ASSIGN_TASKS` (réactiver + `member_count ≥ 2`) ; colonne sujet `/runs` si `visible_subject_count ≥ 2`. Capabilities `can_*` par ressource inchangées. Plein SimpleUI (vocabulaire listes, etc.) reste icebox hors presets `ui_*`.
 
 **Partiel livré** : les presets `ui_run_label` / `ui_subject_label` de l'org active sont consommés par la nav, le hub `/` et les H1 `/runs` · `/subjects` · `/modeles` (`frontend/src/lib/i18n/uiLabels.ts`). Vocabulaire « Listes » pour les modèles si `ui_run_label=listes_en_cours` (heuristique particulier, en attendant `ShowSubjectColumn`). Défaut produit libellé conteneur = **projet** (fallback front si preset vide/inconnu) ; orgs déjà en base avec `sujet` gardent « Sujet » jusqu’à migration/admin. Pas encore d'écran admin pour changer les presets.
 
@@ -126,7 +127,7 @@ Principes :
 | Code / interne | Affichage UI |
 |----------------|--------------|
 | `subject_domains` / `template_domains` | **Domaines** — matching modèle↔sujet (intersection ; modèle sans domaine = tous sujets) |
-| `subject_tags` | **Étiquettes** — descriptif uniquement, pas de filtrage modèle |
+| `subject_tags` | **Retiré** — étiquettes descriptives supprimées (table droppée, pas de surface API/UI) |
 | Colonne modèles index `/modeles` | **Domaines** (plus « Tags ») — aligner placeholder recherche |
 | Libellé conteneur (org) | Preset `ui_subject_label` ∈ {**projet** (défaut produit), sujet, cible, entite, asset}. Code/API restent `subjects` ; l’UI dit **Projet(s)** par défaut. `sujet` reste disponible (ton audit). **Schéma** : CHECK/DEFAULT SQL encore sur `sujet` sans `projet` — migration `area:data` requise pour persister le preset. Consommation front partielle (`uiLabels.ts`) ; pas encore d'écran admin. |
 | Item `nok` | **Non validé** (code `nok` inchangé) |
@@ -140,14 +141,14 @@ Principes :
 - Destructif (archiver, actions irréversibles de formulaire) : `variant="danger"` + `confirm()`
 - Row-actions « Retirer » (membre / équipe / email) : **`ghost` + `confirm()`** — exception Basecamp ; pas `danger` en masse dans les tableaux
 - Info essentielle : `hint` / `.field-hint`, pas placeholder seul
-- Domaines / étiquettes sujet : **`<details>` options avancées** (formulaire et fiche)
+- Domaines sujet : **`<details>` options avancées** (formulaire et fiche)
 - **Icônes d’action** : SVG inline minimal (paths courts, classe `.icon`) — **pas** de lib npm, webfont, emoji ni composants icon lourds. CTA header = **icône + libellé** ; row-actions denses = lien/bouton `icon-only` / `.row-action` + `aria-label` (+ `title`) ; actions dangereuses / clôture **gardent le texte**. Pas d’icônes dans la nav, badges ou empty states.
 
 ## Design system (`@jeb-maker/mb`)
 
 | Sujet | Décision |
 |-------|----------|
-| Version consommée | **`0.4.1`** (tag Git `v0.4.1`) |
+| Version consommée | **`0.5.1`** (tag Git `v0.5.1`) |
 | Tokens | **`tokens-core.css`** (+ `mb-bridge.css`), injectés par `ensureMb()` depuis le layout racine — pas de `tokens.css` (évite reset `html`/`body`) ni `typography.css`/woff2 (budget) |
 | JS | `mb-boot.js` sous `web/static/vendor/jeb-maker-mb/` (Lit bundlé) — vendor mesuré hors budget app (`check.sh`) ; chargé par `ensureMb()` |
 | Shell + formulaires | Cible `mb-*` (button, alert, badge, input, textarea, tag, empty-state, spinner, table, **card**…) — fiches (`/modeles/{id}`, `/subjects/{id}`, `/runs/{id}`, fiche point) en `mb-card` + `.card-stack` ; listes = tableau + header row ; nav / breadcrumbs / toolbar / modal / toast encore à venir |

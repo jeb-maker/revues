@@ -786,13 +786,10 @@ type SubjectDetail struct {
 	Description  string              `json:"description"`
 
 	// Domains Domaines de matching modèles (pas d'accès)
-	Domains []string        `json:"domains"`
-	Id      int64           `json:"id"`
-	Members []SubjectMember `json:"members"`
-	Name    string          `json:"name"`
-
-	// Tags Étiquettes descriptives (pas d'accès)
-	Tags       []string                `json:"tags"`
+	Domains    []string                `json:"domains"`
+	Id         int64                   `json:"id"`
+	Members    []SubjectMember         `json:"members"`
+	Name       string                  `json:"name"`
 	Visibility SubjectDetailVisibility `json:"visibility"`
 }
 
@@ -843,7 +840,6 @@ type SubjectWriteRequest struct {
 	// Domains Domaines de matching (CSV côté legacy)
 	Domains *[]string `json:"domains,omitempty"`
 	Name    string    `json:"name"`
-	Tags    *[]string `json:"tags,omitempty"`
 
 	// Visibility Ignoré si CanSetSubjectVisibility est faux
 	Visibility *SubjectWriteRequestVisibility `json:"visibility,omitempty"`

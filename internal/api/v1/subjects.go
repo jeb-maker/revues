@@ -88,16 +88,10 @@ func (s *Server) CreateSubject(w http.ResponseWriter, r *http.Request) {
 		description = strings.TrimSpace(*req.Description)
 	}
 	domains := normalizeOptionalTags(req.Domains)
-	tags := normalizeOptionalTags(req.Tags)
 
 	subject, err := s.Store.CreateSubjectWithVisibility(r.Context(), name, description, user.ID, domains, visibility)
 	if err != nil {
 		slog.Error("create subject", "err", err)
-		writeAPIError(w, http.StatusInternalServerError, "internal_error", "Erreur interne.")
-		return
-	}
-	if err := s.Store.SetSubjectTags(r.Context(), subject.ID, tags); err != nil {
-		slog.Error("set subject tags", "err", err)
 		writeAPIError(w, http.StatusInternalServerError, "internal_error", "Erreur interne.")
 		return
 	}
@@ -161,7 +155,6 @@ func (s *Server) UpdateSubject(w http.ResponseWriter, r *http.Request, subjectID
 		description = strings.TrimSpace(*req.Description)
 	}
 	domains := normalizeOptionalTags(req.Domains)
-	tags := normalizeOptionalTags(req.Tags)
 
 	if err := s.Store.UpdateSubjectWithVisibility(r.Context(), subject.ID, name, description, domains, visibility); err != nil {
 		if errors.Is(err, store.ErrSubjectNotFound) {
@@ -178,11 +171,6 @@ func (s *Server) UpdateSubject(w http.ResponseWriter, r *http.Request, subjectID
 			writeAPIError(w, http.StatusInternalServerError, "internal_error", "Erreur interne.")
 			return
 		}
-	}
-	if err := s.Store.SetSubjectTags(r.Context(), subject.ID, tags); err != nil {
-		slog.Error("set subject tags", "err", err)
-		writeAPIError(w, http.StatusInternalServerError, "internal_error", "Erreur interne.")
-		return
 	}
 
 	updated, err := s.Store.SubjectByID(r.Context(), subject.ID)
@@ -375,12 +363,6 @@ func (s *Server) buildSubjectDetail(w http.ResponseWriter, r *http.Request, subj
 		writeAPIError(w, http.StatusInternalServerError, "internal_error", "Erreur interne.")
 		return SubjectDetail{}, false
 	}
-	tags, err := s.Store.ListSubjectTags(r.Context(), subject.ID)
-	if err != nil {
-		slog.Error("list subject tags", "err", err)
-		writeAPIError(w, http.StatusInternalServerError, "internal_error", "Erreur interne.")
-		return SubjectDetail{}, false
-	}
 	members, err := s.Store.ListDirectSubjectMembers(r.Context(), subject.ID)
 	if err != nil {
 		slog.Error("list subject members", "err", err)
@@ -389,9 +371,6 @@ func (s *Server) buildSubjectDetail(w http.ResponseWriter, r *http.Request, subj
 	}
 	if domains == nil {
 		domains = []string{}
-	}
-	if tags == nil {
-		tags = []string{}
 	}
 
 	orgRole, orgMember := s.orgMembership(r, user.ID)
@@ -409,7 +388,6 @@ func (s *Server) buildSubjectDetail(w http.ResponseWriter, r *http.Request, subj
 		Description: subject.Description,
 		Visibility:  SubjectDetailVisibility(subject.Visibility),
 		Domains:     domains,
-		Tags:        tags,
 		Members:     mapMembers(members),
 		Access: SubjectAccessInfo{
 			Role:    access.Role,

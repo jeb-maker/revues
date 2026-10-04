@@ -15,7 +15,6 @@
 	let name = $state('');
 	let description = $state('');
 	let domains = $state('');
-	let tags = $state('');
 	let visibility = $state<'normal' | 'private'>('normal');
 	let error = $state('');
 	let loading = $state(false);
@@ -49,8 +48,7 @@
 			const body: Parameters<typeof createSubject>[0] = {
 				name: name.trim(),
 				description: description.trim(),
-				domains: splitCSV(domains),
-				tags: splitCSV(tags)
+				domains: splitCSV(domains)
 			};
 			if (canSetVisibility) {
 				body.visibility = visibility;
@@ -108,13 +106,6 @@
 								name="domains"
 								value={domains}
 								oninput={(e) => (domains = inputValue(e))}
-							></mb-input>
-							<mb-input
-								label="Étiquettes"
-								hint="Séparées par des virgules, ex. prio, beta."
-								name="tags"
-								value={tags}
-								oninput={(e) => (tags = inputValue(e))}
 							></mb-input>
 							{#if canSetVisibility}
 								<mb-select

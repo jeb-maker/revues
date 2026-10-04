@@ -20,7 +20,7 @@ tags:
 - name: admin
   description: Administration organisation — membres, invitations, équipes, politiques
 - name: subjects
-  description: Sujets (CRUD, membres, domaines, étiquettes)
+  description: Sujets (CRUD, membres, domaines)
 - name: templates
   description: Modèles de check-list versionnés (catalogue + éditeur)
 - name: runs
@@ -145,10 +145,11 @@ paths:
       - search
       summary: Recherche multi-entités
       description: |
-        Auth + org active. Agrège sujets, revues, modèles et tâches assignées
-        avec le même RBAC / filtres de visibilité que les listes correspondantes.
-        `template` omis si l'appelant n'a pas `show_modeles` (editor+).
-        `task` omis si `show_my_tasks` est faux (org à moins de 2 membres).
+        Auth + org active. Agrège sujets, revues, modèles (et tâches assignées
+        quand la feature est réactivée) avec le même RBAC / filtres de visibilité
+        que les listes correspondantes.
+        `template` omis si l'appelant n'est pas membre org.
+        `task` omis tant que l'assignation / Mes tâches est désactivée produit.
         v1 : `LIKE` via `searchTerms` (pas de FTS5).
       parameters:
       - name: q
@@ -454,7 +455,7 @@ paths:
       summary: Créer un sujet
       description: 'Auth + CanCreateSubject (editor+). CSRF requis. Domaines = matching
 
-        modèles ; tags = classification descriptive (jamais d''accès).
+        modèles (jamais d''accès).
 
         '
       requestBody:
@@ -488,7 +489,7 @@ paths:
       summary: Détail d'un sujet
       description: 'Auth + CanViewAccess. Absent ou non visible → 404 (IDOR).
 
-        Inclut domaines, tags, membres directs et capacités UI.
+        Inclut domaines, membres directs et capacités UI.
 
         '
       responses:
@@ -2534,11 +2535,6 @@ components:
           items:
             type: string
           description: Domaines de matching modèles (pas d'accès)
-        tags:
-          type: array
-          items:
-            type: string
-          description: Étiquettes descriptives (pas d'accès)
         members:
           type: array
           items:
@@ -2562,10 +2558,6 @@ components:
           items:
             type: string
           description: Domaines de matching (CSV côté legacy)
-        tags:
-          type: array
-          items:
-            type: string
         visibility:
           type: string
           enum:

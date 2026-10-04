@@ -145,7 +145,9 @@
 	const hasPrev = $derived(offset > 0);
 	const hasNext = $derived(offset + PAGE_SIZE < total);
 	const tableColumns = $derived(
-		boot.show_subject_column ? '2fr 1.1fr 0.8fr 0.9fr 0.7fr auto' : '2fr 0.8fr 0.9fr 0.7fr auto'
+		boot.show_subject_column
+			? '2fr 1.1fr 0.8fr 0.9fr 0.7fr 2.75rem'
+			: '2fr 0.8fr 0.9fr 0.7fr 2.75rem'
 	);
 </script>
 
@@ -202,7 +204,6 @@
 	{:else}
 		<mb-table
 			columns={tableColumns}
-			sticky-header
 			sort-key={sortKey}
 			sort-direction={sortDirection}
 			sort-label="Trier par {name}"
@@ -213,10 +214,10 @@
 				{#if boot.show_subject_column}
 					<mb-table-cell sort-key="sujet">{subject.singular}</mb-table-cell>
 				{/if}
-				<mb-table-cell sort-key="date">Date</mb-table-cell>
-				<mb-table-cell sort-key="statut">Statut</mb-table-cell>
-				<mb-table-cell sort-key="progression">Progression</mb-table-cell>
-				<mb-table-cell actions>Actions</mb-table-cell>
+				<mb-table-cell sort-key="date" align="center">Date</mb-table-cell>
+				<mb-table-cell sort-key="statut" align="center">Statut</mb-table-cell>
+				<mb-table-cell sort-key="progression" align="center">Progression</mb-table-cell>
+				<mb-table-cell actions><span class="sr-only">Actions</span></mb-table-cell>
 			</mb-table-row>
 			{#each displayed as item (item.id)}
 				<mb-table-row>
@@ -228,13 +229,17 @@
 							>{item.subject_name}</mb-table-cell
 						>
 					{/if}
-					<mb-table-cell label="Date" sort-value={item.created_at}>
+					<mb-table-cell label="Date" align="center" sort-value={item.created_at}>
 						<span class="date">{formatCreatedDate(item.created_at)}</span>
 					</mb-table-cell>
-					<mb-table-cell label="Statut" sort-value={item.status}>
+					<mb-table-cell label="Statut" align="center" sort-value={item.status}>
 						<mb-badge variant={runStatusVariant(item.status)}>{formatRunStatus(item.status)}</mb-badge>
 					</mb-table-cell>
-					<mb-table-cell label="Progression" sort-value={String(item.progress.percent).padStart(3, '0')}>
+					<mb-table-cell
+						label="Progression"
+						align="center"
+						sort-value={String(item.progress.percent).padStart(3, '0')}
+					>
 						<span class="pct">{item.progress.percent} %</span>
 					</mb-table-cell>
 					<mb-table-cell actions>

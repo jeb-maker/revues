@@ -99,10 +99,11 @@ export interface paths {
         };
         /**
          * Recherche multi-entités
-         * @description Auth + org active. Agrège sujets, revues, modèles et tâches assignées
-         *     avec le même RBAC / filtres de visibilité que les listes correspondantes.
-         *     `template` omis si l'appelant n'a pas `show_modeles` (editor+).
-         *     `task` omis si `show_my_tasks` est faux (org à moins de 2 membres).
+         * @description Auth + org active. Agrège sujets, revues, modèles (et tâches assignées
+         *     quand la feature est réactivée) avec le même RBAC / filtres de visibilité
+         *     que les listes correspondantes.
+         *     `template` omis si l'appelant n'est pas membre org.
+         *     `task` omis tant que l'assignation / Mes tâches est désactivée produit.
          *     v1 : `LIKE` via `searchTerms` (pas de FTS5).
          */
         get: operations["getSearch"];
@@ -287,7 +288,7 @@ export interface paths {
         /**
          * Créer un sujet
          * @description Auth + CanCreateSubject (editor+). CSRF requis. Domaines = matching
-         *     modèles ; tags = classification descriptive (jamais d'accès).
+         *     modèles (jamais d'accès).
          */
         post: operations["createSubject"];
         delete?: never;
@@ -308,7 +309,7 @@ export interface paths {
         /**
          * Détail d'un sujet
          * @description Auth + CanViewAccess. Absent ou non visible → 404 (IDOR).
-         *     Inclut domaines, tags, membres directs et capacités UI.
+         *     Inclut domaines, membres directs et capacités UI.
          */
         get: operations["getSubject"];
         put?: never;
@@ -1415,8 +1416,6 @@ export interface components {
             visibility: "normal" | "private";
             /** @description Domaines de matching modèles (pas d'accès) */
             domains: string[];
-            /** @description Étiquettes descriptives (pas d'accès) */
-            tags: string[];
             members: components["schemas"]["SubjectMember"][];
             access: components["schemas"]["SubjectAccessInfo"];
             capabilities: components["schemas"]["SubjectCapabilities"];
@@ -1426,7 +1425,6 @@ export interface components {
             description?: string;
             /** @description Domaines de matching (CSV côté legacy) */
             domains?: string[];
-            tags?: string[];
             /**
              * @description Ignoré si CanSetSubjectVisibility est faux
              * @enum {string}

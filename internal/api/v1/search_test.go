@@ -113,17 +113,14 @@ func TestSearchAPI_MultiKindRBACAndGuards(t *testing.T) {
 		}
 	}
 
-	// Assignee: task hit + same org entities
+	// Assignee: kind=task désactivé produit (assign / Mes tâches off) — hits sujet/run toujours OK
 	assigneeRec := doJSON(t, handler, http.MethodGet, "/api/v1/search?q=AlphaSearch", nil, assigneeSession, "")
 	if assigneeRec.Code != http.StatusOK {
 		t.Fatalf("assignee search status = %d body=%s", assigneeRec.Code, assigneeRec.Body.String())
 	}
 	assigneeKinds := resultKinds(t, mustJSONMap(t, assigneeRec.Body.Bytes()))
-	if !assigneeKinds["task"] {
-		t.Fatalf("assignee missing task in %s", assigneeRec.Body.String())
-	}
-	if !strings.Contains(assigneeRec.Body.String(), fmt.Sprintf(`/runs/%d/items/%d`, runID, itemID)) {
-		t.Fatalf("assignee task href missing: %s", assigneeRec.Body.String())
+	if assigneeKinds["task"] {
+		t.Fatalf("task search should be disabled, got %s", assigneeRec.Body.String())
 	}
 
 	// Org member without project grant: templates OK ; sujet/run absents
