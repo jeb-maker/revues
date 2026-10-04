@@ -174,7 +174,8 @@ main:focus {
 
 .page {
 	width: 100%;
-	padding: var(--mb-space-5) var(--mb-space-4) var(--mb-space-8);
+	/* Top plus serré : le fil d’Ariane colle à la nav ; l’air va sous les crumbs. */
+	padding: var(--mb-space-3) var(--mb-space-4) var(--mb-space-8);
 }
 
 .page--narrow {
@@ -286,7 +287,7 @@ main:focus {
 }
 
 .crumbs {
-	margin: 0 0 var(--mb-space-2);
+	margin: 0 0 var(--mb-space-4);
 	font-size: var(--mb-font-size-sm);
 	color: var(--mb-color-muted);
 }
