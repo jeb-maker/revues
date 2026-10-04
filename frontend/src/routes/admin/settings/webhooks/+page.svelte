@@ -249,9 +249,14 @@
 													type="button"
 													variant="ghost"
 													size="sm"
+													icon-only
+													aria-label="Relancer"
+													title="Relancer"
 													onclick={() => onRetry(d.id)}
 												>
-													Relancer
+													<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"
+														><path d="M21 12a9 9 0 1 1-2.64-6.36M21 3v6h-6" /></svg
+													>
 												</mb-button>
 											{/if}
 										</td>

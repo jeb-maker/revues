@@ -9,7 +9,6 @@
 		type AdminTeamDetailResponse
 	} from '$lib/api/admin';
 	import { session } from '$lib/auth/session';
-
 	const csrf = session().csrf_token;
 
 	let detail = $state<AdminTeamDetailResponse | null>(null);
@@ -123,9 +122,16 @@
 									type="button"
 									variant="ghost"
 									size="sm"
+									icon-only
+									aria-label="Retirer"
+									title="Retirer"
 									onclick={() => onRemove(m.user_id, m.display_name || m.login)}
 								>
-									Retirer
+									<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"
+										><path
+											d="M3 6h18M8 6V4h8v2M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M10 11v6M14 11v6"
+										/></svg
+									>
 								</mb-button>
 							</li>
 						{/each}

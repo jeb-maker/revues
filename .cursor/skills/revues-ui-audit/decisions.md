@@ -137,6 +137,7 @@ Principes :
 - Row-actions « Retirer » (membre / équipe / email) : **`ghost` + `confirm()`** — exception Basecamp ; pas `danger` en masse dans les tableaux
 - Info essentielle : `hint` / `.field-hint`, pas placeholder seul
 - Domaines / étiquettes sujet : **`<details>` options avancées** (formulaire et fiche)
+- **Icônes d’action** : SVG inline minimal (paths courts, classe `.icon`) — **pas** de lib npm, webfont, emoji ni composants icon lourds. CTA header = **icône + libellé** ; row-actions denses = lien/bouton `icon-only` / `.row-action` + `aria-label` (+ `title`) ; actions dangereuses / clôture **gardent le texte**. Pas d’icônes dans la nav, badges ou empty states.
 
 ## Design system (`@jeb-maker/mb`)
 

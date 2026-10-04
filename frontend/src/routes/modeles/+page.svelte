@@ -10,6 +10,7 @@
 	const boot = session();
 	const canManage = boot.can_edit;
 	const templatesLabel = $derived(templateNavLabel(boot.organization?.ui_run_label));
+	const newTemplateCTA = $derived(templatesLabel === 'Listes' ? 'Nouvelle liste' : 'Nouveau modèle');
 
 	let templates = $state<TemplateSummary[]>([]);
 	let error = $state('');
@@ -47,7 +48,12 @@
 			<h1>{templatesLabel}</h1>
 			{#if canManage}
 				<p class="actions page-header__actions">
-					<mb-button variant="primary" href="/modeles/new">Nouveau</mb-button>
+					<mb-button variant="primary" href="/modeles/new">
+						<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"
+							><path d="M12 5v14M5 12h14" /></svg
+						>
+						{newTemplateCTA}
+					</mb-button>
 				</p>
 			{/if}
 		</div>
@@ -87,11 +93,35 @@
 						{/if}
 					</mb-table-cell>
 					<mb-table-cell actions>
-						<a href={`/modeles/${t.id}`}>Ouvrir</a>
-						<a href={`/subjects?template_id=${t.id}`}>Lancer</a>
-						{#if canManage}
-							<a href={`/modeles/${t.id}/edit`}>Éditer</a>
-						{/if}
+						<span class="row-actions">
+							<a class="row-action" href={`/modeles/${t.id}`} aria-label="Ouvrir" title="Ouvrir">
+								<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"
+									><path d="M5 12h14M13 6l6 6-6 6" /></svg
+								>
+							</a>
+							<a
+								class="row-action"
+								href={`/subjects?template_id=${t.id}`}
+								aria-label="Lancer"
+								title="Lancer"
+							>
+								<svg class="icon icon--fill" viewBox="0 0 24 24" aria-hidden="true"
+									><path d="M8 5v14l11-7z" /></svg
+								>
+							</a>
+							{#if canManage}
+								<a
+									class="row-action"
+									href={`/modeles/${t.id}/edit`}
+									aria-label="Éditer"
+									title="Éditer"
+								>
+									<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"
+										><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" /></svg
+									>
+								</a>
+							{/if}
+						</span>
 					</mb-table-cell>
 				</mb-table-row>
 			{/each}

@@ -157,7 +157,7 @@
 							<option value={opt.value}>{opt.label}</option>
 						{/each}
 					</mb-select>
-					<mb-button type="submit" variant="primary" loading={inviting}>Inviter</mb-button>
+					<mb-button type="submit" variant="primary" disabled={inviting}>Inviter</mb-button>
 				</form>
 			</section>
 
@@ -186,10 +186,15 @@
 											<mb-button
 												variant="ghost"
 												size="sm"
-												loading={revokingId === inv.id}
+												icon-only
+												disabled={revokingId === inv.id}
+												aria-label="Révoquer"
+												title="Révoquer"
 												onclick={() => onRevoke(inv.id)}
 											>
-												Révoquer
+												<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"
+													><path d="M18 6 6 18M6 6l12 12" /></svg
+												>
 											</mb-button>
 										</td>
 									</tr>

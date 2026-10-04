@@ -103,9 +103,9 @@ fi
 # Budgets documentés dans docs/PLAN.md (WP-005). Vendor mb mesuré, hors fail.
 # Mesuré (PR-B shell + thème app.css) : JS 240 KiB / 104 KiB gz ; CSS 9,2 KiB / 3,1 KiB gz — marge ~10 %.
 SPA_JS_RAW_MAX=270336      # 264 KiB — stack + Jira/Webhooks
-SPA_JS_GZIP_MAX=114688     # 112 KiB gzip-9 — stack + Jira/Webhooks
-SPA_CSS_RAW_MAX=13312      # 13 KiB — app.css (+ page-header/filters) + TemplateEditor + styles locaux
-SPA_CSS_GZIP_MAX=4096      # 4 KiB gzip-9
+SPA_JS_GZIP_MAX=115712     # 113 KiB gzip-9 — stack + Jira/Webhooks + icônes d'action SVG
+SPA_CSS_RAW_MAX=14336      # 14 KiB — app.css (+ page-header/filters/icônes) + TemplateEditor + styles locaux
+SPA_CSS_GZIP_MAX=4608      # 4,5 KiB gzip-9
 
 if [[ -f frontend/package.json ]]; then
   if command -v npm >/dev/null 2>&1; then

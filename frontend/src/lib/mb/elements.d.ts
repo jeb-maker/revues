@@ -22,6 +22,7 @@ declare module 'svelte/elements' {
 		checked?: boolean | string | null;
 		loading?: boolean | string | null;
 		open?: boolean | string | null;
+		'icon-only'?: boolean | string | null;
 		href?: string;
 		target?: string;
 		rel?: string;
