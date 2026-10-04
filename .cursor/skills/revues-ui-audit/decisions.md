@@ -17,7 +17,7 @@ Stack (octobre 2026) : SvelteKit SPA + `@jeb-maker/mb`, API JSON `/api/v1`. Rout
 | CTA liste `/modeles` | **Oui** — row-action « Lancer » (lien, pas primary) → `/subjects?template_id=` — même flux que la fiche. |
 | Stepper wizard | **Supprimé** — fil d'Ariane ; **2 étapes** (sujet → modèle via `/subjects/{id}/launch`, clic = lancer) |
 | Titre de page (H1) | **Visible** — `.page-title` = dernier crumb |
-| Fil d'Ariane | **Ancêtres seulement** (≥ 2 niveaux) ; **absent** sur pages racine (1 crumb) — le courant = H1 |
+| Fil d'Ariane | **Ancêtres seulement** (≥ 2 niveaux) ; **absent** sur pages racine (1 crumb) — le courant = H1. **Toujours pleine largeur de `.page`** — ne pas l’embarquer dans `.page--narrow` (le formulaire seul se centre). |
 | Saisie points (revue en cours) | **Sans confirm** sur changement de statut ; confirm **uniquement** à la clôture |
 | Clôturer | `mb-button` **primary** + `confirm()` ; pas `variant="danger"` |
 | Fiche point | **Satellite** PJ / Jira / historique / assign — saisie **statut** aussi en grille sur la fiche revue ; lien **Détails** pour le reste |

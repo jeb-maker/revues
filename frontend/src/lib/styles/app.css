@@ -182,6 +182,11 @@ main:focus {
 	margin-inline: auto;
 }
 
+/* Autorise page--narrow sur un enfant (ex. form) sans double padding .page */
+.page > .page--narrow {
+	width: 100%;
+}
+
 .page--wide {
 	max-width: none;
 }

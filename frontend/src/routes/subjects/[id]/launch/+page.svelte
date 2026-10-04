@@ -67,7 +67,7 @@
 	<title>Lancer une revue — {subject?.name ?? 'Sujet'}</title>
 </svelte:head>
 
-<div class="page page--narrow">
+<div class="page">
 	<p class="crumbs">
 		<a href="/subjects">Sujets</a>
 		{#if subject}
@@ -78,7 +78,7 @@
 	{#if loading}
 		<p class="loading"><mb-spinner label="Chargement"></mb-spinner> Chargement…</p>
 	{:else}
-		<form onsubmit={onLaunch}>
+		<form class="page--narrow" onsubmit={onLaunch}>
 			<div class="card-stack">
 				<mb-card>
 					<h1 slot="header">Lancer une revue</h1>
