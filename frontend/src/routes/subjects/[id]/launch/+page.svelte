@@ -68,61 +68,65 @@
 </svelte:head>
 
 <div class="page page--narrow">
-	<header class="page-header">
-		<p class="crumbs">
-			<a href="/subjects">Sujets</a>
-			{#if subject}
-				· <a href={`/subjects/${subject.id}`}>{subject.name}</a>
-			{/if}
-			· Lancer
-		</p>
-		<h1>Lancer une revue</h1>
-		<p class="lede">Les points du modèle choisi sont copiés tels quels au lancement.</p>
-	</header>
-
-	{#if error}
-		<mb-alert variant="danger">{error}</mb-alert>
-	{/if}
+	<p class="crumbs">
+		<a href="/subjects">Sujets</a>
+		{#if subject}
+			· <a href={`/subjects/${subject.id}`}>{subject.name}</a>
+		{/if}
+	</p>
 
 	{#if loading}
 		<p class="loading"><mb-spinner label="Chargement"></mb-spinner> Chargement…</p>
-	{:else if !canLaunch}
-		<p class="muted">Vous n’avez pas les droits pour lancer une revue sur ce sujet.</p>
-	{:else if templates.length === 0}
-		<p class="muted">
-			Aucun modèle compatible (domaines). Créez ou étendez un <a href="/modeles">modèle</a>.
-		</p>
 	{:else}
 		<form onsubmit={onLaunch}>
 			<div class="card-stack">
 				<mb-card>
-					<h2 slot="header">Lancement</h2>
+					<h1 slot="header">Lancer une revue</h1>
 					<div class="stack-form">
-						<mb-select
-							label="Modèle"
-							required
-							placeholder="Choisir…"
-							value={templateId}
-							onmb-change={(e) => (templateId = e.detail.value)}
-						>
-							{#each templates as t (t.id)}
-								<option value={String(t.id)}>{t.name} · v{t.latest_version} · {t.item_count} points</option>
-							{/each}
-						</mb-select>
-						<mb-input
-							label="Échéance"
-							hint="Optionnel — déclenche le rappel J-1."
-							type="date"
-							value={dueDate}
-							oninput={(e) => (dueDate = inputValue(e))}
-						></mb-input>
+						<p class="lede">Les points du modèle choisi sont copiés tels quels au lancement.</p>
+
+						{#if error}
+							<mb-alert variant="danger">{error}</mb-alert>
+						{/if}
+
+						{#if !canLaunch}
+							<p class="muted">Vous n’avez pas les droits pour lancer une revue sur ce sujet.</p>
+						{:else if templates.length === 0}
+							<p class="muted">
+								Aucun modèle compatible (domaines). Créez ou étendez un
+								<a href="/modeles">modèle</a>.
+							</p>
+						{:else}
+							<mb-select
+								label="Modèle"
+								required
+								placeholder="Choisir…"
+								value={templateId}
+								onmb-change={(e) => (templateId = e.detail.value)}
+							>
+								{#each templates as t (t.id)}
+									<option value={String(t.id)}>{t.name} · v{t.latest_version} · {t.item_count} points</option>
+								{/each}
+							</mb-select>
+							<mb-input
+								label="Échéance"
+								hint="Optionnel — déclenche le rappel J-1."
+								type="date"
+								value={dueDate}
+								oninput={(e) => (dueDate = inputValue(e))}
+							></mb-input>
+						{/if}
 					</div>
-					<div slot="footer" class="actions">
-						<mb-button type="submit" variant="primary" loading={launching}>
-							{launching ? 'Lancement…' : 'Lancer'}
-						</mb-button>
+					<div slot="footer" class="actions actions--stack">
+						{#if canLaunch && templates.length > 0}
+							<mb-button type="submit" variant="primary" loading={launching}>
+								{launching ? 'Lancement…' : 'Lancer'}
+							</mb-button>
+						{/if}
 						{#if subject}
-							<a href={`/subjects/${subject.id}`}>Annuler</a>
+							<mb-button href={`/subjects/${subject.id}`} variant="secondary">Annuler</mb-button>
+						{:else}
+							<mb-button href="/subjects" variant="secondary">Annuler</mb-button>
 						{/if}
 					</div>
 				</mb-card>

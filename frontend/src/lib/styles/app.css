@@ -5,7 +5,7 @@
   Classes hôte partagées (.cursor/rules/design.md) : .page, .page-header,
   .page-header__row, .page-header__actions, .lede, .muted, .actions, .filters,
   .filters__count, .stack-form, .field-hint, .field-error, .table-scroll,
-  .card-stack, .page--auth, .auth-card.
+  .card-stack, .page--auth, .auth-card, .actions--stack.
 */
 
 *,
@@ -293,6 +293,11 @@ main:focus {
 	color: var(--mb-color-muted);
 }
 
+.stack-form > .lede {
+	margin: 0;
+	max-width: none;
+}
+
 .muted {
 	color: var(--mb-color-muted);
 }
@@ -320,6 +325,24 @@ main:focus {
 
 .card-stack .actions {
 	margin: 0;
+}
+
+/* CTA empilés pleine largeur (ex. page launch). */
+.actions--stack {
+	flex-direction: column;
+	align-items: stretch;
+	flex-wrap: nowrap;
+}
+
+.actions--stack mb-button {
+	display: block;
+	width: 100%;
+}
+
+.actions--stack mb-button::part(base) {
+	display: flex;
+	width: 100%;
+	max-inline-size: none;
 }
 
 .meta-row {
