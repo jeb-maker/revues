@@ -173,7 +173,11 @@
 						<span class="pct">{item.progress.percent} %</span>
 					</mb-table-cell>
 					<mb-table-cell actions>
-						<a href={`/runs/${item.id}`}>Ouvrir</a>
+						<a class="row-action" href={`/runs/${item.id}`} aria-label="Ouvrir" title="Ouvrir">
+							<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"
+								><path d="M5 12h14M13 6l6 6-6 6" /></svg
+							>
+						</a>
 					</mb-table-cell>
 				</mb-table-row>
 			{/each}

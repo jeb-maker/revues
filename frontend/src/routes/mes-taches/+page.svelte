@@ -116,7 +116,16 @@
 						<mb-badge variant={itemStatusVariant(task.status)}>{formatItemStatus(task.status)}</mb-badge>
 					</mb-table-cell>
 					<mb-table-cell actions>
-						<a href={`/runs/${task.run_id}/items/${task.id}`}>Ouvrir</a>
+						<a
+							class="row-action"
+							href={`/runs/${task.run_id}/items/${task.id}`}
+							aria-label="Ouvrir"
+							title="Ouvrir"
+						>
+							<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"
+								><path d="M5 12h14M13 6l6 6-6 6" /></svg
+							>
+						</a>
 					</mb-table-cell>
 				</mb-table-row>
 			{/each}
