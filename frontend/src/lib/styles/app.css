@@ -174,8 +174,16 @@ main:focus {
 
 .page {
 	width: 100%;
-	/* Top plus serré : le fil d’Ariane colle à la nav ; l’air va sous les crumbs. */
-	padding: var(--mb-space-3) var(--mb-space-4) var(--mb-space-8);
+	/* Bande crumbs réservée : même rythme vertical avec ou sans fil d’Ariane. */
+	--page-crumbs-band: calc(
+		var(--mb-font-size-sm, 0.875rem) * var(--mb-line-height, 1.5) + var(--mb-space-4)
+	);
+	padding: calc(var(--mb-space-3) + var(--page-crumbs-band)) var(--mb-space-4) var(--mb-space-8);
+}
+
+/* Fil présent : la bande est consommée par .crumbs, plus de réserve en padding. */
+.page:has(.crumbs) {
+	padding-top: var(--mb-space-3);
 }
 
 .page--narrow {
