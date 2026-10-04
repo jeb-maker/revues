@@ -126,21 +126,21 @@ func TestSearchAPI_MultiKindRBACAndGuards(t *testing.T) {
 		t.Fatalf("assignee task href missing: %s", assigneeRec.Body.String())
 	}
 
-	// Reader: no templates (show_modeles = editor+) ; sujet gated sans grant → absent
+	// Org member without project grant: templates OK ; sujet/run absents
 	readerRec := doJSON(t, handler, http.MethodGet, "/api/v1/search?q=AlphaSearch", nil, readerSession, "")
 	if readerRec.Code != http.StatusOK {
 		t.Fatalf("reader search status = %d body=%s", readerRec.Code, readerRec.Body.String())
 	}
 	readerBody := mustJSONMap(t, readerRec.Body.Bytes())
 	readerKinds := resultKinds(t, readerBody)
-	if readerKinds["template"] {
-		t.Fatalf("reader should not see templates: %s", readerRec.Body.String())
+	if !readerKinds["template"] {
+		t.Fatalf("org member should see templates: %s", readerRec.Body.String())
 	}
 	if readerKinds["subject"] || readerKinds["run"] {
-		t.Fatalf("reader without grant must not see gated subject/run: %s", readerRec.Body.String())
+		t.Fatalf("member without grant must not see gated subject/run: %s", readerRec.Body.String())
 	}
 
-	// Ungated subject visible to any org member including reader
+	// Subject with only creator lead: other members do not see it
 	openRec := doJSON(t, handler, http.MethodPost, "/api/v1/subjects", map[string]any{
 		"name":    "Ouvert AlphaSearchOpen",
 		"domains": []string{"alpha-domain"},
@@ -149,8 +149,11 @@ func TestSearchAPI_MultiKindRBACAndGuards(t *testing.T) {
 		t.Fatalf("create open subject status = %d body=%s", openRec.Code, openRec.Body.String())
 	}
 	readerOpen := doJSON(t, handler, http.MethodGet, "/api/v1/search?q=AlphaSearchOpen", nil, readerSession, "")
-	if readerOpen.Code != http.StatusOK || !strings.Contains(readerOpen.Body.String(), "Ouvert AlphaSearchOpen") {
-		t.Fatalf("reader should see ungated subject: status=%d body=%s", readerOpen.Code, readerOpen.Body.String())
+	if readerOpen.Code != http.StatusOK {
+		t.Fatalf("reader open search status=%d body=%s", readerOpen.Code, readerOpen.Body.String())
+	}
+	if strings.Contains(readerOpen.Body.String(), "Ouvert AlphaSearchOpen") {
+		t.Fatalf("member without grant must not see creator-only subject: %s", readerOpen.Body.String())
 	}
 
 	// IDOR: private subject in same org not visible to non-member

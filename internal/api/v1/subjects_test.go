@@ -235,7 +235,7 @@ func TestSubjectsAPI_IDOR_PrivateSubject(t *testing.T) {
 	_ = lead
 }
 
-func TestSubjectsAPI_ReaderCannotCreate(t *testing.T) {
+func TestSubjectsAPI_OrgMemberCanCreate(t *testing.T) {
 	t.Parallel()
 
 	cfg := config.Config{
@@ -243,11 +243,11 @@ func TestSubjectsAPI_ReaderCannotCreate(t *testing.T) {
 		Env:           "development",
 	}
 	handler, st := newTestRouterWithStore(t, cfg)
-	_, session, csrf := seedSessionUser(t, st, cfg, "reader@example.com", "Reader", auth.RoleReader, true)
+	_, session, csrf := seedSessionUser(t, st, cfg, "member-create@example.com", "Member", auth.RoleEditor, true)
 
-	rec := doJSON(t, handler, http.MethodPost, "/api/v1/subjects", map[string]any{"name": "Nope"}, session, csrf)
-	if rec.Code != http.StatusForbidden {
-		t.Fatalf("reader create status = %d body=%s", rec.Code, rec.Body.String())
+	rec := doJSON(t, handler, http.MethodPost, "/api/v1/subjects", map[string]any{"name": "Projet membre"}, session, csrf)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("member create status = %d body=%s", rec.Code, rec.Body.String())
 	}
 }
 
@@ -274,7 +274,12 @@ func seedSessionUser(t *testing.T, st *store.Store, cfg config.Config, email, na
 	orgID := int64(0)
 	if joinDefault {
 		orgID = mustDefaultOrgID(t, st)
-		if err = st.AddOrganizationMember(ctx, orgID, user.ID, store.OrgRoleMember); err != nil {
+		orgRole := store.OrgRoleMember
+		if role == auth.RoleAdmin {
+			// Tests that pass RoleAdmin expect org governance rights (no global admin).
+			orgRole = store.OrgRoleOwner
+		}
+		if err = st.AddOrganizationMember(ctx, orgID, user.ID, orgRole); err != nil {
 			t.Fatalf("AddOrganizationMember: %v", err)
 		}
 	}

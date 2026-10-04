@@ -17,10 +17,9 @@ func TestCanLaunch(t *testing.T) {
 		orgMember bool
 		want      bool
 	}{
-		{"admin", auth.RoleAdmin, false, true},
-		{"editor org member", auth.RoleEditor, true, true},
-		{"editor outsider", auth.RoleEditor, false, false},
-		{"reader org member", auth.RoleReader, true, false},
+		{"org member", auth.RoleEditor, true, true},
+		{"outsider", auth.RoleEditor, false, false},
+		{"member any technical role", auth.RoleReader, true, true},
 	}
 
 	for _, tt := range tests {
@@ -38,15 +37,14 @@ func TestCanComplete(t *testing.T) {
 	t.Parallel()
 
 	editor := &store.User{Role: auth.RoleEditor}
-	reader := &store.User{Role: auth.RoleReader}
 
 	if !runs.CanComplete(editor, store.OrgRoleMember, true) {
-		t.Fatal("org member editor should complete runs")
+		t.Fatal("org member should complete runs (coarse gate)")
 	}
 	if !runs.CanComplete(editor, store.OrgRoleOwner, true) {
 		t.Fatal("org owner should complete runs")
 	}
-	if runs.CanComplete(reader, store.OrgRoleMember, true) {
-		t.Fatal("reader org member should not complete runs")
+	if runs.CanComplete(editor, store.OrgRoleMember, false) {
+		t.Fatal("non-member must not complete runs")
 	}
 }

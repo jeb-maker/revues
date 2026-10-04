@@ -29,7 +29,7 @@ Deux voies d'auth (complémentaires) :
 - **GitHub OAuth** — « Se connecter avec GitHub » (email GitHub **vérifié** requis)
 - **Email + mot de passe** — inscription puis login
 
-**Instance migrée (organisation `default` existante)** : se connecter avec le compte correspondant à `REVUES_BOOTSTRAP_ADMIN_EMAIL`. Au premier login, cet email reçoit le rôle global **admin** (legacy — voir #310) et devient **owner** de l'organisation `default`.
+**Instance migrée (organisation `default` existante)** : se connecter avec le compte correspondant à `REVUES_BOOTSTRAP_ADMIN_EMAIL`. Au premier login, cet email devient **owner** de l'organisation `default` (pas d’admin global produit).
 
 **Self-service (nouvelle installation)** : tout utilisateur sans organisation peut se connecter et créer sa première organisation via `/org/new`.
 
@@ -39,7 +39,7 @@ Avec `REVUES_LOGIN_REQUIRE_WHITELIST=1`, l'inscription / OAuth n'est acceptée q
 
 Les administrateurs d'organisation (`owner` / `admin`) invitent depuis **Membres** (`/admin/members`) : email + rôle org (`member` / `admin` / `owner`). L'invité s'inscrit ou se connecte avec cet email, puis accepte l'invitation (parcours `/org/select`).
 
-Le modèle d'accès complet (org = gouvernance, projet = droits métier) est décrit dans [RBAC.md](./RBAC.md) ; la bascule hors rôle global produit est suivie dans #310.
+Le modèle d'accès (org = gouvernance, projet = droits métier lead/contributor/viewer) est décrit dans [RBAC.md](./RBAC.md).
 
 ## 5. Créer un sujet et lancer une revue
 

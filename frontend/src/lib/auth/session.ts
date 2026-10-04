@@ -87,7 +87,6 @@ export function offlineSession(): Session {
 
 async function fetchSession(): Promise<Session> {
 	const boot = await bootstrap();
-	const role = boot.user?.role ?? '';
 	let organization: ActiveOrganization | null = null;
 	let organizationCount = 0;
 
@@ -113,14 +112,14 @@ async function fetchSession(): Promise<Session> {
 	}
 
 	const orgRole = organization?.role ?? '';
-	const canEdit = role === 'admin' || role === 'editor';
+	const canEdit = organization != null; // membre org : catalogue modèles / création projet
 	const memberCount = organization?.member_count ?? 0;
 	const subjectCount = organization?.visible_subject_count ?? 0;
 	return {
 		...boot,
 		organization,
 		organization_count: organizationCount,
-		can_admin: role === 'admin' || orgRole === 'owner' || orgRole === 'admin',
+		can_admin: orgRole === 'owner' || orgRole === 'admin',
 		can_edit: canEdit,
 		show_modeles: canEdit,
 		show_my_tasks: memberCount >= 2,

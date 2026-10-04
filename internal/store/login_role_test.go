@@ -15,13 +15,13 @@ func TestResolveLoginRole(t *testing.T) {
 	st := store.New(db)
 	bootstrap := "admin@example.com"
 
-	t.Run("bootstrap admin", func(t *testing.T) {
+	t.Run("bootstrap allows login as editor", func(t *testing.T) {
 		role, err := st.ResolveLoginRole(ctx, "Admin@Example.com", bootstrap)
 		if err != nil {
 			t.Fatalf("ResolveLoginRole() error = %v", err)
 		}
-		if role != auth.RoleAdmin {
-			t.Errorf("role = %q, want admin", role)
+		if role != auth.RoleEditor {
+			t.Errorf("role = %q, want editor", role)
 		}
 	})
 

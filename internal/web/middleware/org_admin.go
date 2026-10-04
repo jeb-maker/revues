@@ -3,7 +3,6 @@ package middleware
 import (
 	"context"
 
-	"github.com/jeb-maker/revues/internal/auth"
 	"github.com/jeb-maker/revues/internal/store"
 )
 
@@ -14,9 +13,6 @@ type OrgRoleLookup interface {
 
 // CanManageOrgUsers reports whether user can manage org settings (members, invitations, integrations).
 func CanManageOrgUsers(ctx context.Context, st OrgRoleLookup, user *store.User) bool {
-	if auth.HasMinRole(user.Role, auth.RoleAdmin) {
-		return true
-	}
 	org, ok := OrganizationFromContext(ctx)
 	if !ok {
 		return false
@@ -25,5 +21,6 @@ func CanManageOrgUsers(ctx context.Context, st OrgRoleLookup, user *store.User) 
 	if err != nil || !member {
 		return false
 	}
+	_ = user
 	return role == store.OrgRoleOwner || role == store.OrgRoleAdmin
 }

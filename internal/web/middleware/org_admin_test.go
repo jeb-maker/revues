@@ -39,7 +39,7 @@ func TestCanManageOrgUsers(t *testing.T) {
 		t.Fatalf("AddOrganizationMember(): %v", err)
 	}
 
-	globalAdmin, err := st.UpsertGitHubUser(ctx, 12, "globaladmin", "globaladmin@example.com", "Global", "", auth.RoleAdmin)
+	nonMember, err := st.UpsertGitHubUser(ctx, 12, "nonmember", "nonmember@example.com", "NonMember", "", auth.RoleEditor)
 	if err != nil {
 		t.Fatalf("UpsertGitHubUser(): %v", err)
 	}
@@ -52,7 +52,7 @@ func TestCanManageOrgUsers(t *testing.T) {
 	}{
 		{"org admin allowed", orgAdmin, true, true},
 		{"org member denied", member, true, false},
-		{"global admin bypasses org role", globalAdmin, true, true},
+		{"non member denied", nonMember, true, false},
 		{"org admin without active org denied", orgAdmin, false, false},
 	}
 

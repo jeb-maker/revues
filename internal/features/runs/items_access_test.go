@@ -18,10 +18,9 @@ func TestCanAssign(t *testing.T) {
 		orgMember bool
 		want      bool
 	}{
-		{"admin", auth.RoleAdmin, store.OrgRoleMember, false, true},
-		{"editor org owner", auth.RoleEditor, store.OrgRoleOwner, true, true},
-		{"editor org member", auth.RoleEditor, store.OrgRoleMember, true, true},
-		{"reader org member", auth.RoleReader, store.OrgRoleMember, true, false},
+		{"org owner", auth.RoleEditor, store.OrgRoleOwner, true, true},
+		{"org member", auth.RoleEditor, store.OrgRoleMember, true, true},
+		{"outsider", auth.RoleEditor, store.OrgRoleMember, false, false},
 	}
 
 	for _, tt := range tests {
