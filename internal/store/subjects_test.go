@@ -74,8 +74,8 @@ func TestListSubjectsAdminSeesAll(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ListSubjects(a): %v", err)
 	}
-	if len(items) != 2 {
-		t.Fatalf("member list len = %d, want 2 (v1 org-scoped access)", len(items))
+	if len(items) != 1 {
+		t.Fatalf("member list len = %d, want 1 (only subjects with grant / creator lead)", len(items))
 	}
 }
 

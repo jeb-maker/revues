@@ -10,7 +10,6 @@ import (
 
 	openapi_types "github.com/oapi-codegen/runtime/types"
 
-	"github.com/jeb-maker/revues/internal/auth"
 	"github.com/jeb-maker/revues/internal/store"
 )
 
@@ -66,7 +65,7 @@ func (s *Server) CreateAdminInvitation(w http.ResponseWriter, r *http.Request) {
 			writeAPIError(w, http.StatusInternalServerError, "internal_error", "Erreur interne.")
 			return
 		}
-		if user.Role != auth.RoleAdmin && callerRole != store.OrgRoleOwner {
+		if callerRole != store.OrgRoleOwner {
 			writeAPIError(w, http.StatusForbidden, "forbidden",
 				"Seul un propriétaire peut inviter avec le rôle propriétaire.")
 			return

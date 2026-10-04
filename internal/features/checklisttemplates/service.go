@@ -8,6 +8,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/jeb-maker/revues/internal/features/subjects"
+	"github.com/jeb-maker/revues/internal/orgctx"
 	"github.com/jeb-maker/revues/internal/store"
 )
 
@@ -32,10 +33,22 @@ type Detail struct {
 	Domains  []string
 }
 
-// CanManageGlobal reports whether the user may create, edit or archive global
-// checklist templates (org admin or editor).
-func CanManageGlobal(user *store.User) bool {
-	return subjects.CanCreateSubject(user)
+// CanManageGlobal reports whether the user may create, edit or archive org
+// checklist templates (any org member — catalog is org-scoped).
+func CanManageGlobal(user *store.User, orgMember bool) bool {
+	return subjects.CanCreateSubject(user, orgMember)
+}
+
+func (s *Service) orgMembership(ctx context.Context, userID int64) (orgAdmin bool, orgMember bool) {
+	orgID, ok := orgctx.OrganizationID(ctx)
+	if !ok || s.Store == nil {
+		return false, false
+	}
+	role, member, err := s.Store.OrganizationMemberRole(ctx, orgID, userID)
+	if err != nil || !member {
+		return false, false
+	}
+	return role == store.OrgRoleOwner || role == store.OrgRoleAdmin, true
 }
 
 // ListIndex returns the global template catalog for the active organization.
@@ -43,8 +56,11 @@ func (s *Service) ListIndex(ctx context.Context, user *store.User, query string)
 	if user == nil {
 		return nil, ErrForbidden
 	}
-	admin := user.Role == "admin"
-	rows, err := s.Store.ListTemplateIndex(ctx, user.ID, admin, strings.TrimSpace(query))
+	orgAdmin, orgMember := s.orgMembership(ctx, user.ID)
+	if !orgMember {
+		return nil, ErrForbidden
+	}
+	rows, err := s.Store.ListTemplateIndex(ctx, user.ID, orgAdmin, strings.TrimSpace(query))
 	if err != nil {
 		return nil, fmt.Errorf("list template index: %w", err)
 	}
@@ -138,7 +154,11 @@ type CreateInput struct {
 
 // Create publishes a new template with version 1 (immutable snapshot).
 func (s *Service) Create(ctx context.Context, user *store.User, in CreateInput) (*Detail, error) {
-	if user == nil || !CanManageGlobal(user) {
+	if user == nil {
+		return nil, ErrForbidden
+	}
+	_, orgMember := s.orgMembership(ctx, user.ID)
+	if !CanManageGlobal(user, orgMember) {
 		return nil, ErrForbidden
 	}
 	name, items, err := normalizeWrite(in.Name, in.Items)
@@ -169,7 +189,11 @@ type SaveInput struct {
 // Save updates name/domains. Structural item changes publish a new version ;
 // help_text-only (or metadata-only) changes stay on the latest version.
 func (s *Service) Save(ctx context.Context, user *store.User, templateID int64, in SaveInput) (*Detail, error) {
-	if user == nil || !CanManageGlobal(user) {
+	if user == nil {
+		return nil, ErrForbidden
+	}
+	_, orgMember := s.orgMembership(ctx, user.ID)
+	if !CanManageGlobal(user, orgMember) {
 		return nil, ErrForbidden
 	}
 	name, items, err := normalizeWrite(in.Name, in.Items)
@@ -256,7 +280,11 @@ func IsHelpTextChange(current []store.TemplateItem, next []store.TemplateItemInp
 
 // CreateVersion publishes a new version without changing name/domains.
 func (s *Service) CreateVersion(ctx context.Context, user *store.User, templateID int64, items []store.TemplateItemInput) (*Detail, error) {
-	if user == nil || !CanManageGlobal(user) {
+	if user == nil {
+		return nil, ErrForbidden
+	}
+	_, orgMember := s.orgMembership(ctx, user.ID)
+	if !CanManageGlobal(user, orgMember) {
 		return nil, ErrForbidden
 	}
 	normalized, err := normalizeItems(items)
@@ -292,7 +320,11 @@ func (s *Service) CreateVersion(ctx context.Context, user *store.User, templateI
 
 // Archive soft-deletes a template from the catalog.
 func (s *Service) Archive(ctx context.Context, user *store.User, templateID int64) error {
-	if user == nil || !CanManageGlobal(user) {
+	if user == nil {
+		return ErrForbidden
+	}
+	_, orgMember := s.orgMembership(ctx, user.ID)
+	if !CanManageGlobal(user, orgMember) {
 		return ErrForbidden
 	}
 	if err := s.Store.ArchiveChecklistTemplate(ctx, templateID); err != nil {

@@ -159,7 +159,7 @@ func requireOrg(w http.ResponseWriter, r *http.Request) bool {
 	return false
 }
 
-// requireOrgAdmin enforces org owner/admin (or global admin) + active org.
+// requireOrgAdmin enforces org owner/admin + active org.
 func (s *Server) requireOrgAdmin(w http.ResponseWriter, r *http.Request) (*store.User, *store.Organization, bool) {
 	user, ok := requireUser(w, r)
 	if !ok {

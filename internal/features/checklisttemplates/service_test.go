@@ -22,6 +22,13 @@ func newTemplateService(t *testing.T) (context.Context, *checklisttemplates.Serv
 	if err != nil {
 		t.Fatalf("UpsertGitHubUser: %v", err)
 	}
+	org, err := st.OrganizationBySlug(ctx, "default")
+	if err != nil {
+		t.Fatalf("OrganizationBySlug: %v", err)
+	}
+	if err = st.AddOrganizationMember(ctx, org.ID, user.ID, store.OrgRoleOwner); err != nil {
+		t.Fatalf("AddOrganizationMember: %v", err)
+	}
 	return ctx, &checklisttemplates.Service{Store: st}, st, user
 }
 
@@ -291,14 +298,14 @@ func TestService_ValidationRejectsEmptyItems(t *testing.T) {
 	}
 }
 
-func TestService_ReaderCannotManage(t *testing.T) {
+func TestService_NonMemberCannotManage(t *testing.T) {
 	ctx, svc, st, _ := newTemplateService(t)
-	reader, err := st.UpsertGitHubUser(ctx, 99, "reader", "reader@example.com", "Reader", "", auth.RoleReader)
+	outsider, err := st.UpsertGitHubUser(ctx, 99, "outsider", "outsider@example.com", "Outsider", "", auth.RoleEditor)
 	if err != nil {
 		t.Fatalf("UpsertGitHubUser: %v", err)
 	}
 
-	_, err = svc.Create(ctx, reader, checklisttemplates.CreateInput{
+	_, err = svc.Create(ctx, outsider, checklisttemplates.CreateInput{
 		Name:  "Nope",
 		Items: []store.TemplateItemInput{{Label: "A"}},
 	})

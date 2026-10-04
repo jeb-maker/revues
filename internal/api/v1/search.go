@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/jeb-maker/revues/internal/auth"
 	"github.com/jeb-maker/revues/internal/store"
 )
 
@@ -32,7 +31,9 @@ func (s *Server) GetSearch(w http.ResponseWriter, r *http.Request, params GetSea
 		limit = *params.Limit
 	}
 
-	includeTemplates := auth.HasMinRole(user.Role, auth.RoleEditor)
+	orgRole, orgMember := s.orgMembership(r, user.ID)
+	orgAdmin := orgMember && (orgRole == store.OrgRoleOwner || orgRole == store.OrgRoleAdmin)
+	includeTemplates := orgMember
 	includeTasks := false
 	if s.Store != nil {
 		n, err := s.Store.CountOrganizationMembers(r.Context(), org.ID)
@@ -44,10 +45,9 @@ func (s *Server) GetSearch(w http.ResponseWriter, r *http.Request, params GetSea
 		includeTasks = n >= 2
 	}
 
-	admin := auth.HasMinRole(user.Role, auth.RoleAdmin)
 	hits, totals, err := s.Store.GlobalSearch(r.Context(), store.GlobalSearchOpts{
 		UserID:           user.ID,
-		Admin:            admin,
+		Admin:            orgAdmin,
 		Query:            q,
 		LimitPerKind:     limit,
 		IncludeTemplates: includeTemplates,

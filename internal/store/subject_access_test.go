@@ -17,10 +17,6 @@ func TestResolveSubjectAccess(t *testing.T) {
 	st := store.New(db)
 	ctx = testutil.DefaultOrgContext(ctx, st)
 
-	admin, err := st.UpsertGitHubUser(ctx, 1, "admin", "admin@example.com", "Admin", "", auth.RoleAdmin)
-	if err != nil {
-		t.Fatal(err)
-	}
 	orgAdmin, err := st.UpsertGitHubUser(ctx, 2, "orgadmin", "orgadmin@example.com", "OrgAdmin", "", auth.RoleEditor)
 	if err != nil {
 		t.Fatal(err)
@@ -50,7 +46,6 @@ func TestResolveSubjectAccess(t *testing.T) {
 		id   int64
 		role string
 	}{
-		{admin.ID, store.OrgRoleMember},
 		{orgAdmin.ID, store.OrgRoleAdmin},
 		{lead.ID, store.OrgRoleMember},
 		{viaTeam.ID, store.OrgRoleMember},
@@ -102,7 +97,8 @@ func TestResolveSubjectAccess(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	ungated, err := st.CreateSubject(ctx, "LegacyOpen", "", lead.ID, nil)
+	// Subject with only creator lead: other org members have no grant.
+	solo, err := st.CreateSubject(ctx, "SoloLead", "", lead.ID, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -118,10 +114,6 @@ func TestResolveSubjectAccess(t *testing.T) {
 		wantSource     string
 		wantAlsoDirect bool
 	}{
-		{
-			name: "global admin", ctx: ctx, userID: admin.ID, subjectID: subject.ID, globalRole: auth.RoleAdmin,
-			wantVis: true, wantSource: store.AccessSourceGlobalAdmin,
-		},
 		{
 			name: "org admin with direct lead", ctx: ctx, userID: orgAdmin.ID, subjectID: subject.ID, globalRole: auth.RoleEditor,
 			wantVis: true, wantRole: store.SubjectRoleLead, wantSource: store.AccessSourceOrgAdmin, wantAlsoDirect: true,
@@ -139,12 +131,12 @@ func TestResolveSubjectAccess(t *testing.T) {
 			wantVis: true, wantRole: store.SubjectRoleContributor, wantSource: store.AccessSourceDirect,
 		},
 		{
-			name: "org member without grant on gated subject", ctx: ctx, userID: outsider.ID, subjectID: subject.ID, globalRole: auth.RoleEditor,
+			name: "org member without grant", ctx: ctx, userID: outsider.ID, subjectID: subject.ID, globalRole: auth.RoleEditor,
 			wantVis: false,
 		},
 		{
-			name: "org member legacy ungated subject", ctx: ctx, userID: outsider.ID, subjectID: ungated.ID, globalRole: auth.RoleEditor,
-			wantVis: true, wantRole: store.SubjectRoleContributor, wantSource: store.AccessSourceOrgMemberLegacy,
+			name: "org member without grant on creator-only subject", ctx: ctx, userID: outsider.ID, subjectID: solo.ID, globalRole: auth.RoleEditor,
+			wantVis: false,
 		},
 		{
 			name: "cross org subject", ctx: ctx, userID: lead.ID, subjectID: otherSubject.ID, globalRole: auth.RoleEditor,
@@ -297,6 +289,9 @@ func TestListSubjects_PrivateFilter(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if err = st.UpsertDirectSubjectMember(ctx, normal.ID, member.ID, store.SubjectRoleContributor); err != nil {
+		t.Fatal(err)
+	}
 	private, err := st.CreateSubjectWithVisibility(ctx, "PrivateClosed", "", owner.ID, nil, store.SubjectVisibilityPrivate)
 	if err != nil {
 		t.Fatal(err)
@@ -319,7 +314,7 @@ func TestListSubjects_PrivateFilter(t *testing.T) {
 		}
 	}
 	if !sawNormal {
-		t.Fatal("member must see normal ungated subject")
+		t.Fatal("member with grant must see normal subject")
 	}
 	if sawPrivate {
 		t.Fatal("member must not see private subject without grant")

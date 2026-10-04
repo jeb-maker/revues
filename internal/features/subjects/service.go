@@ -1,19 +1,15 @@
 package subjects
 
 import (
-	"github.com/jeb-maker/revues/internal/auth"
 	"github.com/jeb-maker/revues/internal/store"
 )
 
 // User is the authenticated account checked against subject access rules.
 type User = store.User
 
-// CanViewSubject reports whether the user may view a subject (v1 org-member flag).
+// CanViewSubject reports whether the user may view a subject via org membership alone.
 // Prefer CanViewAccess with ResolveSubjectAccess for new code.
-func CanViewSubject(user *User, orgMember bool) bool {
-	if auth.HasMinRole(user.Role, auth.RoleAdmin) {
-		return true
-	}
+func CanViewSubject(_ *User, orgMember bool) bool {
 	return orgMember
 }
 
@@ -22,107 +18,71 @@ func CanViewAccess(access store.SubjectAccess) bool {
 	return access.Visible
 }
 
-// CanManageSubject reports whether the user may create, edit or archive a subject.
-func CanManageSubject(user *User, orgRole string, orgMember bool) bool {
-	if auth.HasMinRole(user.Role, auth.RoleAdmin) {
-		return true
-	}
+// CanManageSubject reports whether the user may create, edit or archive a subject
+// from org-level context (create path). Org owner/admin or any org member may create.
+func CanManageSubject(_ *User, orgRole string, orgMember bool) bool {
 	if !orgMember {
 		return false
 	}
-	if orgRole == store.OrgRoleOwner || orgRole == store.OrgRoleAdmin {
-		return true
-	}
-	return auth.HasMinRole(user.Role, auth.RoleEditor)
+	_ = orgRole
+	return true
 }
 
 // CanManageAccess reports whether the user may edit/archive a subject under resolved access.
-// Global admin may always manage. Org admin and subject leads require editor+ global role.
-// Org admin reader cannot edit subjects (visibility ≠ write).
-func CanManageAccess(user *User, access store.SubjectAccess) bool {
+// Org owner/admin and subject leads may manage.
+func CanManageAccess(_ *User, access store.SubjectAccess) bool {
 	if !access.Visible {
-		return false
-	}
-	if auth.HasMinRole(user.Role, auth.RoleAdmin) {
-		return true
-	}
-	if !auth.HasMinRole(user.Role, auth.RoleEditor) {
 		return false
 	}
 	if access.HasSource(store.AccessSourceOrgAdmin) {
 		return true
 	}
-	return access.Role == store.SubjectRoleLead || access.HasSource(store.AccessSourceOrgMemberLegacy)
+	return access.Role == store.SubjectRoleLead
 }
 
-// CanLaunchRun reports whether the user may create or start a run on a subject.
+// CanLaunchRun reports whether the user may create or start a run on a subject (org gate).
+// Prefer CanContributeAccess with ResolveSubjectAccess for new code.
 func CanLaunchRun(user *User, orgMember bool) bool {
-	if !CanViewSubject(user, orgMember) {
-		return false
-	}
-	return auth.HasMinRole(user.Role, auth.RoleEditor)
+	return CanViewSubject(user, orgMember)
 }
 
 // CanContributeAccess reports whether the user may launch/check on a subject.
-// Org admin with editor+ may contribute (no subject role required); reader cannot.
-func CanContributeAccess(user *User, access store.SubjectAccess) bool {
+// Org owner/admin may contribute without a subject role; otherwise contributor+.
+func CanContributeAccess(_ *User, access store.SubjectAccess) bool {
 	if !access.Visible {
 		return false
 	}
-	if !auth.HasMinRole(user.Role, auth.RoleEditor) {
-		return false
-	}
-	if auth.HasMinRole(user.Role, auth.RoleAdmin) || access.HasSource(store.AccessSourceOrgAdmin) {
+	if access.HasSource(store.AccessSourceOrgAdmin) {
 		return true
 	}
 	return access.RoleAtLeast(store.SubjectRoleContributor)
 }
 
 // CanLeadAccess reports whether the user may assign/complete (lead-level) on a subject.
-// Org admin visibility is not an implicit lead: assign/complete require subject lead
-// (or legacy ungated path). Global admin keeps full lead capability.
-func CanLeadAccess(user *User, access store.SubjectAccess) bool {
+// Org owner/admin are not implicit leads for assign/complete; require subject lead.
+func CanLeadAccess(_ *User, access store.SubjectAccess) bool {
 	if !access.Visible {
 		return false
-	}
-	if !auth.HasMinRole(user.Role, auth.RoleEditor) {
-		return false
-	}
-	if auth.HasMinRole(user.Role, auth.RoleAdmin) {
-		return true
-	}
-	if access.HasSource(store.AccessSourceOrgMemberLegacy) {
-		return true
 	}
 	return access.Role == store.SubjectRoleLead
 }
 
-// CanCreateSubject reports whether the user may create a new subject.
-func CanCreateSubject(user *User) bool {
-	return auth.HasMinRole(user.Role, auth.RoleEditor)
+// CanCreateSubject reports whether the user may create a new subject in the active org.
+func CanCreateSubject(_ *User, orgMember bool) bool {
+	return orgMember
 }
 
 // CanSetSubjectVisibility reports whether the user may set subjects.visibility.
-// Global admin and org owner/admin may set it on create/edit; subject leads on edit.
-// Legacy ungated editors may not.
-func CanSetSubjectVisibility(user *User, orgRole string, orgMember bool, access store.SubjectAccess) bool {
-	if auth.HasMinRole(user.Role, auth.RoleAdmin) {
-		return true
-	}
-	if !auth.HasMinRole(user.Role, auth.RoleEditor) {
-		return false
-	}
+// Org owner/admin may set it on create/edit; subject leads on edit.
+func CanSetSubjectVisibility(_ *User, orgRole string, orgMember bool, access store.SubjectAccess) bool {
 	if orgMember && (orgRole == store.OrgRoleOwner || orgRole == store.OrgRoleAdmin) {
 		return true
 	}
 	return access.Visible && access.Role == store.SubjectRoleLead
 }
 
-// CanManageOrgUsers is true for global admin or org owner/admin.
-func CanManageOrgUsers(user *User, orgRole string, orgMember bool) bool {
-	if auth.HasMinRole(user.Role, auth.RoleAdmin) {
-		return true
-	}
+// CanManageOrgUsers is true for org owner/admin.
+func CanManageOrgUsers(_ *User, orgRole string, orgMember bool) bool {
 	if !orgMember {
 		return false
 	}
@@ -136,13 +96,10 @@ func PoliciesFromOrganization(org *store.Organization) store.OrgLeadPolicies {
 
 // CanInviteSubjectMember reports whether the user may add a direct subject member.
 // inviteeIsOrgMember selects leads_may_invite_members vs leads_may_invite_externals.
-// Org owner/admin and global admin always may.
+// Org owner/admin always may.
 func CanInviteSubjectMember(user *User, access store.SubjectAccess, policies store.OrgLeadPolicies, inviteeIsOrgMember bool) bool {
 	if !access.Visible {
 		return false
-	}
-	if auth.HasMinRole(user.Role, auth.RoleAdmin) {
-		return true
 	}
 	if access.HasSource(store.AccessSourceOrgAdmin) {
 		return true
@@ -161,9 +118,6 @@ func CanInviteSubjectMember(user *User, access store.SubjectAccess, policies sto
 func CanManageSubjectMembers(user *User, access store.SubjectAccess, policies store.OrgLeadPolicies) bool {
 	if !access.Visible {
 		return false
-	}
-	if auth.HasMinRole(user.Role, auth.RoleAdmin) {
-		return true
 	}
 	if access.HasSource(store.AccessSourceOrgAdmin) {
 		return true

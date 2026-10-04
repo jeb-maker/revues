@@ -64,7 +64,7 @@ func (s *Store) CreateSubject(ctx context.Context, name, description string, cre
 }
 
 // CreateSubjectWithVisibility inserts a subject with the given visibility (normal|private).
-// Private subjects grant the creator a direct lead membership so they remain accessible.
+// The creator always receives a direct lead membership (project rights are grant-based).
 func (s *Store) CreateSubjectWithVisibility(ctx context.Context, name, description string, creatorID int64, domains []string, visibility string) (*Subject, error) {
 	orgID, err := organizationIDFromContext(ctx)
 	if err != nil {
@@ -108,15 +108,13 @@ func (s *Store) CreateSubjectWithVisibility(ctx context.Context, name, descripti
 		return nil, fmt.Errorf("ensure org member: %w", err)
 	}
 
-	if visibility == SubjectVisibilityPrivate {
-		_, err = tx.ExecContext(ctx, `
-			INSERT INTO subject_members (subject_id, user_id, role, created_at)
-			VALUES (?, ?, ?, ?)
-			ON CONFLICT(subject_id, user_id) DO UPDATE SET role = excluded.role
-		`, subjectID, creatorID, SubjectRoleLead, now)
-		if err != nil {
-			return nil, fmt.Errorf("grant creator lead on private subject: %w", err)
-		}
+	_, err = tx.ExecContext(ctx, `
+		INSERT INTO subject_members (subject_id, user_id, role, created_at)
+		VALUES (?, ?, ?, ?)
+		ON CONFLICT(subject_id, user_id) DO UPDATE SET role = excluded.role
+	`, subjectID, creatorID, SubjectRoleLead, now)
+	if err != nil {
+		return nil, fmt.Errorf("grant creator lead on subject: %w", err)
 	}
 
 	if err := setSubjectDomainsTx(ctx, tx, subjectID, domains); err != nil {

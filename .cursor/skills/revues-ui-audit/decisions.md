@@ -58,7 +58,7 @@ Flags d'origine (legacy `middleware.resolveUICaps` → `PageData`, **supprimés*
 
 | Flag | Seuil | Palier |
 |------|--------|--------|
-| `SimpleUI` | 1 org · 1 membre · ≤1 sujet · pas admin global | P0 |
+| `SimpleUI` | 1 org · 1 membre · ≤1 sujet | P0 |
 | `ShowAssign` / `ShowMyTasks` / `ShowCollab` | ≥2 membres org | P1 |
 | `ShowSubjectColumn` | ≥2 sujets visibles | P2 |
 | `HasJira` | intégration Jira **configurée** (org active) | P3 |
@@ -114,7 +114,7 @@ Principes :
 | Formulaire `/modeles/new` (listUI) | **Tableau** desktop une ligne (Titre · Catégorie · Explication · Obligatoire · actions) / **cartes** mobile ; Explication compacte (ellipsis), multi-lignes en overlay au focus ; catégorie = `section` ; **nouvelle ligne hérite** de la catégorie précédente ; DnD desktop ; flèches mobile ; CTA hors carte (`lib/components/TemplateEditor.svelte`) |
 | Versionnement modèle (save) | **Diff serveur** : structurel (titre, catégorie, obligatoire, ajout/suppression/ordre) → nouvelle `template_version` ; éditorial seul (`help_text`, nom, domaines) → **pas** de nouvelle version (UPDATE sur la dernière version / métadonnées). Snapshots `run_items` inchangés. `POST /templates/{id}/versions` = forcer une nouvelle version. UI edit : CTA « Enregistrer » vs « Publier une nouvelle version ». |
 | CSS assets | Styles par page dans les blocs `<style>` Svelte (bundle Vite) ; budget CI = seuils JS/CSS app de `scripts/check.sh` ; Compress gzip middleware côté Go |
-| Modèles pour lecteurs | **Masqués** — rôle `reader` seul n'a pas l'onglet Modèles |
+| Modèles pour lecteurs | **Masqués** si pas membre d’org active ; droits métier lecture/écriture = **par projet** (viewer/contributor), pas rôle global |
 | Deep links `/subjects/{id}` | **Conservés** — accessibles à tous les membres org |
 
 ## Terminologie

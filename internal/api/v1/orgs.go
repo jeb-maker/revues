@@ -9,7 +9,6 @@ import (
 
 	openapi_types "github.com/oapi-codegen/runtime/types"
 
-	"github.com/jeb-maker/revues/internal/auth"
 	"github.com/jeb-maker/revues/internal/features/organizations"
 	"github.com/jeb-maker/revues/internal/store"
 	appmiddleware "github.com/jeb-maker/revues/internal/web/middleware"
@@ -235,8 +234,11 @@ func mapOrganization(ctx context.Context, st *store.Store, user *store.User, org
 			o.MemberCount = n
 		}
 		if includeSubjectCount && user != nil {
-			admin := user.Role == auth.RoleAdmin
-			if subjects, err := st.ListSubjects(ctx, user.ID, admin, ""); err == nil {
+			orgAdmin := false
+			if role, ok, roleErr := st.OrganizationMemberRole(ctx, org.ID, user.ID); roleErr == nil && ok {
+				orgAdmin = role == store.OrgRoleOwner || role == store.OrgRoleAdmin
+			}
+			if subjects, err := st.ListSubjects(ctx, user.ID, orgAdmin, ""); err == nil {
 				n := len(subjects)
 				o.VisibleSubjectCount = &n
 			}

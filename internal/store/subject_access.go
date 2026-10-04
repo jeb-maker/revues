@@ -9,18 +9,16 @@ import (
 )
 
 const (
-	AccessSourceDirect          = "direct"
-	AccessSourceOrgAdmin        = "org_admin"
-	AccessSourceGlobalAdmin     = "global_admin"
-	AccessSourceOrgMemberLegacy = "org_member_legacy"
-	accessSourceTeamPrefix      = "team:"
+	AccessSourceDirect     = "direct"
+	AccessSourceOrgAdmin   = "org_admin"
+	accessSourceTeamPrefix = "team:"
 )
 
 // SubjectAccess is the resolved visibility and effective role for a subject.
 type SubjectAccess struct {
 	Visible bool
 	Role    string   // lead | contributor | viewer | ""
-	Sources []string // "direct", "team:{id}", "org_admin", "global_admin", "org_member_legacy"
+	Sources []string // "direct", "team:{id}", "org_admin"
 }
 
 // HasSource reports whether Sources contains source.
@@ -33,26 +31,25 @@ func (a SubjectAccess) HasSource(source string) bool {
 	return false
 }
 
-// IsSupervisor is true for global admin or org owner/admin (visible without subject role).
+// IsSupervisor is true for org owner/admin (visible without subject role).
 func (a SubjectAccess) IsSupervisor() bool {
-	return a.HasSource(AccessSourceGlobalAdmin) || a.HasSource(AccessSourceOrgAdmin)
+	return a.HasSource(AccessSourceOrgAdmin)
 }
 
 // RoleAtLeast reports whether the effective subject role is at least want.
-// Supervisors (global/org admin) do not invent a subject role here — action
+// Supervisors (org admin) do not invent a subject role here — action
 // helpers (CanContributeAccess / CanLeadAccess) apply org-admin write rules.
 func (a SubjectAccess) RoleAtLeast(want string) bool {
 	return subjectRoleRank(a.Role) >= subjectRoleRank(want)
 }
 
 // ResolveSubjectAccess computes access for userID on subjectID in the active org.
-// globalRole is users.role (admin | editor | reader).
+// globalRole is ignored (kept for call-site compatibility); product access is
+// org owner/admin inheritance + subject_members / team grants.
 //
-// Transition: when a normal subject has no subject_members and no team_subject_roles,
-// org members keep v1 visibility (source org_member_legacy, role contributor).
-// Private subjects never use that legacy path — they require an explicit grant,
-// org owner/admin, or global admin.
+// Org members without a grant do not see the subject. Org owner/admin see all.
 func (s *Store) ResolveSubjectAccess(ctx context.Context, userID, subjectID int64, globalRole string) (SubjectAccess, error) {
+	_ = globalRole
 	orgID, err := organizationIDFromContext(ctx)
 	if err != nil {
 		return SubjectAccess{}, err
@@ -67,13 +64,6 @@ func (s *Store) ResolveSubjectAccess(ctx context.Context, userID, subjectID int6
 	}
 	if subject.OrganizationID != orgID {
 		return SubjectAccess{}, nil
-	}
-
-	if globalRole == "admin" {
-		return SubjectAccess{
-			Visible: true,
-			Sources: []string{AccessSourceGlobalAdmin},
-		}, nil
 	}
 
 	orgRole, isMember, err := s.OrganizationMemberRole(ctx, orgID, userID)
@@ -113,41 +103,12 @@ func (s *Store) ResolveSubjectAccess(ctx context.Context, userID, subjectID int6
 		return access, nil
 	}
 
-	if subject.Visibility == SubjectVisibilityPrivate {
-		return SubjectAccess{}, nil
-	}
-
-	hasGrants, err := s.subjectHasAccessGrants(ctx, subjectID)
-	if err != nil {
-		return SubjectAccess{}, err
-	}
-	if !hasGrants && isMember {
-		return SubjectAccess{
-			Visible: true,
-			Role:    SubjectRoleContributor,
-			Sources: []string{AccessSourceOrgMemberLegacy},
-		}, nil
-	}
-
 	return SubjectAccess{}, nil
 }
 
 type teamSubjectRoleRow struct {
 	TeamID int64
 	Role   string
-}
-
-func (s *Store) subjectHasAccessGrants(ctx context.Context, subjectID int64) (bool, error) {
-	var n int
-	err := s.db.QueryRowContext(ctx, `
-		SELECT
-			(SELECT COUNT(*) FROM subject_members WHERE subject_id = ?) +
-			(SELECT COUNT(*) FROM team_subject_roles WHERE subject_id = ?)
-	`, subjectID, subjectID).Scan(&n)
-	if err != nil {
-		return false, fmt.Errorf("subject has access grants: %w", err)
-	}
-	return n > 0, nil
 }
 
 func (s *Store) directSubjectMemberRole(ctx context.Context, subjectID, userID int64) (string, error) {
@@ -201,11 +162,6 @@ func subjectVisibleToOrgMemberSQL(subjectAlias string) string {
 	return `
 		AND (
 			om.role IN ('` + OrgRoleOwner + `', '` + OrgRoleAdmin + `')
-			OR (
-				` + subjectAlias + `.visibility = '` + SubjectVisibilityNormal + `'
-				AND NOT EXISTS (SELECT 1 FROM subject_members sm0 WHERE sm0.subject_id = ` + subjectAlias + `.id)
-				AND NOT EXISTS (SELECT 1 FROM team_subject_roles tsr0 WHERE tsr0.subject_id = ` + subjectAlias + `.id)
-			)
 			OR EXISTS (
 				SELECT 1 FROM subject_members sm
 				WHERE sm.subject_id = ` + subjectAlias + `.id AND sm.user_id = ?
@@ -226,11 +182,6 @@ func subjectVisibleToListedMemberSQL(subjectAlias string) string {
 	return `
 		AND (
 			om.role IN ('` + OrgRoleOwner + `', '` + OrgRoleAdmin + `')
-			OR (
-				` + subjectAlias + `.visibility = '` + SubjectVisibilityNormal + `'
-				AND NOT EXISTS (SELECT 1 FROM subject_members sm0 WHERE sm0.subject_id = ` + subjectAlias + `.id)
-				AND NOT EXISTS (SELECT 1 FROM team_subject_roles tsr0 WHERE tsr0.subject_id = ` + subjectAlias + `.id)
-			)
 			OR EXISTS (
 				SELECT 1 FROM subject_members sm
 				WHERE sm.subject_id = ` + subjectAlias + `.id AND sm.user_id = om.user_id
