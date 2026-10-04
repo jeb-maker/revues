@@ -32,8 +32,11 @@ func TestValidatePasswordStrength(t *testing.T) {
 	if err := ValidatePasswordStrength("short"); err == nil {
 		t.Fatal("expected short password error")
 	}
-	if err := ValidatePasswordStrength(strings.Repeat("a", 8)); err != nil {
-		t.Fatalf("8 chars should pass: %v", err)
+	if err := ValidatePasswordStrength(strings.Repeat("a", 11)); err == nil {
+		t.Fatal("expected 11 chars to fail")
+	}
+	if err := ValidatePasswordStrength(strings.Repeat("a", 12)); err != nil {
+		t.Fatalf("12 chars should pass: %v", err)
 	}
 	if err := ValidatePasswordStrength(strings.Repeat("a", 73)); err == nil {
 		t.Fatal("expected long password error")

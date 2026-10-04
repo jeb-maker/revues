@@ -24,6 +24,14 @@ func (h *OAuthHandlers) StartGitHub(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Drop any existing session (e.g. DevAuth demo) so a cancelled OAuth cannot leave you logged in.
+	if token, err := auth.SessionTokenFromRequest(r); err == nil && token != "" {
+		if clearErr := h.Service.Sessions.ClearSession(r.Context(), token); clearErr != nil {
+			slog.Debug("oauth start clear previous session", "err", clearErr)
+		}
+		h.Service.Sessions.ClearSessionCookie(w)
+	}
+
 	state, _, err := auth.RandomToken(16)
 	if err != nil {
 		slog.Error("oauth state", "err", err)

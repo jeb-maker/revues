@@ -3,7 +3,7 @@
   Tout repose sur les tokens mb (web/static/vendor/jeb-maker-mb/tokens/semantic.css) :
   le mode sombre vient de `prefers-color-scheme`, rien n'est forcé ici.
   Classes hôte partagées (.cursor/rules/design.md) : .page, .page-header, .lede, .muted,
-  .actions, .stack-form, .field-hint, .field-error, .table-scroll.
+  .actions, .stack-form, .field-hint, .field-error, .table-scroll, .page--auth, .auth-card.
 */
 
 *,
@@ -94,33 +94,52 @@ code {
 }
 
 .app-header__inner {
-	display: flex;
-	flex-wrap: wrap;
+	display: grid;
+	grid-template-columns: auto 1fr auto auto;
 	align-items: center;
 	gap: var(--mb-space-2) var(--mb-space-4);
-	max-width: 64rem;
-	margin: 0 auto;
-	padding: var(--mb-space-2) var(--mb-space-4);
+	width: 100%;
+	padding: var(--mb-space-3) var(--mb-space-4);
+}
+
+.app-header__brand {
+	display: flex;
+	align-items: center;
+	gap: var(--mb-space-2);
+	justify-self: start;
+	min-width: 0;
 }
 
 .brand {
+	display: inline-flex;
+	align-items: center;
+	height: 2.5rem;
 	font-family: var(--mb-font-display);
-	font-size: var(--mb-font-size-lg);
+	font-size: var(--mb-font-size-xl);
 	font-weight: 700;
-	letter-spacing: -0.02em;
+	line-height: 1;
+	letter-spacing: -0.03em;
 	color: var(--mb-color-fg);
 	text-decoration: none;
 }
 
 .app-header mb-nav {
-	flex: 1 1 auto;
+	justify-self: center;
+	display: flex;
+	align-items: center;
+}
+
+.app-header mb-nav a {
+	font-size: var(--mb-font-size-sm);
+	line-height: var(--mb-line-height);
 }
 
 .app-header__search {
 	display: flex;
-	flex: 1 1 12rem;
 	align-items: center;
 	gap: var(--mb-space-2);
+	justify-self: end;
+	min-width: 10rem;
 	max-width: 18rem;
 }
 
@@ -133,8 +152,10 @@ code {
 	display: flex;
 	flex-wrap: wrap;
 	align-items: center;
+	justify-content: flex-end;
+	justify-self: end;
 	gap: var(--mb-space-1) var(--mb-space-3);
-	margin-left: auto;
+	min-width: 0;
 	font-size: var(--mb-font-size-sm);
 	color: var(--mb-color-muted);
 }
@@ -149,20 +170,26 @@ code {
 	margin: 0 auto var(--mb-space-3);
 }
 
-@media (max-width: 36rem) {
+@media (max-width: 48rem) {
+	.app-header__inner {
+		grid-template-columns: 1fr auto;
+	}
+
 	.app-header mb-nav {
+		grid-column: 1 / -1;
+		justify-self: stretch;
 		order: 3;
-		flex-basis: 100%;
 	}
 
 	.app-header__search {
-		order: 4;
-		flex-basis: 100%;
+		grid-column: 1 / -1;
+		justify-self: stretch;
 		max-width: none;
+		order: 4;
 	}
 
 	.app-header__account {
-		order: 2;
+		justify-self: end;
 	}
 }
 
@@ -173,17 +200,99 @@ main:focus {
 /* --- Page ---------------------------------------------------------------- */
 
 .page {
-	max-width: 52rem;
-	margin: 0 auto;
+	width: 100%;
+	max-width: none;
+	margin: 0;
 	padding: var(--mb-space-5) var(--mb-space-4) var(--mb-space-8);
 }
 
 .page--narrow {
 	max-width: 30rem;
+	margin-inline: auto;
 }
 
 .page--wide {
-	max-width: 64rem;
+	/* Plein largeur (défaut .page) — classe conservée pour les pages existantes */
+	max-width: none;
+}
+
+/* Auth (login / register) : centrage viewport + carte d'interaction */
+.page--auth {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	max-width: none;
+	min-height: 100dvh;
+	padding: var(--mb-space-5) var(--mb-space-4);
+}
+
+.auth-card {
+	width: 100%;
+	max-width: 24rem;
+	padding: var(--mb-space-5) var(--mb-space-4);
+	background: var(--mb-color-surface);
+	border: 1px solid var(--mb-color-border);
+	border-radius: var(--mb-radius-md);
+}
+
+.auth-card .auth-rule {
+	margin: var(--mb-space-4) 0;
+	border: 0;
+	border-top: 1px solid var(--mb-color-border);
+}
+
+.auth-card .page-header {
+	margin-bottom: var(--mb-space-4);
+	padding-bottom: var(--mb-space-3);
+	border-bottom: 1px solid var(--mb-color-border);
+}
+
+.auth-card .page-header h1 {
+	margin-bottom: 0;
+	font-size: var(--mb-font-size-lg);
+}
+
+.auth-card .lede {
+	margin-bottom: 0;
+}
+
+.auth-card .stack-form {
+	margin-bottom: 0;
+}
+
+/* mb-button : host inline-block + .base inline-flex → forcer la largeur via ::part */
+.auth-card .stack-form > mb-button,
+.auth-card > mb-button[href] {
+	display: block;
+	width: 100%;
+}
+
+.auth-card .stack-form > mb-button::part(base),
+.auth-card > mb-button[href]::part(base) {
+	display: flex;
+	width: 100%;
+	max-inline-size: none;
+}
+
+.auth-card .auth-alt {
+	display: flex;
+	align-items: center;
+	gap: var(--mb-space-3);
+	margin: var(--mb-space-4) 0;
+	color: var(--mb-color-muted);
+	font-size: var(--mb-font-size-sm);
+}
+
+.auth-card .auth-alt::before,
+.auth-card .auth-alt::after {
+	content: '';
+	flex: 1 1 auto;
+	border-top: 1px solid var(--mb-color-border);
+}
+
+.auth-card .auth-footer {
+	margin: 0;
+	text-align: center;
 }
 
 .page-header {

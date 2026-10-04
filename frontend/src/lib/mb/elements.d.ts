@@ -1,6 +1,6 @@
 /**
  * Ambient typings for mb custom elements used in Svelte markup.
- * Keep in sync with `web/static/vendor/jeb-maker-mb/README.md` (mb 0.4.1).
+ * Keep in sync with `web/static/vendor/jeb-maker-mb/README.md` (mb 0.4.4).
  *
  * Events: native `input` crosses the shadow DOM (composed) and `e.target` is the
  * host whose `.value` is already synced ; `change` does not, so `mb-select`,
@@ -30,6 +30,8 @@ declare module 'svelte/elements' {
 		step?: number | string;
 		minlength?: number | string;
 		maxlength?: number | string;
+		pattern?: string;
+		readonly?: boolean | string | null;
 		rows?: number | string;
 		accept?: string;
 		autocomplete?: string;
@@ -38,6 +40,11 @@ declare module 'svelte/elements' {
 		error?: string;
 		heading?: string;
 		'hide-label'?: boolean | string | null;
+		'missing-message'?: string;
+		'invalid-message'?: string;
+		'close-label'?: string;
+		'dismiss-label'?: string;
+		'fallback-label'?: string;
 		for?: string;
 		'label-open'?: string;
 		'label-close'?: string;

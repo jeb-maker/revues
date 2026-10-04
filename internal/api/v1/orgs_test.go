@@ -402,12 +402,12 @@ type testSession struct {
 
 func registerSession(t *testing.T, handler http.Handler, email, displayName string) testSession {
 	t.Helper()
+	_ = displayName
 	guest, csrf := bootstrapGuest(t, handler)
 	payload := map[string]string{
 		"email":            email,
-		"display_name":     displayName,
-		"password":         "password123",
-		"password_confirm": "password123",
+		"password":         "password1234",
+		"password_confirm": "password1234",
 	}
 	body, _ := json.Marshal(payload)
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/register", bytes.NewReader(body))

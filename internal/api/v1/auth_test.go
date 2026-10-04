@@ -65,7 +65,7 @@ func TestAuthAPI_LoginRequiresCSRF(t *testing.T) {
 		Env:                 "development",
 	})
 
-	payload := `{"email":"user@example.com","password":"password123"}`
+	payload := `{"email":"user@example.com","password":"password1234"}`
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/login", strings.NewReader(payload))
 	req.Header.Set("Content-Type", "application/json")
 	rec := httptest.NewRecorder()
@@ -76,6 +76,61 @@ func TestAuthAPI_LoginRequiresCSRF(t *testing.T) {
 	}
 	if !strings.Contains(rec.Body.String(), "csrf") {
 		t.Fatalf("body = %q, want csrf error", rec.Body.String())
+	}
+}
+
+
+func TestAuthAPI_LoginValidationMessages(t *testing.T) {
+	t.Parallel()
+
+	handler := newTestRouter(t, config.Config{
+		SessionSecret:       "test-secret-at-least-thirty-two-bytes",
+		BootstrapAdminEmail: "admin@example.com",
+		Env:                 "development",
+	})
+
+	cases := []struct {
+		name       string
+		payload    string
+		wantStatus int
+		wantMsg    string
+	}{
+		{
+			name:       "empty fields",
+			payload:    `{"email":"","password":""}`,
+			wantStatus: http.StatusBadRequest,
+			wantMsg:    "Indiquez votre email et votre mot de passe.",
+		},
+		{
+			name:       "invalid email",
+			payload:    `{"email":"pas-un-email","password":"password1234"}`,
+			wantStatus: http.StatusBadRequest,
+			wantMsg:    "Adresse email invalide.",
+		},
+		{
+			name:       "bad credentials",
+			payload:    `{"email":"nobody@example.com","password":"password1234"}`,
+			wantStatus: http.StatusUnauthorized,
+			wantMsg:    "Email ou mot de passe incorrect.",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			guest, csrf := bootstrapGuest(t, handler)
+			req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/login", strings.NewReader(tc.payload))
+			req.Header.Set("Content-Type", "application/json")
+			req.Header.Set("X-CSRF-Token", csrf)
+			req.AddCookie(guest)
+			rec := httptest.NewRecorder()
+			handler.ServeHTTP(rec, req)
+			if rec.Code != tc.wantStatus {
+				t.Fatalf("status = %d, want %d; body=%s", rec.Code, tc.wantStatus, rec.Body.String())
+			}
+			if !strings.Contains(rec.Body.String(), tc.wantMsg) {
+				t.Fatalf("body = %q, want %q", rec.Body.String(), tc.wantMsg)
+			}
+		})
 	}
 }
 
@@ -119,9 +174,8 @@ func TestAuthAPI_RegisterWhitelistReject(t *testing.T) {
 
 	payload := map[string]string{
 		"email":            "stranger@example.com",
-		"display_name":     "Stranger",
-		"password":         "password123",
-		"password_confirm": "password123",
+		"password":         "password1234",
+		"password_confirm": "password1234",
 	}
 	body, _ := json.Marshal(payload)
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/register", bytes.NewReader(body))
@@ -153,9 +207,8 @@ func TestAuthAPI_RegisterAndMe(t *testing.T) {
 	guest, csrf := bootstrapGuest(t, handler)
 	payload := map[string]string{
 		"email":            "newbie@example.com",
-		"display_name":     "Newbie",
-		"password":         "password123",
-		"password_confirm": "password123",
+		"password":         "password1234",
+		"password_confirm": "password1234",
 	}
 	body, _ := json.Marshal(payload)
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/register", bytes.NewReader(body))
@@ -204,9 +257,8 @@ func TestAuthAPI_LogoutRequiresCSRF(t *testing.T) {
 	guest, csrf := bootstrapGuest(t, handler)
 	payload := map[string]string{
 		"email":            "logout@example.com",
-		"display_name":     "Logout",
-		"password":         "password123",
-		"password_confirm": "password123",
+		"password":         "password1234",
+		"password_confirm": "password1234",
 	}
 	body, _ := json.Marshal(payload)
 	reg := httptest.NewRequest(http.MethodPost, "/api/v1/auth/register", bytes.NewReader(body))

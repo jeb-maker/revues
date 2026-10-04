@@ -1307,7 +1307,6 @@ export interface components {
         RegisterRequest: {
             /** Format: email */
             email: string;
-            display_name: string;
             /** Format: password */
             password: string;
             /** Format: password */

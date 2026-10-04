@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	passwordMinLen   = 8
+	passwordMinLen   = 12
 	passwordMaxLen   = 72
 	argonTime        = 1
 	argonMemoryKiB   = 64 * 1024

@@ -221,7 +221,7 @@ func TestMyTasksAPI_RequiresOrg(t *testing.T) {
 	handler, st := newTestRouterWithStore(t, cfg)
 
 	ctx := context.Background()
-	user, err := st.CreateLocalUser(ctx, "tasks-noorg@example.com", "tasks-noorg", "No Org", auth.RoleEditor, mustHash(t, "password123"))
+	user, err := st.CreateLocalUser(ctx, "tasks-noorg@example.com", "tasks-noorg", "No Org", auth.RoleEditor, mustHash(t, "password1234"))
 	if err != nil {
 		t.Fatalf("CreateLocalUser: %v", err)
 	}

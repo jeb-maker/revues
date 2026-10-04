@@ -16,6 +16,11 @@
 	let loggingOut = $state(false);
 	let headerQuery = $state('');
 
+	/** Pages auth : pas de shell (navbar / compte / recherche). */
+	const hideAppChrome = $derived(
+		page.url.pathname === '/login' || page.url.pathname === '/register'
+	);
+
 	$effect(() => {
 		if (page.url.pathname === '/search') {
 			headerQuery = page.url.searchParams.get('q') ?? '';
@@ -32,10 +37,12 @@
 	const links = $derived.by(() => {
 		const run = runLabels(boot.organization?.ui_run_label);
 		const subject = subjectLabels(boot.organization?.ui_subject_label);
-		const items: { href: string; label: string }[] = [
-			{ href: '/runs', label: run.nav },
-			{ href: '/subjects', label: subject.plural }
-		];
+		const items: { href: string; label: string }[] = [];
+		// Évite « Revues · Revues » : la marque couvre déjà le hub /runs.
+		if (run.nav !== 'Revues') {
+			items.push({ href: '/runs', label: run.nav });
+		}
+		items.push({ href: '/subjects', label: subject.plural });
 		if (boot.show_modeles) {
 			items.push({ href: '/modeles', label: templateNavLabel(boot.organization?.ui_run_label) });
 		}
@@ -44,6 +51,14 @@
 		}
 		return items;
 	});
+
+	const brandCurrent = $derived(
+		boot.authenticated &&
+			!links.some((l) => l.href === '/runs') &&
+			(page.url.pathname === '/runs' || page.url.pathname.startsWith('/runs/'))
+			? ('page' as const)
+			: undefined
+	);
 
 	function current(href: string): 'page' | undefined {
 		const path = page.url.pathname;
@@ -67,52 +82,58 @@
 
 <a class="skip-link" href="#main">Aller au contenu</a>
 
-<header class="app-header">
-	<div class="app-header__inner">
-		<a class="brand" href={boot.authenticated ? '/runs' : '/'}>Revues</a>
-		{#if boot.authenticated && boot.user}
-			<mb-nav-toggle for="main-nav" label-open="Ouvrir le menu" label-close="Fermer le menu"
-			></mb-nav-toggle>
-			<mb-nav id="main-nav" label="Principale">
-				{#each links as link (link.href)}
-					<a href={link.href} aria-current={current(link.href)}>{link.label}</a>
-				{/each}
-				{#if boot.can_admin}
-					<a href="/admin" aria-current={current('/admin')}>Admin</a>
-				{/if}
-			</mb-nav>
-			<form class="app-header__search" role="search" onsubmit={onHeaderSearch}>
-				<mb-input
-					label="Recherche"
-					hide-label
-					type="search"
-					name="q"
-					placeholder="Rechercher…"
-					value={headerQuery}
-					oninput={(e) => (headerQuery = inputValue(e))}
-				></mb-input>
-				<mb-button type="submit" variant="secondary" size="sm">OK</mb-button>
-			</form>
-			<div class="app-header__account">
-				{#if boot.organization}
-					<span>
-						<strong>{boot.organization.name}</strong>
-						{#if boot.organization_count > 1}
-							· <a href="/org/select">Changer</a>
-						{/if}
-					</span>
-				{/if}
-				<span>{boot.user.display_name}</span>
-				<mb-button variant="ghost" size="sm" disabled={loggingOut} onclick={onLogout}>
-					Se déconnecter
-				</mb-button>
-			</div>
+{#if !hideAppChrome}
+	<header class="app-header">
+		<div class="app-header__inner">
+			{#if boot.authenticated && boot.user}
+				<div class="app-header__brand">
+					<a class="brand" href="/runs" aria-current={brandCurrent}>Revues</a>
+					<mb-nav-toggle for="main-nav" label-open="Ouvrir le menu" label-close="Fermer le menu"
+					></mb-nav-toggle>
+				</div>
+				<mb-nav id="main-nav" label="Principale">
+					{#each links as link (link.href)}
+						<a href={link.href} aria-current={current(link.href)}>{link.label}</a>
+					{/each}
+					{#if boot.can_admin}
+						<a href="/admin" aria-current={current('/admin')}>Admin</a>
+					{/if}
+				</mb-nav>
+				<form class="app-header__search" role="search" onsubmit={onHeaderSearch}>
+					<mb-input
+						label="Recherche"
+						hide-label
+						type="search"
+						name="q"
+						placeholder="Rechercher…"
+						value={headerQuery}
+						oninput={(e) => (headerQuery = inputValue(e))}
+					></mb-input>
+					<mb-button type="submit" variant="secondary" size="sm">OK</mb-button>
+				</form>
+				<div class="app-header__account">
+					{#if boot.organization}
+						<span>
+							<strong>{boot.organization.name}</strong>
+							{#if boot.organization_count > 1}
+								· <a href="/org/select">Changer</a>
+							{/if}
+						</span>
+					{/if}
+					<span>{boot.user.display_name}</span>
+					<mb-button variant="ghost" size="sm" disabled={loggingOut} onclick={onLogout}>
+						Se déconnecter
+					</mb-button>
+				</div>
+			{:else}
+				<a class="brand" href="/">Revues</a>
+			{/if}
+		</div>
+		{#if logoutError}
+			<mb-alert variant="danger">{logoutError}</mb-alert>
 		{/if}
-	</div>
-	{#if logoutError}
-		<mb-alert variant="danger">{logoutError}</mb-alert>
-	{/if}
-</header>
+	</header>
+{/if}
 
 <main id="main" tabindex="-1">
 	{#if data.apiError}
