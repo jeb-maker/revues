@@ -83,8 +83,6 @@
 				<mb-card>
 					<h1 slot="header">Lancer une revue</h1>
 					<div class="stack-form">
-						<p class="lede">Les points du modèle choisi sont copiés tels quels au lancement.</p>
-
 						{#if error}
 							<mb-alert variant="danger">{error}</mb-alert>
 						{/if}
