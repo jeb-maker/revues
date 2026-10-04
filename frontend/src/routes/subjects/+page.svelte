@@ -57,7 +57,7 @@
 			<h1>{subject.plural}</h1>
 			{#if canCreate && !templateId}
 				<p class="actions page-header__actions">
-					<mb-button variant="primary" href="/subjects/new">Nouveau {subject.singular.toLowerCase()}</mb-button>
+					<mb-button variant="primary" href="/subjects/new">Nouveau</mb-button>
 				</p>
 			{/if}
 		</div>
