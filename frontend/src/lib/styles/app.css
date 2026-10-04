@@ -106,7 +106,6 @@ code {
 	display: flex;
 	align-items: center;
 	gap: var(--mb-space-2);
-	justify-self: start;
 	min-width: 0;
 }
 
@@ -117,7 +116,6 @@ code {
 	font-family: var(--mb-font-display);
 	font-size: var(--mb-font-size-xl);
 	font-weight: 700;
-	line-height: 1;
 	letter-spacing: -0.03em;
 	color: var(--mb-color-fg);
 	text-decoration: none;
@@ -125,20 +123,16 @@ code {
 
 .app-header mb-nav {
 	justify-self: center;
-	display: flex;
-	align-items: center;
 }
 
 .app-header mb-nav a {
 	font-size: var(--mb-font-size-sm);
-	line-height: var(--mb-line-height);
 }
 
 .app-header__search {
 	display: flex;
 	align-items: center;
 	gap: var(--mb-space-2);
-	justify-self: end;
 	min-width: 10rem;
 	max-width: 18rem;
 }
@@ -153,9 +147,7 @@ code {
 	flex-wrap: wrap;
 	align-items: center;
 	justify-content: flex-end;
-	justify-self: end;
 	gap: var(--mb-space-1) var(--mb-space-3);
-	min-width: 0;
 	font-size: var(--mb-font-size-sm);
 	color: var(--mb-color-muted);
 }
@@ -175,21 +167,10 @@ code {
 		grid-template-columns: 1fr auto;
 	}
 
-	.app-header mb-nav {
-		grid-column: 1 / -1;
-		justify-self: stretch;
-		order: 3;
-	}
-
+	.app-header mb-nav,
 	.app-header__search {
 		grid-column: 1 / -1;
-		justify-self: stretch;
 		max-width: none;
-		order: 4;
-	}
-
-	.app-header__account {
-		justify-self: end;
 	}
 }
 
@@ -201,8 +182,6 @@ main:focus {
 
 .page {
 	width: 100%;
-	max-width: none;
-	margin: 0;
 	padding: var(--mb-space-5) var(--mb-space-4) var(--mb-space-8);
 }
 
@@ -212,16 +191,13 @@ main:focus {
 }
 
 .page--wide {
-	/* Plein largeur (défaut .page) — classe conservée pour les pages existantes */
 	max-width: none;
 }
 
-/* Auth (login / register) : centrage viewport + carte d'interaction */
 .page--auth {
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	max-width: none;
 	min-height: 100dvh;
 	padding: var(--mb-space-5) var(--mb-space-4);
 }
@@ -248,19 +224,14 @@ main:focus {
 }
 
 .auth-card .page-header h1 {
-	margin-bottom: 0;
+	margin: 0;
 	font-size: var(--mb-font-size-lg);
 }
 
-.auth-card .lede {
-	margin-bottom: 0;
-}
-
 .auth-card .stack-form {
-	margin-bottom: 0;
+	margin: 0;
 }
 
-/* mb-button : host inline-block + .base inline-flex → forcer la largeur via ::part */
 .auth-card .stack-form > mb-button,
 .auth-card > mb-button[href] {
 	display: block;
@@ -286,7 +257,7 @@ main:focus {
 .auth-card .auth-alt::before,
 .auth-card .auth-alt::after {
 	content: '';
-	flex: 1 1 auto;
+	flex: 1;
 	border-top: 1px solid var(--mb-color-border);
 }
 
@@ -403,7 +374,7 @@ main:focus {
 	margin: 0 0 var(--mb-space-3);
 }
 
-/* Listes de cartes cliquables (revues, modèles, accueil) */
+/* card-list */
 .card-list {
 	display: flex;
 	flex-direction: column;
@@ -435,7 +406,7 @@ main:focus {
 	gap: var(--mb-space-2) var(--mb-space-3);
 }
 
-/* Listes de lignes (membres, équipes) */
+/* row-list */
 .row-list {
 	display: flex;
 	flex-direction: column;
@@ -452,7 +423,7 @@ main:focus {
 	gap: var(--mb-space-2) var(--mb-space-3);
 }
 
-/* Tableaux natifs (admin) */
+/* table-scroll */
 .table-scroll {
 	overflow-x: auto;
 	margin: 0 0 var(--mb-space-4);
