@@ -33,18 +33,6 @@ const (
 	AdminInvitationCreateRequestOrgRoleOwner  AdminInvitationCreateRequestOrgRole = "owner"
 )
 
-// Defines values for AllowedEmailRole.
-const (
-	AllowedEmailRoleEditor AllowedEmailRole = "editor"
-	AllowedEmailRoleReader AllowedEmailRole = "reader"
-)
-
-// Defines values for AllowedEmailWriteRequestRole.
-const (
-	AllowedEmailWriteRequestRoleEditor AllowedEmailWriteRequestRole = "editor"
-	AllowedEmailWriteRequestRoleReader AllowedEmailWriteRequestRole = "reader"
-)
-
 // Defines values for HealthResponseStatus.
 const (
 	HealthResponseStatusOk HealthResponseStatus = "ok"
@@ -240,32 +228,6 @@ type AdminTeamMember struct {
 type AdminTeamMemberRequest struct {
 	UserId int64 `json:"user_id"`
 }
-
-// AllowedEmail defines model for AllowedEmail.
-type AllowedEmail struct {
-	CreatedAt string              `json:"created_at"`
-	Email     openapi_types.Email `json:"email"`
-
-	// Role Rôle global whitelist (reader|editor)
-	Role AllowedEmailRole `json:"role"`
-}
-
-// AllowedEmailRole Rôle global whitelist (reader|editor)
-type AllowedEmailRole string
-
-// AllowedEmailListResponse defines model for AllowedEmailListResponse.
-type AllowedEmailListResponse struct {
-	Emails []AllowedEmail `json:"emails"`
-}
-
-// AllowedEmailWriteRequest defines model for AllowedEmailWriteRequest.
-type AllowedEmailWriteRequest struct {
-	Email openapi_types.Email          `json:"email"`
-	Role  AllowedEmailWriteRequestRole `json:"role"`
-}
-
-// AllowedEmailWriteRequestRole defines model for AllowedEmailWriteRequest.Role.
-type AllowedEmailWriteRequestRole string
 
 // Attachment defines model for Attachment.
 type Attachment struct {
@@ -1157,9 +1119,6 @@ type ListTemplatesParams struct {
 	Q *string `form:"q,omitempty" json:"q,omitempty"`
 }
 
-// CreateAllowedEmailJSONRequestBody defines body for CreateAllowedEmail for application/json ContentType.
-type CreateAllowedEmailJSONRequestBody = AllowedEmailWriteRequest
-
 // PutAdminJiraSettingsJSONRequestBody defines body for PutAdminJiraSettings for application/json ContentType.
 type PutAdminJiraSettingsJSONRequestBody = JiraSettingsUpdate
 
@@ -1237,15 +1196,6 @@ type CreateTemplateVersionJSONRequestBody = TemplateVersionCreateRequest
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
-	// Liste blanche emails de l'org active
-	// (GET /admin/allowed-emails)
-	ListAllowedEmails(w http.ResponseWriter, r *http.Request)
-	// Ajouter / mettre à jour un email autorisé
-	// (POST /admin/allowed-emails)
-	CreateAllowedEmail(w http.ResponseWriter, r *http.Request)
-	// Retirer un email de la whitelist
-	// (DELETE /admin/allowed-emails/{email})
-	DeleteAllowedEmail(w http.ResponseWriter, r *http.Request, email openapi_types.Email)
 	// Hub intégrations (états + navigation)
 	// (GET /admin/integrations)
 	ListAdminIntegrations(w http.ResponseWriter, r *http.Request)
@@ -1464,24 +1414,6 @@ type ServerInterface interface {
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
 
 type Unimplemented struct{}
-
-// Liste blanche emails de l'org active
-// (GET /admin/allowed-emails)
-func (_ Unimplemented) ListAllowedEmails(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusNotImplemented)
-}
-
-// Ajouter / mettre à jour un email autorisé
-// (POST /admin/allowed-emails)
-func (_ Unimplemented) CreateAllowedEmail(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusNotImplemented)
-}
-
-// Retirer un email de la whitelist
-// (DELETE /admin/allowed-emails/{email})
-func (_ Unimplemented) DeleteAllowedEmail(w http.ResponseWriter, r *http.Request, email openapi_types.Email) {
-	w.WriteHeader(http.StatusNotImplemented)
-}
 
 // Hub intégrations (états + navigation)
 // (GET /admin/integrations)
@@ -1917,59 +1849,6 @@ type ServerInterfaceWrapper struct {
 }
 
 type MiddlewareFunc func(http.Handler) http.Handler
-
-// ListAllowedEmails operation middleware
-func (siw *ServerInterfaceWrapper) ListAllowedEmails(w http.ResponseWriter, r *http.Request) {
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.ListAllowedEmails(w, r)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r)
-}
-
-// CreateAllowedEmail operation middleware
-func (siw *ServerInterfaceWrapper) CreateAllowedEmail(w http.ResponseWriter, r *http.Request) {
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.CreateAllowedEmail(w, r)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r)
-}
-
-// DeleteAllowedEmail operation middleware
-func (siw *ServerInterfaceWrapper) DeleteAllowedEmail(w http.ResponseWriter, r *http.Request) {
-
-	var err error
-
-	// ------------- Path parameter "email" -------------
-	var email openapi_types.Email
-
-	err = runtime.BindStyledParameterWithOptions("simple", "email", chi.URLParam(r, "email"), &email, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "email", Err: err})
-		return
-	}
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.DeleteAllowedEmail(w, r, email)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r)
-}
 
 // ListAdminIntegrations operation middleware
 func (siw *ServerInterfaceWrapper) ListAdminIntegrations(w http.ResponseWriter, r *http.Request) {
@@ -3663,15 +3542,6 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		ErrorHandlerFunc:   options.ErrorHandlerFunc,
 	}
 
-	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/admin/allowed-emails", wrapper.ListAllowedEmails)
-	})
-	r.Group(func(r chi.Router) {
-		r.Post(options.BaseURL+"/admin/allowed-emails", wrapper.CreateAllowedEmail)
-	})
-	r.Group(func(r chi.Router) {
-		r.Delete(options.BaseURL+"/admin/allowed-emails/{email}", wrapper.DeleteAllowedEmail)
-	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/admin/integrations", wrapper.ListAdminIntegrations)
 	})

@@ -92,7 +92,7 @@ func TestAdminInvitationsAPI(t *testing.T) {
 		t.Fatalf("already member status=%d body=%s", conflict.Code, conflict.Body.String())
 	}
 
-	// Whitelist gate still allows register via pending invitation
+	// Invite-only gate still allows register via pending invitation
 	ok, err := st.HasPendingInvitationByEmail(ctx, "new.invitee@example.com")
 	if err != nil || !ok {
 		t.Fatalf("pending invite missing: %v %v", ok, err)

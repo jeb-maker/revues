@@ -54,7 +54,7 @@ func (s *Service) PasswordLogin(ctx context.Context, email, password string) (*L
 		return nil, ErrInvalidCredentials
 	}
 
-	// Re-apply whitelist / bootstrap role on every login (same rules as GitHub).
+	// Re-apply invite / bootstrap / membership role on every login (same rules as GitHub).
 	role, roleErr := s.Store.ResolveLoginRoleStrict(ctx, email, s.Config.BootstrapAdminEmail, s.Config.LoginRequireWhitelist)
 	if roleErr != nil {
 		if errors.Is(roleErr, store.ErrEmailNotAllowed) {
@@ -239,6 +239,6 @@ var (
 	ErrInvalidCredentials = errors.New("invalid credentials")
 	// ErrValidation is returned for malformed register/login payloads.
 	ErrValidation = errors.New("validation failed")
-	// ErrEmailNotAllowed is returned when whitelist rejects an email (generic to clients).
+	// ErrEmailNotAllowed is returned when strict invite-only login rejects an email (generic to clients).
 	ErrEmailNotAllowed = errors.New("email not allowed")
 )

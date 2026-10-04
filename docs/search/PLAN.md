@@ -37,7 +37,7 @@ L’utilisateur doit savoir *où* chercher. Les filtres métier (statut, échéa
 - Recherche dans le contenu des commentaires / pièces jointes.
 - Fuzzy / typos / ranking ML.
 - Raccourci clavier global type Spotlight (peut suivre une fois la page `/search` stable).
-- Admin (users, whitelist) — hors org métier.
+- Admin (membres, invitations) — hors org métier.
 
 ## Découpage
 

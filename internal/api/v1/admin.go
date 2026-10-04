@@ -12,104 +12,6 @@ import (
 	"github.com/jeb-maker/revues/internal/store"
 )
 
-// ListAllowedEmails serves GET /api/v1/admin/allowed-emails.
-func (s *Server) ListAllowedEmails(w http.ResponseWriter, r *http.Request) {
-	if _, _, ok := s.requireOrgAdmin(w, r); !ok {
-		return
-	}
-	emails, err := s.Store.ListAllowedEmails(r.Context())
-	if err != nil {
-		slog.Error("list allowed emails", "err", err)
-		writeAPIError(w, http.StatusInternalServerError, "internal_error", "Erreur interne.")
-		return
-	}
-	out := make([]AllowedEmail, 0, len(emails))
-	for _, e := range emails {
-		out = append(out, mapAllowedEmail(e))
-	}
-	writeJSON(w, http.StatusOK, AllowedEmailListResponse{Emails: out})
-}
-
-// CreateAllowedEmail serves POST /api/v1/admin/allowed-emails.
-func (s *Server) CreateAllowedEmail(w http.ResponseWriter, r *http.Request) {
-	if _, _, ok := s.requireOrgAdmin(w, r); !ok {
-		return
-	}
-
-	var req AllowedEmailWriteRequest
-	if err := decodeJSONBody(r, &req); err != nil {
-		writeAPIError(w, http.StatusBadRequest, "validation_failed", "Requête invalide.")
-		return
-	}
-
-	email, err := normalizeEmail(string(req.Email))
-	if err != nil {
-		writeAPIError(w, http.StatusBadRequest, "validation_failed", "Adresse email invalide.")
-		return
-	}
-	role := string(req.Role)
-	if !store.ValidWhitelistRole(role) {
-		writeAPIError(w, http.StatusBadRequest, "validation_failed",
-			"Rôle invalide. La whitelist n'accepte que lecteur ou éditeur ; l'admin global passe par REVUES_BOOTSTRAP_ADMIN_EMAIL.")
-		return
-	}
-
-	if err := s.Store.InsertAllowedEmail(r.Context(), email, role); err != nil {
-		if errors.Is(err, store.ErrInvalidAllowedRole) {
-			writeAPIError(w, http.StatusBadRequest, "validation_failed",
-				"Rôle invalide. La whitelist n'accepte que lecteur ou éditeur.")
-			return
-		}
-		slog.Error("insert allowed email", "err", err)
-		writeAPIError(w, http.StatusInternalServerError, "internal_error", "Erreur interne.")
-		return
-	}
-
-	created := AllowedEmail{
-		Email:     openapi_types.Email(email),
-		Role:      AllowedEmailRole(role),
-		CreatedAt: "",
-	}
-	if emails, listErr := s.Store.ListAllowedEmails(r.Context()); listErr == nil {
-		for _, e := range emails {
-			if e.Email == email {
-				created = mapAllowedEmail(e)
-				break
-			}
-		}
-	}
-	writeJSON(w, http.StatusCreated, created)
-}
-
-// DeleteAllowedEmail serves DELETE /api/v1/admin/allowed-emails/{email}.
-func (s *Server) DeleteAllowedEmail(w http.ResponseWriter, r *http.Request, emailParam openapi_types.Email) {
-	user, _, ok := s.requireOrgAdmin(w, r)
-	if !ok {
-		return
-	}
-
-	email, err := normalizeEmail(string(emailParam))
-	if err != nil {
-		writeAPIError(w, http.StatusBadRequest, "validation_failed", "Adresse email invalide.")
-		return
-	}
-	if strings.EqualFold(user.Email, email) {
-		writeAPIError(w, http.StatusBadRequest, "validation_failed", "Vous ne pouvez pas retirer votre propre email.")
-		return
-	}
-
-	if err := s.Store.DeleteAllowedEmail(r.Context(), email); err != nil {
-		if errors.Is(err, store.ErrAllowedEmailNotFound) {
-			writeAPIError(w, http.StatusNotFound, "not_found", "Email introuvable.")
-			return
-		}
-		slog.Error("delete allowed email", "err", err)
-		writeAPIError(w, http.StatusInternalServerError, "internal_error", "Erreur interne.")
-		return
-	}
-	w.WriteHeader(http.StatusNoContent)
-}
-
 // ListOrganizationMembers serves GET /api/v1/admin/members.
 func (s *Server) ListOrganizationMembers(w http.ResponseWriter, r *http.Request) {
 	if _, _, ok := s.requireOrgAdmin(w, r); !ok {
@@ -399,14 +301,6 @@ func (s *Server) UpdateLeadPolicies(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, mapLeadPolicies(policies))
-}
-
-func mapAllowedEmail(e store.AllowedEmail) AllowedEmail {
-	return AllowedEmail{
-		Email:     openapi_types.Email(e.Email),
-		Role:      AllowedEmailRole(e.Role),
-		CreatedAt: e.CreatedAt,
-	}
 }
 
 func mapOrgMembers(members []store.OrganizationMemberUser) []OrganizationMember {

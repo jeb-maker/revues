@@ -55,7 +55,7 @@ Corps PR : Closes #<N>
 - Contrôle **IDOR** : vérifier appartenance sujet/revue org active
 - CSRF sur **toutes** les mutations API (`X-CSRF-Token`)
 - Secrets en variables d'environnement, credentials chiffrés en base
-- Email GitHub **vérifié** avant whitelist
+- Email GitHub **vérifié** avant acceptation login/OAuth
 - Voir [docs/RBAC.md](docs/RBAC.md) pour la matrice
 
 ### Données
@@ -133,7 +133,7 @@ Contexte durable pour les agents Cloud (l'update script a déjà installé les d
   - Sans `REVUES_GITHUB_CLIENT_ID`/`SECRET`, le bouton GitHub est masqué (`github_oauth_enabled: false`) ; utiliser login/register local.
   - **Seed session** (sans UI) : `store.UpsertGitHubUser` ou `CreateLocalUser`, puis `store.CreateSession` avec le hash de `auth.RandomToken`, cookie HttpOnly `revues_session=<raw>`. CSRF = HMAC(`session token + REVUES_SESSION_SECRET`) — aussi renvoyé par bootstrap/`me` ; envoyer `X-CSRF-Token` sur chaque mutation API.
   - `REVUES_BOOTSTRAP_ADMIN_EMAIL` : rôle admin au premier login de cet email. `REVUES_DEV_AUTH=1` (hors production, loopback) auto-session + `POST /auth/dev/login` switch user.
-  - Whitelist : `REVUES_LOGIN_REQUIRE_WHITELIST=1` refuse register/OAuth hors `allowed_emails` (tests sécurité).
+  - Invite-only : `REVUES_LOGIN_REQUIRE_WHITELIST=1` refuse register/OAuth hors membre org / invitation / bootstrap (tests sécurité).
 - **SQLite** : pool `REVUES_DB_MAX_OPEN_CONNS` (défaut 10) + WAL + `busy_timeout`, base `data/revues.db` (gitignored).
 - **Reset base dev** : `./scripts/reset-db.sh` ; `--seed` disponible. Migrations goose dans `migrations/`.
 - **Rewrite** : orchestration [docs/rewrite/README.md](docs/rewrite/README.md). Créer les issues : `./scripts/create-rewrite-issues.sh`.

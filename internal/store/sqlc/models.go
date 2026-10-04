@@ -4,13 +4,6 @@
 
 package sqlc
 
-type AllowedEmail struct {
-	OrganizationID int64
-	Email          string
-	Role           string
-	CreatedAt      string
-}
-
 type Attachment struct {
 	ID          int64
 	RunItemID   int64
@@ -31,6 +24,7 @@ type ChecklistRun struct {
 	CreatedBy         *int64
 	StartedAt         *string
 	CompletedAt       *string
+	CompletedBy       *int64
 	NotionUrl         string
 	EvidenceCsvSha256 string
 	CreatedAt         string

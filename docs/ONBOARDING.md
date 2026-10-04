@@ -26,18 +26,20 @@ Stack cible : [ADR-001](./ADR-001-api-first-svelte.md). Rewrite agents : [rewrit
 
 Deux voies d'auth (complémentaires) :
 
-- **GitHub OAuth** — « Se connecter avec GitHub » (email GitHub **vérifié** requis pour la whitelist)
-- **Email + mot de passe** — inscription puis login (mêmes règles whitelist)
+- **GitHub OAuth** — « Se connecter avec GitHub » (email GitHub **vérifié** requis)
+- **Email + mot de passe** — inscription puis login
 
-**Instance migrée (organisation `default` existante)** : se connecter avec le compte correspondant à `REVUES_BOOTSTRAP_ADMIN_EMAIL`. Au premier login, cet email reçoit le rôle global **admin** et devient **owner** de l'organisation `default`.
+**Instance migrée (organisation `default` existante)** : se connecter avec le compte correspondant à `REVUES_BOOTSTRAP_ADMIN_EMAIL`. Au premier login, cet email reçoit le rôle global **admin** (legacy — voir #310) et devient **owner** de l'organisation `default`.
 
 **Self-service (nouvelle installation)** : tout utilisateur sans organisation peut se connecter et créer sa première organisation via `/org/new`.
 
-## 4. Autoriser les utilisateurs
+Avec `REVUES_LOGIN_REQUIRE_WHITELIST=1`, l'inscription / OAuth n'est acceptée que pour un email déjà membre d'une org, avec une **invitation en attente**, ou égal au bootstrap (message générique anti-énumération).
 
-Les administrateurs d'organisation (`owner` / `admin`) gèrent la liste blanche depuis **Emails autorisés** (`/admin/users`). Ajoutez les emails GitHub des personnes autorisées à rejoindre l'organisation active, avec le rôle `reader` ou `editor`. Le rôle global **admin** n'est jamais attribué via la whitelist (uniquement via `REVUES_BOOTSTRAP_ADMIN_EMAIL`) — cela empêche une organisation self-service d'élever un compte au rang d'admin global.
+## 4. Inviter des utilisateurs
 
-Une personne peut aussi rejoindre si elle est déjà membre d'une organisation, ou via une équipe / grant sujet selon le modèle décrit dans [RBAC.md](./RBAC.md).
+Les administrateurs d'organisation (`owner` / `admin`) invitent depuis **Membres** (`/admin/members`) : email + rôle org (`member` / `admin` / `owner`). L'invité s'inscrit ou se connecte avec cet email, puis accepte l'invitation (parcours `/org/select`).
+
+Le modèle d'accès complet (org = gouvernance, projet = droits métier) est décrit dans [RBAC.md](./RBAC.md) ; la bascule hors rôle global produit est suivie dans #310.
 
 ## 5. Créer un sujet et lancer une revue
 
@@ -47,4 +49,4 @@ Une personne peut aussi rejoindre si elle est déjà membre d'une organisation, 
 
 Les lecteurs (`reader`) voient les sujets auxquels ils ont accès ; ils ne cochent pas.
 
-Admin org : `/admin` (emails, membres, équipes, politiques, SMTP, hub intégrations) — réservé owner/admin.
+Admin org : `/admin` (membres, invitations, politiques, SMTP, hub intégrations) — réservé owner/admin.

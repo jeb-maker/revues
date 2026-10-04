@@ -12,7 +12,7 @@ type OrgRoleLookup interface {
 	OrganizationMemberRole(ctx context.Context, organizationID, userID int64) (string, bool, error)
 }
 
-// CanManageOrgUsers reports whether user can manage org settings (whitelist, integrations).
+// CanManageOrgUsers reports whether user can manage org settings (members, invitations, integrations).
 func CanManageOrgUsers(ctx context.Context, st OrgRoleLookup, user *store.User) bool {
 	if auth.HasMinRole(user.Role, auth.RoleAdmin) {
 		return true
