@@ -2,13 +2,25 @@
 
 Cible : VPS multi-apps. Caddy sur l’hôte (`:80`/`:443`) reverse-proxy vers le conteneur bindé en `127.0.0.1`.
 
+## Image Docker (GHCR)
+
+Chaque push sur `main` lance le workflow [`.github/workflows/docker.yml`](../.github/workflows/docker.yml) qui publie :
+
+| Tag | Contenu |
+|-----|---------|
+| `ghcr.io/jeb-maker/revues:sha-<7>` | commit exact (utilisé par `deploy/update.sh`) |
+| `ghcr.io/jeb-maker/revues:main` / `:latest` | pointeur rolling sur le dernier build `main` |
+
+Repo public → pull anonyme OK. Package privé → `docker login ghcr.io` sur le VPS (`read:packages`).
+
 ## Fichiers
 
 | Chemin | Rôle |
 |--------|------|
 | [`Dockerfile`](../Dockerfile) | Build multi-stage : SPA SvelteKit (`node:22`, `npm run build`) + binaire Go (CGO off) ; l'image sert `frontend/build` via `REVUES_SPA_DIR` |
-| [`docker-compose.yml`](../docker-compose.yml) | Service `app` + volume SQLite/attachments |
+| [`docker-compose.yml`](../docker-compose.yml) | Service `app` : image GHCR (+ `build` pour override local) |
 | [`generate-env.sh`](generate-env.sh) | Génère `.env` (secrets) sur l’hôte |
+| [`update.sh`](update.sh) | `git pull` → `compose pull` (`sha-<commit>`) → `up -d` → healthcheck |
 | [`caddy/revues.betafly.ovh.caddy`](caddy/revues.betafly.ovh.caddy) | Snippet Caddy prod |
 
 ## Déployer
@@ -27,10 +39,16 @@ install -m 644 deploy/caddy/revues.betafly.ovh.caddy /etc/caddy/conf.d/
 caddy validate --config /etc/caddy/Caddyfile
 caddy reload --config /etc/caddy/Caddyfile --force
 
+# Premier démarrage : build local si l'image n'existe pas encore,
+# sinon pull GHCR (après le premier run Actions « Docker »).
 docker compose up -d --build
+# Mises à jour suivantes :
+bash deploy/update.sh
 curl -sf http://127.0.0.1:8088/healthz   # → ok
 curl -sf http://127.0.0.1:8088/login | grep -q '_app/' && echo SPA OK   # 503 = build front absent de l'image
 ```
+
+`update.sh` attend l’image `sha-<commit>` sur GHCR (retry ~10 min) pour éviter la course avec Actions. Urgence sans attendre : `REVUES_DEPLOY_BUILD=1 bash deploy/update.sh`.
 
 DNS requis : `A revues.betafly.ovh` → IP publique du VPS. Callback OAuth GitHub : `https://revues.betafly.ovh/auth/github/callback`.
 

@@ -5,7 +5,7 @@
 #   - ne déploie QUE si origin/main a du nouveau (sinon skip, pas de restart) ;
 #   - FAST-FORWARD ONLY : si main a divergé du HEAD prod, on s'abstient ;
 #   - flock : pas deux déploiements concurrents ;
-#   - délègue à deploy/update.sh (git pull + docker compose build).
+#   - délègue à deploy/update.sh (git pull + pull image GHCR).
 #
 # Installation cron (VPS, toutes les 30 min) :
 #   ( crontab -l 2>/dev/null | grep -v revues-auto-deploy; \
