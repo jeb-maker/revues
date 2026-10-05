@@ -3,15 +3,19 @@
 # Architecture :
 #   Caddy (:80/:443) → reverse_proxy 127.0.0.1:8088 → container :8080
 #
-# Usage :
-#   bash deploy/generate-env.sh   # secrets sur l'hôte (ne pas committer .env)
+# Prod (image GHCR, buildée par GitHub Actions) :
+#   bash deploy/update.sh
+# Dev / rebuild local :
 #   docker compose up -d --build
 # Doc : deploy/README.md
+#
+# REVUES_IMAGE / REVUES_IMAGE_TAG : override (défaut ghcr.io/jeb-maker/revues:main)
 
 name: revues
 
 services:
   app:
+    image: ${REVUES_IMAGE:-ghcr.io/jeb-maker/revues}:${REVUES_IMAGE_TAG:-main}
     build:
       context: .
       dockerfile: Dockerfile
