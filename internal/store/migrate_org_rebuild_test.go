@@ -23,15 +23,18 @@ func TestMigrate6OrganizationsRebuildWithRuns(t *testing.T) {
 	t.Cleanup(func() { _ = db.Close() })
 
 	goose.SetBaseFS(migrations.Files)
-	if err := goose.SetDialect("sqlite3"); err != nil {
+	err = goose.SetDialect("sqlite3")
+	if err != nil {
 		t.Fatal(err)
 	}
-	if err := goose.UpToContext(ctx, db, ".", 5); err != nil {
+	err = goose.UpToContext(ctx, db, ".", 5)
+	if err != nil {
 		t.Fatalf("up to 5: %v", err)
 	}
 
 	var oid int64
-	if err := db.QueryRow(`SELECT id FROM organizations LIMIT 1`).Scan(&oid); err != nil {
+	err = db.QueryRow(`SELECT id FROM organizations LIMIT 1`).Scan(&oid)
+	if err != nil {
 		t.Fatalf("org: %v", err)
 	}
 	res, err := db.Exec(`INSERT INTO subjects (organization_id, name, description, visibility, created_at, updated_at) VALUES (?, 'S', '', 'normal', datetime('now'), datetime('now'))`, oid)
@@ -49,7 +52,8 @@ func TestMigrate6OrganizationsRebuildWithRuns(t *testing.T) {
 		t.Fatalf("version: %v", err)
 	}
 	vid, _ := res.LastInsertId()
-	if _, err := db.Exec(`INSERT INTO checklist_runs (subject_id, template_version_id, status, created_at) VALUES (?, ?, 'draft', datetime('now'))`, sid, vid); err != nil {
+	_, err = db.Exec(`INSERT INTO checklist_runs (subject_id, template_version_id, status, created_at) VALUES (?, ?, 'draft', datetime('now'))`, sid, vid)
+	if err != nil {
 		t.Fatalf("run: %v", err)
 	}
 
@@ -67,12 +71,14 @@ func TestMigrate6OrganizationsRebuildWithRuns(t *testing.T) {
 		t.Fatalf("unexpected DROP err: %v", dropErr)
 	}
 
-	if err := goose.UpToContext(ctx, db, ".", 6); err != nil {
+	err = goose.UpToContext(ctx, db, ".", 6)
+	if err != nil {
 		t.Fatalf("up to 6: %v", err)
 	}
 
 	var runs int
-	if err := db.QueryRow(`SELECT COUNT(*) FROM checklist_runs`).Scan(&runs); err != nil {
+	err = db.QueryRow(`SELECT COUNT(*) FROM checklist_runs`).Scan(&runs)
+	if err != nil {
 		t.Fatal(err)
 	}
 	if runs != 1 {
