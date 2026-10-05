@@ -1,4 +1,7 @@
+-- +goose NO TRANSACTION
 -- +goose Up
+-- Rebuild organizations (CHECK ui_subject_label) ; FK OFF hors transaction
+-- sinon DROP échoue dès qu'il existe des runs (subjects ON DELETE RESTRICT).
 PRAGMA foreign_keys = OFF;
 
 CREATE TABLE organizations_new (
