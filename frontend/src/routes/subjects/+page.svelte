@@ -8,6 +8,9 @@
 	import { subjectLabels } from '$lib/i18n/uiLabels';
 	import { searchHrefFromListQuery } from '$lib/navigation/listQueryRedirect';
 
+	type SortKey = 'nom' | 'visibilite';
+	type SortDirection = 'asc' | 'desc';
+
 	const boot = session();
 	const subject = $derived(subjectLabels(boot.organization?.ui_subject_label));
 	const templateId = $derived(page.url.searchParams.get('template_id'));
@@ -16,6 +19,8 @@
 	let canCreate = $state(false);
 	let error = $state('');
 	let loading = $state(true);
+	let sortKey = $state<SortKey>('nom');
+	let sortDirection = $state<SortDirection>('asc');
 
 	function subjectHref(id: number): string {
 		if (templateId) return `/subjects/${id}/launch?template_id=${encodeURIComponent(templateId)}`;
@@ -37,6 +42,31 @@
 		}
 	}
 
+	function onSort(e: CustomEvent<{ key: string; direction: string }>) {
+		const key = e.detail.key as SortKey;
+		const direction = e.detail.direction === 'asc' ? 'asc' : 'desc';
+		if (key !== 'nom' && key !== 'visibilite') return;
+		sortKey = key;
+		sortDirection = direction;
+	}
+
+	const displayed = $derived.by(() => {
+		const list = [...subjects];
+		const dir = sortDirection === 'asc' ? 1 : -1;
+		list.sort((a, b) => {
+			switch (sortKey) {
+				case 'visibilite':
+					return (
+						formatVisibility(a.visibility).localeCompare(formatVisibility(b.visibility), 'fr') * dir
+					);
+				case 'nom':
+				default:
+					return a.name.localeCompare(b.name, 'fr') * dir;
+			}
+		});
+		return list;
+	});
+
 	onMount(() => {
 		const redirect = searchHrefFromListQuery(page.url.searchParams.get('q'));
 		if (redirect) {
@@ -57,12 +87,11 @@
 			<h1>{subject.plural}</h1>
 			{#if canCreate && !templateId}
 				<p class="actions page-header__actions">
-					<mb-button variant="primary" href="/subjects/new">
-						<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"
+					<mb-button variant="primary" href="/subjects/new"
+						><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"
 							><path d="M12 5v14M5 12h14" /></svg
-						>
-						Nouveau {subject.singular.toLowerCase()}
-					</mb-button>
+						>Nouveau</mb-button
+					>
 				</p>
 			{/if}
 		</div>
@@ -80,21 +109,33 @@
 			>Aucun {subject.singular.toLowerCase()} visible dans cette organisation.</mb-empty-state
 		>
 	{:else}
-		<mb-table columns="2fr 1fr auto">
+		<mb-table
+			columns="2fr 1fr 3.5rem"
+			sort-key={sortKey}
+			sort-direction={sortDirection}
+			sort-label="Trier par {name}"
+			onmb-sort={onSort}
+		>
 			<mb-table-row slot="head">
-				<mb-table-cell>Nom</mb-table-cell>
-				<mb-table-cell>Visibilité</mb-table-cell>
-				<mb-table-cell actions>Actions</mb-table-cell>
+				<mb-table-cell sort-key="nom"><span class="th-label">Nom</span></mb-table-cell>
+				<mb-table-cell sort-key="visibilite" align="center"
+					><span class="th-label">Visibilité</span></mb-table-cell
+				>
+				<mb-table-cell actions><span class="th-label">Actions</span></mb-table-cell>
 			</mb-table-row>
-			{#each subjects as s (s.id)}
+			{#each displayed as s (s.id)}
 				<mb-table-row>
-					<mb-table-cell label="Nom" primary>
+					<mb-table-cell label="Nom" primary sort-value={s.name}>
 						<a href={subjectHref(s.id)}>{s.name}</a>
 						{#if s.description}
 							<span class="desc">{s.description}</span>
 						{/if}
 					</mb-table-cell>
-					<mb-table-cell label="Visibilité">
+					<mb-table-cell
+						label="Visibilité"
+						align="center"
+						sort-value={formatVisibility(s.visibility)}
+					>
 						<mb-badge variant={s.visibility === 'private' ? 'warning' : 'neutral'}>
 							{formatVisibility(s.visibility)}
 						</mb-badge>

@@ -160,12 +160,11 @@
 		<div class="page-header__row">
 			<h1>{run.nav}</h1>
 			<p class="actions page-header__actions">
-				<mb-button href="/subjects" variant="primary">
-					<svg class="icon icon--fill" viewBox="0 0 24 24" aria-hidden="true"
+				<mb-button href="/subjects" variant="primary"
+					><svg class="icon icon--fill" viewBox="0 0 24 24" aria-hidden="true"
 						><path d="M8 5v14l11-7z" /></svg
-					>
-					{launchRunCTA(run)}
-				</mb-button>
+					>{launchRunCTA(run)}</mb-button
+				>
 			</p>
 		</div>
 	</header>
