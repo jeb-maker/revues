@@ -355,6 +355,19 @@ main:focus {
 	fill: currentColor;
 	stroke: none;
 }
+
+/*
+  Leading icon in mb-button: default padding-inline is symmetric, so the glyph
+  sits too far from the start edge. Tighten start + gap; keep end padding.
+*/
+mb-button:has(> .icon):not([icon-only])::part(base) {
+	gap: var(--mb-space-1);
+	padding-inline-start: var(--mb-space-2);
+}
+mb-button[size='sm']:has(> .icon):not([icon-only])::part(base) {
+	padding-inline-start: var(--mb-space-1);
+}
+
 .row-actions {
 	display: inline-flex;
 	align-items: center;
@@ -365,9 +378,11 @@ a.row-action {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
-	min-width: 2rem;
-	min-height: 2rem;
-	line-height: 1;
+	box-sizing: border-box;
+	width: 1.75rem;
+	height: 1.75rem;
+	padding: 0;
+	line-height: 0;
 }
 
 /* Après .actions : annuler le margin-bottom dans le bandeau H1 + CTA. */
@@ -592,14 +607,52 @@ mb-table::part(frame) {
 }
 
 /*
-  Centered sortable headers: the caret sits after the label, so padding-start
-  equal to (gap + indicator) keeps the label on the column center axis.
+  Head titles: ellipsis instead of wrap. Sortable headers use flex so the
+  label can shrink while the caret stays visible — wrap the label in
+  <span class="th-label"> (slotted text nodes cannot ellipsis on their own).
 */
-mb-table-cell[align='center']::part(sort) {
+mb-table-row[slot='head'] mb-table-cell,
+mb-table-row[head] mb-table-cell {
+	min-inline-size: 0;
+}
+mb-table-row[slot='head'] mb-table-cell:not([sort-key])::part(value),
+mb-table-row[head] mb-table-cell:not([sort-key])::part(value) {
+	min-inline-size: 0;
+	overflow: hidden;
+}
+.th-label {
+	display: block;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+mb-table-cell[sort-key]::part(sort) {
 	box-sizing: border-box;
+	display: flex;
+	align-items: center;
+	gap: var(--mb-space-1);
 	inline-size: 100%;
+	min-inline-size: 0;
+	overflow: hidden;
+	padding-inline: var(--mb-space-2);
+}
+mb-table-cell[sort-key] .th-label {
+	flex: 1 1 auto;
+}
+mb-table-cell[sort-key]::part(sort-indicator) {
+	flex: none;
+}
+mb-table-cell[align='center']::part(sort) {
 	justify-content: center;
-	padding-inline-start: calc(0.55em + var(--mb-space-1));
+	padding-inline-start: calc(var(--mb-space-2) + 0.55em + var(--mb-space-1));
+}
+mb-table-cell[align='center'] .th-label {
+	flex: 0 1 auto;
+	max-width: 100%;
+}
+mb-table-cell[align='end']::part(sort) {
+	justify-content: flex-end;
 }
 
 /*
