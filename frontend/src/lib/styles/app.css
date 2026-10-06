@@ -608,25 +608,33 @@ mb-table::part(frame) {
 }
 
 /*
-  Head titles: ellipsis instead of wrap. Sortable headers use flex so the
-  label can shrink while the caret stays visible — wrap the label in
-  <span class="th-label"> (slotted text nodes cannot ellipsis on their own).
+  Head titles: single line + ellipsis. Wrap labels in <span class="th-label">
+  (slotted text nodes cannot ellipsis on their own). Sort hover stays full-width;
+  label+caret stay clustered (label must not flex-grow).
 */
 mb-table-row[slot='head'] mb-table-cell,
 mb-table-row[head] mb-table-cell {
 	min-inline-size: 0;
 }
-mb-table-row[slot='head'] mb-table-cell:not([sort-key])::part(value),
-mb-table-row[head] mb-table-cell:not([sort-key])::part(value) {
+mb-table-row[slot='head'] mb-table-cell::part(value),
+mb-table-row[head] mb-table-cell::part(value) {
 	min-inline-size: 0;
 	overflow: hidden;
+}
+mb-table-row[slot='head'] mb-table-cell:not([sort-key])::part(value),
+mb-table-row[head] mb-table-cell:not([sort-key])::part(value) {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 .th-label {
 	display: block;
 	min-width: 0;
+	max-width: 100%;
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
+	flex: 0 1 auto;
 }
 mb-table-cell[sort-key]::part(sort) {
 	box-sizing: border-box;
@@ -636,10 +644,8 @@ mb-table-cell[sort-key]::part(sort) {
 	inline-size: 100%;
 	min-inline-size: 0;
 	overflow: hidden;
+	white-space: nowrap;
 	padding-inline: var(--mb-space-2);
-}
-mb-table-cell[sort-key] .th-label {
-	flex: 1 1 auto;
 }
 mb-table-cell[sort-key]::part(sort-indicator) {
 	flex: none;
@@ -647,10 +653,6 @@ mb-table-cell[sort-key]::part(sort-indicator) {
 mb-table-cell[align='center']::part(sort) {
 	justify-content: center;
 	padding-inline-start: calc(var(--mb-space-2) + 0.55em + var(--mb-space-1));
-}
-mb-table-cell[align='center'] .th-label {
-	flex: 0 1 auto;
-	max-width: 100%;
 }
 mb-table-cell[align='end']::part(sort) {
 	justify-content: flex-end;
