@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
-	import AdminNav from '$lib/components/AdminNav.svelte';
 	import { createAdminTeam, listAdminTeams, type AdminTeamListResponse } from '$lib/api/admin';
 	import { session } from '$lib/auth/session';
 	import { inputValue } from '$lib/mb';
@@ -49,7 +48,6 @@
 	<title>Équipes — Revues</title>
 </svelte:head>
 
-<div class="page">
 	<header class="page-header">
 		<p class="crumbs"><a href="/admin">Administration</a> · Équipes</p>
 		<h1>Équipes</h1>
@@ -62,7 +60,6 @@
 		<mb-alert variant="danger">{error}</mb-alert>
 	{/if}
 
-	<AdminNav section="hub">
 		<form class="stack-form" onsubmit={onCreate}>
 			<h2>Créer une équipe</h2>
 			<mb-input
@@ -109,5 +106,3 @@
 				</ul>
 			{/if}
 		</section>
-	</AdminNav>
-</div>

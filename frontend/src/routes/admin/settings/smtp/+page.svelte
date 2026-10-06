@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import AdminNav from '$lib/components/AdminNav.svelte';
 	import {
 		deleteAdminSMTPSettings,
 		getAdminSMTPSettings,
@@ -115,7 +114,6 @@
 	<title>SMTP — Revues</title>
 </svelte:head>
 
-<div class="page">
 	<header class="page-header">
 		<p class="crumbs"><a href="/admin">Administration</a> · SMTP</p>
 		<h1>Relais SMTP</h1>
@@ -129,7 +127,6 @@
 		<mb-alert variant="success">{message}</mb-alert>
 	{/if}
 
-	<AdminNav section="smtp">
 		{#if loading}
 			<p class="loading">Chargement…</p>
 		{:else}
@@ -203,5 +200,3 @@
 				</div>
 			</section>
 		{/if}
-	</AdminNav>
-</div>

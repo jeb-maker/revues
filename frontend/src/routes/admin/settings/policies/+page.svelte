@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import AdminNav from '$lib/components/AdminNav.svelte';
 	import { getLeadPolicies, updateLeadPolicies, type LeadPolicies } from '$lib/api/admin';
 	import { session } from '$lib/auth/session';
 
@@ -47,7 +46,6 @@
 	<title>Politiques — Revues</title>
 </svelte:head>
 
-<div class="page">
 	<header class="page-header">
 		<p class="crumbs"><a href="/admin">Administration</a> · Politiques</p>
 		<h1>Politiques de délégation</h1>
@@ -63,7 +61,6 @@
 		<mb-alert variant="success">{message}</mb-alert>
 	{/if}
 
-	<AdminNav section="policies">
 		{#if !ready}
 			<p class="loading">Chargement…</p>
 		{:else}
@@ -87,5 +84,3 @@
 				</mb-button>
 			</form>
 		{/if}
-	</AdminNav>
-</div>

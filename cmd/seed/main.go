@@ -24,6 +24,7 @@ const (
 	seedMarkerV5       = "demo_seed_v5"
 	seedMarkerV6       = "demo_seed_v6"
 	seedMarkerV7       = "demo_seed_v7"
+	seedMarkerV8       = "demo_seed_v8"
 	targetSubjectCount = 100
 	bulkTemplateCount  = 25
 )
@@ -149,6 +150,19 @@ func main() {
 			os.Exit(1)
 		}
 		fmt.Println("Phase v7 : modèles particulier (vacances, courses…).")
+		ran++
+	}
+	if !hasSeedMarker(ctx, st, seedMarkerV8) {
+		n, runs, err := seedSoftwareProjectReviews(ctx, st, admin)
+		if err != nil {
+			slog.Error("seed v8 failed", "err", err)
+			os.Exit(1)
+		}
+		if err := markSeeded(ctx, st, seedMarkerV8); err != nil {
+			slog.Error("seed marker v8", "err", err)
+			os.Exit(1)
+		}
+		fmt.Printf("Phase v8 : %d modèles projet informatique et %d revues lancées.\n", n, runs)
 		ran++
 	}
 	if ran == 0 {
@@ -464,6 +478,177 @@ func seedParticulierLifestyleTemplates(ctx context.Context, st *store.Store) err
 		}
 	}
 	return nil
+}
+
+// seedSoftwareProjectReviews adds SDLC checklists (kickoff, spec, security, …)
+// and starts a few in-progress runs on demo subjects when they exist.
+func seedSoftwareProjectReviews(ctx context.Context, st *store.Store, admin *store.User) (int, int, error) {
+	specs := softwareProjectReviewSpecs()
+	created := make([]*store.ChecklistTemplate, 0, len(specs))
+	for _, spec := range specs {
+		tpl, _, err := st.CreateChecklistTemplate(ctx, spec.name, admin.ID, spec.domains, spec.items)
+		if err != nil {
+			return 0, 0, fmt.Errorf("template %q: %w", spec.name, err)
+		}
+		created = append(created, tpl)
+	}
+
+	subjects, err := st.ListSubjects(ctx, admin.ID, true, "")
+	if err != nil {
+		return len(created), 0, fmt.Errorf("list subjects: %w", err)
+	}
+	byName := make(map[string]store.Subject, len(subjects))
+	for _, s := range subjects {
+		byName[s.Name] = s
+	}
+
+	type launch struct {
+		subject string
+		tplIdx  int
+	}
+	launches := []launch{
+		{subject: "Portail client", tplIdx: 0}, // entrée en développement
+		{subject: "Portail client", tplIdx: 1}, // spécification
+		{subject: "Portail client", tplIdx: 4}, // fin de développement
+		{subject: "API paiements", tplIdx: 2},  // architecture
+		{subject: "API paiements", tplIdx: 3},  // sécurité
+	}
+
+	var runCount int
+	dueSoon := sql.NullString{String: time.Now().UTC().Add(7 * 24 * time.Hour).Format("2006-01-02"), Valid: true}
+	for _, l := range launches {
+		subject, ok := byName[l.subject]
+		if !ok {
+			continue
+		}
+		tpl := created[l.tplIdx]
+		run, err := st.CreateChecklistRun(ctx, subject.ID, tpl.ID, admin.ID)
+		if err != nil {
+			return len(created), runCount, fmt.Errorf("create run %q / %q: %w", l.subject, tpl.Name, err)
+		}
+		if err = st.SetRunDueDate(ctx, run.ID, dueSoon); err != nil {
+			return len(created), runCount, fmt.Errorf("due date run %d: %w", run.ID, err)
+		}
+		if err = st.StartRun(ctx, run.ID); err != nil {
+			return len(created), runCount, fmt.Errorf("start run %d: %w", run.ID, err)
+		}
+		runCount++
+	}
+
+	return len(created), runCount, nil
+}
+
+type softwareReviewSpec struct {
+	name    string
+	domains []string
+	items   []store.TemplateItemInput
+}
+
+func softwareProjectReviewSpecs() []softwareReviewSpec {
+	return []softwareReviewSpec{
+		{
+			name:    "Entrée en développement",
+			domains: []string{"web", "api", "backend", "frontend", "mobile"},
+			items: []store.TemplateItemInput{
+				{Section: "Cadrage", Label: "Besoin métier et périmètre écrits", HelpText: "User stories / tickets avec critères d'acceptation.", Required: true},
+				{Section: "Cadrage", Label: "Spécification validée (ou revue de spec clôturée)", Required: true},
+				{Section: "Cadrage", Label: "Hors-périmètre explicite", Required: false},
+				{Section: "Équipe", Label: "Rôles (dev, QA, PO, sécu) identifiés", Required: true},
+				{Section: "Équipe", Label: "Environnements (dev / staging) accessibles", Required: true},
+				{Section: "Technique", Label: "Branche de travail et CI du projet OK", Required: true},
+				{Section: "Technique", Label: "Dépendances et risques techniques listés", Required: false},
+				{Section: "Go", Label: "Décision d'entrée en développement tracée", Required: true},
+			},
+		},
+		{
+			name:    "Revue de spécification",
+			domains: []string{"web", "api", "backend", "frontend", "mobile"},
+			items: []store.TemplateItemInput{
+				{Section: "Périmètre", Label: "Acteurs et cas d'usage décrits", Required: true},
+				{Section: "Périmètre", Label: "Règles métier sans contradiction", Required: true},
+				{Section: "Périmètre", Label: "Données d'entrée / sortie et états listés", Required: true},
+				{Section: "Qualité", Label: "Critères d'acceptation testables", Required: true},
+				{Section: "Qualité", Label: "Cas d'erreur et messages utilisateur prévus", Required: true},
+				{Section: "Interfaces", Label: "Maquettes / API contract alignés", Required: false},
+				{Section: "Conformité", Label: "Impacts RGPD / conservation des données", Required: true},
+				{Section: "Conformité", Label: "Besoins d'accessibilité identifiés", Required: false},
+			},
+		},
+		{
+			name:    "Revue d'architecture",
+			domains: []string{"api", "backend", "web"},
+			items: []store.TemplateItemInput{
+				{Section: "Conception", Label: "Schéma des composants et flux", Required: true},
+				{Section: "Conception", Label: "Choix techniques justifiés", Required: true},
+				{Section: "Données", Label: "Modèle de données et migrations prévus", Required: true},
+				{Section: "Données", Label: "Stratégie de cache / idempotence si besoin", Required: false},
+				{Section: "Exploitation", Label: "Observabilité (logs, métriques, traces)", Required: true},
+				{Section: "Exploitation", Label: "Plan de montée en charge / goulots identifiés", Required: false},
+				{Section: "Risques", Label: "Points de défaillance et mitigations", Required: true},
+			},
+		},
+		{
+			name:    "Revue de sécurité applicative",
+			domains: []string{"api", "backend", "web", "auth"},
+			items: []store.TemplateItemInput{
+				{Section: "Auth", Label: "Authentification et sessions conformes", HelpText: "Expiration, rotation, cookies Secure/HttpOnly.", Required: true},
+				{Section: "Auth", Label: "CSRF et contrôle d'accès (RBAC / IDOR)", Required: true},
+				{Section: "Données", Label: "Secrets hors dépôt, chiffrement au repos si besoin", Required: true},
+				{Section: "Données", Label: "Validation des entrées et sorties encodées", Required: true},
+				{Section: "Dépendances", Label: "CVE connues traitées (sca / audit)", Required: true},
+				{Section: "Exploitation", Label: "Headers sécurité et TLS", Required: true},
+				{Section: "Exploitation", Label: "Journalisation des événements sensibles", Required: false},
+			},
+		},
+		{
+			name:    "Fin de développement",
+			domains: []string{"web", "api", "backend", "frontend", "mobile"},
+			items: []store.TemplateItemInput{
+				{Section: "Code", Label: "Revues de code clôturées sur le périmètre", Required: true},
+				{Section: "Code", Label: "Pas de TODO bloquants / dead code connu", Required: false},
+				{Section: "Qualité", Label: "CI verte (unitaires + linters)", Required: true},
+				{Section: "Qualité", Label: "Couverture des critères d'acceptation", Required: true},
+				{Section: "Livrable", Label: "Documentation / README / changelog à jour", Required: true},
+				{Section: "Livrable", Label: "Migrations et scripts de rollback documentés", Required: true},
+				{Section: "Handover", Label: "Prêt pour recette (jeu de données, accès)", Required: true},
+			},
+		},
+		{
+			name:    "Revue de recette",
+			domains: []string{"web", "api", "frontend", "mobile"},
+			items: []store.TemplateItemInput{
+				{Section: "Préparation", Label: "Environnement de recette isolé et à jour", Required: true},
+				{Section: "Préparation", Label: "Scénarios de test validés avec le métier", Required: true},
+				{Section: "Exécution", Label: "Parcours nominaux OK", Required: true},
+				{Section: "Exécution", Label: "Parcours d'erreur / droits insuffisants OK", Required: true},
+				{Section: "Exécution", Label: "Non-régression des fonctions critiques", Required: true},
+				{Section: "Décision", Label: "Anomalies bloquantes corrigées ou reportées", Required: true},
+				{Section: "Décision", Label: "Go / no-go recette formalisé", Required: true},
+			},
+		},
+		{
+			name:    "Revue RGPD",
+			domains: []string{"api", "web", "backend"},
+			items: []store.TemplateItemInput{
+				{Section: "Finalité", Label: "Données collectées limitées au besoin", Required: true},
+				{Section: "Finalité", Label: "Base légale et information utilisateur", Required: true},
+				{Section: "Droits", Label: "Accès / rectification / suppression possibles", Required: true},
+				{Section: "Conservation", Label: "Durées de rétention et purge définies", Required: true},
+				{Section: "Sous-traitants", Label: "Transferts et DPA identifiés", Required: false},
+			},
+		},
+		{
+			name:    "Revue d'accessibilité",
+			domains: []string{"web", "frontend"},
+			items: []store.TemplateItemInput{
+				{Section: "Structure", Label: "Titres, landmarks et labels cohérents", Required: true},
+				{Section: "Clavier", Label: "Navigation clavier et focus visible", Required: true},
+				{Section: "Contraste", Label: "Contrastes et textes alternatifs", Required: true},
+				{Section: "Formulaires", Label: "Erreurs et champs associés aux labels", Required: true},
+				{Section: "Décision", Label: "Écarts RGAA / WCAG documentés", Required: false},
+			},
+		},
+	}
 }
 
 func seedBulkSubjects(ctx context.Context, st *store.Store, admin *store.User) (int, error) {

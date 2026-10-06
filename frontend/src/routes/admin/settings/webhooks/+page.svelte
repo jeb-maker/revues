@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import AdminNav from '$lib/components/AdminNav.svelte';
 	import {
 		deleteAdminWebhooks,
 		drainAdminWebhookDeliveries,
@@ -146,7 +145,6 @@
 	<title>Webhooks — Revues</title>
 </svelte:head>
 
-<div class="page">
 	<header class="page-header">
 		<p class="crumbs">
 			<a href="/admin">Administration</a> · <a href="/admin/integrations">Intégrations</a> · Webhooks
@@ -165,7 +163,6 @@
 		<mb-alert variant="success">{message}</mb-alert>
 	{/if}
 
-	<AdminNav section="webhooks">
 		{#if loading}
 			<p class="loading">Chargement…</p>
 		{:else}
@@ -273,8 +270,6 @@
 				{/if}
 			</section>
 		{/if}
-	</AdminNav>
-</div>
 
 <style>
 	.url {
