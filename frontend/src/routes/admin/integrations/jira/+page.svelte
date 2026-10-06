@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import AdminNav from '$lib/components/AdminNav.svelte';
 	import {
 		deleteAdminJiraSettings,
 		getAdminJiraSettings,
@@ -108,7 +107,6 @@
 	<title>Jira — Revues</title>
 </svelte:head>
 
-<div class="page">
 	<header class="page-header">
 		<p class="crumbs">
 			<a href="/admin">Administration</a> · <a href="/admin/integrations">Intégrations</a> · Jira
@@ -127,7 +125,6 @@
 		<mb-alert variant="success">{message}</mb-alert>
 	{/if}
 
-	<AdminNav section="integrations">
 		{#if loading}
 			<p class="loading">Chargement…</p>
 		{:else}
@@ -193,5 +190,3 @@
 				</mb-button>
 			</section>
 		{/if}
-	</AdminNav>
-</div>

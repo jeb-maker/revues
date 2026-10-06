@@ -18,6 +18,7 @@
 
 html {
 	background: var(--mb-color-bg);
+	scrollbar-gutter: stable;
 }
 
 body {
@@ -192,6 +193,11 @@ main:focus {
 
 /* Fil présent : la bande est consommée par .crumbs, plus de réserve en padding. */
 .page:has(.crumbs) {
+	padding-top: var(--mb-space-3);
+}
+
+/* Nav admin collée sous le chrome : pas de bande crumbs au-dessus des onglets. */
+.page--admin {
 	padding-top: var(--mb-space-3);
 }
 

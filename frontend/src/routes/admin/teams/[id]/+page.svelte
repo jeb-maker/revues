@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
-	import AdminNav from '$lib/components/AdminNav.svelte';
 	import {
 		addAdminTeamMember,
 		getAdminTeam,
@@ -81,7 +80,6 @@
 	<title>{detail?.team.name ?? 'Équipe'} — Revues</title>
 </svelte:head>
 
-<div class="page">
 	<header class="page-header">
 		<p class="crumbs">
 			<a href="/admin">Administration</a> · <a href="/admin/teams">Équipes</a> ·
@@ -105,7 +103,6 @@
 		<mb-alert variant="success">{message}</mb-alert>
 	{/if}
 
-	<AdminNav section="hub">
 		{#if !ready}
 			<p class="loading">Chargement…</p>
 		{:else if detail}
@@ -161,5 +158,3 @@
 				{/if}
 			</form>
 		{/if}
-	</AdminNav>
-</div>

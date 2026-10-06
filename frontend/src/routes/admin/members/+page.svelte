@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import AdminNav from '$lib/components/AdminNav.svelte';
 	import {
 		createAdminInvitation,
 		deleteAdminInvitation,
@@ -115,7 +114,6 @@
 	<title>Membres — Revues</title>
 </svelte:head>
 
-<div class="page">
 	<header class="page-header">
 		<p class="crumbs"><a href="/admin">Administration</a> · Membres</p>
 		<h1>Membres de l’organisation</h1>
@@ -132,7 +130,6 @@
 		<mb-alert variant="success">{message}</mb-alert>
 	{/if}
 
-	<AdminNav section="members">
 		{#if !ready}
 			<p class="loading">Chargement…</p>
 		{:else}
@@ -247,5 +244,3 @@
 				{/if}
 			</section>
 		{/if}
-	</AdminNav>
-</div>

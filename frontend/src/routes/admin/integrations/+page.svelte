@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import AdminNav from '$lib/components/AdminNav.svelte';
 	import { listAdminIntegrations, type IntegrationSummary } from '$lib/api/admin';
 	import { session } from '$lib/auth/session';
 
@@ -26,7 +25,6 @@
 	<title>Intégrations — Revues</title>
 </svelte:head>
 
-<div class="page">
 	<header class="page-header">
 		<p class="crumbs"><a href="/admin">Administration</a> · Intégrations</p>
 		<h1>Intégrations</h1>
@@ -37,7 +35,6 @@
 		<mb-alert variant="danger">{error}</mb-alert>
 	{/if}
 
-	<AdminNav section="integrations">
 		{#if loading}
 			<p class="loading">Chargement…</p>
 		{:else if items.length === 0}
@@ -58,8 +55,6 @@
 				{/each}
 			</ul>
 		{/if}
-	</AdminNav>
-</div>
 
 <style>
 	.grow {
