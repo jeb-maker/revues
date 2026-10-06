@@ -1,7 +1,7 @@
 {
-  "comment": "Plafonds produit SPA (app JS/CSS dans frontend/build/_app). Source de vérité pour check.sh. Toute modification = PR dédiée chore(budget), interdite dans une PR feature/UI. Voir docs/PLAN.md. CSS : ratchet-down après consolidation #327 (mesuré ~19129/4471 + ~10 %).",
+  "comment": "Plafonds produit SPA (app JS/CSS dans frontend/build/_app). Source de vérité pour check.sh. Toute modification = PR dédiée chore(budget), interdite dans une PR feature/UI. Voir docs/PLAN.md. CSS gzip 6 KiB : marge pour chunks fiche route-scoped (first-load layout léger).",
   "js_raw_max": 286720,
   "js_gzip_max": 122880,
   "css_raw_max": 21504,
-  "css_gzip_max": 5120
+  "css_gzip_max": 6144
 }

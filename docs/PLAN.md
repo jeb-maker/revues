@@ -29,7 +29,7 @@ Stack SPA — plafonds produit dans [`frontend/spa-budget.json`](../frontend/spa
 | Métrique | Seuil (`spa-budget.json`) |
 |----------|---------------------------|
 | JS **app** `frontend/build/_app/**/*.js` (hors vendor mb) | ≤ **280 KiB** brut · ≤ **120 KiB** gzip-9 |
-| CSS **app** `frontend/build/_app/**/*.css` (hors tokens mb) | ≤ **21 KiB** brut · ≤ **5 KiB** gzip-9 |
+| CSS **app** `frontend/build/_app/**/*.css` (hors tokens mb) | ≤ **21 KiB** brut · ≤ **6 KiB** gzip-9 |
 | Vendor mb `web/static/vendor/jeb-maker-mb/` | mesuré (log) ; **pas de fail** pour l’instant |
 | Requêtes API par navigation écran | viser ≤ 8 |
 | RAM serveur | < 128 Mo en charge normale |
