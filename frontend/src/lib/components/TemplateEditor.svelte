@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { EditorItem } from './templateEditorModel';
 	import { emptyEditorItem } from './templateEditorModel';
+	import '$lib/styles/template-editor.css';
 
 	let {
 		items = $bindable([] as EditorItem[]),
@@ -56,7 +57,7 @@
 	<p class="field-error" role="alert">{error}</p>
 {/if}
 
-<div class="editor" class:dragging={dragIndex !== null}>
+<div class="editor">
 	<div class="head" aria-hidden="true">
 		<span class="col-drag"></span>
 		<span class="col-field">Titre</span>

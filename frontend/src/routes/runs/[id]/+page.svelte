@@ -13,6 +13,7 @@
 	import { formatItemStatus, formatRunStatus, itemStatusVariant } from '$lib/i18n/labels';
 	import { runLabels } from '$lib/i18n/uiLabels';
 	import { inputValue } from '$lib/mb';
+	import '$lib/styles/run-detail.css';
 
 	type ItemStatus = 'pending' | 'ok' | 'nok' | 'na';
 	type ItemFilter = 'all' | 'pending' | 'nok' | 'required';
@@ -343,7 +344,7 @@
 			<p class="lede">
 				{formatDay(run.created_at)}
 				· v{run.template_version}
-				· <span class="progress-inline">{run.progress.done}/{run.progress.total} · {run.progress.percent} %</span>
+				· <span class="pct">{run.progress.done}/{run.progress.total} · {run.progress.percent} %</span>
 				{#if run.status !== 'in_progress'}
 					·
 					<mb-badge variant={run.status === 'done' ? 'success' : 'info'}

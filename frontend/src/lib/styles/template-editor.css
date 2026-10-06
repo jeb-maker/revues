@@ -1,0 +1,154 @@
+/* Éditeur de modèle — importé uniquement par TemplateEditor.svelte */
+
+.editor {
+	display: flex;
+	flex-direction: column;
+	gap: var(--mb-space-1);
+}
+
+.editor .head,
+.editor .row {
+	display: grid;
+	grid-template-columns: 2rem minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr) 2.5rem 5.75rem;
+	gap: var(--mb-space-2);
+	align-items: center;
+	padding: var(--mb-space-1);
+	border: 1px solid transparent;
+	box-sizing: border-box;
+}
+
+.editor .head {
+	font-size: var(--mb-font-size-sm);
+	font-weight: 600;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+	color: var(--mb-color-muted);
+}
+
+.editor .head .col-field {
+	padding-inline: var(--mb-space-2);
+}
+
+.editor .head .col-req {
+	text-align: center;
+}
+
+.editor .row {
+	position: relative;
+	background: var(--mb-color-surface);
+	border-color: var(--mb-color-border);
+	border-radius: var(--mb-radius-sm);
+}
+
+.editor .row.is-dragging {
+	opacity: 0.55;
+	outline: 1px dashed var(--mb-color-accent);
+}
+
+.editor .drag {
+	padding: var(--mb-space-1);
+	border: 0;
+	background: transparent;
+	color: var(--mb-color-muted);
+	cursor: grab;
+}
+
+.editor .drag:disabled {
+	opacity: 0.3;
+	cursor: default;
+}
+
+.editor input[type='text'],
+.editor .help textarea {
+	width: 100%;
+	min-width: 0;
+	padding: var(--mb-space-2);
+	border: 1px solid var(--mb-color-border);
+	border-radius: var(--mb-radius-sm);
+	background: var(--mb-color-bg);
+	color: var(--mb-color-fg);
+	font: inherit;
+	line-height: 1.25;
+}
+
+.editor .help {
+	position: relative;
+	min-width: 0;
+}
+
+.editor .help textarea {
+	display: block;
+	height: 2.375rem;
+	max-height: 2.375rem;
+	resize: none;
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+}
+
+.editor .help textarea:focus-visible {
+	position: absolute;
+	left: 0;
+	right: 0;
+	top: 0;
+	z-index: 4;
+	max-height: none;
+	min-height: 7rem;
+	height: auto;
+	white-space: pre-wrap;
+	overflow: auto;
+	box-shadow: 0 0.35rem 0.75rem var(--mb-color-border);
+}
+
+.editor .req {
+	display: flex;
+	justify-content: center;
+}
+
+.editor .actions {
+	display: flex;
+	gap: var(--mb-space-1);
+	margin: 0;
+}
+
+.editor .actions button,
+.editor .add button {
+	padding: var(--mb-space-1) var(--mb-space-2);
+	border: 0;
+	background: transparent;
+	color: var(--mb-color-accent);
+	font: inherit;
+	cursor: pointer;
+}
+
+.editor .actions button:disabled {
+	opacity: 0.35;
+}
+
+.editor .add {
+	margin: var(--mb-space-2) 0 0;
+}
+
+@media (max-width: 48rem) {
+	.editor .head {
+		display: none;
+	}
+	.editor .row {
+		grid-template-columns: 2rem 1fr;
+	}
+	.editor .row > :not(.drag) {
+		grid-column: 2;
+	}
+	.editor .help textarea {
+		position: static;
+		max-height: none;
+		min-height: 4rem;
+		height: auto;
+		white-space: pre-wrap;
+		overflow: auto;
+	}
+	.editor .help textarea:focus-visible {
+		position: static;
+		box-shadow: none;
+	}
+}

@@ -16,6 +16,7 @@
 	import { formatRole, formatRunStatus, formatVisibility, roleOptions, runStatusVariant } from '$lib/i18n/labels';
 	import { launchRunCTA, runLabels, subjectLabels } from '$lib/i18n/uiLabels';
 	import { inputValue } from '$lib/mb';
+	import '$lib/styles/subject-detail.css';
 
 	type SubjectRole = 'lead' | 'contributor' | 'viewer';
 	type SortKey = 'titre' | 'date' | 'statut' | 'progression';
@@ -255,7 +256,7 @@
 	<title>{subject?.name ?? subjectLbl.singular} — Revues</title>
 </svelte:head>
 
-<div class="page">
+<div class="page subject-detail">
 	{#if loading}
 		<p class="loading"><mb-spinner label="Chargement"></mb-spinner> Chargement…</p>
 	{:else if !subject}
@@ -352,7 +353,7 @@
 					<h2 id="subject-runs">
 						{runLbl.nav}
 						{#if runs.length > 0}
-							<span class="count muted">· {runs.length}</span>
+							<span class="muted">· {runs.length}</span>
 						{/if}
 					</h2>
 					{#if subject.capabilities.can_launch && !editing}
