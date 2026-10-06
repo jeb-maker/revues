@@ -263,10 +263,3 @@
 		{/if}
 	{/if}
 </div>
-
-<style>
-	.pct,
-	.date {
-		font-variant-numeric: tabular-nums;
-	}
-</style>
