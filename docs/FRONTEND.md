@@ -91,13 +91,15 @@ Assets : `/static/vendor/jeb-maker-mb/` (embed Go). Voir `web/static/vendor/jeb-
 
 ## Budgets (SPA)
 
-Appliqués par `./scripts/check.sh` — détail [PLAN.md](./PLAN.md) :
+Source de vérité : [`frontend/spa-budget.json`](../frontend/spa-budget.json), appliquée par `./scripts/check.sh` — détail [PLAN.md](./PLAN.md) :
 
 | Métrique | Seuil |
 |----------|-------|
-| JS app (`frontend/build/_app/**/*.js`) | ≤ 264 KiB brut / ≤ 113 KiB gzip-9 |
-| CSS app (`frontend/build/_app/**/*.css`) | ≤ 14 KiB brut / ≤ 4,5 KiB gzip-9 |
+| JS app (`frontend/build/_app/**/*.js`) | ≤ 280 KiB brut / ≤ 120 KiB gzip-9 |
+| CSS app (`frontend/build/_app/**/*.css`) | ≤ 24 KiB brut / ≤ 7 KiB gzip-9 |
 | Vendor mb | mesuré, hors fail strict |
+
+Toute modification des plafonds = PR dédiée `chore(budget)` (pas dans une PR feature/UI).
 
 ## Tests front
 

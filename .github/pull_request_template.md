@@ -29,7 +29,7 @@ Voir [.github/PULL_REQUEST_CHECKLIST.md](.github/PULL_REQUEST_CHECKLIST.md)
 
 ## Éco (si UI touchée)
 
-- [ ] SvelteKit + mb ; budgets `check.sh` / PLAN.md
+- [ ] SvelteKit + mb ; budgets `spa-budget.json` / check.sh (pas de bump hors PR `chore(budget)`)
 - [ ] ≤ 8 requêtes API pour la navigation touchée
 - [ ] Client OpenAPI régénéré si contrat modifié
 

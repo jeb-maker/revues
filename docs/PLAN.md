@@ -24,15 +24,17 @@ Remplace Excel, fils de mails et check-lists éparpillées, sans devenir une usi
 
 ### Budget sobriété
 
-Stack SPA — seuils appliqués par `./scripts/check.sh` (WP-005). Vendor mb mesuré séparément (hors fail strict jusqu’à WP-030 si resserrage).
+Stack SPA — plafonds produit dans [`frontend/spa-budget.json`](../frontend/spa-budget.json), appliqués par `./scripts/check.sh`. Vendor mb mesuré séparément (hors fail).
 
-| Métrique | Seuil (`check.sh`) |
-|----------|--------------------|
+| Métrique | Seuil (`spa-budget.json`) |
+|----------|---------------------------|
 | JS **app** `frontend/build/_app/**/*.js` (hors vendor mb) | ≤ **280 KiB** brut · ≤ **120 KiB** gzip-9 |
-| CSS **app** `frontend/build/_app/**/*.css` (hors tokens mb) | ≤ **20 KiB** brut · ≤ **5,5 KiB** gzip-9 |
+| CSS **app** `frontend/build/_app/**/*.css` (hors tokens mb) | ≤ **24 KiB** brut · ≤ **7 KiB** gzip-9 |
 | Vendor mb `web/static/vendor/jeb-maker-mb/` | mesuré (log) ; **pas de fail** pour l’instant |
 | Requêtes API par navigation écran | viser ≤ 8 |
 | RAM serveur | < 128 Mo en charge normale |
+
+**Politique anti-ratchet** : modifier `frontend/spa-budget.json` uniquement via une PR dédiée `chore(budget)` (justifier la hausse ; viser un *ratchet down* après consolidation CSS). Interdit dans une PR feature/UI. Activer le required status check `check` sur `main` pour que le gate ne soit pas contournable.
 
 ---
 

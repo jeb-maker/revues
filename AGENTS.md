@@ -68,13 +68,15 @@ Corps PR : Closes #<N>
 
 ### Éco-contraintes
 
-Budgets SPA — détail et seuils dans [docs/PLAN.md](docs/PLAN.md) (mesurés par `check.sh`).
+Budgets SPA — plafonds dans [`frontend/spa-budget.json`](frontend/spa-budget.json), appliqués par `check.sh` ; détail [docs/PLAN.md](docs/PLAN.md).
 
 | Zone | Règle |
 |------|--------|
-| JS/CSS **app** | seuils fail dans `check.sh` |
+| JS/CSS **app** | seuils fail via `spa-budget.json` / `check.sh` |
 | Vendor mb / reports | mesurés ; hors ou seuil dédié documenté |
 | Requêtes API par navigation | viser sobriété (pas de chatty loops) |
+
+**Anti-ratchet** : ne pas modifier `frontend/spa-budget.json` dans une PR feature/UI. Hausse = PR dédiée `chore(budget)` avec justification ; après consolidation CSS, baisser le plafond.
 
 ### Tests minimum
 
@@ -119,6 +121,7 @@ Branche cursor/issue-N-<slug>-f21b. PR avec Closes #N.
 - `docs/RBAC.md`
 - `AGENTS.md`
 - `.github/workflows/ci.yml`
+- `frontend/spa-budget.json` (PR `chore(budget)` uniquement)
 - `api/openapi/openapi.yaml` (conflits multi-agents : coordonner par tags/domaines)
 
 ## Cursor Cloud specific instructions
