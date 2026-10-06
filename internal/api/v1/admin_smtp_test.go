@@ -103,8 +103,8 @@ func TestAdminSMTP_MaskedPasswordAndOrgAdmin(t *testing.T) {
 	var overview map[string]any
 	_ = json.Unmarshal(hub.Body.Bytes(), &overview)
 	items, _ := overview["items"].([]any)
-	if len(items) != 3 {
-		t.Fatalf("hub items = %d, want 3 (smtp, jira, webhooks)", len(items))
+	if len(items) != 4 {
+		t.Fatalf("hub items = %d, want 4 (smtp, jira, confluence, webhooks)", len(items))
 	}
 	foundSMTP := false
 	for _, raw := range items {

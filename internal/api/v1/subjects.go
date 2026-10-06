@@ -155,8 +155,12 @@ func (s *Server) UpdateSubject(w http.ResponseWriter, r *http.Request, subjectID
 		description = strings.TrimSpace(*req.Description)
 	}
 	domains := normalizeOptionalTags(req.Domains)
+	jiraProjectKey := subject.JiraProjectKey
+	if req.JiraProjectKey != nil {
+		jiraProjectKey = strings.TrimSpace(*req.JiraProjectKey)
+	}
 
-	if err := s.Store.UpdateSubjectWithVisibility(r.Context(), subject.ID, name, description, domains, visibility); err != nil {
+	if err := s.Store.UpdateSubjectWithVisibility(r.Context(), subject.ID, name, description, domains, visibility, jiraProjectKey); err != nil {
 		if errors.Is(err, store.ErrSubjectNotFound) {
 			writeAPIError(w, http.StatusNotFound, "not_found", "Sujet introuvable.")
 			return
@@ -383,12 +387,13 @@ func (s *Server) buildSubjectDetail(w http.ResponseWriter, r *http.Request, subj
 	}
 
 	return SubjectDetail{
-		Id:          subject.ID,
-		Name:        subject.Name,
-		Description: subject.Description,
-		Visibility:  SubjectDetailVisibility(subject.Visibility),
-		Domains:     domains,
-		Members:     mapMembers(members),
+		Id:             subject.ID,
+		Name:           subject.Name,
+		Description:    subject.Description,
+		Visibility:     SubjectDetailVisibility(subject.Visibility),
+		JiraProjectKey: subject.JiraProjectKey,
+		Domains:        domains,
+		Members:        mapMembers(members),
 		Access: SubjectAccessInfo{
 			Role:    access.Role,
 			Sources: sources,

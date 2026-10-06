@@ -11,6 +11,7 @@ import (
 	"github.com/jeb-maker/revues/internal/crypto"
 	"github.com/jeb-maker/revues/internal/features/admin/integrations"
 	"github.com/jeb-maker/revues/internal/features/admin/settings"
+	"github.com/jeb-maker/revues/internal/integrations/confluence"
 	"github.com/jeb-maker/revues/internal/integrations/jira"
 	"github.com/jeb-maker/revues/internal/store"
 )
@@ -44,14 +45,15 @@ func testSettingsService(t *testing.T) (*settings.SettingsService, *store.Store,
 func TestIntegrationsServiceOverview(t *testing.T) {
 	settingsSvc, st, ctx := testSettingsService(t)
 	jiraSvc := &jira.Service{Store: st, EncryptionKey: settingsSvc.EncryptionKey}
-	svc := &integrations.IntegrationsService{Settings: settingsSvc, Jira: jiraSvc}
+	confluenceSvc := &confluence.Service{Store: st, EncryptionKey: settingsSvc.EncryptionKey}
+	svc := &integrations.IntegrationsService{Settings: settingsSvc, Jira: jiraSvc, Confluence: confluenceSvc}
 
 	overview, err := svc.Overview(ctx)
 	if err != nil {
 		t.Fatalf("Overview(): %v", err)
 	}
-	if len(overview.Items) != 3 {
-		t.Fatalf("len(Items) = %d, want 3", len(overview.Items))
+	if len(overview.Items) != 4 {
+		t.Fatalf("len(Items) = %d, want 4", len(overview.Items))
 	}
 	for _, item := range overview.Items {
 		if item.Key == "" {
@@ -64,6 +66,7 @@ func TestIntegrationsServiceOverview(t *testing.T) {
 
 	_ = settingsSvc.SaveSMTP(ctx, settings.SMTPConfig{Host: "smtp.example.com", Port: 587, From: "revues@example.com"})
 	_ = jiraSvc.Save(ctx, jira.Config{InstanceType: jira.InstanceCloud, BaseURL: "https://example.atlassian.net", Email: "user@example.com", APIToken: "token"})
+	_ = confluenceSvc.Save(ctx, confluence.Config{BaseURL: "https://example.atlassian.net", Email: "user@example.com", APIToken: "token", SpaceKey: "REV"})
 	_ = settingsSvc.SaveWebhooks(ctx, settings.WebhookConfig{URLs: []string{"https://hooks.example.com/revues"}, Secret: "secret", ReviewCompleted: true})
 
 	overview, err = svc.Overview(ctx)

@@ -107,6 +107,11 @@ func CanLinkJiraAccess(user *store.User, access store.SubjectAccess) bool {
 	return CanUpdateAccess(user, access)
 }
 
+// CanPublishConfluenceAccess reports whether resolved access allows Confluence publish.
+func CanPublishConfluenceAccess(user *store.User, access store.SubjectAccess) bool {
+	return CanLinkJiraAccess(user, access)
+}
+
 // CanAssign reports whether the user may assign run items to members.
 func CanAssign(user *store.User, orgRole string, orgMember bool) bool {
 	return subjects.CanManageSubject(user, orgRole, orgMember)

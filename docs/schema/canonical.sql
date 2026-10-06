@@ -121,6 +121,7 @@ CREATE TABLE subjects (
     description     TEXT NOT NULL DEFAULT '',
     visibility      TEXT NOT NULL DEFAULT 'normal'
                     CHECK (visibility IN ('normal', 'private')),
+    jira_project_key TEXT NOT NULL DEFAULT '',
     archived_at     TEXT,
     created_at      TEXT NOT NULL,
     updated_at      TEXT NOT NULL
@@ -221,6 +222,7 @@ CREATE TABLE checklist_runs (
     completed_at        TEXT,
     completed_by        INTEGER REFERENCES users(id) ON DELETE SET NULL,
     notion_url          TEXT NOT NULL DEFAULT '',
+    confluence_url      TEXT NOT NULL DEFAULT '',
     evidence_csv_sha256 TEXT NOT NULL DEFAULT '',
     created_at          TEXT NOT NULL
 );
@@ -274,7 +276,7 @@ CREATE TABLE integrations (
     id               INTEGER PRIMARY KEY,
     organization_id  INTEGER NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     type             TEXT NOT NULL
-                     CHECK (type IN ('jira', 'webhook', 'notion', 'smtp')),
+                     CHECK (type IN ('jira', 'webhook', 'notion', 'smtp', 'confluence')),
     enabled          INTEGER NOT NULL DEFAULT 0 CHECK (enabled IN (0, 1)),
     config_encrypted BLOB NOT NULL,
     created_at       TEXT NOT NULL,

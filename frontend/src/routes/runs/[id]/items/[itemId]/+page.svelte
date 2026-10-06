@@ -302,6 +302,9 @@
 					<p>
 						Liée à :
 						<a href={jiraLink.external_url} target="_blank" rel="noopener noreferrer">{jiraLink.external_key}</a>
+						{#if jiraLink.status}
+							<span class="muted">· {jiraLink.status}</span>
+						{/if}
 					</p>
 				{:else}
 					<p class="muted">Aucune issue Jira liée.</p>

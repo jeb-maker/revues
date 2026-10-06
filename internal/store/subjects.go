@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -26,6 +27,7 @@ type Subject struct {
 	Name           string
 	Description    string
 	Visibility     string
+	JiraProjectKey string
 	ArchivedAt     sql.NullString
 	CreatedAt      string
 	UpdatedAt      string
@@ -140,11 +142,11 @@ func (s *Store) SubjectByID(ctx context.Context, id int64) (*Subject, error) {
 func (s *Store) subjectByID(ctx context.Context, id, orgID int64) (*Subject, error) {
 	var sub Subject
 	err := s.db.QueryRowContext(ctx, `
-		SELECT id, organization_id, name, description, visibility, archived_at, created_at, updated_at
+		SELECT id, organization_id, name, description, visibility, jira_project_key, archived_at, created_at, updated_at
 		FROM subjects WHERE id = ? AND organization_id = ?
 	`, id, orgID).Scan(
 		&sub.ID, &sub.OrganizationID, &sub.Name, &sub.Description, &sub.Visibility,
-		&sub.ArchivedAt, &sub.CreatedAt, &sub.UpdatedAt,
+		&sub.JiraProjectKey, &sub.ArchivedAt, &sub.CreatedAt, &sub.UpdatedAt,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrSubjectNotFound
@@ -159,11 +161,11 @@ func (s *Store) subjectByID(ctx context.Context, id, orgID int64) (*Subject, err
 func (s *Store) SubjectByIDUnscoped(ctx context.Context, id int64) (*Subject, error) {
 	var sub Subject
 	err := s.db.QueryRowContext(ctx, `
-		SELECT id, organization_id, name, description, visibility, archived_at, created_at, updated_at
+		SELECT id, organization_id, name, description, visibility, jira_project_key, archived_at, created_at, updated_at
 		FROM subjects WHERE id = ?
 	`, id).Scan(
 		&sub.ID, &sub.OrganizationID, &sub.Name, &sub.Description, &sub.Visibility,
-		&sub.ArchivedAt, &sub.CreatedAt, &sub.UpdatedAt,
+		&sub.JiraProjectKey, &sub.ArchivedAt, &sub.CreatedAt, &sub.UpdatedAt,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrSubjectNotFound
@@ -189,7 +191,7 @@ func (s *Store) ListSubjects(ctx context.Context, userID int64, admin bool, quer
 	orgAdmin := isMember && (orgRole == OrgRoleOwner || orgRole == OrgRoleAdmin)
 
 	sqlQuery := `
-		SELECT s.id, s.organization_id, s.name, s.description, s.visibility, s.archived_at, s.created_at, s.updated_at
+		SELECT s.id, s.organization_id, s.name, s.description, s.visibility, s.jira_project_key, s.archived_at, s.created_at, s.updated_at
 		FROM subjects s
 		WHERE s.organization_id = ? AND s.archived_at IS NULL`
 	args := []any{orgID}
@@ -239,7 +241,7 @@ func (s *Store) ListSubjects(ctx context.Context, userID int64, admin bool, quer
 		var sub Subject
 		if err := rows.Scan(
 			&sub.ID, &sub.OrganizationID, &sub.Name, &sub.Description, &sub.Visibility,
-			&sub.ArchivedAt, &sub.CreatedAt, &sub.UpdatedAt,
+			&sub.JiraProjectKey, &sub.ArchivedAt, &sub.CreatedAt, &sub.UpdatedAt,
 		); err != nil {
 			return nil, fmt.Errorf("scan subject: %w", err)
 		}
@@ -258,11 +260,11 @@ func (s *Store) UpdateSubject(ctx context.Context, id int64, name, description s
 	if err != nil {
 		return err
 	}
-	return s.UpdateSubjectWithVisibility(ctx, id, name, description, domains, sub.Visibility)
+	return s.UpdateSubjectWithVisibility(ctx, id, name, description, domains, sub.Visibility, sub.JiraProjectKey)
 }
 
-// UpdateSubjectWithVisibility changes name, description, visibility and matching domains.
-func (s *Store) UpdateSubjectWithVisibility(ctx context.Context, id int64, name, description string, domains []string, visibility string) error {
+// UpdateSubjectWithVisibility changes name, description, visibility, jira project key and matching domains.
+func (s *Store) UpdateSubjectWithVisibility(ctx context.Context, id int64, name, description string, domains []string, visibility, jiraProjectKey string) error {
 	orgID, err := organizationIDFromContext(ctx)
 	if err != nil {
 		return err
@@ -274,6 +276,7 @@ func (s *Store) UpdateSubjectWithVisibility(ctx context.Context, id int64, name,
 
 	now := time.Now().UTC().Format(time.RFC3339)
 	domains = NormalizeTags(domains)
+	jiraKey := strings.ToUpper(strings.TrimSpace(jiraProjectKey))
 
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -284,9 +287,9 @@ func (s *Store) UpdateSubjectWithVisibility(ctx context.Context, id int64, name,
 	}()
 
 	res, err := tx.ExecContext(ctx, `
-		UPDATE subjects SET name = ?, description = ?, visibility = ?, updated_at = ?
+		UPDATE subjects SET name = ?, description = ?, visibility = ?, jira_project_key = ?, updated_at = ?
 		WHERE id = ? AND organization_id = ? AND archived_at IS NULL
-	`, name, description, visibility, now, id, orgID)
+	`, name, description, visibility, jiraKey, now, id, orgID)
 	if err != nil {
 		return fmt.Errorf("update subject: %w", err)
 	}

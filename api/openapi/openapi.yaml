@@ -30,7 +30,7 @@ tags:
 - name: search
   description: Recherche fulltext multi-entités (org active)
 - name: integrations
-  description: Intégrations externes (Jira link/create depuis un point)
+  description: Intégrations externes (Jira, Confluence)
 paths:
   /health:
     get:
@@ -1538,8 +1538,8 @@ paths:
         - admin
       summary: Hub intégrations (états + navigation)
       description: |
-        Auth + RequireOrgAdmin. Liste SMTP / Jira / Webhooks avec
-        enabled + config_path SPA. Config détaillée Jira/Webhooks = WP-020/022.
+        Auth + RequireOrgAdmin. Liste SMTP / Jira / Confluence / Webhooks avec
+        enabled + config_path SPA.
       responses:
         '200':
           description: Vue d'ensemble
@@ -1637,6 +1637,143 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /admin/integrations/confluence:
+    get:
+      operationId: getAdminConfluenceSettings
+      tags:
+        - admin
+      summary: Configuration Confluence Cloud (masquée)
+      description: |
+        Auth + RequireOrgAdmin. Jamais de jeton API en clair — `has_api_token` seulement.
+        Hors scope : Confluence Server/DC, import de modèles, sync bidirectionnelle.
+      responses:
+        '200':
+          description: Config Confluence courante (ou vide si non configurée)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConfluenceSettings'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    put:
+      operationId: putAdminConfluenceSettings
+      tags:
+        - admin
+      summary: Enregistrer la configuration Confluence Cloud chiffrée
+      description: |
+        Auth + RequireOrgAdmin + CSRF. `api_token` omis ou vide = conserve le secret
+        existant (`MergeSecret`). Chiffrement AES-GCM.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConfluenceSettingsUpdate'
+      responses:
+        '200':
+          description: Config enregistrée (secrets masqués)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConfluenceSettings'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    delete:
+      operationId: deleteAdminConfluenceSettings
+      tags:
+        - admin
+      summary: Effacer la configuration Confluence
+      description: Auth + RequireOrgAdmin + CSRF.
+      responses:
+        '204':
+          description: Configuration effacée
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /admin/integrations/confluence/test:
+    post:
+      operationId: postAdminConfluenceTest
+      tags:
+        - admin
+      summary: Tester la connexion Confluence Cloud
+      description: |
+        Auth + RequireOrgAdmin + CSRF. Utilise la config stockée via
+        GET /wiki/rest/api/user/current. Client HTTP anti-SSRF (`internal/safehttp`).
+      responses:
+        '204':
+          description: Connexion réussie
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /runs/{runId}/confluence:
+    parameters:
+      - $ref: '#/components/parameters/RunId'
+    get:
+      operationId: getRunConfluence
+      tags:
+        - integrations
+      summary: État publication Confluence d'une revue
+      description: |
+        Auth + accès sujet/revue (IDOR). Renvoie si Confluence est configuré,
+        si l'utilisateur peut publier (contributeur+), et le lien éventuel.
+      responses:
+        '200':
+          description: État Confluence de la revue
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RunConfluence'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      operationId: postRunConfluencePublish
+      tags:
+        - integrations
+      summary: Publier une revue clôturée vers Confluence
+      description: |
+        Auth + CanPublishConfluence (contributeur+) + CSRF. La revue doit être
+        `done`. Crée une page (titre, méta, points, liens Jira nok) et stocke l'URL.
+      responses:
+        '201':
+          description: Page créée
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConfluenceLink'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
         '500':
           $ref: '#/components/responses/InternalError'
   /runs/{runId}/items/{itemId}/jira:
@@ -2517,6 +2654,7 @@ components:
       - members
       - access
       - capabilities
+      - jira_project_key
       properties:
         id:
           type: integer
@@ -2530,6 +2668,11 @@ components:
           enum:
           - normal
           - private
+        jira_project_key:
+          type: string
+          description: >
+            Clé projet Jira optionnelle pour ce projet Revues ;
+            vide = utilise la clé org (admin Jira)
         domains:
           type: array
           items:
@@ -2564,6 +2707,9 @@ components:
           - normal
           - private
           description: Ignoré si CanSetSubjectVisibility est faux
+        jira_project_key:
+          type: string
+          description: Override clé projet Jira (vide = hérite de l'org)
     AddSubjectMemberRequest:
       type: object
       required:
@@ -2880,6 +3026,9 @@ components:
           type: boolean
         can_complete:
           type: boolean
+        can_publish_confluence:
+          type: boolean
+          description: true si contributeur+, revue done, Confluence configuré
     RunItem:
       type: object
       required:
@@ -3166,6 +3315,12 @@ components:
           $ref: '#/components/schemas/RunCapabilities'
         pending_required_count:
           type: integer
+        confluence_url:
+          type: string
+          description: URL de la page Confluence si déjà publiée
+        confluence_configured:
+          type: boolean
+          description: true si Confluence Cloud est configuré pour l'org active
     OrganizationMember:
       type: object
       required: [user_id, login, email, display_name, role, joined_at]
@@ -3383,11 +3538,12 @@ components:
       properties:
         key:
           type: string
-          description: Identifiant stable (smtp|jira|webhooks)
+          description: Identifiant stable (smtp|jira|webhooks|confluence)
           enum:
             - smtp
             - jira
             - webhooks
+            - confluence
         name:
           type: string
         description:
@@ -3443,6 +3599,79 @@ components:
           type: string
         issue_type:
           type: string
+    ConfluenceSettings:
+      type: object
+      required:
+        - configured
+        - base_url
+        - email
+        - space_key
+        - parent_page_id
+        - has_api_token
+      properties:
+        configured:
+          type: boolean
+          description: true si credentials Cloud + espace complets
+        base_url:
+          type: string
+          description: URL instance (HTTPS, anti-SSRF)
+        email:
+          type: string
+          description: Email Atlassian (Cloud)
+        space_key:
+          type: string
+          description: Clé d'espace Confluence (ex. REV)
+        parent_page_id:
+          type: string
+          description: ID page parente optionnelle
+        has_api_token:
+          type: boolean
+          description: true si un jeton API est stocké (jamais renvoyé en clair)
+    ConfluenceSettingsUpdate:
+      type: object
+      required:
+        - base_url
+        - email
+        - space_key
+      properties:
+        base_url:
+          type: string
+        email:
+          type: string
+          format: email
+        api_token:
+          type: string
+          description: Omis ou vide = conserve le secret existant
+        space_key:
+          type: string
+        parent_page_id:
+          type: string
+          description: ID page parente optionnelle (vide = racine de l'espace)
+    ConfluenceLink:
+      type: object
+      required:
+        - url
+      properties:
+        url:
+          type: string
+          format: uri
+          description: URL de la page Confluence
+    RunConfluence:
+      type: object
+      required:
+        - configured
+        - can_publish
+        - link
+      properties:
+        configured:
+          type: boolean
+        can_publish:
+          type: boolean
+          description: true si contributeur+, revue done, Confluence configuré
+        link:
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/ConfluenceLink'
     JiraLink:
       type: object
       required:
@@ -3456,6 +3685,12 @@ components:
           type: string
           format: uri
           description: URL browse Jira
+        status:
+          type: string
+          nullable: true
+          description: >
+            Statut Jira courant (fetch à la demande sur GET item/jira ;
+            omis si indisponible ou non demandé)
     JiraLinkRequest:
       type: object
       required:

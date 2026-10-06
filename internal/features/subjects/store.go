@@ -13,7 +13,7 @@ type SubjectStore interface {
 	CreateSubject(ctx context.Context, name, description string, creatorID int64, domains []string) (*Subject, error)
 	CreateSubjectWithVisibility(ctx context.Context, name, description string, creatorID int64, domains []string, visibility string) (*Subject, error)
 	UpdateSubject(ctx context.Context, id int64, name, description string, domains []string) error
-	UpdateSubjectWithVisibility(ctx context.Context, id int64, name, description string, domains []string, visibility string) error
+	UpdateSubjectWithVisibility(ctx context.Context, id int64, name, description string, domains []string, visibility, jiraProjectKey string) error
 	ListSubjectDomains(ctx context.Context, subjectID int64) ([]string, error)
 	ArchiveSubject(ctx context.Context, id int64) error
 	ListSubjectMembers(ctx context.Context, subjectID int64) ([]SubjectMember, error)

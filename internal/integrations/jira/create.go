@@ -65,6 +65,14 @@ func DefaultIssueContent(item *store.RunItem, ctx RunItemContext) (title, descri
 	return title, description
 }
 
+// EffectiveProjectKey returns the subject override when set, otherwise the org default.
+func EffectiveProjectKey(orgKey, subjectKey string) string {
+	if k := strings.ToUpper(strings.TrimSpace(subjectKey)); k != "" {
+		return k
+	}
+	return strings.ToUpper(strings.TrimSpace(orgKey))
+}
+
 // CreateRunItem creates a Jira issue for a nok run item and stores the link.
 func (s *CreateService) CreateRunItem(ctx context.Context, runID, runItemID int64, input CreateInput, itemCtx RunItemContext) (*store.IntegrationLink, error) {
 	cfg, ok, err := s.config(ctx)
@@ -74,7 +82,17 @@ func (s *CreateService) CreateRunItem(ctx context.Context, runID, runItemID int6
 	if !ok || !cfg.Configured() {
 		return nil, ErrNotConfigured
 	}
-	if strings.TrimSpace(cfg.ProjectKey) == "" {
+
+	run, err := s.Store.RunByID(ctx, runID)
+	if err != nil {
+		return nil, err
+	}
+	subject, err := s.Store.SubjectByID(ctx, run.SubjectID)
+	if err != nil {
+		return nil, err
+	}
+	projectKey := EffectiveProjectKey(cfg.ProjectKey, subject.JiraProjectKey)
+	if projectKey == "" {
 		return nil, ErrProjectKeyMissing
 	}
 
@@ -107,7 +125,7 @@ func (s *CreateService) CreateRunItem(ctx context.Context, runID, runItemID int6
 	}
 
 	key, err := s.client().CreateIssue(ctx, cfg, CreateIssueInput{
-		ProjectKey:  cfg.ProjectKey,
+		ProjectKey:  projectKey,
 		IssueType:   cfg.IssueType,
 		Summary:     title,
 		Description: description,

@@ -63,7 +63,7 @@ Parcours produit nominal : **affectation personne → projet** (`subject_members
 
 | Rôle | Description |
 |------|-------------|
-| `owner` | Gouvernance : membres, invitations, politiques, **intégrations** (SMTP, Jira, webhooks) ; voit tous les projets |
+| `owner` | Gouvernance : membres, invitations, politiques, **intégrations** (SMTP, Jira, Confluence, webhooks) ; voit tous les projets |
 | `admin` | Idem `owner` sauf réserves owner ultérieures |
 | `member` | Dans l’org ; **pas** d’accès auto aux projets |
 
@@ -150,6 +150,7 @@ Gate register/OAuth strict : membre org **ou** invitation pending **ou** bootstr
 |-------|----------|
 | `/admin/members*` · `/admin/invitations*` · `/admin/teams*` · `/admin/settings/policies` | `requireOrgAdmin` (owner/admin org) |
 | `/admin/settings/smtp` · `/admin/integrations*` · webhooks | `requireOrgAdmin` |
+| `GET\|POST /runs/{runId}/confluence` | Accès sujet ; publish = contributeur+ (`CanPublishConfluenceAccess`) |
 
 ---
 

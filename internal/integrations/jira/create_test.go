@@ -14,6 +14,24 @@ import (
 	"github.com/jeb-maker/revues/internal/testutil"
 )
 
+func TestEffectiveProjectKey(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		org, subject, want string
+	}{
+		{"REV", "", "REV"},
+		{"REV", "ALPHA", "ALPHA"},
+		{"rev", " beta ", "BETA"},
+		{"", "ONLY", "ONLY"},
+		{"", "", ""},
+	}
+	for _, tt := range tests {
+		if got := jira.EffectiveProjectKey(tt.org, tt.subject); got != tt.want {
+			t.Fatalf("EffectiveProjectKey(%q,%q)=%q want %q", tt.org, tt.subject, got, tt.want)
+		}
+	}
+}
+
 func TestClientCreateIssueCloud(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost || r.URL.Path != "/rest/api/3/issue/" {

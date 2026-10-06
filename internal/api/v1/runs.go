@@ -520,6 +520,18 @@ func (s *Server) buildRunDetail(w http.ResponseWriter, r *http.Request, run *sto
 		mappedItems = append(mappedItems, mapRunItem(item))
 	}
 
+	confluenceConfigured := false
+	if svc := s.confluenceService(); svc != nil {
+		if cfg, okCfg, cfgErr := svc.Load(r.Context()); cfgErr == nil {
+			confluenceConfigured = okCfg && cfg.Configured()
+		} else {
+			slog.Error("load confluence for run detail", "err", cfgErr)
+		}
+	}
+	canPublishConfluence := confluenceConfigured &&
+		run.Status == store.RunStatusDone &&
+		runs.CanPublishConfluenceAccess(user, access)
+
 	detail := RunDetail{
 		Id:              run.ID,
 		Title:           title,
@@ -535,11 +547,16 @@ func (s *Server) buildRunDetail(w http.ResponseWriter, r *http.Request, run *sto
 		Items:           mappedItems,
 		Assignees:       &assignees,
 		Capabilities: RunCapabilities{
-			CanUpdateItems: editable && runs.CanUpdateAccess(user, access),
-			CanAssign:      editable && runs.CanAssignAccess(user, access),
-			CanComplete:    editable && runs.CanCompleteAccess(user, access),
+			CanUpdateItems:       editable && runs.CanUpdateAccess(user, access),
+			CanAssign:            editable && runs.CanAssignAccess(user, access),
+			CanComplete:          editable && runs.CanCompleteAccess(user, access),
+			CanPublishConfluence: &canPublishConfluence,
 		},
 		PendingRequiredCount: &pendingCount,
+		ConfluenceConfigured: &confluenceConfigured,
+	}
+	if u := strings.TrimSpace(run.ConfluenceURL); u != "" {
+		detail.ConfluenceUrl = &u
 	}
 	if run.DueDate.Valid {
 		detail.DueDate = &run.DueDate.String

@@ -911,8 +911,8 @@ export interface paths {
         };
         /**
          * Hub intégrations (états + navigation)
-         * @description Auth + RequireOrgAdmin. Liste SMTP / Jira / Webhooks avec
-         *     enabled + config_path SPA. Config détaillée Jira/Webhooks = WP-020/022.
+         * @description Auth + RequireOrgAdmin. Liste SMTP / Jira / Confluence / Webhooks avec
+         *     enabled + config_path SPA.
          */
         get: operations["listAdminIntegrations"];
         put?: never;
@@ -968,6 +968,86 @@ export interface paths {
          *     GET /rest/api/3/myself. Client HTTP anti-SSRF (`internal/safehttp`).
          */
         post: operations["postAdminJiraTest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/integrations/confluence": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Configuration Confluence Cloud (masquée)
+         * @description Auth + RequireOrgAdmin. Jamais de jeton API en clair — `has_api_token` seulement.
+         *     Hors scope : Confluence Server/DC, import de modèles, sync bidirectionnelle.
+         */
+        get: operations["getAdminConfluenceSettings"];
+        /**
+         * Enregistrer la configuration Confluence Cloud chiffrée
+         * @description Auth + RequireOrgAdmin + CSRF. `api_token` omis ou vide = conserve le secret
+         *     existant (`MergeSecret`). Chiffrement AES-GCM.
+         */
+        put: operations["putAdminConfluenceSettings"];
+        post?: never;
+        /**
+         * Effacer la configuration Confluence
+         * @description Auth + RequireOrgAdmin + CSRF.
+         */
+        delete: operations["deleteAdminConfluenceSettings"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/integrations/confluence/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Tester la connexion Confluence Cloud
+         * @description Auth + RequireOrgAdmin + CSRF. Utilise la config stockée via
+         *     GET /wiki/rest/api/user/current. Client HTTP anti-SSRF (`internal/safehttp`).
+         */
+        post: operations["postAdminConfluenceTest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/runs/{runId}/confluence": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identifiant de la revue */
+                runId: components["parameters"]["RunId"];
+            };
+            cookie?: never;
+        };
+        /**
+         * État publication Confluence d'une revue
+         * @description Auth + accès sujet/revue (IDOR). Renvoie si Confluence est configuré,
+         *     si l'utilisateur peut publier (contributeur+), et le lien éventuel.
+         */
+        get: operations["getRunConfluence"];
+        put?: never;
+        /**
+         * Publier une revue clôturée vers Confluence
+         * @description Auth + CanPublishConfluence (contributeur+) + CSRF. La revue doit être
+         *     `done`. Crée une page (titre, méta, points, liens Jira nok) et stocke l'URL.
+         */
+        post: operations["postRunConfluencePublish"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1414,6 +1494,8 @@ export interface components {
             description: string;
             /** @enum {string} */
             visibility: "normal" | "private";
+            /** @description Clé projet Jira optionnelle pour ce projet Revues ; vide = utilise la clé org (admin Jira) */
+            jira_project_key: string;
             /** @description Domaines de matching modèles (pas d'accès) */
             domains: string[];
             members: components["schemas"]["SubjectMember"][];
@@ -1430,6 +1512,8 @@ export interface components {
              * @enum {string}
              */
             visibility?: "normal" | "private";
+            /** @description Override clé projet Jira (vide = hérite de l'org) */
+            jira_project_key?: string;
         };
         AddSubjectMemberRequest: {
             /** Format: email */
@@ -1566,6 +1650,8 @@ export interface components {
             can_update_items: boolean;
             can_assign: boolean;
             can_complete: boolean;
+            /** @description true si contributeur+, revue done, Confluence configuré */
+            can_publish_confluence?: boolean;
         };
         RunItem: {
             /** Format: int64 */
@@ -1681,6 +1767,10 @@ export interface components {
             assignees?: components["schemas"]["RunAssignee"][];
             capabilities: components["schemas"]["RunCapabilities"];
             pending_required_count?: number;
+            /** @description URL de la page Confluence si déjà publiée */
+            confluence_url?: string;
+            /** @description true si Confluence Cloud est configuré pour l'org active */
+            confluence_configured?: boolean;
         };
         OrganizationMember: {
             /** Format: int64 */
@@ -1784,10 +1874,10 @@ export interface components {
         };
         IntegrationSummary: {
             /**
-             * @description Identifiant stable (smtp|jira|webhooks)
+             * @description Identifiant stable (smtp|jira|webhooks|confluence)
              * @enum {string}
              */
-            key: "smtp" | "jira" | "webhooks";
+            key: "smtp" | "jira" | "webhooks" | "confluence";
             name: string;
             description: string;
             enabled: boolean;
@@ -1817,6 +1907,43 @@ export interface components {
             project_key?: string;
             issue_type?: string;
         };
+        ConfluenceSettings: {
+            /** @description true si credentials Cloud + espace complets */
+            configured: boolean;
+            /** @description URL instance (HTTPS, anti-SSRF) */
+            base_url: string;
+            /** @description Email Atlassian (Cloud) */
+            email: string;
+            /** @description Clé d'espace Confluence (ex. REV) */
+            space_key: string;
+            /** @description ID page parente optionnelle */
+            parent_page_id: string;
+            /** @description true si un jeton API est stocké (jamais renvoyé en clair) */
+            has_api_token: boolean;
+        };
+        ConfluenceSettingsUpdate: {
+            base_url: string;
+            /** Format: email */
+            email: string;
+            /** @description Omis ou vide = conserve le secret existant */
+            api_token?: string;
+            space_key: string;
+            /** @description ID page parente optionnelle (vide = racine de l'espace) */
+            parent_page_id?: string;
+        };
+        ConfluenceLink: {
+            /**
+             * Format: uri
+             * @description URL de la page Confluence
+             */
+            url: string;
+        };
+        RunConfluence: {
+            configured: boolean;
+            /** @description true si contributeur+, revue done, Confluence configuré */
+            can_publish: boolean;
+            link: components["schemas"]["ConfluenceLink"] | null;
+        };
         JiraLink: {
             /** @description Clé issue (ex. PROJ-123) */
             external_key: string;
@@ -1825,6 +1952,8 @@ export interface components {
              * @description URL browse Jira
              */
             external_url: string;
+            /** @description Statut Jira courant (fetch à la demande sur GET item/jira ; omis si indisponible ou non demandé) */
+            status?: string | null;
         };
         JiraLinkRequest: {
             /** @description Clé (PROJ-123) ou URL browse Jira */
@@ -3508,6 +3637,155 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getAdminConfluenceSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Config Confluence courante (ou vide si non configurée) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConfluenceSettings"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    putAdminConfluenceSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConfluenceSettingsUpdate"];
+            };
+        };
+        responses: {
+            /** @description Config enregistrée (secrets masqués) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConfluenceSettings"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    deleteAdminConfluenceSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Configuration effacée */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    postAdminConfluenceTest: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Connexion réussie */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getRunConfluence: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identifiant de la revue */
+                runId: components["parameters"]["RunId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description État Confluence de la revue */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunConfluence"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    postRunConfluencePublish: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identifiant de la revue */
+                runId: components["parameters"]["RunId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Page créée */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConfluenceLink"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
             500: components["responses"]["InternalError"];
         };
     };

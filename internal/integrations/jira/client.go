@@ -100,10 +100,25 @@ func (c *Client) TestConnection(ctx context.Context, cfg Config) error {
 	return nil
 }
 
+// IssueInfo is a minimal Jira issue snapshot (key + workflow status).
+type IssueInfo struct {
+	Key    string
+	Status string
+}
+
 // GetIssue verifies that an issue exists in Jira and returns its key.
 func (c *Client) GetIssue(ctx context.Context, cfg Config, key string) (string, error) {
+	info, err := c.GetIssueInfo(ctx, cfg, key)
+	if err != nil {
+		return "", err
+	}
+	return info.Key, nil
+}
+
+// GetIssueInfo fetches issue key and current status name from Jira (on demand).
+func (c *Client) GetIssueInfo(ctx context.Context, cfg Config, key string) (IssueInfo, error) {
 	if !cfg.Configured() {
-		return "", errors.New("configuration Jira incomplète")
+		return IssueInfo{}, errors.New("configuration Jira incomplète")
 	}
 
 	client := c.httpClient(cfg.BaseURL, 10*time.Second)
@@ -111,7 +126,7 @@ func (c *Client) GetIssue(ctx context.Context, cfg Config, key string) (string, 
 	baseURL := NormalizeBaseURL(cfg.BaseURL)
 	issueKey := strings.ToUpper(strings.TrimSpace(key))
 	if issueKey == "" {
-		return "", ErrIssueNotFound
+		return IssueInfo{}, ErrIssueNotFound
 	}
 
 	var req *http.Request
@@ -119,47 +134,58 @@ func (c *Client) GetIssue(ctx context.Context, cfg Config, key string) (string, 
 
 	switch cfg.InstanceType {
 	case InstanceCloud:
-		req, err = http.NewRequestWithContext(ctx, http.MethodGet, baseURL+cloudIssuePath+issueKey, nil)
+		u := baseURL + cloudIssuePath + url.PathEscape(issueKey) + "?fields=status"
+		req, err = http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
 		if err != nil {
-			return "", fmt.Errorf("build jira issue request: %w", err)
+			return IssueInfo{}, fmt.Errorf("build jira issue request: %w", err)
 		}
 		token := base64.StdEncoding.EncodeToString([]byte(cfg.Email + ":" + cfg.APIToken))
 		req.Header.Set("Authorization", "Basic "+token)
 		req.Header.Set("Accept", "application/json")
 	case InstanceServer:
-		req, err = http.NewRequestWithContext(ctx, http.MethodGet, baseURL+serverIssuePath+issueKey, nil)
+		u := baseURL + serverIssuePath + url.PathEscape(issueKey) + "?fields=status"
+		req, err = http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
 		if err != nil {
-			return "", fmt.Errorf("build jira issue request: %w", err)
+			return IssueInfo{}, fmt.Errorf("build jira issue request: %w", err)
 		}
 		req.Header.Set("Authorization", "Bearer "+cfg.PAT)
 		req.Header.Set("Accept", "application/json")
 	default:
-		return "", errors.New("type d'instance Jira invalide")
+		return IssueInfo{}, errors.New("type d'instance Jira invalide")
 	}
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return "", fmt.Errorf("%w: %w", ErrConnectionFailed, err)
+		return IssueInfo{}, fmt.Errorf("%w: %w", ErrConnectionFailed, err)
 	}
 	defer resp.Body.Close()
 
 	switch resp.StatusCode {
 	case http.StatusOK:
 		var issue struct {
-			Key string `json:"key"`
+			Key    string `json:"key"`
+			Fields struct {
+				Status struct {
+					Name string `json:"name"`
+				} `json:"status"`
+			} `json:"fields"`
 		}
 		if err := json.NewDecoder(resp.Body).Decode(&issue); err != nil {
-			return "", fmt.Errorf("%w: invalid response", ErrConnectionFailed)
+			return IssueInfo{}, fmt.Errorf("%w: invalid response", ErrConnectionFailed)
 		}
-		if issue.Key == "" {
-			return issueKey, nil
+		keyOut := issueKey
+		if issue.Key != "" {
+			keyOut = strings.ToUpper(issue.Key)
 		}
-		return strings.ToUpper(issue.Key), nil
+		return IssueInfo{
+			Key:    keyOut,
+			Status: strings.TrimSpace(issue.Fields.Status.Name),
+		}, nil
 	case http.StatusNotFound:
-		return "", ErrIssueNotFound
+		return IssueInfo{}, ErrIssueNotFound
 	default:
 		body, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
-		return "", fmt.Errorf("%w: status %d %s", ErrConnectionFailed, resp.StatusCode, strings.TrimSpace(string(body)))
+		return IssueInfo{}, fmt.Errorf("%w: status %d %s", ErrConnectionFailed, resp.StatusCode, strings.TrimSpace(string(body)))
 	}
 }
 
