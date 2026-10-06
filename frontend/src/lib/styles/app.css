@@ -5,7 +5,8 @@
   Classes hôte partagées (.cursor/rules/design.md) : .page, .page-header,
   .page-header__row, .page-header__actions, .lede, .muted, .actions, .filters,
   .filters__count, .stack-form, .field-hint, .field-error, .table-scroll,
-  .card-stack, .page--auth, .auth-card, .actions--stack.
+  .card-stack, .page--auth, .auth-card, .actions--stack, .stack, .block__head,
+  .pct, .date. Fiches : .run-detail*, .editor*, .advanced*, .person*.
 */
 
 *,
@@ -663,4 +664,512 @@ mb-table-cell[align='end']::part(sort) {
 mb-table[sticky-header]::part(head) {
 	border-start-start-radius: calc(var(--mb-radius-lg) - 1px);
 	border-start-end-radius: calc(var(--mb-radius-lg) - 1px);
+}
+
+/* --- Utilitaires partagés (listes / fiches) ------------------------------- */
+
+.pct,
+.date {
+	font-variant-numeric: tabular-nums;
+}
+
+.stack {
+	display: flex;
+	flex-direction: column;
+	gap: var(--mb-space-6);
+}
+
+.block__head {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--mb-space-3);
+	margin-bottom: var(--mb-space-3);
+}
+
+.block__head h2,
+.block > h2 {
+	margin: 0 0 var(--mb-space-3);
+	font-size: var(--mb-font-size-lg, 1.125rem);
+}
+
+.block__head h2 {
+	margin-bottom: 0;
+}
+
+.count {
+	font-weight: var(--mb-font-weight-regular, 400);
+}
+
+.meta-domains {
+	display: inline-flex;
+	flex-wrap: wrap;
+	gap: var(--mb-space-1);
+	align-items: center;
+}
+
+.advanced {
+	margin: 0;
+}
+
+.advanced summary {
+	cursor: pointer;
+	color: var(--mb-color-fg-muted, inherit);
+	font-size: var(--mb-font-size-sm, 0.875rem);
+}
+
+.advanced__body {
+	margin-top: var(--mb-space-3);
+}
+
+.advanced--panel {
+	padding: var(--mb-space-3) 0;
+}
+
+.advanced--panel p {
+	margin: var(--mb-space-2) 0 0;
+}
+
+.person {
+	display: flex;
+	flex-direction: column;
+	gap: 0.15rem;
+	min-inline-size: 0;
+}
+
+.person-email,
+.linkish {
+	display: block;
+	margin-top: var(--mb-space-1);
+	font-size: var(--mb-font-size-sm, 0.875rem);
+}
+
+.linkish {
+	padding: 0;
+	border: 0;
+	background: none;
+	color: var(--mb-color-fg-muted, inherit);
+	text-decoration: underline;
+	cursor: pointer;
+	text-align: start;
+}
+
+.linkish:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+
+.block mb-table {
+	margin-bottom: 0;
+}
+
+/* --- Fiche revue (saisie des points) ------------------------------------- */
+
+.run-detail .progress-inline {
+	font-variant-numeric: tabular-nums;
+}
+
+.run-detail .progress-quiet {
+	margin: var(--mb-space-2) 0 0;
+	block-size: 3px;
+	border-radius: 999px;
+	background: var(--mb-color-border);
+	overflow: clip;
+	max-inline-size: 16rem;
+}
+
+.run-detail .progress-quiet > span {
+	display: block;
+	block-size: 100%;
+	background: var(--mb-color-accent);
+	opacity: 0.45;
+}
+
+.run-detail .item-filters {
+	margin: 0 0 var(--mb-space-3);
+}
+
+.run-detail .empty-filter {
+	margin: var(--mb-space-3) 0 0;
+}
+
+.run-detail .items {
+	margin-top: var(--mb-space-3);
+}
+
+.run-detail .items__section {
+	margin: 0 0 var(--mb-space-2);
+	font-size: var(--mb-font-size-md);
+	font-family: var(--mb-font-body);
+	font-weight: 600;
+	letter-spacing: 0;
+}
+
+.run-detail .item-list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
+.run-detail .item {
+	padding: var(--mb-space-3) 0;
+	border-bottom: 1px solid var(--mb-color-border);
+}
+
+.run-detail .item--busy {
+	opacity: 0.7;
+}
+
+.run-detail .item-title {
+	display: flex;
+	align-items: center;
+	gap: var(--mb-space-2);
+	min-width: 0;
+}
+
+.run-detail .label {
+	flex: 1;
+	min-width: 0;
+	margin: 0;
+	font-family: var(--mb-font-body);
+	font-weight: 600;
+	font-size: var(--mb-font-size-md);
+	letter-spacing: 0;
+	line-height: var(--mb-line-height);
+}
+
+.run-detail .item-body {
+	display: grid;
+	grid-template-columns: var(--item-body-cols);
+	gap: var(--mb-space-3);
+	align-items: stretch;
+	margin-top: var(--mb-space-2);
+}
+
+.run-detail .item-status {
+	min-width: 0;
+}
+
+.run-detail .item-help-col,
+.run-detail .item-comment {
+	position: relative;
+	min-width: 0;
+	height: 0;
+	min-height: 100%;
+}
+
+.run-detail .item-help-col {
+	overflow: auto;
+}
+
+.run-detail .item-help-col:focus-visible {
+	outline: var(--mb-focus-ring);
+	outline-offset: var(--mb-focus-offset);
+}
+
+.run-detail .item-help {
+	margin: 0;
+	font-size: var(--mb-font-size-sm);
+	color: var(--mb-color-muted);
+	line-height: 1.45;
+	white-space: pre-wrap;
+}
+
+.run-detail .item-comment {
+	display: flex;
+	flex-direction: column;
+}
+
+.run-detail .item-comment__field {
+	display: block;
+	box-sizing: border-box;
+	width: 100%;
+	height: 100%;
+	min-height: 0;
+	margin: 0;
+	padding: var(--mb-space-2);
+	border: 1px solid var(--mb-color-border-strong);
+	border-radius: var(--mb-radius-md);
+	background: var(--mb-color-surface);
+	color: var(--mb-color-fg);
+	font: inherit;
+	font-size: var(--mb-font-size-sm);
+	line-height: 1.35;
+	resize: none;
+	overflow: auto;
+}
+
+.run-detail .item-comment__field:focus {
+	outline: var(--mb-focus-ring);
+	outline-offset: var(--mb-focus-offset);
+}
+
+.run-detail .item-comment__field--error {
+	border-color: var(--mb-color-danger);
+}
+
+.run-detail .item-comment__field:disabled {
+	opacity: 0.6;
+}
+
+.run-detail .item-comment__error {
+	position: absolute;
+	inset-block-start: 100%;
+	inset-inline-start: 0;
+	margin: var(--mb-space-1) 0 0;
+	z-index: 1;
+}
+
+.run-detail .comment-ro {
+	display: block;
+	box-sizing: border-box;
+	height: 100%;
+	overflow: auto;
+	padding: var(--mb-space-2);
+	border: 1px solid var(--mb-color-border-strong);
+	border-radius: var(--mb-radius-md);
+	background: var(--mb-color-surface);
+	white-space: pre-wrap;
+	font-size: var(--mb-font-size-sm);
+}
+
+.run-detail .saving {
+	font-size: var(--mb-font-size-sm);
+}
+
+@media (max-width: 48rem) {
+	.run-detail .item-body {
+		grid-template-columns: 1fr;
+	}
+	.run-detail .item-help-col,
+	.run-detail .item-comment {
+		height: auto;
+		min-height: 0;
+	}
+	.run-detail .item-comment__field {
+		min-height: 6rem;
+		height: auto;
+	}
+}
+
+.run-detail .status-stack {
+	display: flex;
+	flex-direction: column;
+	gap: 0;
+	padding: 0;
+	border: 1px solid var(--mb-color-border-strong);
+	border-radius: var(--mb-radius-md);
+	background: var(--mb-color-surface);
+	box-sizing: border-box;
+	height: max-content;
+	overflow: clip;
+}
+
+.run-detail .status-stack button {
+	appearance: none;
+	display: flex;
+	align-items: center;
+	justify-content: flex-start;
+	width: 100%;
+	margin: 0;
+	padding: 0.2rem 0.45rem;
+	border: 0;
+	border-block-end: 1px solid var(--mb-color-border);
+	border-radius: 0;
+	background: transparent;
+	color: var(--mb-color-muted);
+	font: inherit;
+	font-size: 0.75rem;
+	font-weight: 600;
+	line-height: 1.2;
+	text-align: start;
+	cursor: pointer;
+}
+
+.run-detail .status-stack button:last-child {
+	border-block-end: 0;
+}
+
+.run-detail .status-stack button:hover:not(:disabled) {
+	background: var(--mb-color-hover);
+	color: var(--mb-color-fg);
+}
+
+.run-detail .status-stack button:focus-visible {
+	outline: var(--mb-focus-ring);
+	outline-offset: var(--mb-focus-offset);
+}
+
+.run-detail .status-stack button.is-active,
+.run-detail .status-stack button.is-active:hover:not(:disabled),
+.run-detail .status-stack button[aria-checked='true'],
+.run-detail .status-stack button[aria-checked='true']:hover:not(:disabled) {
+	background: var(--mb-color-accent-soft);
+	color: var(--mb-color-accent);
+}
+
+.run-detail .status-stack button:disabled {
+	opacity: 0.6;
+	cursor: default;
+}
+
+.run-detail abbr {
+	color: var(--mb-color-danger);
+	text-decoration: none;
+}
+
+/* --- Éditeur de modèle (TemplateEditor) ---------------------------------- */
+
+.editor {
+	display: flex;
+	flex-direction: column;
+	gap: var(--mb-space-1);
+}
+
+.editor .head,
+.editor .row {
+	display: grid;
+	grid-template-columns: 2rem minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr) 2.5rem 5.75rem;
+	gap: var(--mb-space-2);
+	align-items: center;
+	padding: var(--mb-space-1);
+	border: 1px solid transparent;
+	box-sizing: border-box;
+}
+
+.editor .head {
+	font-size: 0.75rem;
+	font-weight: 600;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+	color: var(--mb-color-muted);
+}
+
+.editor .head .col-field {
+	padding-inline: var(--mb-space-2);
+}
+
+.editor .head .col-req {
+	text-align: center;
+}
+
+.editor .row {
+	position: relative;
+	background: var(--mb-color-surface);
+	border-color: var(--mb-color-border);
+	border-radius: var(--mb-radius-sm);
+}
+
+.editor .row.is-dragging {
+	opacity: 0.55;
+	outline: 1px dashed var(--mb-color-accent);
+}
+
+.editor .drag {
+	padding: var(--mb-space-1);
+	border: 0;
+	background: transparent;
+	color: var(--mb-color-muted);
+	cursor: grab;
+}
+
+.editor .drag:disabled {
+	opacity: 0.3;
+	cursor: default;
+}
+
+.editor input[type='text'],
+.editor .help textarea {
+	width: 100%;
+	min-width: 0;
+	padding: var(--mb-space-2);
+	border: 1px solid var(--mb-color-border);
+	border-radius: var(--mb-radius-sm);
+	background: var(--mb-color-bg);
+	color: var(--mb-color-fg);
+	font: inherit;
+	line-height: 1.25;
+}
+
+.editor .help {
+	position: relative;
+	min-width: 0;
+}
+
+.editor .help textarea {
+	display: block;
+	height: 2.375rem;
+	max-height: 2.375rem;
+	resize: none;
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+}
+
+.editor .help textarea:focus {
+	position: absolute;
+	left: 0;
+	right: 0;
+	top: 0;
+	z-index: 4;
+	max-height: none;
+	min-height: 7rem;
+	height: auto;
+	white-space: pre-wrap;
+	overflow: auto;
+	box-shadow: 0 0.35rem 0.75rem var(--mb-color-border);
+}
+
+.editor .req {
+	display: flex;
+	justify-content: center;
+}
+
+.editor .actions {
+	display: flex;
+	gap: var(--mb-space-1);
+	margin: 0;
+}
+
+.editor .actions button,
+.editor .add button {
+	padding: var(--mb-space-1) var(--mb-space-2);
+	border: 0;
+	background: transparent;
+	color: var(--mb-color-accent);
+	font: inherit;
+	cursor: pointer;
+}
+
+.editor .actions button:disabled {
+	opacity: 0.35;
+}
+
+.editor .add {
+	margin: var(--mb-space-2) 0 0;
+}
+
+@media (max-width: 720px) {
+	.editor .head {
+		display: none;
+	}
+	.editor .row {
+		grid-template-columns: 2rem 1fr;
+	}
+	.editor .row > :not(.drag) {
+		grid-column: 2;
+	}
+	.editor .help textarea {
+		position: static;
+		max-height: none;
+		min-height: 4rem;
+		height: auto;
+		white-space: pre-wrap;
+		overflow: auto;
+	}
+	.editor .help textarea:focus {
+		position: static;
+		box-shadow: none;
+	}
 }
