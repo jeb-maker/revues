@@ -86,11 +86,11 @@
 	{:else}
 		<mb-table columns="2fr 1.2fr 1fr 0.8fr auto">
 			<mb-table-row slot="head">
-				<mb-table-cell>Point</mb-table-cell>
-				<mb-table-cell>Sujet</mb-table-cell>
-				<mb-table-cell>Revue</mb-table-cell>
-				<mb-table-cell>Statut</mb-table-cell>
-				<mb-table-cell actions>Actions</mb-table-cell>
+				<mb-table-cell><span class="th-label">Point</span></mb-table-cell>
+				<mb-table-cell><span class="th-label">Sujet</span></mb-table-cell>
+				<mb-table-cell><span class="th-label">Revue</span></mb-table-cell>
+				<mb-table-cell><span class="th-label">Statut</span></mb-table-cell>
+				<mb-table-cell actions><span class="th-label">Actions</span></mb-table-cell>
 			</mb-table-row>
 			{#each tasks as task (task.id)}
 				<mb-table-row>

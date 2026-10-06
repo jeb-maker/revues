@@ -377,10 +377,16 @@
 						onmb-sort={onRunsSort}
 					>
 						<mb-table-row slot="head">
-							<mb-table-cell sort-key="titre">Titre</mb-table-cell>
-							<mb-table-cell sort-key="date" align="center">Date</mb-table-cell>
-							<mb-table-cell sort-key="statut" align="center">Statut</mb-table-cell>
-							<mb-table-cell sort-key="progression" align="center">Progression</mb-table-cell>
+							<mb-table-cell sort-key="titre"><span class="th-label">Titre</span></mb-table-cell>
+							<mb-table-cell sort-key="date" align="center"
+								><span class="th-label">Date</span></mb-table-cell
+							>
+							<mb-table-cell sort-key="statut" align="center"
+								><span class="th-label">Statut</span></mb-table-cell
+							>
+							<mb-table-cell sort-key="progression" align="center"
+								><span class="th-label">Progression</span></mb-table-cell
+							>
 							<mb-table-cell actions><span class="sr-only">Actions</span></mb-table-cell>
 						</mb-table-row>
 						{#each displayedRuns as r (r.id)}
@@ -440,8 +446,8 @@
 								: 'minmax(12rem, 1.6fr) 9rem'}
 						>
 							<mb-table-row slot="head">
-								<mb-table-cell>Personne</mb-table-cell>
-								<mb-table-cell>Rôle</mb-table-cell>
+								<mb-table-cell><span class="th-label">Personne</span></mb-table-cell>
+								<mb-table-cell><span class="th-label">Rôle</span></mb-table-cell>
 								{#if subject.capabilities.can_manage_members}
 									<mb-table-cell></mb-table-cell>
 								{/if}

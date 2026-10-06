@@ -71,11 +71,11 @@
 	{:else}
 		<mb-table columns="2fr 0.7fr 0.7fr 1.4fr auto">
 			<mb-table-row slot="head">
-				<mb-table-cell>Nom</mb-table-cell>
-				<mb-table-cell>Version</mb-table-cell>
-				<mb-table-cell>Points</mb-table-cell>
-				<mb-table-cell>Domaines</mb-table-cell>
-				<mb-table-cell actions>Actions</mb-table-cell>
+				<mb-table-cell><span class="th-label">Nom</span></mb-table-cell>
+				<mb-table-cell><span class="th-label">Version</span></mb-table-cell>
+				<mb-table-cell><span class="th-label">Points</span></mb-table-cell>
+				<mb-table-cell><span class="th-label">Domaines</span></mb-table-cell>
+				<mb-table-cell actions><span class="th-label">Actions</span></mb-table-cell>
 			</mb-table-row>
 			{#each templates as t (t.id)}
 				<mb-table-row>
