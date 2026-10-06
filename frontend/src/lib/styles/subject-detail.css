@@ -1,0 +1,88 @@
+/* Fiche sujet — importé uniquement par subjects/[id]/+page.svelte */
+
+.subject-detail .stack {
+	display: flex;
+	flex-direction: column;
+	gap: var(--mb-space-6);
+}
+
+.subject-detail .block__head {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--mb-space-3);
+	margin-bottom: var(--mb-space-3);
+}
+
+.subject-detail .block__head h2,
+.subject-detail .block > h2 {
+	margin: 0 0 var(--mb-space-3);
+	font-size: var(--mb-font-size-lg);
+}
+
+.subject-detail .block__head h2 {
+	margin-bottom: 0;
+}
+
+.subject-detail .meta-domains {
+	display: inline-flex;
+	flex-wrap: wrap;
+	gap: var(--mb-space-1);
+	align-items: center;
+}
+
+.subject-detail .advanced {
+	margin: 0;
+}
+
+.subject-detail .advanced summary {
+	cursor: pointer;
+	color: var(--mb-color-muted);
+	font-size: var(--mb-font-size-sm);
+}
+
+.subject-detail .advanced__body {
+	margin-top: var(--mb-space-3);
+}
+
+.subject-detail .advanced--panel {
+	padding: var(--mb-space-3) 0;
+}
+
+.subject-detail .advanced--panel p {
+	margin: var(--mb-space-2) 0 0;
+}
+
+.subject-detail .person {
+	display: flex;
+	flex-direction: column;
+	gap: var(--mb-space-1);
+	min-inline-size: 0;
+}
+
+.subject-detail .person-email,
+.subject-detail .linkish {
+	display: block;
+	margin-top: var(--mb-space-1);
+	font-size: var(--mb-font-size-sm);
+}
+
+.subject-detail .linkish {
+	padding: 0;
+	border: 0;
+	background: none;
+	color: var(--mb-color-muted);
+	text-decoration: underline;
+	cursor: pointer;
+	text-align: start;
+}
+
+.subject-detail .linkish:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+
+.subject-detail .block mb-table {
+	margin-bottom: 0;
+}
