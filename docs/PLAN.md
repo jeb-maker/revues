@@ -164,7 +164,19 @@ erDiagram
 Actions (Cloud) :
 - Lier une issue (`PROJ-123` ou URL) sur un point
 - Créer un ticket depuis un point `nok`
-- (v2) Afficher statut issue à l'ouverture de la revue
+- Afficher le statut issue à la demande (`GET …/jira`, pas de polling)
+
+### Confluence Cloud — archive wiki
+
+| Type instance | Auth | Statut |
+|---------------|------|--------|
+| Confluence Cloud | Email + API token Atlassian | **Livré** ([#337](https://github.com/jeb-maker/revues/issues/337)) |
+| Confluence Server / DC | — | Hors scope |
+
+Actions :
+- Config admin (site, espace, page parente optionnelle, credentials chiffrés, test connexion)
+- Publier une revue `done` → page Confluence (méta clôture, points, liens Jira nok)
+- Lien page stocké sur la revue (`confluence_url`)
 
 ### Webhooks (v1)
 
@@ -228,7 +240,7 @@ Reste et icebox : [ROADMAP.md](./ROADMAP.md). Délégation : [DELEGATION.md](./D
 
 - [x] GitHub OAuth en premier
 - [x] Jira Cloud (Server/DC en icebox #65)
-
+- [x] Confluence Cloud — publier revue clôturée (#337)
 - [x] Webhooks : `review.completed` + `review.item.nok`
 - [x] SMTP configurable par admin
 - [x] ~~Notion en companion~~ — retiré (hors périmètre)
@@ -241,7 +253,6 @@ Reste et icebox : [ROADMAP.md](./ROADMAP.md). Délégation : [DELEGATION.md](./D
 
 - Google OAuth
 - Jira Server/DC (Cloud d'abord)
-- Sync statut Jira à la demande
 - Slack / Teams natif
 - PostgreSQL (si multi-instance — voir critères ci-dessous)
 - Imports atomiques mb par composant (aujourd’hui `mb-boot.js` monolithe Lit ; rebuild documenté dans `web/static/vendor/jeb-maker-mb/README.md`)

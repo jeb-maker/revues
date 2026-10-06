@@ -130,7 +130,8 @@ func (s *Server) buildRunItemJira(
 	access store.SubjectAccess,
 ) (RunItemJira, bool) {
 	configured := false
-	projectKey := ""
+	orgProjectKey := ""
+	var jiraCfg jira.Config
 	if svc := s.jiraService(); svc != nil {
 		cfg, ok, err := svc.Load(r.Context())
 		if err != nil {
@@ -139,15 +140,38 @@ func (s *Server) buildRunItemJira(
 			return RunItemJira{}, false
 		}
 		if ok {
+			jiraCfg = cfg
 			configured = cfg.Configured()
-			projectKey = cfg.ProjectKey
+			orgProjectKey = cfg.ProjectKey
 		}
 	}
+
+	subjectKey := ""
+	if subject, err := s.Store.SubjectByID(r.Context(), run.SubjectID); err == nil {
+		subjectKey = subject.JiraProjectKey
+	} else if !errors.Is(err, store.ErrSubjectNotFound) {
+		slog.Error("subject for jira project key", "err", err)
+		writeAPIError(w, http.StatusInternalServerError, "internal_error", "Erreur interne.")
+		return RunItemJira{}, false
+	}
+	projectKey := jira.EffectiveProjectKey(orgProjectKey, subjectKey)
 
 	var link *JiraLink
 	stored, err := s.Store.IntegrationLinkByRunItemAndType(r.Context(), item.ID, store.IntegrationTypeJira)
 	if err == nil && stored != nil {
 		mapped := mapJiraLink(stored)
+		if configured {
+			if info, fetchErr := s.jiraClient().GetIssueInfo(r.Context(), jiraCfg, stored.ExternalKey); fetchErr == nil {
+				if st := strings.TrimSpace(info.Status); st != "" {
+					mapped.Status = &st
+				}
+				if info.Key != "" {
+					mapped.ExternalKey = info.Key
+				}
+			} else {
+				slog.Debug("jira status fetch skipped", "key", stored.ExternalKey, "err", fetchErr)
+			}
+		}
 		link = &mapped
 	} else if err != nil && !errors.Is(err, store.ErrIntegrationLinkNotFound) {
 		slog.Error("load jira link", "err", err)

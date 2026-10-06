@@ -11,6 +11,7 @@ export type RunTemplateSummary = components['schemas']['RunTemplateSummary'];
 export type CreateRunRequest = components['schemas']['CreateRunRequest'];
 export type UpdateRunItemRequest = components['schemas']['UpdateRunItemRequest'];
 export type CompleteRunRequest = components['schemas']['CompleteRunRequest'];
+export type ConfluenceLink = components['schemas']['ConfluenceLink'];
 
 type ApiError = { error?: { code?: string; message?: string } };
 
@@ -103,6 +104,18 @@ export async function completeRun(
 	});
 	if (data) return data;
 	throw new Error(errorMessage(error, `Clôture: HTTP ${response.status}`));
+}
+
+export async function publishRunConfluence(
+	runId: number,
+	csrfToken: string
+): Promise<ConfluenceLink> {
+	const client = createApiClient({ csrfToken });
+	const { data, error, response } = await client.POST('/runs/{runId}/confluence', {
+		params: { path: { runId } }
+	});
+	if (data) return data;
+	throw new Error(errorMessage(error, `Confluence: HTTP ${response.status}`));
 }
 
 export async function getRunItem(

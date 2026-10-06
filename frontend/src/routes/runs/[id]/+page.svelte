@@ -4,6 +4,7 @@
 	import {
 		completeRun,
 		getRun,
+		publishRunConfluence,
 		updateRunItem,
 		UpdateRunItemError,
 		type RunDetail,
@@ -53,6 +54,7 @@
 	let savingId = $state<number | null>(null);
 	let itemFilter = $state<ItemFilter>('all');
 	let assignDrafts = $state<Record<number, string>>({});
+	let publishingConfluence = $state(false);
 
 	function runId(): number {
 		return Number(page.params.id);
@@ -179,6 +181,24 @@
 			error = err instanceof Error ? err.message : 'Clôture impossible.';
 		} finally {
 			closing = false;
+		}
+	}
+
+	async function onPublishConfluence() {
+		if (!run) return;
+		publishingConfluence = true;
+		error = '';
+		try {
+			const link = await publishRunConfluence(run.id, csrf);
+			run = {
+				...run,
+				confluence_url: link.url,
+				capabilities: { ...run.capabilities, can_publish_confluence: true }
+			};
+		} catch (err) {
+			error = err instanceof Error ? err.message : 'Publication impossible.';
+		} finally {
+			publishingConfluence = false;
 		}
 	}
 
@@ -392,6 +412,25 @@
 						<p class="muted">{run.closing_note}</p>
 					{/if}
 				</mb-card>
+				{#if run.confluence_url || run.capabilities.can_publish_confluence}
+					<p class="actions">
+						{#if run.confluence_url}
+							<a href={run.confluence_url} target="_blank" rel="noopener noreferrer"
+								>Page Confluence</a
+							>
+						{/if}
+						{#if run.capabilities.can_publish_confluence}
+							<mb-button
+								type="button"
+								variant="secondary"
+								loading={publishingConfluence}
+								onclick={onPublishConfluence}
+							>
+								{run.confluence_url ? 'Republier' : 'Publier sur Confluence'}
+							</mb-button>
+						{/if}
+					</p>
+				{/if}
 			{/if}
 
 			{#if (run.pending_required_count ?? 0) > 0}

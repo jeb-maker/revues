@@ -42,6 +42,7 @@
 	let description = $state('');
 	let domains = $state('');
 	let visibility = $state<'normal' | 'private'>('normal');
+	let jiraProjectKey = $state('');
 
 	let memberPick = $state('');
 	let memberEmail = $state('');
@@ -119,6 +120,7 @@
 		description = s.description ?? '';
 		domains = joinCSV(s.domains);
 		visibility = s.visibility;
+		jiraProjectKey = s.jira_project_key ?? '';
 	}
 
 	function startEdit() {
@@ -171,7 +173,8 @@
 			const body: Parameters<typeof updateSubject>[1] = {
 				name: name.trim(),
 				description: description.trim(),
-				domains: splitCSV(domains)
+				domains: splitCSV(domains),
+				jira_project_key: jiraProjectKey.trim()
 			};
 			if (subject.capabilities.can_set_visibility) {
 				body.visibility = visibility;
@@ -332,6 +335,13 @@
 										hint="Séparés par des virgules. Associent les modèles compatibles (intersection)."
 										value={domains}
 										oninput={(e) => (domains = inputValue(e))}
+									></mb-input>
+									<mb-input
+										label="Clé projet Jira"
+										hint="Optionnel. Vide = clé définie dans Admin → Intégrations → Jira."
+										autocomplete="off"
+										value={jiraProjectKey}
+										oninput={(e) => (jiraProjectKey = inputValue(e))}
 									></mb-input>
 								</div>
 							</details>

@@ -41,6 +41,7 @@ type ChecklistRun struct {
 	CompletedAt       sql.NullString
 	CompletedBy       sql.NullInt64
 	CompletedByLogin  string
+	ConfluenceURL     string
 	EvidenceCSVSHA256 string
 	CreatedAt         string
 }
@@ -152,14 +153,14 @@ func (s *Store) RunByID(ctx context.Context, id int64) (*ChecklistRun, error) {
 	err := s.db.QueryRowContext(ctx, `
 		SELECT r.id, r.subject_id, r.template_version_id, r.status, r.due_date, r.closing_note,
 		       r.created_by, r.started_at, r.completed_at, r.completed_by, COALESCE(u.login, ''),
-		       r.evidence_csv_sha256, r.created_at
+		       r.confluence_url, r.evidence_csv_sha256, r.created_at
 		FROM checklist_runs r
 		LEFT JOIN users u ON u.id = r.completed_by
 		WHERE r.id = ?
 	`, id).Scan(
 		&run.ID, &run.SubjectID, &run.TemplateVersionID, &run.Status, &run.DueDate,
 		&run.ClosingNote, &run.CreatedBy, &run.StartedAt, &run.CompletedAt, &run.CompletedBy, &run.CompletedByLogin,
-		&run.EvidenceCSVSHA256, &run.CreatedAt,
+		&run.ConfluenceURL, &run.EvidenceCSVSHA256, &run.CreatedAt,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrRunNotFound
@@ -175,7 +176,7 @@ func (s *Store) ListRunsBySubject(ctx context.Context, subjectID int64) ([]Check
 	rows, err := s.db.QueryContext(ctx, `
 		SELECT r.id, r.subject_id, r.template_version_id, r.status, r.due_date, r.closing_note,
 		       r.created_by, r.started_at, r.completed_at, r.completed_by, COALESCE(u.login, ''),
-		       r.evidence_csv_sha256, r.created_at
+		       r.confluence_url, r.evidence_csv_sha256, r.created_at
 		FROM checklist_runs r
 		LEFT JOIN users u ON u.id = r.completed_by
 		WHERE r.subject_id = ? AND r.status != ?
@@ -192,7 +193,7 @@ func (s *Store) ListRunsBySubject(ctx context.Context, subjectID int64) ([]Check
 		if err := rows.Scan(
 			&run.ID, &run.SubjectID, &run.TemplateVersionID, &run.Status, &run.DueDate,
 			&run.ClosingNote, &run.CreatedBy, &run.StartedAt, &run.CompletedAt, &run.CompletedBy, &run.CompletedByLogin,
-			&run.EvidenceCSVSHA256, &run.CreatedAt,
+			&run.ConfluenceURL, &run.EvidenceCSVSHA256, &run.CreatedAt,
 		); err != nil {
 			return nil, fmt.Errorf("scan run: %w", err)
 		}
@@ -272,7 +273,7 @@ func (s *Store) ListRunsDueOn(ctx context.Context, datePrefix string) ([]Checkli
 	rows, err := s.db.QueryContext(ctx, `
 		SELECT r.id, r.subject_id, r.template_version_id, r.status, r.due_date, r.closing_note,
 		       r.created_by, r.started_at, r.completed_at, r.completed_by, COALESCE(u.login, ''),
-		       r.evidence_csv_sha256, r.created_at
+		       r.confluence_url, r.evidence_csv_sha256, r.created_at
 		FROM checklist_runs r
 		LEFT JOIN users u ON u.id = r.completed_by
 		WHERE r.status = ? AND r.due_date IS NOT NULL AND r.due_date LIKE ?
@@ -289,7 +290,7 @@ func (s *Store) ListRunsDueOn(ctx context.Context, datePrefix string) ([]Checkli
 		if err := rows.Scan(
 			&run.ID, &run.SubjectID, &run.TemplateVersionID, &run.Status, &run.DueDate,
 			&run.ClosingNote, &run.CreatedBy, &run.StartedAt, &run.CompletedAt, &run.CompletedBy, &run.CompletedByLogin,
-			&run.EvidenceCSVSHA256, &run.CreatedAt,
+			&run.ConfluenceURL, &run.EvidenceCSVSHA256, &run.CreatedAt,
 		); err != nil {
 			return nil, fmt.Errorf("scan run due on: %w", err)
 		}
@@ -300,6 +301,25 @@ func (s *Store) ListRunsDueOn(ctx context.Context, datePrefix string) ([]Checkli
 	}
 
 	return runs, nil
+}
+
+// SetRunConfluenceURL stores the Confluence page URL for a completed run.
+func (s *Store) SetRunConfluenceURL(ctx context.Context, runID int64, pageURL string) error {
+	pageURL = strings.TrimSpace(pageURL)
+	res, err := s.db.ExecContext(ctx, `
+		UPDATE checklist_runs SET confluence_url = ? WHERE id = ?
+	`, pageURL, runID)
+	if err != nil {
+		return fmt.Errorf("set run confluence url: %w", err)
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("set run confluence url rows: %w", err)
+	}
+	if n == 0 {
+		return ErrRunNotFound
+	}
+	return nil
 }
 
 // SetRunDueDate updates due_date on a run (used in tests).

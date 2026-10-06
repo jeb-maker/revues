@@ -35,11 +35,11 @@ Plan : [search/PLAN.md](./search/PLAN.md) · WP : [search/WORK_PACKAGES.md](./se
 |-------|-------|
 | [#65](https://github.com/jeb-maker/revues/issues/65) | Jira Server/DC — **icebox** (pas sans demande produit) |
 
-Livré hors rewrite : **retrait Notion** (SPA + OpenAPI + package `internal/integrations/notion`) — hors périmètre produit ; colonnes legacy en base seulement, voir [NOTION.md](./NOTION.md).
+Livré hors rewrite : **retrait Notion** (SPA + OpenAPI + package `internal/integrations/notion`) — hors périmètre produit ; colonnes legacy en base seulement, voir [NOTION.md](./NOTION.md). **Confluence Cloud publish** (#337) — config admin + publication d’une revue `done`.
 
 ## Icebox (pas d’issue tant que signal d’usage)
 
-Séries/campagnes, fusion sujets, rapport org, Slack/Teams, Google OAuth, gouvernance avancée, audit admin, progressive disclosure SPA (SimpleUI / ShowSubject*), écran admin libellés UI, antivirus uploads, PostgreSQL, CSP stricte, rotation clés, **Notion** (réintro seulement sur signal), **Confluence archive** (cible préférée à Notion si besoin d’archivage wiki).
+Séries/campagnes, fusion sujets, rapport org, Slack/Teams, Google OAuth, gouvernance avancée, audit admin, progressive disclosure SPA (SimpleUI / ShowSubject*), écran admin libellés UI, antivirus uploads, PostgreSQL, CSP stricte, rotation clés, **Notion** (réintro seulement sur signal). Confluence Server/DC et sync bidirectionnelle restent hors scope.
 
 Livré hors icebox : verrou optimiste `run_items.updated_at` (#281).
 

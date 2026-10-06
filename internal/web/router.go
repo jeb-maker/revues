@@ -22,6 +22,7 @@ import (
 	authfeature "github.com/jeb-maker/revues/internal/features/auth"
 	"github.com/jeb-maker/revues/internal/features/checklisttemplates"
 	"github.com/jeb-maker/revues/internal/features/organizations"
+	"github.com/jeb-maker/revues/internal/integrations/confluence"
 	"github.com/jeb-maker/revues/internal/integrations/jira"
 	"github.com/jeb-maker/revues/internal/integrations/webhooks"
 	"github.com/jeb-maker/revues/internal/notifications"
@@ -81,9 +82,11 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, *webhooks.Dispa
 		EncryptionKey: adminSMTPKey,
 	}
 	jiraSvc := &jira.Service{Store: st, EncryptionKey: adminSMTPKey}
+	confluenceSvc := &confluence.Service{Store: st, EncryptionKey: adminSMTPKey}
 	integrationsSvc := &adminintegrations.IntegrationsService{
-		Settings: settingsSvc,
-		Jira:     jiraSvc,
+		Settings:   settingsSvc,
+		Jira:       jiraSvc,
+		Confluence: confluenceSvc,
 	}
 	attachmentsSvc := &attachments.Service{Store: st, Dir: deps.Config.AttachmentsDir}
 	notificationsSvc := &notifications.Service{

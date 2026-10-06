@@ -70,12 +70,15 @@ func TestClientGetIssueCloud(t *testing.T) {
 			http.NotFound(w, r)
 			return
 		}
+		if r.URL.Query().Get("fields") != "status" {
+			t.Errorf("fields query = %q, want status", r.URL.Query().Get("fields"))
+		}
 		if r.Header.Get("Authorization") != "Basic dXNlckBleGFtcGxlLmNvbTpzZWNyZXQ=" {
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{"key":"REV-9"}`))
+		_, _ = w.Write([]byte(`{"key":"REV-9","fields":{"status":{"name":"In Progress"}}}`))
 	}))
 	t.Cleanup(srv.Close)
 
@@ -85,6 +88,16 @@ func TestClientGetIssueCloud(t *testing.T) {
 		BaseURL:      srv.URL,
 		Email:        "user@example.com",
 		APIToken:     "secret",
+	}
+	info, err := client.GetIssueInfo(context.Background(), cfg, "REV-9")
+	if err != nil {
+		t.Fatalf("GetIssueInfo(): %v", err)
+	}
+	if info.Key != "REV-9" {
+		t.Fatalf("key = %q", info.Key)
+	}
+	if info.Status != "In Progress" {
+		t.Fatalf("status = %q", info.Status)
 	}
 	key, err := client.GetIssue(context.Background(), cfg, "REV-9")
 	if err != nil {
@@ -106,7 +119,7 @@ func TestClientGetIssueServer(t *testing.T) {
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{"key":"SRV-1"}`))
+		_, _ = w.Write([]byte(`{"key":"SRV-1","fields":{"status":{"name":"Done"}}}`))
 	}))
 	t.Cleanup(srv.Close)
 
@@ -116,12 +129,12 @@ func TestClientGetIssueServer(t *testing.T) {
 		BaseURL:      srv.URL,
 		PAT:          "server-pat",
 	}
-	key, err := client.GetIssue(context.Background(), cfg, "SRV-1")
+	info, err := client.GetIssueInfo(context.Background(), cfg, "SRV-1")
 	if err != nil {
-		t.Fatalf("GetIssue(): %v", err)
+		t.Fatalf("GetIssueInfo(): %v", err)
 	}
-	if key != "SRV-1" {
-		t.Fatalf("key = %q", key)
+	if info.Key != "SRV-1" || info.Status != "Done" {
+		t.Fatalf("info = %+v", info)
 	}
 }
 

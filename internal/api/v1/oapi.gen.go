@@ -40,9 +40,10 @@ const (
 
 // Defines values for IntegrationSummaryKey.
 const (
-	Jira     IntegrationSummaryKey = "jira"
-	Smtp     IntegrationSummaryKey = "smtp"
-	Webhooks IntegrationSummaryKey = "webhooks"
+	Confluence IntegrationSummaryKey = "confluence"
+	Jira       IntegrationSummaryKey = "jira"
+	Smtp       IntegrationSummaryKey = "smtp"
+	Webhooks   IntegrationSummaryKey = "webhooks"
 )
 
 // Defines values for MyTaskStatus.
@@ -272,6 +273,45 @@ type CompleteRunRequest struct {
 	ClosingNote *string `json:"closing_note,omitempty"`
 }
 
+// ConfluenceLink defines model for ConfluenceLink.
+type ConfluenceLink struct {
+	// Url URL de la page Confluence
+	Url string `json:"url"`
+}
+
+// ConfluenceSettings defines model for ConfluenceSettings.
+type ConfluenceSettings struct {
+	// BaseUrl URL instance (HTTPS, anti-SSRF)
+	BaseUrl string `json:"base_url"`
+
+	// Configured true si credentials Cloud + espace complets
+	Configured bool `json:"configured"`
+
+	// Email Email Atlassian (Cloud)
+	Email string `json:"email"`
+
+	// HasApiToken true si un jeton API est stocké (jamais renvoyé en clair)
+	HasApiToken bool `json:"has_api_token"`
+
+	// ParentPageId ID page parente optionnelle
+	ParentPageId string `json:"parent_page_id"`
+
+	// SpaceKey Clé d'espace Confluence (ex. REV)
+	SpaceKey string `json:"space_key"`
+}
+
+// ConfluenceSettingsUpdate defines model for ConfluenceSettingsUpdate.
+type ConfluenceSettingsUpdate struct {
+	// ApiToken Omis ou vide = conserve le secret existant
+	ApiToken *string             `json:"api_token,omitempty"`
+	BaseUrl  string              `json:"base_url"`
+	Email    openapi_types.Email `json:"email"`
+
+	// ParentPageId ID page parente optionnelle (vide = racine de l'espace)
+	ParentPageId *string `json:"parent_page_id,omitempty"`
+	SpaceKey     string  `json:"space_key"`
+}
+
 // CreateAdminTeamRequest defines model for CreateAdminTeamRequest.
 type CreateAdminTeamRequest struct {
 	Description *string `json:"description,omitempty"`
@@ -323,12 +363,12 @@ type IntegrationSummary struct {
 	Description string `json:"description"`
 	Enabled     bool   `json:"enabled"`
 
-	// Key Identifiant stable (smtp|jira|webhooks)
+	// Key Identifiant stable (smtp|jira|webhooks|confluence)
 	Key  IntegrationSummaryKey `json:"key"`
 	Name string                `json:"name"`
 }
 
-// IntegrationSummaryKey Identifiant stable (smtp|jira|webhooks)
+// IntegrationSummaryKey Identifiant stable (smtp|jira|webhooks|confluence)
 type IntegrationSummaryKey string
 
 // IntegrationsOverview defines model for IntegrationsOverview.
@@ -352,6 +392,9 @@ type JiraLink struct {
 
 	// ExternalUrl URL browse Jira
 	ExternalUrl string `json:"external_url"`
+
+	// Status Statut Jira courant (fetch à la demande sur GET item/jira ; omis si indisponible ou non demandé)
+	Status *string `json:"status"`
 }
 
 // JiraLinkRequest defines model for JiraLinkRequest.
@@ -542,9 +585,20 @@ type RunAssignee struct {
 
 // RunCapabilities defines model for RunCapabilities.
 type RunCapabilities struct {
-	CanAssign      bool `json:"can_assign"`
-	CanComplete    bool `json:"can_complete"`
-	CanUpdateItems bool `json:"can_update_items"`
+	CanAssign   bool `json:"can_assign"`
+	CanComplete bool `json:"can_complete"`
+
+	// CanPublishConfluence true si contributeur+, revue done, Confluence configuré
+	CanPublishConfluence *bool `json:"can_publish_confluence,omitempty"`
+	CanUpdateItems       bool  `json:"can_update_items"`
+}
+
+// RunConfluence defines model for RunConfluence.
+type RunConfluence struct {
+	// CanPublish true si contributeur+, revue done, Confluence configuré
+	CanPublish bool            `json:"can_publish"`
+	Configured bool            `json:"configured"`
+	Link       *ConfluenceLink `json:"link"`
 }
 
 // RunDetail defines model for RunDetail.
@@ -555,7 +609,13 @@ type RunDetail struct {
 	CompletedAt  *string         `json:"completed_at"`
 
 	// CompletedByLogin Login de l'utilisateur qui a clôturé (attestation)
-	CompletedByLogin     *string         `json:"completed_by_login"`
+	CompletedByLogin *string `json:"completed_by_login"`
+
+	// ConfluenceConfigured true si Confluence Cloud est configuré pour l'org active
+	ConfluenceConfigured *bool `json:"confluence_configured,omitempty"`
+
+	// ConfluenceUrl URL de la page Confluence si déjà publiée
+	ConfluenceUrl        *string         `json:"confluence_url,omitempty"`
 	CreatedAt            string          `json:"created_at"`
 	DueDate              *string         `json:"due_date"`
 	Id                   int64           `json:"id"`
@@ -786,11 +846,14 @@ type SubjectDetail struct {
 	Description  string              `json:"description"`
 
 	// Domains Domaines de matching modèles (pas d'accès)
-	Domains    []string                `json:"domains"`
-	Id         int64                   `json:"id"`
-	Members    []SubjectMember         `json:"members"`
-	Name       string                  `json:"name"`
-	Visibility SubjectDetailVisibility `json:"visibility"`
+	Domains []string `json:"domains"`
+	Id      int64    `json:"id"`
+
+	// JiraProjectKey Clé projet Jira optionnelle pour ce projet Revues ; vide = utilise la clé org (admin Jira)
+	JiraProjectKey string                  `json:"jira_project_key"`
+	Members        []SubjectMember         `json:"members"`
+	Name           string                  `json:"name"`
+	Visibility     SubjectDetailVisibility `json:"visibility"`
 }
 
 // SubjectDetailVisibility defines model for SubjectDetail.Visibility.
@@ -839,7 +902,10 @@ type SubjectWriteRequest struct {
 
 	// Domains Domaines de matching (CSV côté legacy)
 	Domains *[]string `json:"domains,omitempty"`
-	Name    string    `json:"name"`
+
+	// JiraProjectKey Override clé projet Jira (vide = hérite de l'org)
+	JiraProjectKey *string `json:"jira_project_key,omitempty"`
+	Name           string  `json:"name"`
 
 	// Visibility Ignoré si CanSetSubjectVisibility est faux
 	Visibility *SubjectWriteRequestVisibility `json:"visibility,omitempty"`
@@ -1115,6 +1181,9 @@ type ListTemplatesParams struct {
 	Q *string `form:"q,omitempty" json:"q,omitempty"`
 }
 
+// PutAdminConfluenceSettingsJSONRequestBody defines body for PutAdminConfluenceSettings for application/json ContentType.
+type PutAdminConfluenceSettingsJSONRequestBody = ConfluenceSettingsUpdate
+
 // PutAdminJiraSettingsJSONRequestBody defines body for PutAdminJiraSettings for application/json ContentType.
 type PutAdminJiraSettingsJSONRequestBody = JiraSettingsUpdate
 
@@ -1195,6 +1264,18 @@ type ServerInterface interface {
 	// Hub intégrations (états + navigation)
 	// (GET /admin/integrations)
 	ListAdminIntegrations(w http.ResponseWriter, r *http.Request)
+	// Effacer la configuration Confluence
+	// (DELETE /admin/integrations/confluence)
+	DeleteAdminConfluenceSettings(w http.ResponseWriter, r *http.Request)
+	// Configuration Confluence Cloud (masquée)
+	// (GET /admin/integrations/confluence)
+	GetAdminConfluenceSettings(w http.ResponseWriter, r *http.Request)
+	// Enregistrer la configuration Confluence Cloud chiffrée
+	// (PUT /admin/integrations/confluence)
+	PutAdminConfluenceSettings(w http.ResponseWriter, r *http.Request)
+	// Tester la connexion Confluence Cloud
+	// (POST /admin/integrations/confluence/test)
+	PostAdminConfluenceTest(w http.ResponseWriter, r *http.Request)
 	// Effacer la configuration Jira
 	// (DELETE /admin/integrations/jira)
 	DeleteAdminJiraSettings(w http.ResponseWriter, r *http.Request)
@@ -1321,6 +1402,12 @@ type ServerInterface interface {
 	// Cloturer une revue
 	// (POST /runs/{runId}/complete)
 	CompleteRun(w http.ResponseWriter, r *http.Request, runId RunId)
+	// État publication Confluence d'une revue
+	// (GET /runs/{runId}/confluence)
+	GetRunConfluence(w http.ResponseWriter, r *http.Request, runId RunId)
+	// Publier une revue clôturée vers Confluence
+	// (POST /runs/{runId}/confluence)
+	PostRunConfluencePublish(w http.ResponseWriter, r *http.Request, runId RunId)
 	// Detail d'un point + audit
 	// (GET /runs/{runId}/items/{itemId})
 	GetRunItem(w http.ResponseWriter, r *http.Request, runId RunId, itemId RunItemId)
@@ -1414,6 +1501,30 @@ type Unimplemented struct{}
 // Hub intégrations (états + navigation)
 // (GET /admin/integrations)
 func (_ Unimplemented) ListAdminIntegrations(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Effacer la configuration Confluence
+// (DELETE /admin/integrations/confluence)
+func (_ Unimplemented) DeleteAdminConfluenceSettings(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Configuration Confluence Cloud (masquée)
+// (GET /admin/integrations/confluence)
+func (_ Unimplemented) GetAdminConfluenceSettings(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Enregistrer la configuration Confluence Cloud chiffrée
+// (PUT /admin/integrations/confluence)
+func (_ Unimplemented) PutAdminConfluenceSettings(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Tester la connexion Confluence Cloud
+// (POST /admin/integrations/confluence/test)
+func (_ Unimplemented) PostAdminConfluenceTest(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -1669,6 +1780,18 @@ func (_ Unimplemented) CompleteRun(w http.ResponseWriter, r *http.Request, runId
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// État publication Confluence d'une revue
+// (GET /runs/{runId}/confluence)
+func (_ Unimplemented) GetRunConfluence(w http.ResponseWriter, r *http.Request, runId RunId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Publier une revue clôturée vers Confluence
+// (POST /runs/{runId}/confluence)
+func (_ Unimplemented) PostRunConfluencePublish(w http.ResponseWriter, r *http.Request, runId RunId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // Detail d'un point + audit
 // (GET /runs/{runId}/items/{itemId})
 func (_ Unimplemented) GetRunItem(w http.ResponseWriter, r *http.Request, runId RunId, itemId RunItemId) {
@@ -1851,6 +1974,62 @@ func (siw *ServerInterfaceWrapper) ListAdminIntegrations(w http.ResponseWriter, 
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.ListAdminIntegrations(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteAdminConfluenceSettings operation middleware
+func (siw *ServerInterfaceWrapper) DeleteAdminConfluenceSettings(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteAdminConfluenceSettings(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetAdminConfluenceSettings operation middleware
+func (siw *ServerInterfaceWrapper) GetAdminConfluenceSettings(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetAdminConfluenceSettings(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PutAdminConfluenceSettings operation middleware
+func (siw *ServerInterfaceWrapper) PutAdminConfluenceSettings(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PutAdminConfluenceSettings(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PostAdminConfluenceTest operation middleware
+func (siw *ServerInterfaceWrapper) PostAdminConfluenceTest(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PostAdminConfluenceTest(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -2618,6 +2797,56 @@ func (siw *ServerInterfaceWrapper) CompleteRun(w http.ResponseWriter, r *http.Re
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.CompleteRun(w, r, runId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetRunConfluence operation middleware
+func (siw *ServerInterfaceWrapper) GetRunConfluence(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "runId" -------------
+	var runId RunId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "runId", chi.URLParam(r, "runId"), &runId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "runId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetRunConfluence(w, r, runId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PostRunConfluencePublish operation middleware
+func (siw *ServerInterfaceWrapper) PostRunConfluencePublish(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "runId" -------------
+	var runId RunId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "runId", chi.URLParam(r, "runId"), &runId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "runId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PostRunConfluencePublish(w, r, runId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -3542,6 +3771,18 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Get(options.BaseURL+"/admin/integrations", wrapper.ListAdminIntegrations)
 	})
 	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/admin/integrations/confluence", wrapper.DeleteAdminConfluenceSettings)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/admin/integrations/confluence", wrapper.GetAdminConfluenceSettings)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/admin/integrations/confluence", wrapper.PutAdminConfluenceSettings)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/admin/integrations/confluence/test", wrapper.PostAdminConfluenceTest)
+	})
+	r.Group(func(r chi.Router) {
 		r.Delete(options.BaseURL+"/admin/integrations/jira", wrapper.DeleteAdminJiraSettings)
 	})
 	r.Group(func(r chi.Router) {
@@ -3666,6 +3907,12 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/runs/{runId}/complete", wrapper.CompleteRun)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/runs/{runId}/confluence", wrapper.GetRunConfluence)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/runs/{runId}/confluence", wrapper.PostRunConfluencePublish)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/runs/{runId}/items/{itemId}", wrapper.GetRunItem)

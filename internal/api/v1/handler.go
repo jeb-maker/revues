@@ -16,6 +16,7 @@ import (
 	"github.com/jeb-maker/revues/internal/features/checklisttemplates"
 	"github.com/jeb-maker/revues/internal/features/organizations"
 	"github.com/jeb-maker/revues/internal/features/subjects"
+	"github.com/jeb-maker/revues/internal/integrations/confluence"
 	"github.com/jeb-maker/revues/internal/integrations/jira"
 	"github.com/jeb-maker/revues/internal/integrations/webhooks"
 	"github.com/jeb-maker/revues/internal/store"
@@ -31,18 +32,19 @@ type RunNotifier interface {
 
 // Server implements the OpenAPI ServerInterface for /api/v1.
 type Server struct {
-	Auth         *authfeature.Service
-	Orgs         *organizations.Service
-	Templates    *checklisttemplates.Service
-	Store        *store.Store
-	Config       config.Config
-	Sessions     *auth.SessionManager
-	Webhooks     *webhooks.Dispatcher
-	Notifier     RunNotifier // nil = no business emails; never store a typed nil pointer here
-	Settings     *adminsettings.SettingsService
-	Integrations *adminintegrations.IntegrationsService
-	Attachments  *attachments.Service
-	JiraClient   *jira.Client // optional; tests inject a mock HTTP client
+	Auth             *authfeature.Service
+	Orgs             *organizations.Service
+	Templates        *checklisttemplates.Service
+	Store            *store.Store
+	Config           config.Config
+	Sessions         *auth.SessionManager
+	Webhooks         *webhooks.Dispatcher
+	Notifier         RunNotifier // nil = no business emails; never store a typed nil pointer here
+	Settings         *adminsettings.SettingsService
+	Integrations     *adminintegrations.IntegrationsService
+	Attachments      *attachments.Service
+	JiraClient       *jira.Client       // optional; tests inject a mock HTTP client
+	ConfluenceClient *confluence.Client // optional; tests inject a mock HTTP client
 }
 
 // NewServer returns the API v1 server implementation.
