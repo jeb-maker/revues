@@ -96,7 +96,7 @@ Source de vérité : [`frontend/spa-budget.json`](../frontend/spa-budget.json), 
 | Métrique | Seuil |
 |----------|-------|
 | JS app (`frontend/build/_app/**/*.js`) | ≤ 280 KiB brut / ≤ 120 KiB gzip-9 |
-| CSS app (`frontend/build/_app/**/*.css`) | ≤ 24 KiB brut / ≤ 7 KiB gzip-9 |
+| CSS app (`frontend/build/_app/**/*.css`) | ≤ 21 KiB brut / ≤ 5 KiB gzip-9 |
 | Vendor mb | mesuré, hors fail strict |
 
 Toute modification des plafonds = PR dédiée `chore(budget)` (pas dans une PR feature/UI).
