@@ -1,0 +1,7 @@
+{
+  "comment": "Plafonds produit SPA (app JS/CSS dans frontend/build/_app). Source de vérité pour check.sh. Toute modification = PR dédiée chore(budget), interdite dans une PR feature/UI. Voir docs/PLAN.md.",
+  "js_raw_max": 286720,
+  "js_gzip_max": 122880,
+  "css_raw_max": 24576,
+  "css_gzip_max": 7168
+}

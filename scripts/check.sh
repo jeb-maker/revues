@@ -100,13 +100,8 @@ fi
 # ---------------------------------------------------------------------------
 # 4. Frontend SvelteKit (npm ci / check / build + budgets SPA)
 # ---------------------------------------------------------------------------
-# Budgets documentés dans docs/PLAN.md (WP-005). Vendor mb mesuré, hors fail.
-# Mesuré (mb 0.5.1 + fiche revue styles) : JS ~269 KiB / 115 KiB gz ; CSS ~17,4 KiB / 4,9 KiB gz.
-SPA_JS_RAW_MAX=286720      # 280 KiB — stack + search combobox + fiche revue
-SPA_JS_GZIP_MAX=122880     # 120 KiB gzip-9
-SPA_CSS_RAW_MAX=20480      # 20 KiB — app.css + TemplateEditor + fiche revue locale
-SPA_CSS_GZIP_MAX=5632      # 5,5 KiB gzip-9
-
+# Plafonds produit : frontend/spa-budget.json (source de vérité). Docs : PLAN.md.
+# Vendor mb mesuré, hors fail. Modifier spa-budget.json = PR chore(budget) dédiée.
 if [[ -f frontend/package.json ]]; then
   if command -v npm >/dev/null 2>&1; then
     step "frontend npm ci + check + build"
@@ -121,12 +116,23 @@ if [[ -f frontend/package.json ]]; then
       npm run build
     )
     [[ -f frontend/build/index.html ]] || fail "frontend/build/index.html manquant après build"
+    [[ -f frontend/spa-budget.json ]] || fail "frontend/spa-budget.json manquant"
 
     step "budgets SPA (app JS/CSS hors vendor mb)"
-    python3 - "$SPA_JS_RAW_MAX" "$SPA_JS_GZIP_MAX" "$SPA_CSS_RAW_MAX" "$SPA_CSS_GZIP_MAX" <<'PY' || fail "budgets SPA dépassés"
-import gzip, pathlib, sys
+    python3 <<'PY' || fail "budgets SPA dépassés"
+import gzip, json, pathlib, sys
 
-js_raw_max, js_gz_max, css_raw_max, css_gz_max = map(int, sys.argv[1:5])
+budget_path = pathlib.Path("frontend/spa-budget.json")
+try:
+    budget = json.loads(budget_path.read_text(encoding="utf-8"))
+    js_raw_max = int(budget["js_raw_max"])
+    js_gz_max = int(budget["js_gzip_max"])
+    css_raw_max = int(budget["css_raw_max"])
+    css_gz_max = int(budget["css_gzip_max"])
+except (OSError, KeyError, TypeError, ValueError) as e:
+    print(f"invalid {budget_path}: {e}", file=sys.stderr)
+    sys.exit(1)
+
 root = pathlib.Path("frontend/build/_app")
 if not root.is_dir():
     print("missing frontend/build/_app", file=sys.stderr)

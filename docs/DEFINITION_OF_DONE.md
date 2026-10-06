@@ -42,7 +42,7 @@ Critères pour qu'une issue soit considérée **terminée** et mergeable.
 
 - [ ] SvelteKit + mb ([FRONTEND.md](./FRONTEND.md))
 - [ ] Client API généré — pas de fetch ad hoc dupliquant le contrat
-- [ ] Respect budgets éco SPA (voir PLAN.md / check.sh)
+- [ ] Respect budgets éco SPA (`frontend/spa-budget.json` / check.sh) — pas de bump de plafond dans cette PR sauf `chore(budget)` dédiée
 
 ## Tests
 
