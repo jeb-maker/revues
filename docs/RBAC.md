@@ -139,6 +139,7 @@ lead > contributor > viewer
 | `GET /bootstrap` · `GET /me` · `POST /auth/login\|register\|logout` | Session cookie ; CSRF sur les POST ; invite-only (`REVUES_LOGIN_REQUIRE_WHITELIST`) sur register |
 | `GET\|DELETE /me/atlassian` | Session ; CSRF sur DELETE ; tokens OAuth Atlassian **user-scoped** |
 | `GET /auth/atlassian/start` · `/callback` | Session utilisateur requise ; cookie OAuth signé lié à `user_id` |
+| `POST /auth/atlassian/disconnect` | Session ; CSRF (`csrf_token` form) ; efface tokens user |
 | `POST /admin/invitations*` | `requireOrgAdmin` ; rôle invite `owner` réservé aux owners |
 | `POST /orgs/invitations/{id}/accept` | Session ; email doit matcher |
 

@@ -33,6 +33,9 @@ func TestAtlassianOAuth_AuthURL(t *testing.T) {
 	if !strings.Contains(u, "state=state-xyz") {
 		t.Fatalf("AuthURL missing state: %s", u)
 	}
+	if !strings.Contains(u, "offline_access") {
+		t.Fatalf("AuthURL missing offline_access scope: %s", u)
+	}
 	if strings.Contains(u, "code_challenge") {
 		t.Fatal("AuthURL must not use PKCE")
 	}
