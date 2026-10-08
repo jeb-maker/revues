@@ -83,22 +83,20 @@
 	<header class="page-header">
 		<h1>Recherche</h1>
 		{#if q}
-			<p class="lede">Résultats pour « {q} ».</p>
+			<p class="lede">« {q} »</p>
 		{:else}
-			<p class="lede">Saisissez un terme dans la barre du haut pour afficher des suggestions.</p>
+			<p class="lede">Saisissez un terme dans la barre du haut.</p>
 		{/if}
 	</header>
 
 	{#if !q}
-		<mb-empty-state heading="Aucune requête">
-			Utilisez le champ Recherche du bandeau : les suggestions apparaissent en tapant.
-		</mb-empty-state>
+		<mb-empty-state heading="Aucune requête">Champ Recherche.</mb-empty-state>
 	{:else if error}
 		<mb-alert variant="danger">{error}</mb-alert>
 	{:else if loading}
-		<p class="loading"><mb-spinner label="Chargement"></mb-spinner> Recherche…</p>
+		<p class="loading"><mb-spinner label="…"></mb-spinner></p>
 	{:else if groups.length === 0}
-		<mb-empty-state heading="Aucun résultat">Aucun élément ne correspond à « {q} ».</mb-empty-state>
+		<mb-empty-state heading="Aucun résultat">Rien pour « {q} ».</mb-empty-state>
 	{:else}
 		<div class="card-stack">
 			{#each groups as group (group.kind)}
