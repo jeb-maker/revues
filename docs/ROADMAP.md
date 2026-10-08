@@ -33,9 +33,10 @@ Plan : [search/PLAN.md](./search/PLAN.md) · WP : [search/WORK_PACKAGES.md](./se
 
 | Issue | Notes |
 |-------|-------|
+| [#340](https://github.com/jeb-maker/revues/issues/340) | Jira Cloud OAuth 3LO (utilisateur = soi-même) — **cible auth** ; token org devient transitoire |
 | [#65](https://github.com/jeb-maker/revues/issues/65) | Jira Server/DC — **icebox** (pas sans demande produit) |
 
-Livré hors rewrite : **retrait Notion** (SPA + OpenAPI + package `internal/integrations/notion`) — hors périmètre produit ; colonnes legacy en base seulement, voir [NOTION.md](./NOTION.md). **Confluence Cloud publish** (#337) — config admin + publication d’une revue `done`.
+Livré hors rewrite : **retrait Notion** (SPA + OpenAPI + package `internal/integrations/notion`) — hors périmètre produit ; colonnes legacy en base seulement, voir [NOTION.md](./NOTION.md). **Confluence Cloud publish** (#337) — config admin + publication d’une revue `done` (auth token org ; OAuth Atlassian = #340).
 
 ## Icebox (pas d’issue tant que signal d’usage)
 

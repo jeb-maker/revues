@@ -158,13 +158,17 @@ erDiagram
 
 | Type instance | Auth | Statut |
 |---------------|------|--------|
-| Jira Cloud | Email + API token Atlassian | **Livré** |
+| Jira Cloud | Email + API token Atlassian (compte org) | **Livré** (transitoire) |
+| Jira Cloud | **OAuth 3LO** (utilisateur = soi-même) | **Cible** ([#340](https://github.com/jeb-maker/revues/issues/340)) |
 | Jira Server / DC | PAT ou OAuth 2.0 | **Icebox** ([#65](https://github.com/jeb-maker/revues/issues/65)) |
+
+**Décision produit** : préférer OAuth 3LO Atlassian — chaque utilisateur Revues agit dans Jira **en tant que lui-même** (création / liaison). Le token org reste acceptable en fallback lecture/statut ou orgs mono-opérateur jusqu’à #340. Même direction pour Confluence (identité Atlassian partagée).
 
 Actions (Cloud) :
 - Lier une issue (`PROJ-123` ou URL) sur un point
 - Créer un ticket depuis un point `nok`
 - Afficher le statut issue à la demande (`GET …/jira`, pas de polling)
+- (cible #340) Connecter / déconnecter son compte Atlassian
 
 ### Confluence Cloud — archive wiki
 
@@ -252,6 +256,7 @@ Reste et icebox : [ROADMAP.md](./ROADMAP.md). Délégation : [DELEGATION.md](./D
 ## Reporté v2+
 
 - Google OAuth
+- **Jira / Confluence OAuth 3LO** (user-as-self) — [#340](https://github.com/jeb-maker/revues/issues/340)
 - Jira Server/DC (Cloud d'abord)
 - Slack / Teams natif
 - PostgreSQL (si multi-instance — voir critères ci-dessous)

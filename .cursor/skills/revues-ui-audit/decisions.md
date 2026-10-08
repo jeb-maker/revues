@@ -50,7 +50,8 @@ Stack (octobre 2026) : SvelteKit SPA + `@jeb-maker/mb`, API JSON `/api/v1`. Rout
 | Attestation de clôture | **Oui (cible)** — sur fiche revue `done` : encart « Clôturée par X le … » + note de clôture ; optionnellement confirmation explicite à la clôture. Responsabilité humaine visible, pas crypto. |
 | Export CSV | **Utilitaire** éventuel (tableur / archive) en `secondary` — **sans** le vendre comme preuve. Pas prioritaire tant que l’attestation (et plus tard Confluence) couvrent l’archive lisible. |
 | Notion (intégration) | **Retirée du périmètre produit** — pas d’API ni d’UI (admin / import modèles / export revue / `can_export_notion`). Package et routes retirés ; colonnes legacy en base non lues. Réintro seulement sur signal d’usage. |
-| Archive doc (cible) | **Confluence** (éventuel, plus cohérent avec Jira Cloud) — pas commencé ; pas de promesse de date. Pas de second silo Notion en parallèle. |
+| Archive doc | **Confluence Cloud** — publier revue `done` livré (#337). Auth cible : **OAuth 3LO Atlassian** (user-as-self, #340) ; token org = transitoire. Pas de second silo Notion. |
+| Jira auth | **OAuth 3LO préféré** au token org partagé (#340) — create/link en tant que l’utilisateur ; hybride lecture/statut org possible jusqu’à bascule. |
 | Colonne Sujet `/mes-taches` | **Toujours visible** quand `ShowMyTasks` (P1) — pas gated par `ShowSubjectColumn` (utile même en mono-sujet pour distinguer les tâches) |
 | Breadcrumb fiche sujet | Ancêtre → **`/subjects`** |
 

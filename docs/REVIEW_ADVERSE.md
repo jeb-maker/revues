@@ -17,7 +17,8 @@ Checklist vivante pour agents et relecteurs. Ne pas élargir le scope d'une issu
 
 ### CAN DEFER
 
-CSP stricte, scan antivirus, rotation clés, rate limiting global, audit admin complet, queue emails persistante, OAuth Jira Server.
+CSP stricte, scan antivirus, rotation clés, rate limiting global, audit admin complet, queue emails persistante, OAuth Jira Server.  
+Jira/Confluence Cloud OAuth 3LO (user-as-self) : cible produit [#340](https://github.com/jeb-maker/revues/issues/340) — ne pas élargir une PR feature pour « basculer en OAuth » sans cette issue.
 
 ### Baseline livré
 
