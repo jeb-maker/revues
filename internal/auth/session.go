@@ -184,6 +184,24 @@ func (m *SessionManager) BuildOAuthCookiePayload(state, verifier string) (payloa
 	return payload, SignOAuthPayload(payload, m.SessionSecret)
 }
 
+// BuildAtlassianOAuthCookiePayload binds OAuth state to the logged-in user (no PKCE).
+func (m *SessionManager) BuildAtlassianOAuthCookiePayload(state string, userID int64) (payload, signature string) {
+	return m.BuildOAuthCookiePayload(state, strconv.FormatInt(userID, 10))
+}
+
+// ParseAtlassianOAuthCookie validates the cookie and returns state + bound user id.
+func (m *SessionManager) ParseAtlassianOAuthCookie(r *http.Request) (state string, userID int64, err error) {
+	state, userRaw, err := m.ParseOAuthCookie(r)
+	if err != nil {
+		return "", 0, err
+	}
+	userID, err = strconv.ParseInt(userRaw, 10, 64)
+	if err != nil || userID <= 0 {
+		return "", 0, fmt.Errorf("invalid oauth cookie user_id")
+	}
+	return state, userID, nil
+}
+
 func splitOAuthCookie(value string) []string {
 	lastPipe := -1
 	for i := len(value) - 1; i >= 0; i-- {

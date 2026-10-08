@@ -33,10 +33,25 @@ type Config struct {
 	PAT          string
 	ProjectKey   string
 	IssueType    string
+	// OAuth 3LO (Cloud): when AccessToken and CloudID are set, API calls use
+	// https://api.atlassian.com/ex/jira/{cloudId} with Bearer auth.
+	AccessToken string
+	CloudID     string
+	SiteURL     string // atlassian.net browse host (preferred over BaseURL for links)
+	// APIBaseOverride replaces APIBaseURL (tests only).
+	APIBaseOverride string
+}
+
+// UsesOAuth reports whether this config should call Jira via Atlassian OAuth.
+func (c Config) UsesOAuth() bool {
+	return strings.TrimSpace(c.AccessToken) != "" && strings.TrimSpace(c.CloudID) != ""
 }
 
 // Configured reports whether Jira credentials are complete for the instance type.
 func (c Config) Configured() bool {
+	if c.UsesOAuth() {
+		return c.InstanceType == InstanceCloud || c.InstanceType == ""
+	}
 	if strings.TrimSpace(c.BaseURL) == "" {
 		return false
 	}
@@ -48,6 +63,25 @@ func (c Config) Configured() bool {
 	default:
 		return false
 	}
+}
+
+// APIBaseURL returns the REST API origin (OAuth gateway or site BaseURL).
+func (c Config) APIBaseURL() string {
+	if o := strings.TrimSpace(c.APIBaseOverride); o != "" {
+		return NormalizeBaseURL(o)
+	}
+	if c.UsesOAuth() {
+		return "https://api.atlassian.com/ex/jira/" + strings.TrimSpace(c.CloudID)
+	}
+	return NormalizeBaseURL(c.BaseURL)
+}
+
+// BrowseBaseURL returns the human browse host for issue links.
+func (c Config) BrowseBaseURL() string {
+	if s := strings.TrimSpace(c.SiteURL); s != "" {
+		return NormalizeBaseURL(s)
+	}
+	return NormalizeBaseURL(c.BaseURL)
 }
 
 type configPayload struct {
@@ -90,9 +124,15 @@ func (s *Service) Load(ctx context.Context) (Config, bool, error) {
 		return Config{}, false, fmt.Errorf("parse jira integration: %w", err)
 	}
 
-	cfg := Config(payload)
-	cfg.ProjectKey = strings.ToUpper(strings.TrimSpace(cfg.ProjectKey))
-	cfg.IssueType = strings.TrimSpace(cfg.IssueType)
+	cfg := Config{
+		InstanceType: payload.InstanceType,
+		BaseURL:      payload.BaseURL,
+		Email:        payload.Email,
+		APIToken:     payload.APIToken,
+		PAT:          payload.PAT,
+		ProjectKey:   strings.ToUpper(strings.TrimSpace(payload.ProjectKey)),
+		IssueType:    strings.TrimSpace(payload.IssueType),
+	}
 	if cfg.IssueType == "" {
 		cfg.IssueType = DefaultIssueType
 	}

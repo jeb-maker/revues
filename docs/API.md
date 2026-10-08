@@ -77,7 +77,8 @@ Le code généré est **commité** (pas de génération obligatoire en CI pour l
 | `POST /api/v1/admin/webhooks/deliveries/drain` | Drain manuel |
 | `POST /api/v1/admin/webhooks/deliveries/{id}/retry` | Retry pending/poison |
 | `GET /api/v1/admin/integrations` | Hub intégrations (états + config_path SPA) |
-| `GET\|PUT\|DELETE /api/v1/admin/integrations/jira` | Config Jira Cloud chiffrée (jeton masqué) |
+| `GET\|PUT\|DELETE /api/v1/admin/integrations/jira` | Config Jira Cloud chiffrée (jeton org masqué ; fallback lecture) |
+| `GET\|DELETE /api/v1/me/atlassian` | Statut / déconnexion OAuth 3LO Atlassian (user) |
 | `POST /api/v1/admin/integrations/jira/test` | Test connexion Jira (`/myself`, safehttp) |
 | `GET\|PUT\|DELETE /api/v1/admin/integrations/confluence` | Config Confluence Cloud chiffrée (jeton masqué) |
 | `POST /api/v1/admin/integrations/confluence/test` | Test connexion Confluence (`/wiki/rest/api/user/current`, safehttp) |
@@ -87,6 +88,8 @@ Le code généré est **commité** (pas de génération obligatoire en CI pour l
 | `GET .../attachments/{attachmentId}` | Download (`Content-Disposition: attachment`) |
 | `/api/v1/**` | API métier versionnée |
 | `GET /auth/github/start` · `/callback` | OAuth GitHub (redirects browser) |
+| `GET /auth/atlassian/start` · `/callback` | OAuth 3LO Atlassian (utilisateur connecté → tokens chiffrés) |
+| `POST /auth/atlassian/disconnect` | Déconnexion Atlassian (formulaire browser + CSRF `csrf_token`) |
 | `/` + assets | SPA SvelteKit (static) servie par Go en prod |
 
 ## Auth & CSRF

@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/jeb-maker/revues/internal/features/runs"
+	"github.com/jeb-maker/revues/internal/integrations/atlassian"
 	"github.com/jeb-maker/revues/internal/integrations/jira"
 	"github.com/jeb-maker/revues/internal/store"
 )
@@ -64,7 +65,7 @@ func (s *Server) PutRunItemJiraLink(w http.ResponseWriter, r *http.Request, runI
 		return
 	}
 
-	link, err := s.jiraLinkService().LinkRunItem(r.Context(), itemID, strings.TrimSpace(req.Issue))
+	link, err := s.jiraLinkService().LinkRunItem(r.Context(), user.ID, itemID, strings.TrimSpace(req.Issue))
 	if err != nil {
 		writeAPIError(w, jiraLinkStatus(err), jiraLinkCode(err), jiraLinkMessage(err))
 		return
@@ -112,7 +113,7 @@ func (s *Server) PostRunItemJiraCreate(w http.ResponseWriter, r *http.Request, r
 		input.Description = strings.TrimSpace(*req.Description)
 	}
 
-	link, err := s.jiraCreateService().CreateRunItem(r.Context(), run.ID, itemID, input, itemCtx)
+	link, err := s.jiraCreateService().CreateRunItem(r.Context(), user.ID, run.ID, itemID, input, itemCtx)
 	if err != nil {
 		status, code, msg := jiraCreateError(err)
 		writeAPIError(w, status, code, msg)
@@ -141,8 +142,22 @@ func (s *Server) buildRunItemJira(
 		}
 		if ok {
 			jiraCfg = cfg
-			configured = cfg.Configured()
+			configured = cfg.Configured() || strings.TrimSpace(cfg.BaseURL) != ""
 			orgProjectKey = cfg.ProjectKey
+		}
+	}
+
+	oauthEnabled := s.Config.AtlassianOAuthConfigured()
+	userOAuthConnected := false
+	if oauthEnabled {
+		if tokens := s.atlassianTokenService(); tokens != nil {
+			connected, _, err := tokens.Connected(r.Context(), user.ID)
+			if err != nil {
+				slog.Error("atlassian oauth connected check", "err", err)
+				writeAPIError(w, http.StatusInternalServerError, "internal_error", "Erreur interne.")
+				return RunItemJira{}, false
+			}
+			userOAuthConnected = connected
 		}
 	}
 
@@ -160,8 +175,9 @@ func (s *Server) buildRunItemJira(
 	stored, err := s.Store.IntegrationLinkByRunItemAndType(r.Context(), item.ID, store.IntegrationTypeJira)
 	if err == nil && stored != nil {
 		mapped := mapJiraLink(stored)
-		if configured {
-			if info, fetchErr := s.jiraClient().GetIssueInfo(r.Context(), jiraCfg, stored.ExternalKey); fetchErr == nil {
+		fetchCfg := s.jiraStatusConfig(r, user.ID, jiraCfg, oauthEnabled, userOAuthConnected)
+		if fetchCfg.Configured() {
+			if info, fetchErr := s.jiraClient().GetIssueInfo(r.Context(), fetchCfg, stored.ExternalKey); fetchErr == nil {
 				if st := strings.TrimSpace(info.Status); st != "" {
 					mapped.Status = &st
 				}
@@ -180,14 +196,19 @@ func (s *Server) buildRunItemJira(
 	}
 
 	canLink := runs.CanLinkJiraAccess(user, access)
+	oauthRequired := oauthEnabled && !userOAuthConnected
 	out := RunItemJira{
-		Configured: configured,
-		CanLink:    canLink,
-		Link:       link,
+		Configured:            configured,
+		CanLink:               canLink && (!oauthEnabled || userOAuthConnected),
+		Link:                  link,
+		UserOauthConnected:    &userOAuthConnected,
+		OauthRequired:         &oauthRequired,
+		AtlassianOauthEnabled: &oauthEnabled,
 	}
 
 	canCreate := configured && canLink && link == nil &&
-		item.Status == store.RunItemStatusNOK && strings.TrimSpace(projectKey) != ""
+		item.Status == store.RunItemStatusNOK && strings.TrimSpace(projectKey) != "" &&
+		(!oauthEnabled || userOAuthConnected)
 	out.CanCreate = &canCreate
 
 	if item.Status == store.RunItemStatusNOK {
@@ -210,15 +231,56 @@ func (s *Server) buildRunItemJira(
 	return out, true
 }
 
+func (s *Server) jiraStatusConfig(r *http.Request, userID int64, orgCfg jira.Config, oauthEnabled, userConnected bool) jira.Config {
+	if oauthEnabled && userConnected {
+		if tokens := s.atlassianTokenService(); tokens != nil {
+			creds, err := tokens.EnsureAccessToken(r.Context(), userID)
+			if err == nil {
+				cfg := orgCfg
+				cfg.InstanceType = jira.InstanceCloud
+				cfg.AccessToken = creds.AccessToken
+				cfg.CloudID = creds.CloudID
+				if site := strings.TrimSpace(creds.SiteURL); site != "" {
+					cfg.SiteURL = site
+					if cfg.BaseURL == "" {
+						cfg.BaseURL = site
+					}
+				}
+				return cfg
+			}
+			slog.Debug("jira status user oauth fallback", "err", err)
+		}
+	}
+	return orgCfg
+}
+
+func (s *Server) atlassianTokenService() *atlassian.TokenService {
+	key, err := s.Config.EncryptionKeyBytes()
+	if err != nil || len(key) == 0 {
+		return nil
+	}
+	svc := &atlassian.TokenService{
+		Store:         s.Store,
+		EncryptionKey: key,
+	}
+	if s.Auth != nil && s.Auth.Atlassian != nil {
+		svc.OAuth = s.Auth.Atlassian
+	}
+	return svc
+}
+
 func (s *Server) jiraLinkService() *jira.LinkService {
 	var key []byte
 	if svc := s.jiraService(); svc != nil {
 		key = svc.EncryptionKey
 	}
+	requireOAuth := s.Config.AtlassianOAuthConfigured()
 	return &jira.LinkService{
-		Store:         s.Store,
-		EncryptionKey: key,
-		Client:        s.jiraClient(),
+		Store:            s.Store,
+		EncryptionKey:    key,
+		Client:           s.jiraClient(),
+		Tokens:           s.atlassianTokenService(),
+		RequireUserOAuth: requireOAuth,
 	}
 }
 
@@ -227,10 +289,13 @@ func (s *Server) jiraCreateService() *jira.CreateService {
 	if svc := s.jiraService(); svc != nil {
 		key = svc.EncryptionKey
 	}
+	requireOAuth := s.Config.AtlassianOAuthConfigured()
 	return &jira.CreateService{
-		Store:         s.Store,
-		EncryptionKey: key,
-		Client:        s.jiraClient(),
+		Store:            s.Store,
+		EncryptionKey:    key,
+		Client:           s.jiraClient(),
+		Tokens:           s.atlassianTokenService(),
+		RequireUserOAuth: requireOAuth,
 	}
 }
 
@@ -258,6 +323,8 @@ func mapJiraLink(link *store.IntegrationLink) JiraLink {
 
 func jiraLinkStatus(err error) int {
 	switch {
+	case errors.Is(err, jira.ErrUserOAuthRequired):
+		return http.StatusBadRequest
 	case errors.Is(err, jira.ErrNotConfigured),
 		errors.Is(err, jira.ErrInvalidIssueReference),
 		errors.Is(err, jira.ErrIssueNotFound),
@@ -273,12 +340,16 @@ func jiraLinkStatus(err error) int {
 }
 
 func jiraLinkCode(err error) string {
-	_ = err
+	if errors.Is(err, jira.ErrUserOAuthRequired) {
+		return "oauth_required"
+	}
 	return "validation_failed"
 }
 
 func jiraLinkMessage(err error) string {
 	switch {
+	case errors.Is(err, jira.ErrUserOAuthRequired):
+		return "Connectez votre compte Atlassian pour lier une issue Jira."
 	case errors.Is(err, jira.ErrNotConfigured):
 		return "Jira n'est pas configuré. Contactez un administrateur."
 	case errors.Is(err, jira.ErrInvalidIssueReference):
@@ -294,6 +365,8 @@ func jiraLinkMessage(err error) string {
 
 func jiraCreateError(err error) (status int, code, message string) {
 	switch {
+	case errors.Is(err, jira.ErrUserOAuthRequired):
+		return http.StatusBadRequest, "oauth_required", "Connectez votre compte Atlassian pour créer un ticket Jira."
 	case errors.Is(err, jira.ErrNotConfigured):
 		return http.StatusBadRequest, "validation_failed", "Jira n'est pas configuré. Contactez un administrateur."
 	case errors.Is(err, jira.ErrProjectKeyMissing):

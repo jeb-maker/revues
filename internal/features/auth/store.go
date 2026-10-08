@@ -19,6 +19,9 @@ type AuthStore interface {
 	EnsureBootstrapOrgOwner(ctx context.Context, userID int64, email, bootstrapAdmin string) error
 	CountUserOrganizations(ctx context.Context, userID int64) (int, error)
 	ListUserOrganizations(ctx context.Context, userID int64) ([]store.OrganizationMembership, error)
+	UpsertAtlassianOAuthTokens(ctx context.Context, row store.AtlassianOAuthTokens) error
+	GetAtlassianOAuthTokensByUserID(ctx context.Context, userID int64) (*store.AtlassianOAuthTokens, error)
+	DeleteAtlassianOAuthTokensByUserID(ctx context.Context, userID int64) error
 }
 
 type User = store.User

@@ -59,11 +59,17 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, *webhooks.Dispa
 		ClientSecret: deps.Config.GitHubClientSecret,
 		BaseURL:      deps.Config.BaseURL,
 	}
+	atlassianOAuth := &auth.AtlassianOAuth{
+		ClientID:     deps.Config.AtlassianClientID,
+		ClientSecret: deps.Config.AtlassianClientSecret,
+		BaseURL:      deps.Config.BaseURL,
+	}
 	authSvc := &authfeature.Service{
-		Store:    st,
-		Sessions: sessions,
-		GitHub:   github,
-		Config:   deps.Config,
+		Store:     st,
+		Sessions:  sessions,
+		GitHub:    github,
+		Atlassian: atlassianOAuth,
+		Config:    deps.Config,
 	}
 	oauthHandlers := &authfeature.OAuthHandlers{Service: authSvc}
 	templatesSvc := &checklisttemplates.Service{Store: st}
@@ -133,6 +139,9 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, *webhooks.Dispa
 	authLimit := appmiddleware.RateLimit(appmiddleware.RateLimitConfig{Max: 30, Window: time.Minute})
 	r.With(authLimit).Get("/auth/github/start", oauthHandlers.StartGitHub)
 	r.With(authLimit).Get("/auth/github/callback", oauthHandlers.Callback)
+	r.With(authLimit).Get("/auth/atlassian/start", oauthHandlers.StartAtlassian)
+	r.With(authLimit).Get("/auth/atlassian/callback", oauthHandlers.CallbackAtlassian)
+	r.With(authLimit).Post("/auth/atlassian/disconnect", oauthHandlers.DisconnectAtlassian)
 	r.With(authLimit).Post("/auth/dev/login", oauthHandlers.DevLogin)
 
 	r.Route("/api/v1", func(r chi.Router) {

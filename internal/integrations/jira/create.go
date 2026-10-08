@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/jeb-maker/revues/internal/integrations/atlassian"
 	"github.com/jeb-maker/revues/internal/store"
 )
 
@@ -18,11 +19,17 @@ var ErrNotNOK = errors.New("run item is not nok")
 // ErrAlreadyLinked is returned when a Jira issue is already linked.
 var ErrAlreadyLinked = errors.New("jira issue already linked")
 
+// ErrUserOAuthRequired is returned when create requires a connected Atlassian account.
+var ErrUserOAuthRequired = atlassian.ErrUserOAuthRequired
+
 // CreateService creates Jira issues from run items.
 type CreateService struct {
 	Store         *store.Store
 	EncryptionKey []byte
 	Client        *Client
+	Tokens        *atlassian.TokenService
+	// RequireUserOAuth forces create to use the user's Atlassian OAuth token.
+	RequireUserOAuth bool
 }
 
 // CreateInput holds user-editable issue fields.
@@ -74,12 +81,20 @@ func EffectiveProjectKey(orgKey, subjectKey string) string {
 }
 
 // CreateRunItem creates a Jira issue for a nok run item and stores the link.
-func (s *CreateService) CreateRunItem(ctx context.Context, runID, runItemID int64, input CreateInput, itemCtx RunItemContext) (*store.IntegrationLink, error) {
+func (s *CreateService) CreateRunItem(ctx context.Context, userID, runID, runItemID int64, input CreateInput, itemCtx RunItemContext) (*store.IntegrationLink, error) {
 	cfg, ok, err := s.config(ctx)
 	if err != nil {
 		return nil, err
 	}
-	if !ok || !cfg.Configured() {
+	if !ok {
+		return nil, ErrNotConfigured
+	}
+
+	cfg, err = s.applyUserOAuth(ctx, userID, cfg)
+	if err != nil {
+		return nil, err
+	}
+	if !cfg.Configured() {
 		return nil, ErrNotConfigured
 	}
 
@@ -134,7 +149,7 @@ func (s *CreateService) CreateRunItem(ctx context.Context, runID, runItemID int6
 		return nil, err
 	}
 
-	browseURL := BrowseURL(cfg.BaseURL, key)
+	browseURL := BrowseURL(cfg.BrowseBaseURL(), key)
 	if validateErr := ValidateBrowseURL(cfg, browseURL); validateErr != nil {
 		return nil, validateErr
 	}
@@ -150,6 +165,29 @@ func (s *CreateService) CreateRunItem(ctx context.Context, runID, runItemID int6
 	}
 
 	return link, nil
+}
+
+func (s *CreateService) applyUserOAuth(ctx context.Context, userID int64, cfg Config) (Config, error) {
+	if !s.RequireUserOAuth {
+		return cfg, nil
+	}
+	if s.Tokens == nil {
+		return Config{}, ErrUserOAuthRequired
+	}
+	creds, err := s.Tokens.EnsureAccessToken(ctx, userID)
+	if err != nil {
+		return Config{}, err
+	}
+	cfg.InstanceType = InstanceCloud
+	cfg.AccessToken = creds.AccessToken
+	cfg.CloudID = creds.CloudID
+	if site := strings.TrimSpace(creds.SiteURL); site != "" {
+		cfg.SiteURL = site
+		if cfg.BaseURL == "" {
+			cfg.BaseURL = site
+		}
+	}
+	return cfg, nil
 }
 
 func (s *CreateService) config(ctx context.Context) (Config, bool, error) {

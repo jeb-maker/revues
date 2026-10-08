@@ -3,12 +3,16 @@ package jira_test
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
+	"github.com/jeb-maker/revues/internal/crypto"
+	"github.com/jeb-maker/revues/internal/integrations/atlassian"
 	"github.com/jeb-maker/revues/internal/integrations/jira"
 	"github.com/jeb-maker/revues/internal/store"
 	"github.com/jeb-maker/revues/internal/testutil"
@@ -211,7 +215,7 @@ func TestCreateServiceRunItem(t *testing.T) {
 		EncryptionKey: svc.EncryptionKey,
 		Client:        &jira.Client{HTTPClient: srv.Client()},
 	}
-	link, err := createSvc.CreateRunItem(ctx, run.ID, items[0].ID, jira.CreateInput{}, jira.RunItemContext{
+	link, err := createSvc.CreateRunItem(ctx, lead.ID, run.ID, items[0].ID, jira.CreateInput{}, jira.RunItemContext{
 		SubjectName: project.Name,
 		RunTitle:    store.RunDisplayLabel("Modèle", project.Name, run.CreatedAt, run.ID),
 		ItemURL:     "https://revues.example/runs/1/items/2",
@@ -222,4 +226,189 @@ func TestCreateServiceRunItem(t *testing.T) {
 	if link.ExternalKey != "REV-99" {
 		t.Fatalf("ExternalKey = %q", link.ExternalKey)
 	}
+}
+
+func TestCreateServiceRequiresUserOAuth(t *testing.T) {
+	ctx := context.Background()
+	svc, st := testJiraService(t)
+	ctx = testutil.DefaultOrgContext(ctx, st)
+
+	lead, err := st.UpsertGitHubUser(ctx, 1, "lead", "lead@example.com", "Lead", "", "editor")
+	if err != nil {
+		t.Fatalf("UpsertGitHubUser(): %v", err)
+	}
+	project, err := st.CreateSubject(ctx, "Alpha", "", lead.ID, nil)
+	if err != nil {
+		t.Fatalf("CreateSubject(): %v", err)
+	}
+	template, _, err := st.CreateChecklistTemplate(ctx, "Modèle", lead.ID, nil, []store.TemplateItemInput{
+		{Label: "Point nok", Required: true},
+	})
+	if err != nil {
+		t.Fatalf("CreateChecklistTemplate(): %v", err)
+	}
+	run, err := st.CreateChecklistRun(ctx, project.ID, template.ID, lead.ID)
+	if err != nil {
+		t.Fatalf("CreateChecklistRun(): %v", err)
+	}
+	items, err := st.ListRunItems(ctx, run.ID)
+	if err != nil || len(items) != 1 {
+		t.Fatalf("ListRunItems(): %v", err)
+	}
+	if err = st.StartRun(ctx, run.ID); err != nil {
+		t.Fatalf("StartRun(): %v", err)
+	}
+	if err = st.UpdateRunItemStatus(ctx, run.ID, items[0].ID, lead.ID, store.RunItemStatusNOK, "Problème"); err != nil {
+		t.Fatalf("UpdateRunItemStatus(): %v", err)
+	}
+	if err = svc.Save(ctx, jira.Config{
+		InstanceType: jira.InstanceCloud,
+		BaseURL:      "https://example.atlassian.net",
+		Email:        "user@example.com",
+		APIToken:     "secret",
+		ProjectKey:   "REV",
+	}); err != nil {
+		t.Fatalf("Save(): %v", err)
+	}
+
+	createSvc := &jira.CreateService{
+		Store:            st,
+		EncryptionKey:    svc.EncryptionKey,
+		RequireUserOAuth: true,
+		Tokens: &atlassian.TokenService{
+			Store:         st,
+			EncryptionKey: svc.EncryptionKey,
+		},
+	}
+	_, err = createSvc.CreateRunItem(ctx, lead.ID, run.ID, items[0].ID, jira.CreateInput{}, jira.RunItemContext{})
+	if !errors.Is(err, jira.ErrUserOAuthRequired) {
+		t.Fatalf("CreateRunItem() = %v, want ErrUserOAuthRequired", err)
+	}
+}
+
+func TestCreateServiceWithUserOAuth(t *testing.T) {
+	var sawBearer bool
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/rest/api/3/issue/") {
+			if auth := r.Header.Get("Authorization"); strings.HasPrefix(auth, "Bearer ") {
+				sawBearer = true
+			}
+			w.WriteHeader(http.StatusCreated)
+			_, _ = w.Write([]byte(`{"key":"OAUTH-1"}`))
+			return
+		}
+		http.NotFound(w, r)
+	}))
+	t.Cleanup(srv.Close)
+
+	ctx := context.Background()
+	svc, st := testJiraService(t)
+	ctx = testutil.DefaultOrgContext(ctx, st)
+	key := svc.EncryptionKey
+	if len(key) != crypto.KeySize {
+		key = make([]byte, crypto.KeySize)
+		for i := range key {
+			key[i] = byte(i + 3)
+		}
+		svc.EncryptionKey = key
+	}
+
+	lead, err := st.UpsertGitHubUser(ctx, 1, "lead", "lead@example.com", "Lead", "", "editor")
+	if err != nil {
+		t.Fatalf("UpsertGitHubUser(): %v", err)
+	}
+	project, err := st.CreateSubject(ctx, "Alpha", "", lead.ID, nil)
+	if err != nil {
+		t.Fatalf("CreateSubject(): %v", err)
+	}
+	template, _, err := st.CreateChecklistTemplate(ctx, "Modèle", lead.ID, nil, []store.TemplateItemInput{
+		{Label: "Point nok", Required: true},
+	})
+	if err != nil {
+		t.Fatalf("CreateChecklistTemplate(): %v", err)
+	}
+	run, err := st.CreateChecklistRun(ctx, project.ID, template.ID, lead.ID)
+	if err != nil {
+		t.Fatalf("CreateChecklistRun(): %v", err)
+	}
+	items, err := st.ListRunItems(ctx, run.ID)
+	if err != nil || len(items) != 1 {
+		t.Fatalf("ListRunItems(): %v", err)
+	}
+	if err = st.StartRun(ctx, run.ID); err != nil {
+		t.Fatalf("StartRun(): %v", err)
+	}
+	if err = st.UpdateRunItemStatus(ctx, run.ID, items[0].ID, lead.ID, store.RunItemStatusNOK, "Problème"); err != nil {
+		t.Fatalf("UpdateRunItemStatus(): %v", err)
+	}
+	if err = svc.Save(ctx, jira.Config{
+		InstanceType: jira.InstanceCloud,
+		BaseURL:      "https://example.atlassian.net",
+		Email:        "user@example.com",
+		APIToken:     "secret",
+		ProjectKey:   "REV",
+	}); err != nil {
+		t.Fatalf("Save(): %v", err)
+	}
+
+	accessEnc, _ := crypto.Encrypt(key, []byte("user-access-token"))
+	refreshEnc, _ := crypto.Encrypt(key, []byte("user-refresh-token"))
+	if err = st.UpsertAtlassianOAuthTokens(ctx, store.AtlassianOAuthTokens{
+		UserID:                lead.ID,
+		CloudID:               "cloud-1",
+		SiteURL:               "https://example.atlassian.net",
+		AccountEmail:          "lead@example.com",
+		AccessTokenEncrypted:  accessEnc,
+		RefreshTokenEncrypted: refreshEnc,
+		ExpiresAt:             time.Now().UTC().Add(time.Hour).Format(time.RFC3339),
+		Scopes:                "write:jira-work",
+	}); err != nil {
+		t.Fatalf("UpsertAtlassianOAuthTokens(): %v", err)
+	}
+
+	createSvc := &jira.CreateService{
+		Store:         st,
+		EncryptionKey: key,
+		Client: &jira.Client{HTTPClient: &http.Client{
+			Transport: &oauthRewriteTransport{base: srv.URL, rt: srv.Client().Transport},
+		}},
+		RequireUserOAuth: true,
+		Tokens: &atlassian.TokenService{
+			Store:         st,
+			EncryptionKey: key,
+		},
+	}
+	link, err := createSvc.CreateRunItem(ctx, lead.ID, run.ID, items[0].ID, jira.CreateInput{
+		Title:       "Titre",
+		Description: "Desc",
+	}, jira.RunItemContext{SubjectName: "Alpha"})
+	if err != nil {
+		t.Fatalf("CreateRunItem OAuth: %v", err)
+	}
+	if link.ExternalKey != "OAUTH-1" || !sawBearer {
+		t.Fatalf("ExternalKey=%q sawBearer=%v", link.ExternalKey, sawBearer)
+	}
+}
+
+type oauthRewriteTransport struct {
+	base string
+	rt   http.RoundTripper
+}
+
+func (t *oauthRewriteTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	if strings.Contains(req.URL.Host, "api.atlassian.com") {
+		u := *req.URL
+		base := strings.TrimRight(t.base, "/")
+		// Strip /ex/jira/{cloudId} prefix → hit mock root + /rest/...
+		path := u.Path
+		if i := strings.Index(path, "/rest/"); i >= 0 {
+			path = path[i:]
+		}
+		cloned := req.Clone(req.Context())
+		cloned.URL, _ = req.URL.Parse(base + path + "?" + u.RawQuery)
+		cloned.RequestURI = ""
+		cloned.Host = ""
+		return t.rt.RoundTrip(cloned)
+	}
+	return t.rt.RoundTrip(req)
 }

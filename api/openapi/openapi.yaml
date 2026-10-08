@@ -92,6 +92,43 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '500':
           $ref: '#/components/responses/InternalError'
+  /me/atlassian:
+    get:
+      operationId: getMeAtlassian
+      tags:
+      - auth
+      - integrations
+      summary: Statut OAuth Atlassian de l'utilisateur
+      description: >
+        Indique si OAuth 3LO est configuré côté serveur et si l'utilisateur
+        a connecté son compte Atlassian (tokens chiffrés).
+      responses:
+        '200':
+          description: Statut Atlassian
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MeAtlassian'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    delete:
+      operationId: deleteMeAtlassian
+      tags:
+      - auth
+      - integrations
+      summary: Déconnecter le compte Atlassian
+      description: Supprime les tokens OAuth Atlassian de l'utilisateur (CSRF requis).
+      responses:
+        '204':
+          description: Déconnecté
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
   /me/tasks:
     get:
       operationId: listMyTasks
@@ -2247,6 +2284,7 @@ components:
       - authenticated
       - csrf_token
       - github_oauth_enabled
+      - atlassian_oauth_enabled
       properties:
         authenticated:
           type: boolean
@@ -2258,6 +2296,9 @@ components:
         github_oauth_enabled:
           type: boolean
           description: true si REVUES_GITHUB_CLIENT_ID/SECRET sont configurés
+        atlassian_oauth_enabled:
+          type: boolean
+          description: true si REVUES_ATLASSIAN_CLIENT_ID/SECRET sont configurés
         redirect:
           type: string
           description: Chemin SPA suggéré si déjà authentifié
@@ -2266,11 +2307,39 @@ components:
       required:
       - user
       - csrf_token
+      - atlassian_oauth_enabled
       properties:
         user:
           $ref: '#/components/schemas/User'
         csrf_token:
           type: string
+        atlassian_oauth_enabled:
+          type: boolean
+          description: true si REVUES_ATLASSIAN_CLIENT_ID/SECRET sont configurés
+    MeAtlassian:
+      type: object
+      required:
+      - enabled
+      - connected
+      - site_url
+      - account_email
+      - cloud_id
+      properties:
+        enabled:
+          type: boolean
+          description: true si OAuth Atlassian est configuré côté serveur
+        connected:
+          type: boolean
+          description: true si l'utilisateur a des tokens Atlassian stockés
+        site_url:
+          type: string
+          description: URL du site Atlassian lié (vide si non connecté)
+        account_email:
+          type: string
+          description: Email Atlassian (si disponible)
+        cloud_id:
+          type: string
+          description: cloudId Atlassian (vide si non connecté)
     SearchResultKind:
       type: string
       enum:
@@ -3719,7 +3788,7 @@ components:
           type: boolean
         can_link:
           type: boolean
-          description: true si l'utilisateur peut lier/créer (contributeur+)
+          description: true si l'utilisateur peut lier/créer (contributeur+ et OAuth connecté si requis)
         link:
           nullable: true
           allOf:
@@ -3732,7 +3801,16 @@ components:
           description: Description préremplie pour création (si nok)
         can_create:
           type: boolean
-          description: true si nok, configuré, pas déjà lié, project_key présent
+          description: true si nok, configuré, pas déjà lié, project_key présent, OAuth OK
+        user_oauth_connected:
+          type: boolean
+          description: true si l'utilisateur a connecté Atlassian
+        oauth_required:
+          type: boolean
+          description: true si OAuth est activé et l'utilisateur n'est pas connecté
+        atlassian_oauth_enabled:
+          type: boolean
+          description: true si REVUES_ATLASSIAN_CLIENT_ID/SECRET sont configurés
     Attachment:
       type: object
       required:

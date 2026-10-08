@@ -94,7 +94,7 @@ export function offlineSession(): Session {
 		show_assign: false,
 		show_collab: false,
 		show_subject_column: false
-	};
+	} as Session;
 }
 
 async function fetchSession(): Promise<Session> {

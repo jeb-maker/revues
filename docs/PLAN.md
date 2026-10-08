@@ -158,13 +158,15 @@ erDiagram
 
 | Type instance | Auth | Statut |
 |---------------|------|--------|
-| Jira Cloud | Email + API token Atlassian | **Livré** |
+| Jira Cloud | **OAuth 3LO** (utilisateur = soi-même) + token org optionnel (fallback lecture/statut) | **Livré** ([#340](https://github.com/jeb-maker/revues/issues/340)) |
+| Jira Cloud (legacy) | Email + API token org | Conservé en fallback lecture |
 | Jira Server / DC | PAT ou OAuth 2.0 | **Icebox** ([#65](https://github.com/jeb-maker/revues/issues/65)) |
 
 Actions (Cloud) :
-- Lier une issue (`PROJ-123` ou URL) sur un point
-- Créer un ticket depuis un point `nok`
-- Afficher le statut issue à la demande (`GET …/jira`, pas de polling)
+- Connecter Atlassian (CTA fiche point) — `/auth/atlassian/start` ; déconnexion `DELETE /me/atlassian` ou `POST /auth/atlassian/disconnect`
+- Lier une issue (`PROJ-123` ou URL) sur un point — **token user OAuth**
+- Créer un ticket depuis un point `nok` — **token user OAuth**
+- Afficher le statut issue à la demande (`GET …/jira`, pas de polling) — préfère OAuth user, sinon token org
 
 ### Confluence Cloud — archive wiki
 

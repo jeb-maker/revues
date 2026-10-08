@@ -177,6 +177,7 @@
 			jiraBusy = false;
 		}
 	}
+
 </script>
 
 <svelte:head>
@@ -226,7 +227,7 @@
 						</mb-select>
 
 						<mb-textarea
-							label={status === 'nok' ? 'Commentaire (obligatoire)' : 'Commentaire'}
+							label={status === 'nok' ? 'Commentaire *' : 'Commentaire'}
 							rows="4"
 							value={comment}
 							disabled={!detail.capabilities.can_update_items}
@@ -251,7 +252,7 @@
 					{#if detail.capabilities.can_update_items || (session().show_assign && detail.capabilities.can_assign)}
 						<div slot="footer">
 							<mb-button type="submit" variant="primary" loading={saving}>
-								{saving ? 'Enregistrement…' : 'Enregistrer'}
+								{saving ? '…' : 'OK'}
 							</mb-button>
 						</div>
 					{:else}
@@ -261,7 +262,7 @@
 			</form>
 
 			<mb-card>
-				<h2 slot="header">Pièce jointe</h2>
+				<h2 slot="header">Pièce</h2>
 				{#if attachment}
 					<p class="attachment">
 						{#if attachment.is_image}
@@ -277,18 +278,18 @@
 						<span class="muted">({Math.round(attachment.size_bytes / 1024)} Ko)</span>
 					</p>
 				{:else}
-					<p class="muted">Aucune pièce jointe.</p>
+					<p class="muted">Pas de pièce.</p>
 				{/if}
 				{#if detail.capabilities.can_update_items}
 					<label class="file">
-						<span>{uploading ? 'Envoi…' : 'Ajouter ou remplacer'}</span>
+						<span>{uploading ? 'Envoi…' : 'Joindre'}</span>
 						<input
 							type="file"
 							accept=".jpg,.jpeg,.png,.webp,.pdf,image/*,application/pdf"
 							onchange={onUpload}
 							disabled={uploading}
 						/>
-						<span class="field-hint">JPEG, PNG, WebP ou PDF · 5 Mo max.</span>
+						<span class="field-hint">JPEG/PNG/WebP/PDF · 5 Mo</span>
 					</label>
 				{/if}
 				{#if uploadError}
@@ -307,7 +308,7 @@
 						{/if}
 					</p>
 				{:else}
-					<p class="muted">Aucune issue Jira liée.</p>
+					<p class="muted">Pas liée.</p>
 				{/if}
 
 				{#if jiraError}
@@ -317,25 +318,34 @@
 					<mb-alert variant="success">{jiraMessage}</mb-alert>
 				{/if}
 
-				{#if jira?.can_link && jira.configured}
+				{#if jira?.oauth_required}
+					<a href="/auth/atlassian/start">Connecter</a>
+				{:else if jira?.user_oauth_connected}
+					<form method="post" action="/auth/atlassian/disconnect"
+						><input type="hidden" name="csrf_token" value={csrf} /><button type="submit"
+							>Off</button
+						></form
+					>
+				{/if}
+				{#if !jira?.oauth_required && jira?.can_link && jira.configured}
 					<form class="stack-form" onsubmit={onLinkJira}>
 						<mb-input
 							label="Clé ou URL Jira"
-							hint="Ex. PROJ-123 ou https://…/browse/PROJ-123"
+							hint="PROJ-123"
 							required
 							autocomplete="off"
 							value={jiraIssue}
 							oninput={(e) => (jiraIssue = inputValue(e))}
 						></mb-input>
 						<mb-button type="submit" variant="secondary" loading={jiraBusy}>
-							{jiraLink ? 'Mettre à jour le lien' : "Lier l'issue"}
+							{jiraLink ? 'Mettre à jour' : 'Lier'}
 						</mb-button>
 					</form>
 
 					{#if jira.can_create && !jiraLink}
 						<form class="stack-form" onsubmit={onCreateJira}>
 							<mb-input
-								label="Titre du ticket"
+								label="Titre"
 								required
 								value={jiraTitle}
 								oninput={(e) => (jiraTitle = inputValue(e))}
@@ -347,17 +357,17 @@
 								value={jiraDescription}
 								oninput={(e) => (jiraDescription = inputValue(e))}
 							></mb-textarea>
-							<mb-button type="submit" variant="secondary" loading={jiraBusy}>Créer le ticket Jira</mb-button>
+							<mb-button type="submit" variant="secondary" loading={jiraBusy}>Créer</mb-button>
 						</form>
 					{/if}
-				{:else if jira?.can_link && !jira.configured}
-					<p class="muted">Jira n'est pas configuré — contactez un administrateur.</p>
+				{:else if !jira?.oauth_required && jira?.can_link && !jira.configured}
+					<p class="muted">Off.</p>
 				{/if}
 			</mb-card>
 
 			{#if detail.events?.length}
 				<mb-card>
-					<h2 slot="header">Historique</h2>
+					<h2 slot="header">Histo</h2>
 					<ul class="row-list">
 						{#each detail.events as ev (ev.id)}
 							<li class="event">

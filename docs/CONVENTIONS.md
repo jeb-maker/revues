@@ -97,6 +97,8 @@ Source : `internal/config/config.go` (`Load`). Le binaire lit `os.Getenv` — pa
 | `REVUES_ENCRYPTION_KEY` | 32 octets base64 (AES-256-GCM) pour les credentials d'intégrations |
 | `REVUES_GITHUB_CLIENT_ID` | OAuth GitHub (bouton masqué si absent) |
 | `REVUES_GITHUB_CLIENT_SECRET` | OAuth GitHub |
+| `REVUES_ATLASSIAN_CLIENT_ID` | OAuth 3LO Atlassian (Jira create/link ; bouton masqué si absent) |
+| `REVUES_ATLASSIAN_CLIENT_SECRET` | OAuth 3LO Atlassian |
 | `REVUES_BOOTSTRAP_ADMIN_EMAIL` | Email qui reçoit le rôle `admin` global (et devient owner de l'org par défaut) à son premier login |
 | `REVUES_LOGIN_REQUIRE_WHITELIST` | `1`/`true` : refuse register et OAuth hors membre org / invitation pending / bootstrap (message générique anti-énumération ; nom historique) |
 | `REVUES_DEV_AUTH` | `1`/`true` : auto-session admin locale (hors production, requêtes loopback uniquement) + `POST /auth/dev/login` |

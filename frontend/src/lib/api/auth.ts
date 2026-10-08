@@ -13,6 +13,7 @@ export type BootstrapResponse = {
 	authenticated: boolean;
 	csrf_token: string;
 	github_oauth_enabled: boolean;
+	atlassian_oauth_enabled?: boolean;
 	user?: User;
 	redirect?: string;
 };

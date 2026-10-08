@@ -67,6 +67,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/me/atlassian": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Statut OAuth Atlassian de l'utilisateur
+         * @description Indique si OAuth 3LO est configuré côté serveur et si l'utilisateur a connecté son compte Atlassian (tokens chiffrés).
+         */
+        get: operations["getMeAtlassian"];
+        put?: never;
+        post?: never;
+        /**
+         * Déconnecter le compte Atlassian
+         * @description Supprime les tokens OAuth Atlassian de l'utilisateur (CSRF requis).
+         */
+        delete: operations["deleteMeAtlassian"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/me/tasks": {
         parameters: {
             query?: never;
@@ -1305,12 +1329,28 @@ export interface components {
             user?: components["schemas"]["User"];
             /** @description true si REVUES_GITHUB_CLIENT_ID/SECRET sont configurés */
             github_oauth_enabled: boolean;
+            /** @description true si REVUES_ATLASSIAN_CLIENT_ID/SECRET sont configurés */
+            atlassian_oauth_enabled: boolean;
             /** @description Chemin SPA suggéré si déjà authentifié */
             redirect?: string;
         };
         MeResponse: {
             user: components["schemas"]["User"];
             csrf_token: string;
+            /** @description true si REVUES_ATLASSIAN_CLIENT_ID/SECRET sont configurés */
+            atlassian_oauth_enabled: boolean;
+        };
+        MeAtlassian: {
+            /** @description true si OAuth Atlassian est configuré côté serveur */
+            enabled: boolean;
+            /** @description true si l'utilisateur a des tokens Atlassian stockés */
+            connected: boolean;
+            /** @description URL du site Atlassian lié (vide si non connecté) */
+            site_url: string;
+            /** @description Email Atlassian (si disponible) */
+            account_email: string;
+            /** @description cloudId Atlassian (vide si non connecté) */
+            cloud_id: string;
         };
         /** @enum {string} */
         SearchResultKind: "subject" | "run" | "template" | "task";
@@ -1967,15 +2007,21 @@ export interface components {
         };
         RunItemJira: {
             configured: boolean;
-            /** @description true si l'utilisateur peut lier/créer (contributeur+) */
+            /** @description true si l'utilisateur peut lier/créer (contributeur+ et OAuth connecté si requis) */
             can_link: boolean;
             link: components["schemas"]["JiraLink"] | null;
             /** @description Titre prérempli pour création (si nok) */
             default_title?: string;
             /** @description Description préremplie pour création (si nok) */
             default_description?: string;
-            /** @description true si nok, configuré, pas déjà lié, project_key présent */
+            /** @description true si nok, configuré, pas déjà lié, project_key présent, OAuth OK */
             can_create?: boolean;
+            /** @description true si l'utilisateur a connecté Atlassian */
+            user_oauth_connected?: boolean;
+            /** @description true si OAuth est activé et l'utilisateur n'est pas connecté */
+            oauth_required?: boolean;
+            /** @description true si REVUES_ATLASSIAN_CLIENT_ID/SECRET sont configurés */
+            atlassian_oauth_enabled?: boolean;
         };
         Attachment: {
             /** Format: int64 */
@@ -2167,6 +2213,49 @@ export interface operations {
                 };
             };
             401: components["responses"]["Unauthorized"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getMeAtlassian: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Statut Atlassian */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MeAtlassian"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    deleteMeAtlassian: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Déconnecté */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
             500: components["responses"]["InternalError"];
         };
     };
