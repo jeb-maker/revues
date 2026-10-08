@@ -158,7 +158,7 @@ erDiagram
 
 | Type instance | Auth | Statut |
 |---------------|------|--------|
-| Jira Cloud | **OAuth 3LO** (utilisateur = soi-même) + token org optionnel (fallback lecture/statut) | **En cours** ([#340](https://github.com/jeb-maker/revues/issues/340)) |
+| Jira Cloud | **OAuth 3LO** (utilisateur = soi-même) + token org optionnel (fallback lecture/statut) | **Livré** ([#340](https://github.com/jeb-maker/revues/issues/340)) |
 | Jira Cloud (legacy) | Email + API token org | Conservé en fallback lecture |
 | Jira Server / DC | PAT ou OAuth 2.0 | **Icebox** ([#65](https://github.com/jeb-maker/revues/issues/65)) |
 
