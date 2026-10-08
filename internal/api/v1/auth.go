@@ -41,12 +41,12 @@ func (s *Server) GetBootstrap(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		writeJSON(w, http.StatusOK, BootstrapResponse{
-			Authenticated:          true,
+			Authenticated:         true,
 			CsrfToken:             csrf,
-			GithubOauthEnabled:     oauthEnabled,
-			AtlassianOauthEnabled:  atlassianEnabled,
-			User:                   &u,
-			Redirect:               &redirect,
+			GithubOauthEnabled:    oauthEnabled,
+			AtlassianOauthEnabled: atlassianEnabled,
+			User:                  &u,
+			Redirect:              &redirect,
 		})
 		return
 	}
@@ -60,7 +60,7 @@ func (s *Server) GetBootstrap(w http.ResponseWriter, r *http.Request) {
 
 	writeJSON(w, http.StatusOK, BootstrapResponse{
 		Authenticated:         false,
-		CsrfToken:            csrf,
+		CsrfToken:             csrf,
 		GithubOauthEnabled:    oauthEnabled,
 		AtlassianOauthEnabled: atlassianEnabled,
 	})
@@ -76,7 +76,7 @@ func (s *Server) GetMe(w http.ResponseWriter, r *http.Request) {
 	token := appmiddleware.SessionTokenFromContext(r)
 	writeJSON(w, http.StatusOK, MeResponse{
 		User:                  mapUser(user),
-		CsrfToken:            auth.CSRFToken(token, s.Config.SessionSecret),
+		CsrfToken:             auth.CSRFToken(token, s.Config.SessionSecret),
 		AtlassianOauthEnabled: s.Config.AtlassianOAuthConfigured(),
 	})
 }

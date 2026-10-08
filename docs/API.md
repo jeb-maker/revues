@@ -89,6 +89,7 @@ Le code généré est **commité** (pas de génération obligatoire en CI pour l
 | `/api/v1/**` | API métier versionnée |
 | `GET /auth/github/start` · `/callback` | OAuth GitHub (redirects browser) |
 | `GET /auth/atlassian/start` · `/callback` | OAuth 3LO Atlassian (utilisateur connecté → tokens chiffrés) |
+| `POST /auth/atlassian/disconnect` | Déconnexion Atlassian (formulaire browser + CSRF `csrf_token`) |
 | `/` + assets | SPA SvelteKit (static) servie par Go en prod |
 
 ## Auth & CSRF

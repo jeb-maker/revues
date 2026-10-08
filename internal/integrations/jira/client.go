@@ -110,8 +110,8 @@ func (c *Client) MyselfEmail(ctx context.Context, cfg Config) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("build jira myself request: %w", err)
 	}
-	if err := c.setAuth(req, cfg); err != nil {
-		return "", err
+	if setErr := c.setAuth(req, cfg); setErr != nil {
+		return "", setErr
 	}
 	req.Header.Set("Accept", "application/json")
 

@@ -85,7 +85,6 @@ export function offlineSession(): Session {
 		authenticated: false,
 		csrf_token: '',
 		github_oauth_enabled: false,
-		atlassian_oauth_enabled: false,
 		organization: null,
 		organization_count: 0,
 		can_admin: false,
@@ -95,7 +94,7 @@ export function offlineSession(): Session {
 		show_assign: false,
 		show_collab: false,
 		show_subject_column: false
-	};
+	} as Session;
 }
 
 async function fetchSession(): Promise<Session> {

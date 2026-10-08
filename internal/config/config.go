@@ -24,14 +24,14 @@ type Config struct {
 	Env                   string
 	SessionSecret         string
 	EncryptionKey         string
-	GitHubClientID           string
-	GitHubClientSecret       string
-	AtlassianClientID        string
-	AtlassianClientSecret    string
-	BootstrapAdminEmail      string
-	LoginRequireWhitelist    bool
-	DevAuth                  bool
-	DevAuthEmail             string
+	GitHubClientID        string
+	GitHubClientSecret    string
+	AtlassianClientID     string
+	AtlassianClientSecret string
+	BootstrapAdminEmail   string
+	LoginRequireWhitelist bool
+	DevAuth               bool
+	DevAuthEmail          string
 }
 
 // Load reads configuration from REVUES_* environment variables.

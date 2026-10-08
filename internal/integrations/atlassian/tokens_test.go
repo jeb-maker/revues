@@ -80,7 +80,7 @@ func TestEnsureAccessToken_RefreshAndMissing(t *testing.T) {
 
 	accessEnc, _ := crypto.Encrypt(key, []byte("access-old"))
 	refreshEnc, _ := crypto.Encrypt(key, []byte("refresh-old"))
-	if err := st.UpsertAtlassianOAuthTokens(ctx, store.AtlassianOAuthTokens{
+	if upsertErr := st.UpsertAtlassianOAuthTokens(ctx, store.AtlassianOAuthTokens{
 		UserID:                user.ID,
 		CloudID:               "cloud-x",
 		SiteURL:               "https://x.atlassian.net",
@@ -89,8 +89,8 @@ func TestEnsureAccessToken_RefreshAndMissing(t *testing.T) {
 		RefreshTokenEncrypted: refreshEnc,
 		ExpiresAt:             time.Now().UTC().Add(-time.Minute).Format(time.RFC3339),
 		Scopes:                "read:jira-work",
-	}); err != nil {
-		t.Fatalf("Upsert: %v", err)
+	}); upsertErr != nil {
+		t.Fatalf("Upsert: %v", upsertErr)
 	}
 
 	svc.OAuth = &auth.AtlassianOAuth{

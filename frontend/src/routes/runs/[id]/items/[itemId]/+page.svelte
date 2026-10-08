@@ -177,6 +177,7 @@
 			jiraBusy = false;
 		}
 	}
+
 </script>
 
 <svelte:head>
@@ -318,12 +319,7 @@
 				{/if}
 
 				{#if jira?.oauth_required}
-					<p>
-						Connectez votre compte Atlassian pour créer ou lier une issue Jira en votre nom.
-					</p>
-					<p>
-						<a href="/settings/atlassian">Connecter Atlassian</a>
-					</p>
+					<a href="/auth/atlassian/start">Connecter Atlassian</a>
 				{:else if jira?.can_link && jira.configured}
 					<form class="stack-form" onsubmit={onLinkJira}>
 						<mb-input

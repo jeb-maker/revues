@@ -367,7 +367,7 @@ func TestCreateServiceWithUserOAuth(t *testing.T) {
 	}
 
 	createSvc := &jira.CreateService{
-		Store: st,
+		Store:         st,
 		EncryptionKey: key,
 		Client: &jira.Client{HTTPClient: &http.Client{
 			Transport: &oauthRewriteTransport{base: srv.URL, rt: srv.Client().Transport},

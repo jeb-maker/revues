@@ -13,11 +13,11 @@ import (
 )
 
 const (
-	atlassianAuthorizeURL          = "https://auth.atlassian.com/authorize"
-	atlassianTokenURL              = "https://auth.atlassian.com/oauth/token"
+	atlassianAuthorizeURL           = "https://auth.atlassian.com/authorize"
+	atlassianTokenURL               = "https://auth.atlassian.com/oauth/token"
 	atlassianAccessibleResourcesURL = "https://api.atlassian.com/oauth/token/accessible-resources"
-	atlassianOAuthScopes           = "read:jira-work write:jira-work read:jira-user offline_access"
-	atlassianAudience              = "api.atlassian.com"
+	atlassianOAuthScopes            = "read:jira-work write:jira-work read:jira-user offline_access"
+	atlassianAudience               = "api.atlassian.com"
 )
 
 // AtlassianTokenResponse is returned by the Atlassian token endpoint.
@@ -107,7 +107,7 @@ func (a *AtlassianOAuth) postToken(ctx context.Context, body map[string]string) 
 	if err != nil {
 		return nil, fmt.Errorf("token exchange: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	respBody, _ := io.ReadAll(io.LimitReader(resp.Body, 8192))
 	if resp.StatusCode != http.StatusOK {
@@ -137,7 +137,7 @@ func (a *AtlassianOAuth) AccessibleResources(ctx context.Context, accessToken st
 	if err != nil {
 		return nil, fmt.Errorf("accessible-resources: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))

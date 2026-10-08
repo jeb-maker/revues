@@ -13,17 +13,9 @@ export type BootstrapResponse = {
 	authenticated: boolean;
 	csrf_token: string;
 	github_oauth_enabled: boolean;
-	atlassian_oauth_enabled: boolean;
+	atlassian_oauth_enabled?: boolean;
 	user?: User;
 	redirect?: string;
-};
-
-export type MeAtlassian = {
-	enabled: boolean;
-	connected: boolean;
-	site_url: string;
-	account_email: string;
-	cloud_id: string;
 };
 
 export type AuthSuccessResponse = {
@@ -93,26 +85,6 @@ export async function register(
 export async function logout(csrf: string): Promise<void> {
 	const res = await fetch('/api/v1/auth/logout', {
 		method: 'POST',
-		credentials: 'include',
-		headers: { 'X-CSRF-Token': csrf }
-	});
-	if (!res.ok && res.status !== 204) throw new Error(await parseError(res));
-}
-
-export async function getMeAtlassian(csrfToken?: string): Promise<MeAtlassian> {
-	const headers: Record<string, string> = {};
-	if (csrfToken) headers['X-CSRF-Token'] = csrfToken;
-	const res = await fetch('/api/v1/me/atlassian', {
-		credentials: 'include',
-		headers
-	});
-	if (!res.ok) throw new Error(await parseError(res));
-	return (await res.json()) as MeAtlassian;
-}
-
-export async function deleteMeAtlassian(csrf: string): Promise<void> {
-	const res = await fetch('/api/v1/me/atlassian', {
-		method: 'DELETE',
 		credentials: 'include',
 		headers: { 'X-CSRF-Token': csrf }
 	});

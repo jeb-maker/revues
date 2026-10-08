@@ -28,13 +28,13 @@ func TestAtlassianOAuthTokensUpsertGetDelete(t *testing.T) {
 		ExpiresAt:             "2099-01-01T00:00:00Z",
 		Scopes:                "read:jira-work write:jira-work",
 	}
-	if err := st.UpsertAtlassianOAuthTokens(ctx, row); err != nil {
-		t.Fatalf("UpsertAtlassianOAuthTokens(): %v", err)
+	if upsertErr := st.UpsertAtlassianOAuthTokens(ctx, row); upsertErr != nil {
+		t.Fatalf("UpsertAtlassianOAuthTokens(): %v", upsertErr)
 	}
 
-	got, err := st.GetAtlassianOAuthTokensByUserID(ctx, user.ID)
-	if err != nil {
-		t.Fatalf("GetAtlassianOAuthTokensByUserID(): %v", err)
+	got, getErr := st.GetAtlassianOAuthTokensByUserID(ctx, user.ID)
+	if getErr != nil {
+		t.Fatalf("GetAtlassianOAuthTokensByUserID(): %v", getErr)
 	}
 	if got.CloudID != row.CloudID || got.SiteURL != row.SiteURL || got.AccountEmail != row.AccountEmail {
 		t.Fatalf("got = %+v", got)
@@ -48,24 +48,24 @@ func TestAtlassianOAuthTokensUpsertGetDelete(t *testing.T) {
 
 	row.CloudID = "cloud-2"
 	row.AccessTokenEncrypted = []byte("access-2")
-	if err := st.UpsertAtlassianOAuthTokens(ctx, row); err != nil {
-		t.Fatalf("UpsertAtlassianOAuthTokens(update): %v", err)
+	if upsertErr := st.UpsertAtlassianOAuthTokens(ctx, row); upsertErr != nil {
+		t.Fatalf("UpsertAtlassianOAuthTokens(update): %v", upsertErr)
 	}
-	got, err = st.GetAtlassianOAuthTokensByUserID(ctx, user.ID)
-	if err != nil {
-		t.Fatalf("Get after update: %v", err)
+	got, getErr = st.GetAtlassianOAuthTokensByUserID(ctx, user.ID)
+	if getErr != nil {
+		t.Fatalf("Get after update: %v", getErr)
 	}
 	if got.CloudID != "cloud-2" || string(got.AccessTokenEncrypted) != "access-2" {
 		t.Fatalf("update = %+v", got)
 	}
 
-	if err := st.DeleteAtlassianOAuthTokensByUserID(ctx, user.ID); err != nil {
-		t.Fatalf("DeleteAtlassianOAuthTokensByUserID(): %v", err)
+	if delErr := st.DeleteAtlassianOAuthTokensByUserID(ctx, user.ID); delErr != nil {
+		t.Fatalf("DeleteAtlassianOAuthTokensByUserID(): %v", delErr)
 	}
-	if _, err := st.GetAtlassianOAuthTokensByUserID(ctx, user.ID); !errors.Is(err, store.ErrAtlassianOAuthNotFound) {
-		t.Fatalf("Get after delete = %v", err)
+	if _, getErr = st.GetAtlassianOAuthTokensByUserID(ctx, user.ID); !errors.Is(getErr, store.ErrAtlassianOAuthNotFound) {
+		t.Fatalf("Get after delete = %v", getErr)
 	}
-	if err := st.DeleteAtlassianOAuthTokensByUserID(ctx, user.ID); !errors.Is(err, store.ErrAtlassianOAuthNotFound) {
-		t.Fatalf("Delete again = %v", err)
+	if delErr := st.DeleteAtlassianOAuthTokensByUserID(ctx, user.ID); !errors.Is(delErr, store.ErrAtlassianOAuthNotFound) {
+		t.Fatalf("Delete again = %v", delErr)
 	}
 }

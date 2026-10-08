@@ -42,11 +42,11 @@ func TestAtlassianOAuth_ExchangeAndRefresh(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name       string
-		grant      string
-		wantAccess string
+		name        string
+		grant       string
+		wantAccess  string
 		wantRefresh string
-		wantScope  string
+		wantScope   string
 	}{
 		{
 			name:        "authorization_code",

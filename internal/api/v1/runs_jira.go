@@ -198,11 +198,11 @@ func (s *Server) buildRunItemJira(
 	canLink := runs.CanLinkJiraAccess(user, access)
 	oauthRequired := oauthEnabled && !userOAuthConnected
 	out := RunItemJira{
-		Configured:           configured,
-		CanLink:              canLink && (!oauthEnabled || userOAuthConnected),
-		Link:                 link,
-		UserOauthConnected:   &userOAuthConnected,
-		OauthRequired:        &oauthRequired,
+		Configured:            configured,
+		CanLink:               canLink && (!oauthEnabled || userOAuthConnected),
+		Link:                  link,
+		UserOauthConnected:    &userOAuthConnected,
+		OauthRequired:         &oauthRequired,
 		AtlassianOauthEnabled: &oauthEnabled,
 	}
 

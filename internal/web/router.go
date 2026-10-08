@@ -141,6 +141,7 @@ func NewRouter(deps Deps) (http.Handler, *notifications.Service, *webhooks.Dispa
 	r.With(authLimit).Get("/auth/github/callback", oauthHandlers.Callback)
 	r.With(authLimit).Get("/auth/atlassian/start", oauthHandlers.StartAtlassian)
 	r.With(authLimit).Get("/auth/atlassian/callback", oauthHandlers.CallbackAtlassian)
+	r.With(authLimit).Post("/auth/atlassian/disconnect", oauthHandlers.DisconnectAtlassian)
 	r.With(authLimit).Post("/auth/dev/login", oauthHandlers.DevLogin)
 
 	r.Route("/api/v1", func(r chi.Router) {

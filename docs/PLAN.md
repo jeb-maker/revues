@@ -163,7 +163,7 @@ erDiagram
 | Jira Server / DC | PAT ou OAuth 2.0 | **Icebox** ([#65](https://github.com/jeb-maker/revues/issues/65)) |
 
 Actions (Cloud) :
-- Connecter / déconnecter Atlassian (par utilisateur) — `/settings/atlassian`, `GET\|DELETE /me/atlassian`
+- Connecter Atlassian (CTA fiche point) — `/auth/atlassian/start` ; déconnexion `DELETE /me/atlassian` ou `POST /auth/atlassian/disconnect`
 - Lier une issue (`PROJ-123` ou URL) sur un point — **token user OAuth**
 - Créer un ticket depuis un point `nok` — **token user OAuth**
 - Afficher le statut issue à la demande (`GET …/jira`, pas de polling) — préfère OAuth user, sinon token org
