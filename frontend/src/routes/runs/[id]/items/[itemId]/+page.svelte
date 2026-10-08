@@ -323,7 +323,7 @@
 				{:else if jira?.user_oauth_connected}
 					<form method="post" action="/auth/atlassian/disconnect"
 						><input type="hidden" name="csrf_token" value={csrf} /><button type="submit"
-							>Déco</button
+							>Off</button
 						></form
 					>
 				{/if}
@@ -331,7 +331,7 @@
 					<form class="stack-form" onsubmit={onLinkJira}>
 						<mb-input
 							label="Clé ou URL Jira"
-							hint="Ex. PROJ-123"
+							hint="PROJ-123"
 							required
 							autocomplete="off"
 							value={jiraIssue}
