@@ -88,6 +88,9 @@
 					</span>
 				{/if}
 				<span>{boot.user.display_name}</span>
+				{#if boot.atlassian_oauth_enabled}
+					<a href="/settings/atlassian">Atlassian</a>
+				{/if}
 				<mb-button variant="ghost" size="sm" loading={loggingOut} onclick={onLogout}>
 					Se déconnecter
 				</mb-button>

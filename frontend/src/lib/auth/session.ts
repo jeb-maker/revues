@@ -85,6 +85,7 @@ export function offlineSession(): Session {
 		authenticated: false,
 		csrf_token: '',
 		github_oauth_enabled: false,
+		atlassian_oauth_enabled: false,
 		organization: null,
 		organization_count: 0,
 		can_admin: false,

@@ -24,12 +24,14 @@ type Config struct {
 	Env                   string
 	SessionSecret         string
 	EncryptionKey         string
-	GitHubClientID        string
-	GitHubClientSecret    string
-	BootstrapAdminEmail   string
-	LoginRequireWhitelist bool
-	DevAuth               bool
-	DevAuthEmail          string
+	GitHubClientID           string
+	GitHubClientSecret       string
+	AtlassianClientID        string
+	AtlassianClientSecret    string
+	BootstrapAdminEmail      string
+	LoginRequireWhitelist    bool
+	DevAuth                  bool
+	DevAuthEmail             string
 }
 
 // Load reads configuration from REVUES_* environment variables.
@@ -45,11 +47,18 @@ func Load() Config {
 		EncryptionKey:         os.Getenv("REVUES_ENCRYPTION_KEY"),
 		GitHubClientID:        os.Getenv("REVUES_GITHUB_CLIENT_ID"),
 		GitHubClientSecret:    os.Getenv("REVUES_GITHUB_CLIENT_SECRET"),
+		AtlassianClientID:     os.Getenv("REVUES_ATLASSIAN_CLIENT_ID"),
+		AtlassianClientSecret: os.Getenv("REVUES_ATLASSIAN_CLIENT_SECRET"),
 		BootstrapAdminEmail:   os.Getenv("REVUES_BOOTSTRAP_ADMIN_EMAIL"),
 		LoginRequireWhitelist: envBool("REVUES_LOGIN_REQUIRE_WHITELIST"),
 		DevAuth:               envBool("REVUES_DEV_AUTH"),
 		DevAuthEmail:          envOr("REVUES_DEV_AUTH_EMAIL", "admin@example.com"),
 	}
+}
+
+// AtlassianOAuthConfigured reports whether Atlassian 3LO client credentials are set.
+func (c Config) AtlassianOAuthConfigured() bool {
+	return strings.TrimSpace(c.AtlassianClientID) != "" && strings.TrimSpace(c.AtlassianClientSecret) != ""
 }
 
 // Validate rejects unsafe production configuration (fail closed).

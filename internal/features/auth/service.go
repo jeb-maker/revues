@@ -16,10 +16,11 @@ import (
 
 // Service holds auth business logic shared by the JSON API and OAuth redirects.
 type Service struct {
-	Store    AuthStore
-	Sessions *auth.SessionManager
-	GitHub   *auth.GitHubOAuth
-	Config   config.Config
+	Store     AuthStore
+	Sessions  *auth.SessionManager
+	GitHub    *auth.GitHubOAuth
+	Atlassian *auth.AtlassianOAuth
+	Config    config.Config
 }
 
 // LoginResult is returned after a successful local or OAuth login.
@@ -195,6 +196,11 @@ func (s *Service) CompleteGitHubLogin(ctx context.Context, profile *auth.GitHubP
 // GitHubOAuthConfigured reports whether OAuth client credentials are set.
 func (s *Service) GitHubOAuthConfigured() bool {
 	return s.GitHub != nil && s.GitHub.ClientID != "" && s.GitHub.ClientSecret != ""
+}
+
+// AtlassianOAuthConfigured reports whether Atlassian 3LO client credentials are set.
+func (s *Service) AtlassianOAuthConfigured() bool {
+	return s.Config.AtlassianOAuthConfigured() && s.Atlassian != nil
 }
 
 func localLoginFromEmail(email string) string {

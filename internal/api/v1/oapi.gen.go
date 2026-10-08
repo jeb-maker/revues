@@ -254,7 +254,9 @@ type AuthSuccessResponse struct {
 
 // BootstrapResponse defines model for BootstrapResponse.
 type BootstrapResponse struct {
-	Authenticated bool `json:"authenticated"`
+	// AtlassianOauthEnabled true si REVUES_ATLASSIAN_CLIENT_ID/SECRET sont configurés
+	AtlassianOauthEnabled bool `json:"atlassian_oauth_enabled"`
+	Authenticated         bool `json:"authenticated"`
 
 	// CsrfToken Jeton CSRF à envoyer en header X-CSRF-Token sur les mutations
 	CsrfToken string `json:"csrf_token"`
@@ -452,10 +454,30 @@ type LoginRequest struct {
 	Password string              `json:"password"`
 }
 
+// MeAtlassian defines model for MeAtlassian.
+type MeAtlassian struct {
+	// AccountEmail Email Atlassian (si disponible)
+	AccountEmail string `json:"account_email"`
+
+	// CloudId cloudId Atlassian (vide si non connecté)
+	CloudId string `json:"cloud_id"`
+
+	// Connected true si l'utilisateur a des tokens Atlassian stockés
+	Connected bool `json:"connected"`
+
+	// Enabled true si OAuth Atlassian est configuré côté serveur
+	Enabled bool `json:"enabled"`
+
+	// SiteUrl URL du site Atlassian lié (vide si non connecté)
+	SiteUrl string `json:"site_url"`
+}
+
 // MeResponse defines model for MeResponse.
 type MeResponse struct {
-	CsrfToken string `json:"csrf_token"`
-	User      User   `json:"user"`
+	// AtlassianOauthEnabled true si REVUES_ATLASSIAN_CLIENT_ID/SECRET sont configurés
+	AtlassianOauthEnabled bool   `json:"atlassian_oauth_enabled"`
+	CsrfToken             string `json:"csrf_token"`
+	User                  User   `json:"user"`
 }
 
 // MyTask defines model for MyTask.
@@ -687,10 +709,13 @@ type RunItemEvent struct {
 
 // RunItemJira defines model for RunItemJira.
 type RunItemJira struct {
-	// CanCreate true si nok, configuré, pas déjà lié, project_key présent
+	// AtlassianOauthEnabled true si REVUES_ATLASSIAN_CLIENT_ID/SECRET sont configurés
+	AtlassianOauthEnabled *bool `json:"atlassian_oauth_enabled,omitempty"`
+
+	// CanCreate true si nok, configuré, pas déjà lié, project_key présent, OAuth OK
 	CanCreate *bool `json:"can_create,omitempty"`
 
-	// CanLink true si l'utilisateur peut lier/créer (contributeur+)
+	// CanLink true si l'utilisateur peut lier/créer (contributeur+ et OAuth connecté si requis)
 	CanLink    bool `json:"can_link"`
 	Configured bool `json:"configured"`
 
@@ -700,6 +725,12 @@ type RunItemJira struct {
 	// DefaultTitle Titre prérempli pour création (si nok)
 	DefaultTitle *string   `json:"default_title,omitempty"`
 	Link         *JiraLink `json:"link"`
+
+	// OauthRequired true si OAuth est activé et l'utilisateur n'est pas connecté
+	OauthRequired *bool `json:"oauth_required,omitempty"`
+
+	// UserOauthConnected true si l'utilisateur a connecté Atlassian
+	UserOauthConnected *bool `json:"user_oauth_connected,omitempty"`
 }
 
 // RunListResponse defines model for RunListResponse.
@@ -1375,6 +1406,12 @@ type ServerInterface interface {
 	// Utilisateur authentifié courant
 	// (GET /me)
 	GetMe(w http.ResponseWriter, r *http.Request)
+	// Déconnecter le compte Atlassian
+	// (DELETE /me/atlassian)
+	DeleteMeAtlassian(w http.ResponseWriter, r *http.Request)
+	// Statut OAuth Atlassian de l'utilisateur
+	// (GET /me/atlassian)
+	GetMeAtlassian(w http.ResponseWriter, r *http.Request)
 	// Mes tâches assignées
 	// (GET /me/tasks)
 	ListMyTasks(w http.ResponseWriter, r *http.Request, params ListMyTasksParams)
@@ -1723,6 +1760,18 @@ func (_ Unimplemented) GetHealth(w http.ResponseWriter, r *http.Request) {
 // Utilisateur authentifié courant
 // (GET /me)
 func (_ Unimplemented) GetMe(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Déconnecter le compte Atlassian
+// (DELETE /me/atlassian)
+func (_ Unimplemented) DeleteMeAtlassian(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Statut OAuth Atlassian de l'utilisateur
+// (GET /me/atlassian)
+func (_ Unimplemented) GetMeAtlassian(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -2580,6 +2629,34 @@ func (siw *ServerInterfaceWrapper) GetMe(w http.ResponseWriter, r *http.Request)
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetMe(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteMeAtlassian operation middleware
+func (siw *ServerInterfaceWrapper) DeleteMeAtlassian(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteMeAtlassian(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetMeAtlassian operation middleware
+func (siw *ServerInterfaceWrapper) GetMeAtlassian(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetMeAtlassian(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -3880,6 +3957,12 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/me", wrapper.GetMe)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/me/atlassian", wrapper.DeleteMeAtlassian)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/me/atlassian", wrapper.GetMeAtlassian)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/me/tasks", wrapper.ListMyTasks)

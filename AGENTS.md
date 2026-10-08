@@ -134,6 +134,7 @@ Contexte durable pour les agents Cloud (l'update script a déjà installé les d
   - Endpoints JSON : `GET /api/v1/bootstrap` (user + `csrf_token`, pose cookie guest si anonymes), `GET /api/v1/me`, `POST /api/v1/auth/login|register|logout`. OAuth browser : `GET /auth/github/start` + `/auth/github/callback` → redirect SPA `/login` ou `/`.
   - Pages Svelte : `/login`, `/register` (proxy Vite `/api` `/auth` `/static` → `:8080`).
   - Sans `REVUES_GITHUB_CLIENT_ID`/`SECRET`, le bouton GitHub est masqué (`github_oauth_enabled: false`) ; utiliser login/register local.
+  - Atlassian OAuth 3LO (Jira create/link) : `REVUES_ATLASSIAN_CLIENT_ID`/`SECRET` → `GET /auth/atlassian/start` (session requise) + `/callback` ; statut `GET\|DELETE /api/v1/me/atlassian` ; `atlassian_oauth_enabled` dans bootstrap.
   - **Seed session** (sans UI) : `store.UpsertGitHubUser` ou `CreateLocalUser`, puis `store.CreateSession` avec le hash de `auth.RandomToken`, cookie HttpOnly `revues_session=<raw>`. CSRF = HMAC(`session token + REVUES_SESSION_SECRET`) — aussi renvoyé par bootstrap/`me` ; envoyer `X-CSRF-Token` sur chaque mutation API.
   - `REVUES_BOOTSTRAP_ADMIN_EMAIL` : rôle admin au premier login de cet email. `REVUES_DEV_AUTH=1` (hors production, loopback) auto-session + `POST /auth/dev/login` switch user.
   - Invite-only : `REVUES_LOGIN_REQUIRE_WHITELIST=1` refuse register/OAuth hors membre org / invitation / bootstrap (tests sécurité).

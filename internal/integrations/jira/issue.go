@@ -78,7 +78,7 @@ func ValidateBrowseURL(cfg Config, issueURL string) error {
 		return errors.New("URL Jira doit utiliser HTTPS")
 	}
 
-	base, err := url.Parse(NormalizeBaseURL(cfg.BaseURL))
+	base, err := url.Parse(cfg.BrowseBaseURL())
 	if err != nil || base.Host == "" {
 		return errors.New("URL Jira de configuration invalide")
 	}

@@ -317,7 +317,14 @@
 					<mb-alert variant="success">{jiraMessage}</mb-alert>
 				{/if}
 
-				{#if jira?.can_link && jira.configured}
+				{#if jira?.oauth_required}
+					<p>
+						Connectez votre compte Atlassian pour créer ou lier une issue Jira en votre nom.
+					</p>
+					<p>
+						<a href="/settings/atlassian">Connecter Atlassian</a>
+					</p>
+				{:else if jira?.can_link && jira.configured}
 					<form class="stack-form" onsubmit={onLinkJira}>
 						<mb-input
 							label="Clé ou URL Jira"

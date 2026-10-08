@@ -51,23 +51,23 @@ func (c *Client) TestConnection(ctx context.Context, cfg Config) error {
 		return errors.New("configuration Jira incomplète")
 	}
 
-	client := c.httpClient(cfg.BaseURL, 10*time.Second)
+	client := c.httpClient(cfg.APIBaseURL(), 10*time.Second)
 
-	baseURL := NormalizeBaseURL(cfg.BaseURL)
 	var req *http.Request
 	var err error
 
-	switch cfg.InstanceType {
-	case InstanceCloud:
-		req, err = http.NewRequestWithContext(ctx, http.MethodGet, baseURL+cloudMyselfPath, nil)
+	switch {
+	case cfg.UsesOAuth() || cfg.InstanceType == InstanceCloud:
+		req, err = http.NewRequestWithContext(ctx, http.MethodGet, cfg.APIBaseURL()+cloudMyselfPath, nil)
 		if err != nil {
 			return fmt.Errorf("build jira request: %w", err)
 		}
-		token := base64.StdEncoding.EncodeToString([]byte(cfg.Email + ":" + cfg.APIToken))
-		req.Header.Set("Authorization", "Basic "+token)
+		if setErr := c.setAuth(req, cfg); setErr != nil {
+			return setErr
+		}
 		req.Header.Set("Accept", "application/json")
-	case InstanceServer:
-		req, err = http.NewRequestWithContext(ctx, http.MethodGet, baseURL+serverMyselfPath, nil)
+	case cfg.InstanceType == InstanceServer:
+		req, err = http.NewRequestWithContext(ctx, http.MethodGet, cfg.APIBaseURL()+serverMyselfPath, nil)
 		if err != nil {
 			return fmt.Errorf("build jira request: %w", err)
 		}
@@ -100,6 +100,39 @@ func (c *Client) TestConnection(ctx context.Context, cfg Config) error {
 	return nil
 }
 
+// MyselfEmail fetches the authenticated user's email from /myself (OAuth Cloud).
+func (c *Client) MyselfEmail(ctx context.Context, cfg Config) (string, error) {
+	if !cfg.Configured() {
+		return "", errors.New("configuration Jira incomplète")
+	}
+	client := c.httpClient(cfg.APIBaseURL(), 10*time.Second)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, cfg.APIBaseURL()+cloudMyselfPath, nil)
+	if err != nil {
+		return "", fmt.Errorf("build jira myself request: %w", err)
+	}
+	if err := c.setAuth(req, cfg); err != nil {
+		return "", err
+	}
+	req.Header.Set("Accept", "application/json")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("%w: %w", ErrConnectionFailed, err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
+		return "", fmt.Errorf("%w: status %d %s", ErrConnectionFailed, resp.StatusCode, strings.TrimSpace(string(body)))
+	}
+	var myself struct {
+		EmailAddress string `json:"emailAddress"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&myself); err != nil {
+		return "", fmt.Errorf("%w: invalid response", ErrConnectionFailed)
+	}
+	return strings.TrimSpace(myself.EmailAddress), nil
+}
+
 // IssueInfo is a minimal Jira issue snapshot (key + workflow status).
 type IssueInfo struct {
 	Key    string
@@ -121,9 +154,8 @@ func (c *Client) GetIssueInfo(ctx context.Context, cfg Config, key string) (Issu
 		return IssueInfo{}, errors.New("configuration Jira incomplète")
 	}
 
-	client := c.httpClient(cfg.BaseURL, 10*time.Second)
+	client := c.httpClient(cfg.APIBaseURL(), 10*time.Second)
 
-	baseURL := NormalizeBaseURL(cfg.BaseURL)
 	issueKey := strings.ToUpper(strings.TrimSpace(key))
 	if issueKey == "" {
 		return IssueInfo{}, ErrIssueNotFound
@@ -132,18 +164,19 @@ func (c *Client) GetIssueInfo(ctx context.Context, cfg Config, key string) (Issu
 	var req *http.Request
 	var err error
 
-	switch cfg.InstanceType {
-	case InstanceCloud:
-		u := baseURL + cloudIssuePath + url.PathEscape(issueKey) + "?fields=status"
+	switch {
+	case cfg.UsesOAuth() || cfg.InstanceType == InstanceCloud:
+		u := cfg.APIBaseURL() + cloudIssuePath + url.PathEscape(issueKey) + "?fields=status"
 		req, err = http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
 		if err != nil {
 			return IssueInfo{}, fmt.Errorf("build jira issue request: %w", err)
 		}
-		token := base64.StdEncoding.EncodeToString([]byte(cfg.Email + ":" + cfg.APIToken))
-		req.Header.Set("Authorization", "Basic "+token)
+		if setErr := c.setAuth(req, cfg); setErr != nil {
+			return IssueInfo{}, setErr
+		}
 		req.Header.Set("Accept", "application/json")
-	case InstanceServer:
-		u := baseURL + serverIssuePath + url.PathEscape(issueKey) + "?fields=status"
+	case cfg.InstanceType == InstanceServer:
+		u := cfg.APIBaseURL() + serverIssuePath + url.PathEscape(issueKey) + "?fields=status"
 		req, err = http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
 		if err != nil {
 			return IssueInfo{}, fmt.Errorf("build jira issue request: %w", err)
@@ -208,14 +241,14 @@ func (c *Client) CreateIssue(ctx context.Context, cfg Config, input CreateIssueI
 		issueType = DefaultIssueType
 	}
 
-	client := c.httpClient(cfg.BaseURL, 15*time.Second)
+	client := c.httpClient(cfg.APIBaseURL(), 15*time.Second)
 
-	baseURL := NormalizeBaseURL(cfg.BaseURL)
 	var body []byte
 	var err error
+	useCloudAPI := cfg.UsesOAuth() || cfg.InstanceType == InstanceCloud
 
-	switch cfg.InstanceType {
-	case InstanceCloud:
+	switch {
+	case useCloudAPI:
 		body, err = json.Marshal(map[string]any{
 			"fields": map[string]any{
 				"project":     map[string]string{"key": projectKey},
@@ -224,7 +257,7 @@ func (c *Client) CreateIssue(ctx context.Context, cfg Config, input CreateIssueI
 				"issuetype":   map[string]string{"name": issueType},
 			},
 		})
-	case InstanceServer:
+	case cfg.InstanceType == InstanceServer:
 		body, err = json.Marshal(map[string]any{
 			"fields": map[string]any{
 				"project":     map[string]string{"key": projectKey},
@@ -240,27 +273,19 @@ func (c *Client) CreateIssue(ctx context.Context, cfg Config, input CreateIssueI
 		return "", fmt.Errorf("marshal jira create payload: %w", err)
 	}
 
-	var issuePath string
-	switch cfg.InstanceType {
-	case InstanceCloud:
-		issuePath = cloudIssuePath
-	case InstanceServer:
+	issuePath := cloudIssuePath
+	if cfg.InstanceType == InstanceServer && !cfg.UsesOAuth() {
 		issuePath = serverIssuePath
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, baseURL+issuePath, bytes.NewReader(body))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, cfg.APIBaseURL()+issuePath, bytes.NewReader(body))
 	if err != nil {
 		return "", fmt.Errorf("build jira create request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
-
-	switch cfg.InstanceType {
-	case InstanceCloud:
-		token := base64.StdEncoding.EncodeToString([]byte(cfg.Email + ":" + cfg.APIToken))
-		req.Header.Set("Authorization", "Basic "+token)
-	case InstanceServer:
-		req.Header.Set("Authorization", "Bearer "+cfg.PAT)
+	if setErr := c.setAuth(req, cfg); setErr != nil {
+		return "", setErr
 	}
 
 	resp, err := client.Do(req)
@@ -284,6 +309,24 @@ func (c *Client) CreateIssue(ctx context.Context, cfg Config, input CreateIssueI
 		return "", fmt.Errorf("%w: missing issue key", ErrCreateFailed)
 	}
 	return strings.ToUpper(created.Key), nil
+}
+
+func (c *Client) setAuth(req *http.Request, cfg Config) error {
+	if cfg.UsesOAuth() {
+		req.Header.Set("Authorization", "Bearer "+cfg.AccessToken)
+		return nil
+	}
+	switch cfg.InstanceType {
+	case InstanceCloud:
+		token := base64.StdEncoding.EncodeToString([]byte(cfg.Email + ":" + cfg.APIToken))
+		req.Header.Set("Authorization", "Basic "+token)
+		return nil
+	case InstanceServer:
+		req.Header.Set("Authorization", "Bearer "+cfg.PAT)
+		return nil
+	default:
+		return errors.New("type d'instance Jira invalide")
+	}
 }
 
 func cloudDescriptionADF(text string) map[string]any {
